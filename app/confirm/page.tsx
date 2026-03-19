@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   description: "Confirm your spot on the Pulse waitlist.",
 };
 
+
 interface ConfirmPageProps {
   searchParams: Promise<{ token?: string }>;
 }
