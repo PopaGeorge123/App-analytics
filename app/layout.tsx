@@ -18,7 +18,7 @@ const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "https://pulse.so";
 export const metadata: Metadata = {
   title: "Pulse — AI Business Intelligence for Founders",
   description:
-    "Pulse connects to Stripe, Mailchimp, PostHog, and your ad platforms — then uses AI to tell you exactly what's happening, what went wrong, and what to do next to grow revenue.",
+    "Pulse connects to Stripe, Mailchimp, PostHog, and your ad platforms then uses AI to tell you exactly what's happening, what went wrong, and what to do next to grow revenue.",
   metadataBase: new URL(baseUrl),
   openGraph: {
     type: "website",

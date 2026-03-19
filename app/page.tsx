@@ -317,8 +317,8 @@ export default function Home() {
               </h1>
 
               <p className="mb-8 max-w-lg text-base leading-relaxed text-[#8888aa] sm:text-lg">
-                Pulse connects to Stripe, Mailchimp, PostHog, and your ad
-                platforms — then uses AI to tell you exactly what&apos;s
+                Pulse connects to Stripe, Mailchimp, PostHog, and other
+                platforms then uses AI to tell you exactly what&apos;s
                 happening, what went wrong, and what to do next to grow
                 revenue.
               </p>
