@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "https://pulse.so";
+const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "https://usefold.io/";
 
 export const metadata: Metadata = {
   icons: {

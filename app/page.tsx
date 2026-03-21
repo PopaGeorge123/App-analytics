@@ -191,7 +191,7 @@ const features = [
     icon: AlertTriangle,
     title: "Anomaly Detection",
     description:
-      "Unusual churn? Drop in engagement? Pulse catches it before it costs you — and explains why.",
+      "Unusual churn? Drop in engagement? Fold catches it before it costs you — and explains why.",
   },
   {
     icon: Target,
@@ -313,7 +313,7 @@ export default function Home() {
               </h1>
 
               <p className="mb-8 max-w-lg text-base leading-relaxed text-[#8888aa] sm:text-lg">
-                Pulse connects to Stripe, Mailchimp, PostHog, and other
+                Fold connects to Stripe, Mailchimp, PostHog, and other
                 platforms then uses AI to tell you exactly what&apos;s
                 happening, what went wrong, and what to do next to grow
                 revenue.
@@ -482,7 +482,7 @@ export default function Home() {
             Start knowing.
           </h2>
           <p className="mb-10 text-lg text-[#8888aa]">
-            Be the first to know when Pulse launches. No commitment — just early
+            Be the first to know when Fold launches. No commitment — just early
             access.
           </p>
           <div className="flex justify-center">
@@ -525,7 +525,7 @@ export default function Home() {
 
           <div className="mt-8 border-t border-[#1e1e2e] pt-8">
             <p className="font-mono text-[11px] text-[#2a2a4a]">
-              © 2026 Pulse. Built for small business founders.
+              © 2026 Fold. Built for small business founders.
             </p>
           </div>
         </div>

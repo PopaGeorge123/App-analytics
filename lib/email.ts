@@ -16,7 +16,7 @@ function createTransporter() {
 export async function sendConfirmationEmail(email: string, token: string) {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
   const confirmUrl = `${baseUrl}/confirm?token=${token}`;
-  const fromName = process.env.SMTP_FROM_NAME ?? "Pulse";
+  const fromName = process.env.SMTP_FROM_NAME ?? "Fold Team";
   const fromEmail = process.env.SMTP_FROM_EMAIL ?? process.env.SMTP_USER ?? "";
 
   const html = `
@@ -25,7 +25,7 @@ export async function sendConfirmationEmail(email: string, token: string) {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Confirm your Pulse waitlist spot</title>
+  <title>Confirm your Fold waitlist spot</title>
 </head>
 <body style="margin:0;padding:0;background-color:#0a0a0f;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#0a0a0f;padding:40px 20px;">
@@ -52,7 +52,7 @@ export async function sendConfirmationEmail(email: string, token: string) {
               <h1 style="margin:0 0 24px;font-size:26px;font-weight:700;color:#f0f0f5;line-height:1.3;">Confirm your waitlist spot</h1>
               <p style="margin:0 0 16px;font-size:16px;color:#8888aa;line-height:1.7;">Hi there,</p>
               <p style="margin:0 0 16px;font-size:16px;color:#8888aa;line-height:1.7;">
-                Thanks for your interest in <strong style="color:#f0f0f5;">Pulse</strong> — the AI-powered business dashboard built for founders like you.
+                Thanks for your interest in <strong style="color:#f0f0f5;">Fold</strong> — the AI-powered business dashboard built for founders like you.
               </p>
               <p style="margin:0 0 32px;font-size:16px;color:#8888aa;line-height:1.7;">
                 Click the button below to confirm your spot on the waitlist. We'll reach out as soon as we're ready to onboard early users.
@@ -88,7 +88,7 @@ export async function sendConfirmationEmail(email: string, token: string) {
           <tr>
             <td style="padding:0 8px;">
               <p style="margin:0;font-size:12px;color:#2a2a3a;text-align:center;">
-                &copy; 2026 Pulse. Built for small business founders.
+                &copy; 2026 Fold. Built for small business founders.
               </p>
             </td>
           </tr>
@@ -112,7 +112,7 @@ export async function sendConfirmationEmail(email: string, token: string) {
   return await transporter.sendMail({
     from: `"${fromName}" <${fromEmail}>`,
     to: email,
-    subject: "Confirm your spot on the Pulse waitlist",
+    subject: "Confirm your spot on the Fold waitlist",
     html,
   });
 }

@@ -3,8 +3,8 @@ import Link from "next/link";
 import { supabase } from "@/lib/db";
 
 export const metadata: Metadata = {
-  title: "Confirm your spot — Pulse",
-  description: "Confirm your spot on the Pulse waitlist.",
+  title: "Confirm your spot — Fold Waitlist",
+  description: "Confirm your spot on the Fold waitlist.",
 };
 
 
@@ -39,10 +39,10 @@ async function confirmToken(token: string): Promise<ConfirmResult> {
 }
 
 const shareText = encodeURIComponent(
-  "Just joined the waitlist for Pulse — an AI-powered business dashboard for founders that connects Stripe, Mailchimp, PostHog, and your ad platforms. Looks really promising 👀"
+  "Just joined the waitlist for Fold — an AI-powered business dashboard for founders that connects Stripe, Mailchimp, PostHog, and your ad platforms. Looks really promising 👀"
 );
 const shareUrl = encodeURIComponent(
-  process.env.NEXT_PUBLIC_BASE_URL ?? "https://pulse.so"
+  process.env.NEXT_PUBLIC_BASE_URL ?? "http://www.usefold.io/"
 );
 
 export default async function ConfirmPage({ searchParams }: ConfirmPageProps) {
@@ -79,7 +79,7 @@ export default async function ConfirmPage({ searchParams }: ConfirmPageProps) {
             You&apos;re in.&nbsp;🎉
           </h1>
           <p className="mb-10 text-base leading-relaxed text-[#8888aa]">
-            Your spot is confirmed. We&apos;ll email you when Pulse is ready for early access.
+            Your spot is confirmed. We&apos;ll email you when Fold is ready for early access.
           </p>
 
           {/* Share prompt */}
@@ -87,7 +87,7 @@ export default async function ConfirmPage({ searchParams }: ConfirmPageProps) {
             <p className="mb-4 font-mono text-xs font-semibold uppercase tracking-wider text-[#4a4a6a]">
               Know a founder who&apos;d love this?
             </p>
-            <p className="mb-5 text-sm text-[#8888aa]">Share Pulse with your network:</p>
+            <p className="mb-5 text-sm text-[#8888aa]">Share Fold with your network:</p>
             <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
               <a
                 href={`https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`}
@@ -147,7 +147,7 @@ export default async function ConfirmPage({ searchParams }: ConfirmPageProps) {
             You&apos;re already on the list!
           </h1>
           <p className="mb-8 text-[#8888aa]">
-            Your spot is already confirmed. We&apos;ll be in touch when Pulse launches.
+            Your spot is already confirmed. We&apos;ll be in touch when Fold launches.
           </p>
           <Link
             href="/"
