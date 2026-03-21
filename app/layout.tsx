@@ -16,32 +16,35 @@ const geistMono = Geist_Mono({
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "https://pulse.so";
 
 export const metadata: Metadata = {
-  title: "Pulse — AI Business Intelligence for Founders",
+  icons: {
+    icon: "/fold-icon.svg",
+  },
+  title: "Fold — AI Business Intelligence for Founders",
   description:
-    "Pulse connects to Stripe, Mailchimp, PostHog, and your ad platforms then uses AI to tell you exactly what's happening, what went wrong, and what to do next to grow revenue.",
+    "Fold connects to Stripe, Mailchimp, PostHog, and your ad platforms then uses AI to tell you exactly what's happening, what went wrong, and what to do next to grow revenue.",
   metadataBase: new URL(baseUrl),
   openGraph: {
     type: "website",
     url: baseUrl,
-    title: "Pulse — AI Business Intelligence for Founders",
+    title: "Fold — AI Business Intelligence for Founders",
     description:
       "Your entire business, understood in seconds. AI-powered dashboard that connects Stripe, Mailchimp, PostHog, Meta Ads & Google Ads.",
-    siteName: "Pulse",
+    siteName: "Fold",
     images: [
       {
-        url: "/og-image.png",
+        url: "/fold-primary-dark.svg",
         width: 1200,
         height: 630,
-        alt: "Pulse — AI Business Intelligence Dashboard",
+        alt: "Fold — AI Business Intelligence Dashboard",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Pulse — AI Business Intelligence for Founders",
+    title: "Fold — AI Business Intelligence for Founders",
     description:
       "Your entire business, understood in seconds. AI-powered dashboard for founders.",
-    images: ["/og-image.png"],
+    images: ["/fold-primary-dark.svg"],
   },
 };
 

@@ -38,7 +38,7 @@ export async function sendConfirmationEmail(email: string, token: string) {
               <table cellpadding="0" cellspacing="0">
                 <tr>
                   <td>
-                    <span style="font-family:'Courier New',monospace;font-size:20px;font-weight:700;color:#00d4aa;letter-spacing:-0.5px;">PULSE</span>
+                    <span style="font-family:'Courier New',monospace;font-size:20px;font-weight:700;color:#00d4aa;letter-spacing:-0.5px;">Fold</span>
                     <span style="display:block;font-size:11px;color:#4a4a6a;margin-top:2px;font-family:'Courier New',monospace;letter-spacing:1px;">AI BUSINESS INTELLIGENCE</span>
                   </td>
                 </tr>

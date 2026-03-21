@@ -91,7 +91,7 @@ function DashboardMockup() {
           <div className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
           <div className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
           <span className="ml-3 font-mono text-[10px] tracking-widest text-[#2a2a4a] uppercase">
-            pulse / dashboard
+            Fold / dashboard
           </span>
           <div className="ml-auto flex items-center gap-1">
             <span className="h-1.5 w-1.5 rounded-full bg-[#00d4aa] animate-pulse" />
@@ -185,7 +185,7 @@ const features = [
     icon: Zap,
     title: "AI Daily Digest",
     description:
-      "Every morning, Pulse tells you what changed, what matters, and what to do. Like a CFO in your inbox.",
+      "Every morning, Fold tells you what changed, what matters, and what to do. Like a CFO in your inbox.",
   },
   {
     icon: AlertTriangle,
@@ -230,7 +230,7 @@ const steps = [
   {
     title: "Let AI do the analysis",
     description:
-      "Pulse surfaces anomalies, explains trends in plain English, and gives you prioritized objectives to increase revenue — updated daily.",
+      "Fold surfaces anomalies, explains trends in plain English, and gives you prioritized objectives to increase revenue — updated daily.",
   },
 ];
 
@@ -259,14 +259,10 @@ function Nav() {
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         {/* Logo */}
         <div>
-          <span className="font-mono text-lg font-bold tracking-tight text-[#f0f0f5]">
-            PULSE
-          </span>
-          <span className="ml-2 hidden font-mono text-[10px] uppercase tracking-widest text-[#4a4a6a] sm:inline">
-            AI Business Intelligence
-          </span>
+          <img src="/fold-primary-dark.svg" alt="Fold Logo" 
+            className="h-10 w-auto"
+          />
         </div>
-
         {/* CTA */}
         <a
           href="#waitlist"
@@ -501,10 +497,9 @@ export default function Home() {
       <footer className="border-t border-[#1e1e2e] px-6 py-12">
         <div className="mx-auto max-w-6xl">
           <div className="flex flex-col items-start justify-between gap-8 sm:flex-row sm:items-center">
-            {/* Logo + description */}
             <div>
-              <p className="mb-1 font-mono text-sm font-bold text-[#f0f0f5]">PULSE</p>
-              <p className="text-xs text-[#4a4a6a]">
+              <img src="/fold-primary-dark.svg" alt="Fold Logo" className="h-10 w-auto" />
+              <p className="text-xs text-[#4a4a6a] mt-2">
                 AI-powered business intelligence for small business founders.
               </p>
             </div>
