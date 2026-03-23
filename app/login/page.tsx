@@ -47,17 +47,12 @@ export default function LoginPage() {
         <div className="h-125 w-125 rounded-full bg-[#00d4aa]/4 blur-3xl" />
       </div>
 
-      <div className="relative w-full max-w-md">
+      <div className="relative w-full max-w-md mx-auto">
         {/* Logo */}
-        <div className="mb-10 text-center">
+        <div className="mb-10 text-center w-full flex items-center justify-center">
           <Link href="/">
-            <span className="font-mono text-2xl font-bold tracking-tight text-[#f0f0f5]">
-              FOLD
-            </span>
+            <img src="/fold-primary-dark.svg" alt="Fold Logo" className="mx-auto h-12 w-auto" />
           </Link>
-          <p className="mt-1 font-mono text-[10px] uppercase tracking-widest text-[#4a4a6a]">
-            AI Business Intelligence
-          </p>
         </div>
 
         {/* Card */}

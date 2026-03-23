@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import Link from "next/link";
+import { createServiceClient } from "@/lib/supabase/service";
+import { daysAgo } from "@/lib/utils/dates";
+import DashboardShell from "./_components/DashboardShell";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -8,8 +10,41 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Fallback — middleware should catch this first
   if (!user) redirect("/login");
+
+  // Fetch premium status from public.users (Supabase)
+  const { data: dbUser } = await supabase
+    .from("users")
+    .select("is_premium")
+    .eq("id", user.id)
+    .single();
+
+  const isPremium = dbUser?.is_premium === true;
+
+  const db = createServiceClient();
+
+  // Fetch connected integrations
+  const { data: integrations } = await db
+    .from("integrations")
+    .select("platform, connected_at")
+    .eq("user_id", user.id);
+
+  const connectedPlatforms = (integrations ?? []).map((i) => i.platform);
+
+  // Fetch last 180 days of snapshots across all providers (Analytics needs broad range)
+  const { data: rawSnapshots } = await db
+    .from("daily_snapshots")
+    .select("id, provider, date, data")
+    .eq("user_id", user.id)
+    .gte("date", daysAgo(180))
+    .order("date", { ascending: true });
+
+  const snapshots = (rawSnapshots ?? []).map((s) => ({
+    id: s.id,
+    provider: s.provider,
+    date: s.date,
+    data: s.data,
+  }));
 
   async function signOut() {
     "use server";
@@ -20,20 +55,24 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-[#0a0a0f] text-[#f0f0f5]">
-      {/* Top bar */}
-      <header className="border-b border-[#1e1e2e] bg-[#0d0d16]/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+      {/* ── Top bar ──────────────────────────────────────── */}
+      <header className="sticky top-0 z-40 border-b border-[#1e1e2e] bg-[#0d0d16]/90 backdrop-blur-md">
+        <div className="flex items-center justify-between px-6 py-3.5">
           <div className="flex items-center gap-3">
-            <span className="font-mono text-lg font-bold text-[#f0f0f5]">FOLD</span>
+            <img src="/fold-icon.svg" alt="Fold" className="h-7 w-auto" />
             <span className="hidden font-mono text-[10px] uppercase tracking-widest text-[#4a4a6a] sm:block">
               Dashboard
             </span>
           </div>
 
           <div className="flex items-center gap-4">
-            <span className="hidden text-xs text-[#4a4a6a] sm:block">
-              {user.email}
-            </span>
+            {isPremium && (
+              <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-[#00d4aa]/20 bg-[#00d4aa]/8 px-3 py-1 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#00d4aa]">
+                <span className="h-1 w-1 rounded-full bg-[#00d4aa] animate-pulse" />
+                Premium
+              </span>
+            )}
+            <span className="hidden text-xs text-[#4a4a6a] sm:block">{user.email}</span>
             <form action={signOut}>
               <button
                 type="submit"
@@ -46,63 +85,13 @@ export default async function DashboardPage() {
         </div>
       </header>
 
-      {/* Main content */}
-      <main className="flex flex-1 flex-col items-center justify-center px-6 py-24">
-        <div className="relative max-w-2xl w-full text-center">
-          {/* Glow */}
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-            <div className="h-96 w-96 rounded-full bg-[#00d4aa]/5 blur-3xl" />
-          </div>
-
-          <div className="relative">
-            {/* Status badge */}
-            <div className="mx-auto mb-8 inline-flex items-center gap-2 rounded-full border border-[#00d4aa]/20 bg-[#00d4aa]/8 px-4 py-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#00d4aa] animate-pulse" />
-              <span className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#00d4aa]">
-                Coming soon
-              </span>
-            </div>
-
-            <h1 className="mb-4 font-mono text-4xl font-bold text-[#f0f0f5]">
-              Dashboard coming soon
-            </h1>
-
-            <p className="mb-10 text-base leading-relaxed text-[#8888aa]">
-              You&apos;re signed in as{" "}
-              <span className="font-semibold text-[#f0f0f5]">{user.email}</span>.
-              <br />
-              We&apos;re connecting Stripe, Mailchimp, PostHog, and your ad platforms.
-            </p>
-
-            {/* Placeholder metric tiles */}
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 mb-8">
-              {[
-                { label: "MRR", value: "—" },
-                { label: "Churn", value: "—" },
-                { label: "Open Rate", value: "—" },
-                { label: "CAC", value: "—" },
-              ].map((m) => (
-                <div
-                  key={m.label}
-                  className="rounded-xl border border-[#1e1e2e] bg-[#12121a] p-4"
-                >
-                  <p className="mb-2 font-mono text-[9px] uppercase tracking-widest text-[#4a4a6a]">
-                    {m.label}
-                  </p>
-                  <p className="font-mono text-2xl font-bold text-[#2a2a4a]">{m.value}</p>
-                </div>
-              ))}
-            </div>
-
-            <Link
-              href="/"
-              className="text-sm text-[#4a4a6a] underline-offset-4 hover:text-[#8888aa] hover:underline"
-            >
-              ← Back to home
-            </Link>
-          </div>
-        </div>
-      </main>
+      {/* ── Sidebar + content ────────────────────────────── */}
+      <DashboardShell
+        email={user.email!}
+        isPremium={isPremium}
+        connectedPlatforms={connectedPlatforms}
+        snapshots={snapshots}
+      />
     </div>
   );
 }

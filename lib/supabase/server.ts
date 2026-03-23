@@ -1,12 +1,11 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import type { Database } from "@/lib/supabase/types";
 
-// Server-side Supabase client — folosit în Server Components, Route Handlers, Server Actions
+// Server-side Supabase client — used in Server Components, Route Handlers, Server Actions
 export async function createClient() {
   const cookieStore = await cookies();
 
-  return createServerClient<Database>(
+  return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -20,7 +19,7 @@ export async function createClient() {
               cookieStore.set(name, value, options)
             );
           } catch {
-            // setAll poate fi apelat din Server Components — ignorăm eroarea
+            // setAll can be called from Server Components — ignore the error
           }
         },
       },

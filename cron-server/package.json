@@ -1,0 +1,20 @@
+{
+  "name": "fold-cron-server",
+  "version": "1.0.0",
+  "description": "Standalone cron server for Fold data pipeline",
+  "main": "index.js",
+  "scripts": {
+    "start": "node --require ts-node/register index.ts",
+    "dev": "ts-node index.ts"
+  },
+  "dependencies": {
+    "dotenv": "^16.0.0",
+    "node-cron": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/node-cron": "^3.0.0",
+    "ts-node": "^10.0.0",
+    "typescript": "^5.0.0"
+  }
+}
