@@ -46,6 +46,29 @@ export default async function DashboardPage() {
     data: s.data,
   }));
 
+  // Fetch website profile + tasks
+  const { data: websiteProfile } = await db
+    .from("website_profiles")
+    .select("url, score, analysis_status, description, last_scanned_at, analysis_error")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const { data: websiteTasks } = await db
+    .from("website_tasks")
+    .select("id, title, description, category, impact_score, completed, completed_at")
+    .eq("user_id", user.id)
+    .order("completed", { ascending: true })
+    .order("impact_score", { ascending: false });
+
+  const websiteData = {
+    url: websiteProfile?.url ?? null,
+    score: websiteProfile?.score ?? 0,
+    status: (websiteProfile?.analysis_status ?? "idle") as "idle" | "analyzing" | "done" | "error",
+    summary: websiteProfile?.description ?? null,
+    lastScanned: websiteProfile?.last_scanned_at ?? null,
+    tasks: websiteTasks ?? [],
+  };
+
   async function signOut() {
     "use server";
     const supabase = await createClient();
@@ -54,12 +77,15 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#0a0a0f] text-[#f0f0f5]">
+    <div className="flex h-screen flex-col overflow-hidden bg-[#0a0a0f] text-[#f0f0f5]">
       {/* ── Top bar ──────────────────────────────────────── */}
       <header className="sticky top-0 z-40 border-b border-[#1e1e2e] bg-[#0d0d16]/90 backdrop-blur-md">
         <div className="flex items-center justify-between px-6 py-3.5">
           <div className="flex items-center gap-3">
-            <img src="/fold-icon.svg" alt="Fold" className="h-7 w-auto" />
+            
+            <a href="/">
+              <img src="/fold-icon.svg" alt="Fold" className="h-7 w-auto" />
+            </a>
             <span className="hidden font-mono text-[10px] uppercase tracking-widest text-[#4a4a6a] sm:block">
               Dashboard
             </span>
@@ -91,6 +117,7 @@ export default async function DashboardPage() {
         isPremium={isPremium}
         connectedPlatforms={connectedPlatforms}
         snapshots={snapshots}
+        websiteData={websiteData}
       />
     </div>
   );

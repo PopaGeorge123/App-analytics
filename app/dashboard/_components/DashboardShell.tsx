@@ -5,8 +5,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import OverviewTab from "./OverviewTab";
 import AnalyticsTab from "./AnalyticsTab";
 import SettingsTab from "./SettingsTab";
+import WebsiteTab from "./WebsiteTab";
+import AiTab from "./AiTab";
 
-export type Tab = "overview" | "analytics" | "settings";
+export type Tab = "overview" | "analytics" | "website" | "ai" | "settings";
 
 export interface Snapshot {
   id: string;
@@ -15,11 +17,29 @@ export interface Snapshot {
   data: unknown;
 }
 
+interface WebsiteData {
+  url: string | null;
+  score: number;
+  status: "idle" | "analyzing" | "done" | "error";
+  summary: string | null;
+  lastScanned: string | null;
+  tasks: {
+    id: string;
+    title: string;
+    description: string;
+    category: string;
+    impact_score: number;
+    completed: boolean;
+    completed_at?: string | null;
+  }[];
+}
+
 interface DashboardShellProps {
   email: string;
   isPremium: boolean;
   connectedPlatforms: string[];
   snapshots: Snapshot[];
+  websiteData: WebsiteData;
 }
 
 const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
@@ -38,6 +58,24 @@ const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
     icon: (
       <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z" />
+      </svg>
+    ),
+  },
+  {
+    id: "website",
+    label: "Website",
+    icon: (
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253M3 12c0 .778.099 1.533.284 2.253" />
+      </svg>
+    ),
+  },
+  {
+    id: "ai" as Tab,
+    label: "AI Advisor",
+    icon: (
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
       </svg>
     ),
   },
@@ -61,7 +99,7 @@ export default function DashboardShell(props: DashboardShellProps) {
   );
 }
 
-function DashboardShellInner({ email, isPremium, connectedPlatforms, snapshots }: DashboardShellProps) {
+function DashboardShellInner({ email, isPremium, connectedPlatforms, snapshots, websiteData }: DashboardShellProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<Tab>("overview");
@@ -70,7 +108,7 @@ function DashboardShellInner({ email, isPremium, connectedPlatforms, snapshots }
   // Sync tab from URL query param
   useEffect(() => {
     const tab = searchParams.get("tab") as Tab | null;
-    if (tab && ["overview", "analytics", "settings"].includes(tab)) {
+    if (tab && ["overview", "analytics", "website", "ai", "settings"].includes(tab)) {
       setActiveTab(tab);
     }
   }, [searchParams]);
@@ -82,7 +120,7 @@ function DashboardShellInner({ email, isPremium, connectedPlatforms, snapshots }
   }
 
   return (
-    <div className="flex flex-1">
+    <div className="flex flex-1 overflow-hidden">
       {/* ── Mobile overlay ─────────────────────────────────── */}
       {sidebarOpen && (
         <div
@@ -97,7 +135,7 @@ function DashboardShellInner({ email, isPremium, connectedPlatforms, snapshots }
           fixed top-14 left-0 z-30 h-[calc(100vh-56px)] w-56 shrink-0 border-r border-[#1e1e2e] bg-[#0d0d16]
           transform transition-transform duration-200
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
-          lg:relative lg:top-0 lg:h-auto lg:translate-x-0 lg:block
+          lg:relative lg:top-0 lg:h-full lg:translate-x-0 lg:block
         `}
       >
         <nav className="flex flex-col gap-1 p-4">
@@ -156,6 +194,8 @@ function DashboardShellInner({ email, isPremium, connectedPlatforms, snapshots }
               isPremium={isPremium}
               connectedPlatforms={connectedPlatforms}
               snapshots={snapshots}
+              websiteData={websiteData}
+              onNavigate={navigate}
             />
           )}
           {activeTab === "analytics" && (
@@ -164,6 +204,20 @@ function DashboardShellInner({ email, isPremium, connectedPlatforms, snapshots }
               connectedPlatforms={connectedPlatforms}
               snapshots={snapshots}
             />
+          )}
+          {activeTab === "website" && (
+            <WebsiteTab
+              isPremium={isPremium}
+              initialUrl={websiteData.url}
+              initialScore={websiteData.score}
+              initialStatus={websiteData.status}
+              initialSummary={websiteData.summary}
+              initialLastScanned={websiteData.lastScanned}
+              initialTasks={websiteData.tasks}
+            />
+          )}
+          {activeTab === "ai" && (
+            <AiTab isPremium={isPremium} />
           )}
           {activeTab === "settings" && (
             <SettingsTab

@@ -54,6 +54,7 @@ export async function POST() {
     cancel_url: `${baseUrl}/dashboard?tab=overview`,
     metadata: { supabase_user_id: user.id },
     subscription_data: {
+      trial_period_days: 3,
       metadata: { supabase_user_id: user.id },
     },
   });

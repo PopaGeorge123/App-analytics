@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { Snapshot } from "./DashboardShell";
+import OverviewSection from "./OverviewSection";
 
 interface AnalyticsTabProps {
   isPremium: boolean;
@@ -298,22 +299,21 @@ function LockScreen() {
 
 // ── Main component ────────────────────────────────────────────────────────
 
-type PlatformTab = "stripe" | "ga4" | "meta";
+type PlatformTab = "overview" | "stripe" | "ga4" | "meta";
 
 const PLATFORM_LABELS: Record<PlatformTab, string> = {
+  overview: "📊 Overview",
   stripe: "Stripe",
   ga4: "Google Analytics",
   meta: "Meta Ads",
 };
 
 export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots }: AnalyticsTabProps) {
-  const availablePlatforms = (["stripe", "ga4", "meta"] as PlatformTab[]).filter((p) =>
+  const availablePlatforms = (["stripe", "ga4", "meta"] as Exclude<PlatformTab, "overview">[]).filter((p) =>
     connectedPlatforms.includes(p)
   );
 
-  const [activeSection, setActiveSection] = useState<PlatformTab | null>(
-    availablePlatforms[0] ?? null
-  );
+  const [activeSection, setActiveSection] = useState<PlatformTab>("overview");
 
   const snapshotsByPlatform = useMemo(() => {
     const map: Record<string, Snapshot[]> = { stripe: [], ga4: [], meta: [] };
@@ -351,6 +351,18 @@ export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots 
         <>
           {/* Platform tabs */}
           <div className="mb-6 flex gap-2 border-b border-[#1e1e2e]">
+            {/* Overview tab — always visible */}
+            <button
+              onClick={() => setActiveSection("overview")}
+              className={`pb-3 px-1 font-mono text-xs font-semibold uppercase tracking-widest transition-colors border-b-2 -mb-px ${
+                activeSection === "overview"
+                  ? "border-[#00d4aa] text-[#00d4aa]"
+                  : "border-transparent text-[#4a4a6a] hover:text-[#8888aa]"
+              }`}
+            >
+              {PLATFORM_LABELS["overview"]}
+            </button>
+
             {availablePlatforms.map((p) => (
               <button
                 key={p}
@@ -366,7 +378,12 @@ export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots 
             ))}
           </div>
 
-          {/* Section content */}
+          {/* Overview section */}
+          {activeSection === "overview" && (
+            <OverviewSection snapshots={snapshots} connectedPlatforms={connectedPlatforms} />
+          )}
+
+          {/* Per-platform sections */}
           {activeSection === "stripe" && connectedPlatforms.includes("stripe") && (
             snapshotsByPlatform.stripe.length > 0
               ? <StripeSection snapshots={snapshotsByPlatform.stripe} />
