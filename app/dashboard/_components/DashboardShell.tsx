@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import OverviewTab from "./OverviewTab";
 import AnalyticsTab from "./AnalyticsTab";
@@ -53,7 +53,15 @@ const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
   },
 ];
 
-export default function DashboardShell({ email, isPremium, connectedPlatforms, snapshots }: DashboardShellProps) {
+export default function DashboardShell(props: DashboardShellProps) {
+  return (
+    <Suspense>
+      <DashboardShellInner {...props} />
+    </Suspense>
+  );
+}
+
+function DashboardShellInner({ email, isPremium, connectedPlatforms, snapshots }: DashboardShellProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<Tab>("overview");
