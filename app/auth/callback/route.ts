@@ -46,17 +46,18 @@ export async function GET(request: NextRequest) {
 
         const { error: insertError } = await adminClient
           .from("users")
-          .insert({
-            id: user.id,
-            email: user.email!,
-            full_name: (user.user_metadata?.full_name as string) ?? null,
-            avatar_url: (user.user_metadata?.avatar_url as string) ?? null,
-          });
+          .upsert(
+            {
+              id: user.id,
+              email: user.email!,
+              full_name: (user.user_metadata?.full_name as string) ?? null,
+              avatar_url: (user.user_metadata?.avatar_url as string) ?? null,
+            },
+            { onConflict: "id", ignoreDuplicates: true }
+          );
 
-        // If error is a duplicate (row already exists) — ignore it
-        // Otherwise log the error but don't block the login
-        if (insertError && insertError.code !== "23505") {
-          console.error("[auth/callback] Error creating user row:", insertError.message);
+        if (insertError) {
+          console.error("[auth/callback] Error upserting user row:", insertError.message);
         }
       }
 
