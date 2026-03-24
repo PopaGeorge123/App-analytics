@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 interface SettingsTabProps {
   email: string;
@@ -165,8 +165,40 @@ function IntegrationRow({
 }
 
 export default function SettingsTab({ email, isPremium, connectedPlatforms }: SettingsTabProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [portalLoading, setPortalLoading] = useState(false);
   const [portalError, setPortalError] = useState("");
+  const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "done" | "error">("idle");
+  const [syncPlatform, setSyncPlatform] = useState<string>("");
+
+  // Auto-trigger backfill when redirected back after connecting an integration
+  useEffect(() => {
+    const platform = ["stripe", "ga4", "meta"].find(
+      (p) => searchParams.get(p) === "connected"
+    );
+    if (!platform) return;
+
+    setSyncPlatform(platform);
+    setSyncStatus("syncing");
+
+    fetch(`/api/admin/backfill?platform=${platform}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.ok) {
+          setSyncStatus("done");
+          // Remove query params and refresh server data after a short delay
+          setTimeout(() => {
+            router.replace("/dashboard?tab=settings");
+            router.refresh();
+          }, 2000);
+        } else {
+          setSyncStatus("error");
+        }
+      })
+      .catch(() => setSyncStatus("error"));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handlePortal() {
     setPortalLoading(true);
@@ -221,6 +253,41 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms }: Se
           </div>
         </div>
       </section>
+
+      {/* ── Sync status banner ───────────────────────────── */}
+      {syncStatus !== "idle" && (
+        <div
+          className={`mb-6 flex items-center gap-3 rounded-xl border px-4 py-3 text-sm ${
+            syncStatus === "syncing"
+              ? "border-[#00d4aa]/20 bg-[#00d4aa]/5 text-[#00d4aa]"
+              : syncStatus === "done"
+              ? "border-[#00d4aa]/30 bg-[#00d4aa]/10 text-[#00d4aa]"
+              : "border-red-500/20 bg-red-500/5 text-red-400"
+          }`}
+        >
+          {syncStatus === "syncing" && (
+            <svg className="h-4 w-4 shrink-0 animate-spin" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+            </svg>
+          )}
+          {syncStatus === "done" && (
+            <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          )}
+          {syncStatus === "error" && (
+            <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+            </svg>
+          )}
+          <span className="font-mono text-xs font-semibold capitalize">
+            {syncStatus === "syncing" && `Importing ${syncPlatform} data — this may take a minute…`}
+            {syncStatus === "done" && `${syncPlatform} data imported successfully. Refreshing…`}
+            {syncStatus === "error" && `Failed to import ${syncPlatform} data. Try refreshing the page.`}
+          </span>
+        </div>
+      )}
 
       {/* ── Integrations ─────────────────────────────────── */}
       <section className="mb-6 rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/60 p-6">

@@ -368,15 +368,45 @@ export default function WebsiteTab({
       }
       return;
     }
-    // Poll every 3s to check if analysis finished
-    pollRef.current = setInterval(refresh, 3000);
+
+    // Poll immediately on mount (catches mid-analysis page loads)
+    refresh();
+
+    // Then poll every 4s
+    pollRef.current = setInterval(async () => {
+      const [profileRes, tasksRes] = await Promise.all([
+        fetch("/api/website"),
+        fetch("/api/website/tasks"),
+      ]);
+      let newStatus: AnalysisStatus = "analyzing";
+      if (profileRes.ok) {
+        const d = await profileRes.json();
+        if (d.profile) {
+          setProfile(d.profile);
+          newStatus = d.profile.analysis_status;
+        }
+      }
+      if (tasksRes.ok) {
+        const d = await tasksRes.json();
+        if (d.tasks) setTasks(d.tasks);
+      }
+      // Stop polling once finished
+      if (newStatus !== "analyzing") {
+        if (pollRef.current) {
+          clearInterval(pollRef.current);
+          pollRef.current = null;
+        }
+      }
+    }, 4000);
+
     return () => {
       if (pollRef.current) {
         clearInterval(pollRef.current);
         pollRef.current = null;
       }
     };
-  }, [status, refresh]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
 
   // ── Save URL ────────────────────────────────────────────────
   async function handleSave() {
@@ -414,11 +444,23 @@ export default function WebsiteTab({
     setProfile((p) => ({ ...p, analysis_status: "analyzing", analysis_error: null }));
     setTasks([]);
     setReAnalyzeMsg(null);
-    // Fire-and-forget — polling detects completion via DB status.
-    // We intentionally don't await or handle the response here:
-    // the server may take >10s (Claude API) and the poll will pick up
-    // the final state (done / error) from the database.
-    fetch("/api/website/analyze", { method: "POST" });
+
+    // Try to use the direct response when Claude finishes within the timeout window.
+    // If the request takes longer than the browser/server allows, the polling
+    // interval (set up by the useEffect above) will detect completion from the DB.
+    fetch("/api/website/analyze", { method: "POST" })
+      .then(async (res) => {
+        if (res.ok) {
+          // Analysis finished — refresh once to get latest profile + tasks
+          await refresh();
+        } else {
+          // Server returned an error — refresh to get the error status from DB
+          await refresh();
+        }
+      })
+      .catch(() => {
+        // Network/timeout — polling will handle it
+      });
   }
 
   // ── Complete task ───────────────────────────────────────────
