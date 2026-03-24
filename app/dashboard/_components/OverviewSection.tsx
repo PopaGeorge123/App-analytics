@@ -17,9 +17,13 @@ import type { Snapshot } from "./DashboardShell";
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
+type Granularity = "day" | "week" | "month";
+
 interface Props {
   snapshots: Snapshot[];
   connectedPlatforms: string[];
+  timeRange?: TimeRange;
+  granularity?: Granularity;
 }
 
 type TimeRange = "1d" | "7d" | "30d" | "90d" | "all";
@@ -175,6 +179,34 @@ function filterByRange(snapshots: Snapshot[], range: TimeRange): Snapshot[] {
   return snapshots.filter((s) => s.date >= cutoffStr);
 }
 
+/** Returns a sort-stable period key for a YYYY-MM-DD date */
+function getPeriodKey(date: string, granularity: Granularity): string {
+  if (granularity === "day") return date;
+  const d = new Date(date + "T00:00:00Z");
+  if (granularity === "month") {
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+  }
+  // week: ISO Monday
+  const day = d.getUTCDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  const mon = new Date(d);
+  mon.setUTCDate(d.getUTCDate() + diff);
+  return mon.toISOString().slice(0, 10);
+}
+
+/** Formats a period key for display on the chart X axis */
+function fmtPeriodKey(key: string, granularity: Granularity): string {
+  if (granularity === "day") {
+    return new Date(key + "T00:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+  }
+  if (granularity === "month") {
+    const [y, m] = key.split("-");
+    return new Date(`${y}-${m}-01T00:00:00Z`).toLocaleDateString("en-US", { month: "short", year: "2-digit", timeZone: "UTC" });
+  }
+  // week
+  return "W " + new Date(key + "T00:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+}
+
 function pctChange(curr: number, prev: number): { pct: number; up: boolean } | null {
   if (!prev) return null;
   const pct = ((curr - prev) / prev) * 100;
@@ -280,19 +312,19 @@ function InsightCard({
 
 function buildChartData(
   snapshots: Snapshot[],
-  report: ReportType
+  report: ReportType,
+  granularity: Granularity = "day"
 ): { data: Record<string, string | number>[]; lines: { key: string; color: string; label: string; yAxisId: string; type: "line" | "bar" | "area" }[] } {
-  // Group by date across all platforms
-  const byDate: Record<
-    string,
-    { revenue: number; sessions: number; users: number; conversions: number; spend: number; clicks: number; impressions: number; bounceRate: number; txCount: number }
-  > = {};
+  // Step 1 — aggregate raw snapshots into period buckets
+  type RawBucket = { revenue: number; sessions: number; users: number; conversions: number; spend: number; clicks: number; impressions: number; bounceRateSum: number; bounceRateCount: number; txCount: number };
+  const byPeriod: Record<string, RawBucket> = {};
 
   for (const snap of snapshots) {
-    if (!byDate[snap.date]) {
-      byDate[snap.date] = { revenue: 0, sessions: 0, users: 0, conversions: 0, spend: 0, clicks: 0, impressions: 0, bounceRate: 0, txCount: 0 };
+    const pk = getPeriodKey(snap.date, granularity);
+    if (!byPeriod[pk]) {
+      byPeriod[pk] = { revenue: 0, sessions: 0, users: 0, conversions: 0, spend: 0, clicks: 0, impressions: 0, bounceRateSum: 0, bounceRateCount: 0, txCount: 0 };
     }
-    const d = byDate[snap.date];
+    const d = byPeriod[pk];
     if (snap.provider === "stripe") {
       d.revenue += getField(snap, "revenue");
       d.txCount += getField(snap, "txCount");
@@ -301,7 +333,8 @@ function buildChartData(
       d.sessions += getField(snap, "sessions");
       d.users += getField(snap, "users");
       d.conversions += getField(snap, "conversions");
-      d.bounceRate = getField(snap, "bounceRate");
+      d.bounceRateSum += getField(snap, "bounceRate");
+      d.bounceRateCount += 1;
     }
     if (snap.provider === "meta") {
       d.spend += getField(snap, "spend");
@@ -310,11 +343,13 @@ function buildChartData(
     }
   }
 
-  const sorted = Object.entries(byDate)
+  // Step 2 — compute derived metrics per period
+  const sorted = Object.entries(byPeriod)
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([date, vals]) => {
+    .map(([pk, vals]) => {
       const revenueUSD = vals.revenue / 100;
       const spendUSD = vals.spend;
+      const bounceRate = vals.bounceRateCount > 0 ? vals.bounceRateSum / vals.bounceRateCount : 0;
       const profit = revenueUSD - spendUSD;
       const roas = spendUSD > 0 ? revenueUSD / spendUSD : 0;
       const convRate = vals.sessions > 0 ? (vals.conversions / vals.sessions) * 100 : 0;
@@ -325,7 +360,7 @@ function buildChartData(
       const cac = vals.conversions > 0 ? spendUSD / vals.conversions : 0;
 
       return {
-        date: fmtDate(date),
+        date: fmtPeriodKey(pk, granularity),
         revenue: parseFloat(revenueUSD.toFixed(2)),
         sessions: vals.sessions,
         users: vals.users,
@@ -337,7 +372,7 @@ function buildChartData(
         roas: parseFloat(roas.toFixed(2)),
         convRate: parseFloat(convRate.toFixed(2)),
         ctr: parseFloat(ctr.toFixed(2)),
-        bounceRate: parseFloat(vals.bounceRate.toFixed(2)),
+        bounceRate: parseFloat(bounceRate.toFixed(2)),
         txCount: vals.txCount,
         revenuePerVisitor: parseFloat(revenuePerVisitor.toFixed(4)),
         cpc: parseFloat(cpc.toFixed(2)),
@@ -563,7 +598,7 @@ function generateInsights(
 
   if (connectedPlatforms.includes("meta") && connectedPlatforms.includes("stripe")) {
     insights.push({
-      icon: profit >= 0 ? "✅" : "❌",
+      icon: profit >= 0 ? "" : "",
       title: `Est. Profit: $${profit.toFixed(2)}`,
       body:
         profit >= 0
@@ -624,18 +659,23 @@ function generateInsights(
 
 // ── Main Component ────────────────────────────────────────────────────────
 
-export default function OverviewSection({ snapshots, connectedPlatforms }: Props) {
-  const [timeRange, setTimeRange] = useState<TimeRange>("30d");
+export default function OverviewSection({ snapshots, connectedPlatforms, timeRange: externalTimeRange, granularity = "day" }: Props) {
+  const [internalTimeRange, setInternalTimeRange] = useState<TimeRange>("30d");
   const [report, setReport] = useState<ReportType>("business_growth");
+
+  // Use external time range if provided, otherwise internal
+  const timeRange = externalTimeRange ?? internalTimeRange;
 
   const filtered = useMemo(
     () => filterByRange(snapshots, timeRange),
     [snapshots, timeRange]
   );
 
+  // Expose timeRange setter for external sync (unused here but keeps interface stable)
+
   const { data: chartData, lines } = useMemo(
-    () => buildChartData(filtered, report),
-    [filtered, report]
+    () => buildChartData(filtered, report, granularity),
+    [filtered, report, granularity]
   );
 
   const insights = useMemo(
@@ -684,21 +724,21 @@ export default function OverviewSection({ snapshots, connectedPlatforms }: Props
       connectedPlatforms.includes("stripe") && {
         label: "Total Revenue",
         value: `$${revenueUSD.toFixed(2)}`,
-        icon: "💰",
+        icon: "",
         color: COLORS.revenue,
         change: pctChange(revenueUSD, prevRevenueUSD),
       },
       connectedPlatforms.includes("ga4") && {
         label: "Website Sessions",
         value: fmtNum(totalSessions),
-        icon: "👀",
+        icon: "",
         color: COLORS.sessions,
         change: pctChange(totalSessions, prevSessions),
       },
       connectedPlatforms.includes("meta") && {
         label: "Ad Spend",
         value: `$${totalSpend.toFixed(2)}`,
-        icon: "🎯",
+        icon: "",
         color: COLORS.spend,
         change: pctChange(totalSpend, prevSpend),
       },
@@ -706,14 +746,14 @@ export default function OverviewSection({ snapshots, connectedPlatforms }: Props
         label: "Est. Profit",
         value: `$${profit.toFixed(2)}`,
         sub: roas > 0 ? `ROAS ${roas.toFixed(2)}x` : undefined,
-        icon: profit >= 0 ? "✅" : "❌",
+        icon: profit >= 0 ? "" : "",
         color: profit >= 0 ? COLORS.profit : COLORS.spend,
         change: null,
       },
       connectedPlatforms.includes("ga4") && {
         label: "Conv. Rate",
         value: fmtPct(convRate),
-        icon: "🔄",
+        icon: "",
         color: COLORS.convRate,
         change: pctChange(totalConversions, prevConversions),
       },
@@ -773,13 +813,15 @@ export default function OverviewSection({ snapshots, connectedPlatforms }: Props
             </div>
           </div>
 
+          {/* Hide internal time range selector when parent controls it */}
+          {!externalTimeRange && (
           <div>
             <p className="font-mono text-[9px] uppercase tracking-widest text-[#4a4a6a] mb-3">Time Range</p>
             <div className="flex gap-1 rounded-lg border border-[#1e1e2e] bg-[#0d0d16] p-1">
               {TIME_RANGES.map((t) => (
                 <button
                   key={t.key}
-                  onClick={() => setTimeRange(t.key)}
+                  onClick={() => setInternalTimeRange(t.key)}
                   className={`rounded-md px-3 py-1 font-mono text-[11px] font-semibold transition-all ${
                     timeRange === t.key
                       ? "bg-[#1e1e2e] text-[#f0f0f5]"
@@ -791,6 +833,7 @@ export default function OverviewSection({ snapshots, connectedPlatforms }: Props
               ))}
             </div>
           </div>
+          )}
         </div>
 
         {/* Report description */}
