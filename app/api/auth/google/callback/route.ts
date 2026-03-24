@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { handleGoogleCallback } from "@/lib/integrations/ga4/callback";
-import { backfillGA4History } from "@/lib/integrations/ga4/backfill";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -15,14 +14,9 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // Save the token only — backfill runs locally via:
+    //   node cronscript/sync-all.mjs --backfill --user <userId> --platform ga4
     await handleGoogleCallback(state, code);
-
-    // Kick off backfill in background — don't await so redirect is instant
-    backfillGA4History(state).catch((e) =>
-      console.error("[google/callback] backfill error:", e)
-    );
-
-    // Redirect to property selection page instead of dashboard
     return NextResponse.redirect(
       new URL("/dashboard/ga4-setup", process.env.NEXT_PUBLIC_APP_URL)
     );

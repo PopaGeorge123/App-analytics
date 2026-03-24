@@ -1,26 +1,40 @@
 #!/usr/bin/env node
 /**
- * Fold Analytics — 100% Standalone Daily Sync
+ * Fold Analytics — 100% Standalone Daily Sync + Backfill
  * ─────────────────────────────────────────────────────────────────────────────
  * ZERO npm dependencies — only Node.js built-ins + fetch (Node 18+).
  * The only required file is .env  (path: ENV_PATH below).
  *
  * What it syncs:
- *   Stripe   → revenue, transactions, new customers (yesterday)
- *   GA4      → sessions, users, bounce rate, conversions (yesterday)
- *   Meta Ads → spend, reach, clicks, conversions (yesterday)
+ *   Stripe   → revenue, transactions, new customers
+ *   GA4      → sessions, users, bounce rate, conversions
+ *   Meta Ads → spend, reach, clicks, conversions
  *
- * Internal cron scheduler — no external cron library needed.
- * In --loop mode it runs immediately then repeats at 02:00 UTC every day.
+ * ── MODES ────────────────────────────────────────────────────────────────────
  *
- * Usage:
- *   node cronscript/sync-all.mjs                     # run once, all users
- *   node cronscript/sync-all.mjs --loop              # daemon, repeats at 02:00 UTC
- *   node cronscript/sync-all.mjs --user <uuid>       # one user only
- *   node cronscript/sync-all.mjs --platform stripe   # one platform only
+ *  ONE-SHOT (yesterday only):
+ *    node cronscript/sync-all.mjs
  *
- * System cron (runs at 02:00 UTC daily — no --loop needed):
- *   0 2 * * * /usr/local/bin/node /path/to/cronscript/sync-all.mjs >> /tmp/fold-sync.log 2>&1
+ *  DAEMON (repeat daily at 02:00 UTC):
+ *    node cronscript/sync-all.mjs --loop
+ *
+ *  FULL BACKFILL (after connecting a new platform — run locally):
+ *    node cronscript/sync-all.mjs --backfill
+ *    node cronscript/sync-all.mjs --backfill --user <uuid>
+ *    node cronscript/sync-all.mjs --backfill --platform stripe
+ *    node cronscript/sync-all.mjs --backfill --platform stripe --days 180
+ *
+ *  Backfill depth (default):
+ *    Stripe  → 540 days (~18 months)
+ *    GA4     → 90 days
+ *    Meta    → 30 days
+ *
+ *  FILTERS (work with any mode):
+ *    --user <uuid>        only sync this user
+ *    --platform stripe    only sync this platform
+ *
+ *  System cron (02:00 UTC daily):
+ *    0 2 * * * /usr/local/bin/node /path/to/cronscript/sync-all.mjs >> /tmp/fold-sync.log 2>&1
  */
 
 import { readFileSync } from 'fs';
@@ -74,10 +88,18 @@ if (!SUPABASE_URL || !SERVICE_KEY) {
 // ─────────────────────────────────────────────────────────────────────────────
 // CLI ARGS
 // ─────────────────────────────────────────────────────────────────────────────
-const args       = process.argv.slice(2);
-const loopMode   = args.includes('--loop');
-const targetUser = args.includes('--user')     ? args[args.indexOf('--user') + 1]     : null;
-const targetPlat = args.includes('--platform') ? args[args.indexOf('--platform') + 1] : null;
+const args         = process.argv.slice(2);
+const loopMode     = args.includes('--loop');
+const backfillMode = args.includes('--backfill'); // full history import
+const targetUser   = args.includes('--user')     ? args[args.indexOf('--user') + 1]     : null;
+const targetPlat   = args.includes('--platform') ? args[args.indexOf('--platform') + 1] : null;
+
+// How many days to backfill per platform (override with --days N)
+const BACKFILL_DAYS = {
+  stripe: args.includes('--days') ? parseInt(args[args.indexOf('--days') + 1], 10) : 540, // ~18 months
+  ga4:    90,
+  meta:   30,
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LOGGING
@@ -163,14 +185,14 @@ const SB = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ① STRIPE SYNC  (Stripe REST API — no SDK)
+// ① STRIPE  (Stripe REST API — no SDK)
 // ─────────────────────────────────────────────────────────────────────────────
-async function syncStripe(userId, accessToken) {
-  const date = yesterday();
-  const gte  = Math.floor(new Date(`${date}T00:00:00Z`).getTime() / 1000);
-  const lte  = gte + 86399;
 
-  // Paginate through all PaymentIntents for yesterday
+/** Fetch + upsert one day of Stripe PaymentIntents */
+async function syncStripeDay(userId, accessToken, date) {
+  const gte = Math.floor(new Date(`${date}T00:00:00Z`).getTime() / 1000);
+  const lte = gte + 86399;
+
   const intents = [];
   let startingAfter = null;
   while (true) {
@@ -197,11 +219,40 @@ async function syncStripe(userId, accessToken) {
     { user_id: userId, provider: 'stripe', date, data: { revenue, refunds: 0, newCustomers, txCount } },
     'user_id,provider,date');
 
-  return { date, revenue, txCount, newCustomers };
+  return { revenue, txCount, newCustomers };
+}
+
+/** Daily sync — yesterday only */
+async function syncStripe(userId, accessToken) {
+  const date = yesterday();
+  const r = await syncStripeDay(userId, accessToken, date);
+  return { date, ...r };
+}
+
+/** Full backfill — day by day from N days ago up to yesterday */
+async function backfillStripe(userId, accessToken, days = BACKFILL_DAYS.stripe) {
+  log(`  [stripe backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  let ok = 0, skipped = 0;
+  for (let i = days; i >= 1; i--) {
+    const date = daysAgo(i);
+    try {
+      const r = await syncStripeDay(userId, accessToken, date);
+      if (r.txCount > 0) {
+        logOk(`  stripe ${date} — $${(r.revenue / 100).toFixed(2)} | ${r.txCount} tx`);
+      }
+      ok++;
+    } catch (err) {
+      logFail(`  stripe ${date} — ${err.message}`);
+      skipped++;
+    }
+    // Small delay every 10 days to avoid Stripe rate limits
+    if (i % 10 === 0) await sleep(500);
+  }
+  log(`  [stripe backfill] done — ${ok} days saved, ${skipped} errors`);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ② GA4 SYNC  (Google Analytics Data API v1beta — no SDK)
+// ② GA4  (Google Analytics Data API v1beta — no SDK)
 // ─────────────────────────────────────────────────────────────────────────────
 async function refreshGoogleToken(refreshToken) {
   const res = await fetchRetry('Google token refresh', 'https://oauth2.googleapis.com/token', {
@@ -213,13 +264,14 @@ async function refreshGoogleToken(refreshToken) {
   return (await res.json()).access_token;
 }
 
+/** Daily sync — yesterday only */
 async function syncGA4(userId, integration) {
   if (!GOOGLE_ID || !GOOGLE_SEC) throw new Error('GA4: missing GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET in .env');
   if (!integration.refresh_token) throw new Error('GA4: no refresh_token stored for this user');
 
   const token  = await refreshGoogleToken(integration.refresh_token);
   const date   = yesterday();
-  const propId = integration.account_id; // "properties/XXXXXXXXX"
+  const propId = integration.account_id;
 
   const res = await fetchRetry('GA4 runReport',
     `https://analyticsdata.googleapis.com/v1beta/${propId}:runReport`, {
@@ -246,47 +298,207 @@ async function syncGA4(userId, integration) {
   return { date, sessions, totalUsers, bounceRate, conversions };
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ③ META ADS SYNC  (Graph API v22 — no SDK)
-// ─────────────────────────────────────────────────────────────────────────────
-async function syncMeta(userId, integration) {
-  if (!META_APP_ID || !META_APP_SEC) throw new Error('Meta: missing META_APP_ID / META_APP_SECRET in .env');
+/**
+ * Full GA4 backfill — GA4 supports date ranges in a single request,
+ * so we fetch all days in one API call (much faster than day-by-day).
+ */
+async function backfillGA4(userId, integration, days = BACKFILL_DAYS.ga4) {
+  if (!GOOGLE_ID || !GOOGLE_SEC) throw new Error('GA4: missing GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET in .env');
+  if (!integration.refresh_token) throw new Error('GA4: no refresh_token stored for this user');
 
-  // Extend token so it stays alive (long-lived tokens last 60 days)
-  const extRes = await fetchRetry('Meta token extend',
-    `https://graph.facebook.com/v22.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${META_APP_ID}&client_secret=${META_APP_SEC}&fb_exchange_token=${encodeURIComponent(integration.access_token)}`
-  );
-  if (!extRes.ok) { const e = await extRes.json().catch(() => ({})); throw new Error(`Meta token: ${e?.error?.message ?? extRes.status}`); }
-  const freshToken = (await extRes.json()).access_token ?? integration.access_token;
+  log(`  [ga4 backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  const token     = await refreshGoogleToken(integration.refresh_token);
+  const startDate = daysAgo(days);
+  const endDate   = yesterday();
+  const propId    = integration.account_id;
 
-  // Persist refreshed token
-  await SB.patch('integrations', { access_token: freshToken }, { user_id: userId, platform: 'meta' });
+  const res = await fetchRetry('GA4 backfill runReport',
+    `https://analyticsdata.googleapis.com/v1beta/${propId}:runReport`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        dateRanges: [{ startDate, endDate }],
+        dimensions: [{ name: 'date' }],
+        metrics: [
+          { name: 'sessions' },
+          { name: 'totalUsers' },
+          { name: 'newUsers' },
+          { name: 'bounceRate' },
+          { name: 'averageSessionDuration' },
+          { name: 'conversions' },
+        ],
+        limit: 100000,
+      }),
+    });
+  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(`GA4 backfill: ${e?.error?.message ?? res.status}`); }
 
-  const date        = yesterday();
-  const adAccountId = integration.account_id; // "act_XXXXXXXXXX"
+  const body = await res.json();
+  const rows = body.rows ?? [];
+  log(`  [ga4 backfill] ${rows.length} days returned from GA4`);
 
-  const insRes = await fetchRetry('Meta insights',
-    `https://graph.facebook.com/v22.0/${adAccountId}/insights?fields=spend,reach,clicks,actions&time_range=${encodeURIComponent(JSON.stringify({ since: date, until: date }))}&access_token=${encodeURIComponent(freshToken)}`
-  );
-  if (!insRes.ok) { const e = await insRes.json().catch(() => ({})); throw new Error(`Meta insights: ${e?.error?.message ?? insRes.status}`); }
+  for (const row of rows) {
+    // GA4 returns date as YYYYMMDD — convert to YYYY-MM-DD
+    const rawDate = row.dimensionValues?.[0]?.value ?? '';
+    const date    = rawDate.replace(/^(\d{4})(\d{2})(\d{2})$/, '$1-$2-$3');
+    const mv      = row.metricValues ?? [];
+    const data = {
+      sessions:           parseInt(mv[0]?.value ?? '0', 10),
+      users:              parseInt(mv[1]?.value ?? '0', 10),
+      newUsers:           parseInt(mv[2]?.value ?? '0', 10),
+      bounceRate:         parseFloat(mv[3]?.value ?? '0'),
+      avgSessionDuration: parseFloat(mv[4]?.value ?? '0'),
+      conversions:        parseInt(mv[5]?.value ?? '0', 10),
+    };
+    await SB.upsert('daily_snapshots',
+      { user_id: userId, provider: 'ga4', date, data },
+      'user_id,provider,date');
+  }
 
-  const d           = (await insRes.json()).data?.[0] ?? {};
-  const spend       = parseFloat(d.spend ?? '0');
-  const reach       = parseInt(d.reach   ?? '0', 10);
-  const clicks      = parseInt(d.clicks  ?? '0', 10);
-  const conversions = (d.actions ?? [])
-    .filter(a => ['purchase', 'offsite_conversion.fb_pixel_purchase'].includes(a.action_type))
-    .reduce((s, a) => s + parseInt(a.value ?? '0', 10), 0);
-
-  await SB.upsert('daily_snapshots',
-    { user_id: userId, provider: 'meta', date, data: { spend, reach, clicks, conversions } },
-    'user_id,provider,date');
-
-  return { date, spend, reach, clicks, conversions };
+  log(`  [ga4 backfill] done — ${rows.length} days saved`);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// INTERNAL CRON SCHEDULER  (no cron library)
+// ③ META ADS  (Graph API v22 — no SDK)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Extend Meta token + persist to DB, returns fresh token string */
+async function extendMetaToken(userId, accessToken) {
+  if (!META_APP_ID || !META_APP_SEC) throw new Error('Meta: missing META_APP_ID / META_APP_SECRET in .env');
+  const extRes = await fetchRetry('Meta token extend',
+    `https://graph.facebook.com/v22.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${META_APP_ID}&client_secret=${META_APP_SEC}&fb_exchange_token=${encodeURIComponent(accessToken)}`
+  );
+  if (!extRes.ok) { const e = await extRes.json().catch(() => ({})); throw new Error(`Meta token: ${e?.error?.message ?? extRes.status}`); }
+  const freshToken = (await extRes.json()).access_token ?? accessToken;
+  await SB.patch('integrations', { access_token: freshToken }, { user_id: userId, platform: 'meta' });
+  return freshToken;
+}
+
+/** Fetch Meta Ads insights for a single day */
+async function fetchMetaDay(adAccountId, token, date) {
+  const insRes = await fetchRetry('Meta insights',
+    `https://graph.facebook.com/v22.0/${adAccountId}/insights?fields=spend,reach,clicks,actions&time_range=${encodeURIComponent(JSON.stringify({ since: date, until: date }))}&access_token=${encodeURIComponent(token)}`
+  );
+  if (!insRes.ok) { const e = await insRes.json().catch(() => ({})); throw new Error(`Meta insights: ${e?.error?.message ?? insRes.status}`); }
+
+  const d = (await insRes.json()).data?.[0] ?? {};
+  return {
+    spend:       parseFloat(d.spend ?? '0'),
+    reach:       parseInt(d.reach   ?? '0', 10),
+    clicks:      parseInt(d.clicks  ?? '0', 10),
+    conversions: (d.actions ?? [])
+      .filter(a => ['purchase', 'offsite_conversion.fb_pixel_purchase'].includes(a.action_type))
+      .reduce((s, a) => s + parseInt(a.value ?? '0', 10), 0),
+  };
+}
+
+/** Daily sync — yesterday only */
+async function syncMeta(userId, integration) {
+  const freshToken  = await extendMetaToken(userId, integration.access_token);
+  const date        = yesterday();
+  const adAccountId = integration.account_id;
+  const d           = await fetchMetaDay(adAccountId, freshToken, date);
+
+  await SB.upsert('daily_snapshots',
+    { user_id: userId, provider: 'meta', date, data: d },
+    'user_id,provider,date');
+
+  return { date, ...d };
+}
+
+/**
+ * Full Meta backfill — day by day (Meta Ads Insights API doesn't support
+ * dimension breakdowns by date in bulk the same way GA4 does, so we loop).
+ */
+async function backfillMeta(userId, integration, days = BACKFILL_DAYS.meta) {
+  log(`  [meta backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  const freshToken  = await extendMetaToken(userId, integration.access_token);
+  const adAccountId = integration.account_id;
+  let ok = 0, skipped = 0;
+
+  for (let i = days; i >= 1; i--) {
+    const date = daysAgo(i);
+    try {
+      const d = await fetchMetaDay(adAccountId, freshToken, date);
+      await SB.upsert('daily_snapshots',
+        { user_id: userId, provider: 'meta', date, data: d },
+        'user_id,provider,date');
+      if (d.spend > 0) logOk(`  meta ${date} — $${d.spend} spend | ${d.clicks} clicks`);
+      ok++;
+    } catch (err) {
+      logFail(`  meta ${date} — ${err.message}`);
+      skipped++;
+    }
+    // Meta rate limit: ~200 req/hour per token — 500ms delay is safe
+    await sleep(500);
+  }
+  log(`  [meta backfill] done — ${ok} days saved, ${skipped} errors`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FULL HISTORICAL BACKFILL
+// Run once after connecting a platform. No timeout risk — runs locally.
+// ─────────────────────────────────────────────────────────────────────────────
+async function runBackfill() {
+  log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  log('BACKFILL mode — importing full history');
+  if (targetUser) log(`→ User filter: ${targetUser}`);
+  if (targetPlat) log(`→ Platform filter: ${targetPlat}`);
+
+  const filters = {};
+  if (targetUser) filters.user_id  = targetUser;
+  if (targetPlat) filters.platform = targetPlat;
+
+  let rows;
+  try {
+    rows = await SB.select('integrations', 'user_id,platform,access_token,refresh_token,account_id', filters);
+  } catch (err) {
+    logFail(`Cannot fetch integrations: ${err.message}`);
+    return;
+  }
+
+  if (!rows?.length) { log('ℹ  No integrations found.'); return; }
+
+  // Group by user
+  const byUser = {};
+  for (const r of rows) {
+    if (!byUser[r.user_id]) byUser[r.user_id] = {};
+    byUser[r.user_id][r.platform] = r;
+  }
+
+  const userIds = Object.keys(byUser);
+  log(`${userIds.length} user(s) to backfill`);
+
+  for (let i = 0; i < userIds.length; i++) {
+    const uid   = userIds[i];
+    const plats = byUser[uid];
+    log(`[${i + 1}/${userIds.length}] Backfilling user ${uid.slice(0, 8)}…`);
+
+    if (plats.stripe) {
+      try {
+        await backfillStripe(uid, plats.stripe.access_token);
+      } catch (err) { logFail(`stripe backfill: ${err.message}`); }
+      await sleep(2_000);
+    }
+
+    if (plats.ga4) {
+      try {
+        await backfillGA4(uid, plats.ga4);
+      } catch (err) { logFail(`ga4 backfill: ${err.message}`); }
+      await sleep(2_000);
+    }
+
+    if (plats.meta) {
+      try {
+        await backfillMeta(uid, plats.meta);
+      } catch (err) { logFail(`meta backfill: ${err.message}`); }
+    }
+
+    if (i < userIds.length - 1) await sleep(USER_DELAY_MS);
+  }
+
+  log('Backfill complete ✓');
+  log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+}
 // Schedules fn to run at a fixed UTC hour every day.
 // ─────────────────────────────────────────────────────────────────────────────
 function scheduleDailyAt(utcHour, fn, label) {
@@ -379,7 +591,10 @@ async function runSync() {
 // ─────────────────────────────────────────────────────────────────────────────
 // ENTRY POINT
 // ─────────────────────────────────────────────────────────────────────────────
-if (loopMode) {
+if (backfillMode) {
+  // Full historical import — run locally, no timeout
+  await runBackfill();
+} else if (loopMode) {
   log(`Mode: daemon — running now, then daily at ${String(DAILY_UTC_HOUR).padStart(2, '0')}:00 UTC`);
   await runSync();
   scheduleDailyAt(DAILY_UTC_HOUR, runSync, 'daily-sync');

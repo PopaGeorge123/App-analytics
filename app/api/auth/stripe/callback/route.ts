@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { handleStripeCallback } from "@/lib/integrations/stripe/callback";
-import { backfillStripeHistory } from "@/lib/integrations/stripe/backfill";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -15,13 +14,9 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // Save the token only — backfill runs locally via:
+    //   node cronscript/sync-all.mjs --backfill --user <userId> --platform stripe
     await handleStripeCallback(state, code);
-
-    // Kick off backfill in background — don't await so redirect is instant
-    backfillStripeHistory(state).catch((e) =>
-      console.error("[stripe/callback] backfill error:", e)
-    );
-
     return NextResponse.redirect(
       new URL("/dashboard?tab=settings&stripe=connected", process.env.NEXT_PUBLIC_APP_URL)
     );
