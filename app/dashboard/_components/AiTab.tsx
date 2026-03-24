@@ -412,17 +412,41 @@ export default function AiTab({ isPremium }: AiTabProps) {
           <h1 className="font-mono text-2xl font-bold text-[#f0f0f5]">AI Advisor</h1>
           <p className="mt-1 text-sm text-[#8888aa]">Analyzes your Stripe, GA4, Meta &amp; website data in real time.</p>
         </div>
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/60 py-20 px-6 text-center">
-          <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-[#1e1e2e] bg-[#12121a] text-[#4a4a6a]">
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/60 py-16 px-6 text-center">
+          <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-[#6366f1]/20 bg-[#6366f1]/10 text-[#6366f1]">
             <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
             </svg>
           </div>
-          <p className="font-mono text-xs font-semibold uppercase tracking-widest text-[#4a4a6a] mb-2">Premium Feature</p>
+          <p className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#6366f1] mb-2">Premium Feature</p>
           <h2 className="font-mono text-xl font-bold text-[#f0f0f5] mb-3">AI Advisor requires Premium</h2>
-          <p className="text-sm text-[#8888aa] max-w-sm">
+          <p className="text-sm text-[#8888aa] max-w-sm mb-6">
             Upgrade to access the AI Advisor, get automated insights, and chat with an AI trained on your real business data.
           </p>
+          <div className="grid grid-cols-2 gap-2 mb-7 w-full max-w-sm text-left">
+            {[
+              "Daily AI business insights",
+              "Chat with your data",
+              "Revenue trend analysis",
+              "Ad spend intelligence",
+              "Website improvement tips",
+              "Multi-source data fusion",
+            ].map((f) => (
+              <div key={f} className="flex items-center gap-2">
+                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="#00d4aa" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+                <span className="font-mono text-[10px] text-[#8888aa]">{f}</span>
+              </div>
+            ))}
+          </div>
+          <a
+            href="/api/stripe/checkout"
+            className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-7 py-3 font-mono text-sm font-bold text-[#0a0a0f] hover:bg-[#00bfa0] transition"
+          >
+            Start 3-day free trial →
+          </a>
+          <p className="mt-3 font-mono text-[10px] text-[#4a4a6a]">$29/mo after trial · Cancel anytime</p>
         </div>
       </div>
     );
@@ -434,23 +458,15 @@ export default function AiTab({ isPremium }: AiTabProps) {
       {/* ── Page header ─────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-[#f0f0f5]">AI Advisor</h1>
-          <p className="text-sm text-[#8888aa] mt-0.5">
+          <h1 className="font-mono text-2xl font-bold text-[#f0f0f5]">AI Advisor</h1>
+          <p className="font-mono text-sm text-[#8888aa] mt-0.5">
             Analyzes your Stripe, GA4, Meta &amp; website data in real time
           </p>
         </div>
-        {!isPremium && (
-          <div className="flex items-center gap-2 rounded-xl border border-[#00d4aa]/20 bg-[#00d4aa]/5 px-3 py-2">
-            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#00d4aa" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-            <span className="text-xs font-medium text-[#00d4aa]">Premium Feature</span>
-          </div>
-        )}
       </div>
 
       {/* ── Daily Insight card ───────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-[#1e1e2e] bg-[#0d0d16] overflow-hidden">
+      <div className="rounded-2xl border border-[#00d4aa]/15 bg-[#0d0d16] overflow-hidden" style={{ boxShadow: "0 0 0 1px #00d4aa08" }}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e1e2e]">
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#00d4aa]/10 text-[#00d4aa]">

@@ -460,8 +460,8 @@ function Nav() {
   ];
 
   return (
-    <nav className={`fixed top-0 z-50 w-full transition-all duration-300 ${
-      scrolled ? "border-b border-[#1e1e2e] bg-[#0a0a0f]/90 backdrop-blur-xl" : "bg-transparent"
+    <nav className={`fixed top-0 z-50 w-full backdrop-blur-xl transition-all duration-300 ${
+      scrolled ? "border-b border-[#1e1e2e] bg-[#0a0a0f]/90" : "bg-[#0a0a0f]/60 border-b border-[#1e1e2e]/40"
     }`}>
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         <img src="/fold-primary-dark.svg" alt="Fold" className="h-9 w-auto" />

@@ -474,17 +474,41 @@ export default function WebsiteTab({
           <h1 className="font-mono text-2xl font-bold text-[#f0f0f5]">Website Optimizer</h1>
           <p className="mt-1 text-sm text-[#8888aa]">Analyze your website and get an improvement roadmap.</p>
         </div>
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/60 py-20 px-6 text-center">
-          <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-[#1e1e2e] bg-[#12121a] text-[#4a4a6a]">
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/60 py-16 px-6 text-center">
+          <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-[#a78bfa]/20 bg-[#a78bfa]/10 text-[#a78bfa]">
             <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
             </svg>
           </div>
-          <p className="font-mono text-xs font-semibold uppercase tracking-widest text-[#4a4a6a] mb-2">Premium Feature</p>
+          <p className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#a78bfa] mb-2">Premium Feature</p>
           <h2 className="font-mono text-xl font-bold text-[#f0f0f5] mb-3">Website Optimizer requires Premium</h2>
-          <p className="text-sm text-[#8888aa] max-w-sm">
+          <p className="text-sm text-[#8888aa] max-w-sm mb-6">
             Upgrade to analyze your website, get a health score, and receive a prioritized list of improvements.
           </p>
+          <div className="grid grid-cols-2 gap-2 mb-7 w-full max-w-sm text-left">
+            {[
+              "AI-powered website scan",
+              "Health score 0–100",
+              "Prioritized task list",
+              "UX, SEO & performance",
+              "Conversion optimization",
+              "Re-analyze anytime",
+            ].map((f) => (
+              <div key={f} className="flex items-center gap-2">
+                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="#00d4aa" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+                <span className="font-mono text-[10px] text-[#8888aa]">{f}</span>
+              </div>
+            ))}
+          </div>
+          <a
+            href="/api/stripe/checkout"
+            className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-7 py-3 font-mono text-sm font-bold text-[#0a0a0f] hover:bg-[#00bfa0] transition"
+          >
+            Start 3-day free trial →
+          </a>
+          <p className="mt-3 font-mono text-[10px] text-[#4a4a6a]">$29/mo after trial · Cancel anytime</p>
         </div>
       </div>
     );
@@ -510,6 +534,15 @@ export default function WebsiteTab({
 
       {/* ── URL Input Card ───────────────────────────────────── */}
       <div className="rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/60 p-5 space-y-4">
+        <div className="flex items-center gap-2 mb-1">
+          <p className="font-mono text-[9px] uppercase tracking-widest text-[#4a4a6a]">Website URL</p>
+          {savedUrl && profile.analysis_status === "done" && (
+            <span className="inline-flex items-center gap-1 font-mono text-[9px] text-[#00d4aa]">
+              <span className="h-1 w-1 rounded-full bg-[#00d4aa]" />
+              Active
+            </span>
+          )}
+        </div>
         <div className="flex gap-3">
           <div className="flex-1 relative">
             <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center">
@@ -523,24 +556,27 @@ export default function WebsiteTab({
               onKeyDown={(e) => e.key === "Enter" && handleSave()}
               placeholder="yoursite.com"
               disabled={status === "analyzing"}
-              className={`w-full rounded-xl border bg-[#12121a] py-2.5 pl-16 pr-4 font-mono text-sm text-[#f0f0f5] placeholder-[#2e2e4e] outline-none transition-colors focus:ring-1 disabled:opacity-50 ${
+              className={`w-full rounded-xl border bg-[#12121a] py-3 pl-16 pr-4 font-mono text-sm text-[#f0f0f5] placeholder-[#2e2e4e] outline-none transition-all focus:ring-2 disabled:opacity-50 ${
                 !urlValid && url
-                  ? "border-red-500/50 focus:border-red-500/80 focus:ring-red-500/20"
-                  : "border-[#1e1e2e] focus:border-[#00d4aa]/50 focus:ring-[#00d4aa]/10"
+                  ? "border-red-500/50 focus:border-red-500/80 focus:ring-red-500/10"
+                  : "border-[#1e1e2e] focus:border-[#00d4aa]/50 focus:ring-[#00d4aa]/8"
               }`}
             />
           </div>
           <button
             onClick={handleSave}
             disabled={saving || !url.trim() || !urlValid || !isDirty || status === "analyzing"}
-            className="shrink-0 rounded-xl bg-[#1e1e2e] px-4 py-2.5 font-mono text-xs font-semibold text-[#8888aa] transition-all hover:text-[#f0f0f5] disabled:opacity-40 disabled:cursor-not-allowed"
+            className="shrink-0 rounded-xl border border-[#1e1e2e] bg-[#12121a] px-4 py-2.5 font-mono text-xs font-semibold text-[#8888aa] transition-all hover:border-[#00d4aa]/30 hover:text-[#00d4aa] disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {saving ? "Saving…" : "Save"}
           </button>
         </div>
 
         {saveStatus === "success" && (
-          <p className="font-mono text-[11px] text-[#00d4aa]">✓ URL saved</p>
+          <p className="flex items-center gap-1.5 font-mono text-[11px] text-[#00d4aa]">
+            <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+            URL saved
+          </p>
         )}
         {saveStatus === "error" && (
           <p className="font-mono text-[11px] text-red-400">✗ {saveError}</p>
@@ -606,7 +642,10 @@ export default function WebsiteTab({
         <div className="space-y-6">
 
           {/* Score card */}
-          <div className="rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/60 p-6">
+          <div
+            className="rounded-2xl border p-6 transition-colors"
+            style={{ borderColor: scoreColor(profile.score) + "30", backgroundColor: scoreColor(profile.score) + "05" }}
+          >
             <div className="flex flex-col sm:flex-row items-center gap-6">
               <ScoreCircle score={profile.score} animating />
               <div className="flex-1 space-y-3 text-center sm:text-left">

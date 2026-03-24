@@ -178,6 +178,15 @@ const KPI_ICONS: Record<string, React.ReactNode> = {
 
 // ── KPI Card ──────────────────────────────────────────────────────────────
 
+const KPI_ACCENT_COLORS: Record<string, string> = {
+  revenue: "#635bff",
+  sessions: "#f59e0b",
+  adspend: "#1877f2",
+  customers: "#00d4aa",
+  cac: "#f87171",
+  bounce: "#a78bfa",
+};
+
 function KpiCard({
   label,
   value,
@@ -191,11 +200,20 @@ function KpiCard({
   trend?: { current: number; prev: number } | null;
   icon: string;
 }) {
+  const accent = KPI_ACCENT_COLORS[icon] ?? "#00d4aa";
   return (
-    <div className="rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/70 p-5 flex flex-col gap-3">
+    <div
+      className="relative overflow-hidden rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/70 p-5 flex flex-col gap-3 transition-all hover:border-[#2a2a3e] hover:bg-[#0f0f18]"
+      style={{ boxShadow: "inset 3px 0 0 " + accent + "30" }}
+    >
+      {/* Left accent bar */}
+      <div
+        className="absolute left-0 top-0 bottom-0 w-0.5 rounded-l-2xl"
+        style={{ backgroundColor: accent }}
+      />
       <div className="flex items-center justify-between">
         <span className="font-mono text-[9px] uppercase tracking-widest text-[#4a4a6a]">{label}</span>
-        <span className="text-[#4a4a6a]">{KPI_ICONS[icon]}</span>
+        <span style={{ color: accent + "99" }}>{KPI_ICONS[icon]}</span>
       </div>
       {value === null ? (
         <div>
@@ -458,28 +476,42 @@ export default function OverviewTab({
 
       {/* ── Premium gate ─────────────────────────────────────── */}
       {!isPremium && (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/60 py-20 px-6 text-center">
-          <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-[#1e1e2e] bg-[#12121a] text-[#4a4a6a]">
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/60 py-16 px-6 text-center">
+          <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-[#a78bfa]/20 bg-[#a78bfa]/10 text-[#a78bfa]">
             <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
             </svg>
           </div>
-          <p className="font-mono text-xs font-semibold uppercase tracking-widest text-[#4a4a6a] mb-2">Premium Feature</p>
-          <h2 className="font-mono text-xl font-bold text-[#f0f0f5] mb-3">Your dashboard is locked</h2>
+          <p className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#a78bfa] mb-2">Premium Required</p>
+          <h2 className="font-mono text-xl font-bold text-[#f0f0f5] mb-3">Unlock your full dashboard</h2>
           <p className="text-sm text-[#8888aa] max-w-sm mb-6">
-            Upgrade to Premium to unlock your KPI dashboard, website health score, analytics, AI advisor, and more.
+            Get real-time business intelligence with live data from all your connected tools.
           </p>
+          <div className="grid grid-cols-2 gap-2 mb-7 w-full max-w-sm text-left">
+            {[
+              "KPI dashboard with trends",
+              "Website health score",
+              "Stripe & GA4 analytics",
+              "Meta Ads performance",
+              "AI business advisor",
+              "Daily automated insights",
+            ].map((f) => (
+              <div key={f} className="flex items-center gap-2">
+                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="#00d4aa" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+                <span className="font-mono text-[10px] text-[#8888aa]">{f}</span>
+              </div>
+            ))}
+          </div>
           <button
             onClick={handleUpgrade}
             disabled={upgradeLoading}
-            className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-6 py-2.5 font-mono text-sm font-bold text-[#0a0a0f] hover:bg-[#00bfa0] transition disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-7 py-3 font-mono text-sm font-bold text-[#0a0a0f] hover:bg-[#00bfa0] transition disabled:opacity-50"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
-              <polyline points="17 6 23 6 23 12" />
-            </svg>
-            {upgradeLoading ? "Redirecting…" : "Upgrade to Premium"}
+            {upgradeLoading ? "Redirecting…" : "Start 3-day free trial →"}
           </button>
+          <p className="mt-3 font-mono text-[10px] text-[#4a4a6a]">$29/mo after trial · Cancel anytime</p>
         </div>
       )}
 
@@ -714,10 +746,24 @@ export default function OverviewTab({
               <div className="space-y-3">
                 {activity.map((a, i) => (
                   <div key={i} className="flex items-start gap-2.5">
-                    <span
-                      className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full"
-                      style={{ backgroundColor: a.color }}
-                    />
+                    <div
+                      className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-lg"
+                      style={{ backgroundColor: a.color + "18", color: a.color }}
+                    >
+                      {a.type === "task" ? (
+                        <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                        </svg>
+                      ) : a.type === "scan" ? (
+                        <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <circle cx="11" cy="11" r="8" /><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35" />
+                        </svg>
+                      ) : (
+                        <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                      )}
+                    </div>
                     <div className="min-w-0">
                       <p className="font-mono text-[11px] text-[#c0c0d8] leading-snug">{a.label}</p>
                       <p className="font-mono text-[9px] text-[#4a4a6a] mt-0.5">{a.time}</p>

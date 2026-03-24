@@ -46,6 +46,8 @@ function LoginForm() {
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
         <div className="h-125 w-125 rounded-full bg-[#00d4aa]/4 blur-3xl" />
       </div>
+      {/* Subtle dot grid */}
+      <div className="pointer-events-none absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(#1e1e2e 1px, transparent 1px)", backgroundSize: "24px 24px" }} />
 
       <div className="relative w-full max-w-md mx-auto">
         {/* Logo */}
@@ -56,8 +58,8 @@ function LoginForm() {
         </div>
 
         {/* Card */}
-        <div className="rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/80 p-8 backdrop-blur-sm">
-          <div className="mb-6">
+        <div className="rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/90 p-8 shadow-2xl backdrop-blur-md">
+          <div className="mb-7">
             <h1 className="font-mono text-xl font-bold text-[#f0f0f5]">
               Welcome back
             </h1>
@@ -139,7 +141,12 @@ function LoginForm() {
                   Signing in…
                 </>
               ) : (
-                "Sign in"
+                <>
+                  Sign in
+                  <svg className="h-3.5 w-3.5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                  </svg>
+                </>
               )}
             </button>
           </form>
@@ -152,7 +159,7 @@ function LoginForm() {
             href="/signup"
             className="font-semibold text-[#00d4aa] hover:underline underline-offset-4"
           >
-            Create one
+            Create one →
           </Link>
         </p>
       </div>

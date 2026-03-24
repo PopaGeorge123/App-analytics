@@ -53,13 +53,14 @@ export default function SignupPage() {
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <div className="h-125 w-125 rounded-full bg-[#00d4aa]/4 blur-3xl" />
         </div>
+        <div className="pointer-events-none absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(#1e1e2e 1px, transparent 1px)", backgroundSize: "24px 24px" }} />
         <div className="relative w-full max-w-md text-center">
-          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full border border-[#00d4aa]/40 bg-[#00d4aa]/10">
+          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border border-[#00d4aa]/30 bg-[#00d4aa]/10">
             <svg className="h-7 w-7 text-[#00d4aa]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
             </svg>
           </div>
-          <p className="mb-2 font-mono text-xs font-semibold uppercase tracking-widest text-[#00d4aa]">
+          <p className="mb-2 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#00d4aa]">
             Check your email
           </p>
           <h1 className="mb-4 font-mono text-2xl font-bold text-[#f0f0f5]">
@@ -69,12 +70,13 @@ export default function SignupPage() {
             We sent a confirmation link to{" "}
             <span className="font-semibold text-[#f0f0f5]">{email}</span>.
             <br />
-            Click it to activate your account.
+            Click it to activate your account and start your{" "}
+            <span className="text-[#00d4aa]">3-day free trial</span>.
           </p>
-          <p className="mt-6 text-xs text-[#4a4a6a]">
+          <p className="mt-8 text-xs text-[#4a4a6a]">
             Already confirmed?{" "}
-            <Link href="/login" className="text-[#00d4aa] hover:underline underline-offset-4">
-              Sign in
+            <Link href="/login" className="font-semibold text-[#00d4aa] hover:underline underline-offset-4">
+              Sign in →
             </Link>
           </p>
         </div>
@@ -88,6 +90,8 @@ export default function SignupPage() {
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
         <div className="h-125 w-125 rounded-full bg-[#00d4aa]/4 blur-3xl" />
       </div>
+      {/* Subtle dot grid */}
+      <div className="pointer-events-none absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(#1e1e2e 1px, transparent 1px)", backgroundSize: "24px 24px" }} />
 
       <div className="relative w-full max-w-md">
         {/* Logo */}
@@ -98,13 +102,13 @@ export default function SignupPage() {
         </div>
 
         {/* Card */}
-        <div className="rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/80 p-8 backdrop-blur-sm">
-          <div className="mb-6">
+        <div className="rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/90 p-8 shadow-2xl backdrop-blur-md">
+          <div className="mb-7">
             <h1 className="font-mono text-xl font-bold text-[#f0f0f5]">
               Create an account
             </h1>
             <p className="mt-1 text-sm text-[#8888aa]">
-              Set up your Fold access
+              Start your 3-day free trial — no card required
             </p>
           </div>
 
@@ -210,7 +214,12 @@ export default function SignupPage() {
                   Creating account…
                 </>
               ) : (
-                "Create account"
+                <>
+                  Create account
+                  <svg className="h-3.5 w-3.5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                  </svg>
+                </>
               )}
             </button>
 
@@ -230,7 +239,7 @@ export default function SignupPage() {
             href="/login"
             className="font-semibold text-[#00d4aa] hover:underline underline-offset-4"
           >
-            Sign in
+            Sign in →
           </Link>
         </p>
       </div>
