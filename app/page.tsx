@@ -534,13 +534,13 @@ export default function Home() {
               </div>
 
               <h1 className="mb-6 font-mono text-4xl font-bold leading-tight tracking-tight text-[#f0f0f5] sm:text-5xl lg:text-[3.4rem]">
-                Your entire business,{" "}
-                <span className="text-[#00d4aa]">understood</span>{" "}
-                in seconds.
+                Know why your revenue changed,{" "}
+                <span className="text-[#00d4aa]">instantly<span className="text-white">.</span></span>{" "}
+                
               </h1>
 
               <p className="mb-8 max-w-lg text-base leading-relaxed text-[#8888aa] sm:text-lg">
-                Fold connects Stripe, Google Analytics, and Meta Ads, then uses AI to surface what changed, what matters, and exactly what to do next — every single day.
+                Fold connects Stripe, Google Analytics, and Meta Ads, then uses AI to surface what changed, what matters, and exactly what to do next — every time.
               </p>
 
               <div className="mb-8 flex flex-wrap gap-3">
