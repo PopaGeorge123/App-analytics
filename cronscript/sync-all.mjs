@@ -1,27 +1,29 @@
 #!/usr/bin/env node
 /**
- * Fold Analytics — 100% Standalone Daily Sync + Backfill
+ * Fold Analytics — 100% Standalone Daemon (Sync + Auto-Backfill)
  * ─────────────────────────────────────────────────────────────────────────────
  * ZERO npm dependencies — only Node.js built-ins + fetch (Node 18+).
  * The only required file is .env  (path: ENV_PATH below).
  *
- * What it syncs:
+ * What it does:
  *   Stripe   → revenue, transactions, new customers
  *   GA4      → sessions, users, bounce rate, conversions
  *   Meta Ads → spend, reach, clicks, conversions
  *
  * ── MODES ────────────────────────────────────────────────────────────────────
  *
- *  ONE-SHOT (yesterday only):
+ *  DAEMON — recommended, runs forever:
+ *    node cronscript/sync-all.mjs --daemon
+ *
+ *    Every 30 minutes: checks for new users with no data → backfills them
+ *    Daily at 02:00 UTC: syncs yesterday's data for ALL users
+ *
+ *  ONE-SHOT sync (yesterday only, then exit):
  *    node cronscript/sync-all.mjs
  *
- *  DAEMON (repeat daily at 02:00 UTC):
- *    node cronscript/sync-all.mjs --loop
- *
- *  FULL BACKFILL (after connecting a new platform — run locally):
+ *  ONE-SHOT backfill (full history, then exit):
  *    node cronscript/sync-all.mjs --backfill
  *    node cronscript/sync-all.mjs --backfill --user <uuid>
- *    node cronscript/sync-all.mjs --backfill --platform stripe
  *    node cronscript/sync-all.mjs --backfill --platform stripe --days 180
  *
  *  Backfill depth (default):
@@ -30,11 +32,8 @@
  *    Meta    → 30 days
  *
  *  FILTERS (work with any mode):
- *    --user <uuid>        only sync this user
- *    --platform stripe    only sync this platform
- *
- *  System cron (02:00 UTC daily):
- *    0 2 * * * /usr/local/bin/node /path/to/cronscript/sync-all.mjs >> /tmp/fold-sync.log 2>&1
+ *    --user <uuid>        only this user
+ *    --platform stripe    only this platform
  */
 
 import { readFileSync } from 'fs';
@@ -89,14 +88,15 @@ if (!SUPABASE_URL || !SERVICE_KEY) {
 // CLI ARGS
 // ─────────────────────────────────────────────────────────────────────────────
 const args         = process.argv.slice(2);
-const loopMode     = args.includes('--loop');
-const backfillMode = args.includes('--backfill'); // full history import
+const daemonMode   = args.includes('--daemon');  // ← recommended: loop forever
+const loopMode     = args.includes('--loop');    // legacy alias for --daemon
+const backfillMode = args.includes('--backfill');
 const targetUser   = args.includes('--user')     ? args[args.indexOf('--user') + 1]     : null;
 const targetPlat   = args.includes('--platform') ? args[args.indexOf('--platform') + 1] : null;
 
-// How many days to backfill per platform (override with --days N)
+// How many days to backfill per platform (override Stripe with --days N)
 const BACKFILL_DAYS = {
-  stripe: args.includes('--days') ? parseInt(args[args.indexOf('--days') + 1], 10) : 540, // ~18 months
+  stripe: args.includes('--days') ? parseInt(args[args.indexOf('--days') + 1], 10) : 540,
   ga4:    90,
   meta:   30,
 };
@@ -589,15 +589,130 @@ async function runSync() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// AUTO-BACKFILL — detects users with no data and backfills them
+// Called every CHECK_INTERVAL_MS in daemon mode.
+// ─────────────────────────────────────────────────────────────────────────────
+const CHECK_INTERVAL_MS = 30 * 60 * 1000; // check every 30 minutes
+
+// Tracks which (userId+platform) combos have already been backfilled this
+// session so we don't repeat on every 30-min tick.
+const backfilledKeys = new Set();
+
+async function runAutoBackfill() {
+  log('[auto-backfill] Checking for new users with no data…');
+
+  // Fetch all integrations
+  let rows;
+  try {
+    rows = await SB.select('integrations', 'user_id,platform,access_token,refresh_token,account_id');
+  } catch (err) {
+    logFail(`[auto-backfill] Cannot fetch integrations: ${err.message}`);
+    return;
+  }
+  if (!rows?.length) { log('[auto-backfill] No integrations found.'); return; }
+
+  // For each integration, check if daily_snapshots has ANY row for that user+provider
+  const toBackfill = [];
+  for (const row of rows) {
+    const key = `${row.user_id}:${row.platform}`;
+    if (backfilledKeys.has(key)) continue; // already done this session
+
+    // Apply --user / --platform filters if set
+    if (targetUser && row.user_id !== targetUser) continue;
+    if (targetPlat && row.platform !== targetPlat) continue;
+
+    try {
+      const existing = await SB.select(
+        'daily_snapshots',
+        'id',
+        { user_id: row.user_id, provider: row.platform }
+      );
+      if (!existing?.length) {
+        toBackfill.push(row);
+      } else {
+        // Has data — mark as done so we skip next check
+        backfilledKeys.add(key);
+      }
+    } catch {
+      // ignore — will retry next tick
+    }
+  }
+
+  if (!toBackfill.length) {
+    log('[auto-backfill] All users have data. Nothing to do.');
+    return;
+  }
+
+  log(`[auto-backfill] ${toBackfill.length} integration(s) need backfill`);
+
+  // Group by user
+  const byUser = {};
+  for (const r of toBackfill) {
+    if (!byUser[r.user_id]) byUser[r.user_id] = {};
+    byUser[r.user_id][r.platform] = r;
+  }
+
+  for (const [uid, plats] of Object.entries(byUser)) {
+    log(`[auto-backfill] User ${uid.slice(0, 8)} — platforms: ${Object.keys(plats).join(', ')}`);
+
+    if (plats.stripe) {
+      try {
+        await backfillStripe(uid, plats.stripe.access_token);
+        backfilledKeys.add(`${uid}:stripe`);
+      } catch (err) { logFail(`[auto-backfill] stripe: ${err.message}`); }
+      await sleep(2_000);
+    }
+    if (plats.ga4) {
+      try {
+        await backfillGA4(uid, plats.ga4);
+        backfilledKeys.add(`${uid}:ga4`);
+      } catch (err) { logFail(`[auto-backfill] ga4: ${err.message}`); }
+      await sleep(2_000);
+    }
+    if (plats.meta) {
+      try {
+        await backfillMeta(uid, plats.meta);
+        backfilledKeys.add(`${uid}:meta`);
+      } catch (err) { logFail(`[auto-backfill] meta: ${err.message}`); }
+    }
+
+    await sleep(USER_DELAY_MS);
+  }
+
+  log('[auto-backfill] Done.');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // ENTRY POINT
 // ─────────────────────────────────────────────────────────────────────────────
 if (backfillMode) {
-  // Full historical import — run locally, no timeout
+  // Manual one-shot full backfill, then exit
   await runBackfill();
-} else if (loopMode) {
-  log(`Mode: daemon — running now, then daily at ${String(DAILY_UTC_HOUR).padStart(2, '0')}:00 UTC`);
+
+} else if (daemonMode || loopMode) {
+  // ── DAEMON MODE ─────────────────────────────────────────────────────────
+  // Runs forever:
+  //   • Every 30 min  → check for new users with no data → backfill them
+  //   • Daily 02:00 UTC → sync yesterday for all users
+  log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  log('DAEMON started.');
+  log(`  • Auto-backfill check: every ${CHECK_INTERVAL_MS / 60000} minutes`);
+  log(`  • Daily sync:          02:00 UTC`);
+  log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+  // 1. Immediate first run
+  await runAutoBackfill();
   await runSync();
+
+  // 2. Auto-backfill loop — every 30 minutes
+  setInterval(async () => {
+    try { await runAutoBackfill(); } catch (e) { logFail(`[auto-backfill loop] ${e.message}`); }
+  }, CHECK_INTERVAL_MS);
+
+  // 3. Daily sync at 02:00 UTC
   scheduleDailyAt(DAILY_UTC_HOUR, runSync, 'daily-sync');
+
 } else {
+  // One-shot: sync yesterday, then exit
   await runSync();
 }
