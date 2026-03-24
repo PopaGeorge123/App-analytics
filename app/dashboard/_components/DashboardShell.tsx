@@ -113,6 +113,20 @@ function DashboardShellInner({ email, isPremium, connectedPlatforms, snapshots, 
     }
   }, [searchParams]);
 
+  // Sync data from connected platforms once per browser session.
+  // Uses sessionStorage so it only fires on the first page load, not on
+  // every navigation between tabs.
+  useEffect(() => {
+    if (connectedPlatforms.length === 0) return;
+    const key = "fold_synced_this_session";
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, "1");
+    fetch("/api/integrations/sync-on-login").catch(() => {
+      // Silent fail — cron job will pick it up next night
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function navigate(tab: Tab) {
     setActiveTab(tab);
     setSidebarOpen(false);
