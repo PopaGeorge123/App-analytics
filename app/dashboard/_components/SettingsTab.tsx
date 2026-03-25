@@ -386,7 +386,7 @@ function DigestSection({ email }: { email: string }) {
         {status === "error" && <span className="font-mono text-[11px] text-red-400">{errorMsg}</span>}
       </div>
       <p className="mt-3 font-mono text-[9px] text-[#58588a]">
-        Tip: Set up automated weekly sends via your cron script (see AGENTS.md).
+        Tip: Set up automated weekly sends via your cron script.
       </p>
     </section>
   );
