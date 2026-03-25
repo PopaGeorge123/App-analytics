@@ -463,6 +463,11 @@ export default function AiTab({ isPremium }: AiTabProps) {
             Analyzes your Stripe, GA4, Meta &amp; website data in real time
           </p>
         </div>
+        {/* Live data context indicator */}
+        <div className="hidden sm:flex items-center gap-1.5 rounded-full border border-[#00d4aa]/20 bg-[#00d4aa]/5 px-3 py-1.5">
+          <span className="h-1.5 w-1.5 rounded-full bg-[#00d4aa] animate-pulse" />
+          <span className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#00d4aa]">Live data context</span>
+        </div>
       </div>
 
       {/* ── Daily Insight card ───────────────────────────────────────────── */}
@@ -656,7 +661,20 @@ export default function AiTab({ isPremium }: AiTabProps) {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-[#8888aa]">Ask me anything about your business</p>
-                  <p className="text-xs text-[#4a4a6a] mt-1 max-w-xs">I have access to your revenue, traffic, ad spend, and website data</p>
+                  <p className="text-xs text-[#4a4a6a] mt-1 max-w-xs">I have access to your last 30 days of revenue, traffic, ad spend, and website data</p>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap justify-center mt-1">
+                  {[
+                    { label: "Stripe", color: "#635bff" },
+                    { label: "GA4", color: "#f59e0b" },
+                    { label: "Meta Ads", color: "#1877f2" },
+                    { label: "Website", color: "#a78bfa" },
+                  ].map((s) => (
+                    <span key={s.label} className="inline-flex items-center gap-1 font-mono text-[9px] px-2 py-0.5 rounded-md" style={{ color: s.color, backgroundColor: s.color + "15" }}>
+                      <span className="h-1 w-1 rounded-full" style={{ backgroundColor: s.color }} />
+                      {s.label}
+                    </span>
+                  ))}
                 </div>
                 <div className="flex flex-wrap justify-center gap-2 mt-2">
                   {["How is my revenue trending?", "What's my CAC this month?", "Top website issues to fix?", "Is my ad spend efficient?"].map((s) => (

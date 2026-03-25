@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 interface SettingsTabProps {
@@ -164,6 +164,234 @@ function IntegrationRow({
   );
 }
 
+// ── Alert Rules ───────────────────────────────────────────────────────────
+
+export interface AlertRules {
+  revenueDropPct: number;  // alert if revenue drops by X% vs prev 7d (0 = disabled)
+  bounceSpikeThreshold: number; // alert if bounce rate exceeds X% (0 = disabled)
+  spendSpikeThreshold: number; // alert if ad spend > $X/day (0 = disabled)
+}
+
+export const DEFAULT_ALERTS: AlertRules = {
+  revenueDropPct: 0,
+  bounceSpikeThreshold: 0,
+  spendSpikeThreshold: 0,
+};
+
+function AlertsSection() {
+  const [rules, setRules] = useState<AlertRules>(DEFAULT_ALERTS);
+  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/user/settings")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.alertRules) setRules(d.alertRules);
+      })
+      .catch(() => {});
+  }, []);
+
+  async function saveRules() {
+    setSaving(true);
+    try {
+      await fetch("/api/user/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ alertRules: rules }),
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function clearRules() {
+    setRules(DEFAULT_ALERTS);
+    await fetch("/api/user/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ alertRules: DEFAULT_ALERTS }),
+    });
+  }
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-[#8888aa]">
+        Get notified on your Overview dashboard when key metrics cross these thresholds.
+      </p>
+
+      <div className="space-y-3">
+        {/* Revenue drop */}
+        <div className="flex items-center gap-3 rounded-xl border border-[#1e1e2e] bg-[#12121a] px-4 py-3">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#f87171]/10 text-[#f87171]">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="23 18 13.5 8.5 8.5 13.5 1 6" /><polyline points="17 18 23 18 23 12" />
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-mono text-[11px] font-semibold text-[#c0c0d8]">Revenue drop alert</p>
+            <p className="font-mono text-[9px] text-[#4a4a6a]">Alert if 7d revenue drops by X% vs previous week</p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <input
+              type="number"
+              min={0}
+              max={100}
+              placeholder="0"
+              value={rules.revenueDropPct || ""}
+              onChange={(e) => setRules((r) => ({ ...r, revenueDropPct: parseInt(e.target.value) || 0 }))}
+              className="w-16 bg-[#0d0d16] border border-[#1e1e2e] rounded-lg px-2 py-1.5 font-mono text-xs text-[#f0f0f5] text-right placeholder:text-[#2e2e4a] focus:outline-none focus:border-[#00d4aa]/30"
+            />
+            <span className="font-mono text-[10px] text-[#4a4a6a]">%</span>
+          </div>
+        </div>
+
+        {/* Bounce spike */}
+        <div className="flex items-center gap-3 rounded-xl border border-[#1e1e2e] bg-[#12121a] px-4 py-3">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#f59e0b]/10 text-[#f59e0b]">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" />
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-mono text-[11px] font-semibold text-[#c0c0d8]">Bounce rate spike</p>
+            <p className="font-mono text-[9px] text-[#4a4a6a]">Alert if 7d average bounce rate exceeds X%</p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <input
+              type="number"
+              min={0}
+              max={100}
+              placeholder="0"
+              value={rules.bounceSpikeThreshold || ""}
+              onChange={(e) => setRules((r) => ({ ...r, bounceSpikeThreshold: parseInt(e.target.value) || 0 }))}
+              className="w-16 bg-[#0d0d16] border border-[#1e1e2e] rounded-lg px-2 py-1.5 font-mono text-xs text-[#f0f0f5] text-right placeholder:text-[#2e2e4a] focus:outline-none focus:border-[#00d4aa]/30"
+            />
+            <span className="font-mono text-[10px] text-[#4a4a6a]">%</span>
+          </div>
+        </div>
+
+        {/* Daily ad spend cap */}
+        <div className="flex items-center gap-3 rounded-xl border border-[#1e1e2e] bg-[#12121a] px-4 py-3">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#1877f2]/10 text-[#1877f2]">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-mono text-[11px] font-semibold text-[#c0c0d8]">Ad spend cap</p>
+            <p className="font-mono text-[9px] text-[#4a4a6a]">Alert if a single day&apos;s ad spend exceeds $X</p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="font-mono text-[10px] text-[#4a4a6a]">$</span>
+            <input
+              type="number"
+              min={0}
+              placeholder="0"
+              value={rules.spendSpikeThreshold || ""}
+              onChange={(e) => setRules((r) => ({ ...r, spendSpikeThreshold: parseInt(e.target.value) || 0 }))}
+              className="w-16 bg-[#0d0d16] border border-[#1e1e2e] rounded-lg px-2 py-1.5 font-mono text-xs text-[#f0f0f5] text-right placeholder:text-[#2e2e4a] focus:outline-none focus:border-[#00d4aa]/30"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <button
+          onClick={saveRules}
+          disabled={saving}
+          className="rounded-xl bg-[#00d4aa] px-5 py-2 font-mono text-xs font-bold text-[#0a0a0f] hover:bg-[#00bfa0] transition disabled:opacity-60"
+        >
+          {saving ? "Saving…" : "Save alert rules"}
+        </button>
+        {saved && <span className="font-mono text-[10px] text-[#00d4aa]">✓ Saved</span>}
+        {(rules.revenueDropPct > 0 || rules.bounceSpikeThreshold > 0 || rules.spendSpikeThreshold > 0) && (
+          <button
+            onClick={clearRules}
+            className="font-mono text-[10px] text-[#4a4a6a] hover:text-red-400 transition"
+          >
+            Clear all
+          </button>
+        )}
+      </div>
+      <p className="font-mono text-[9px] text-[#2e2e4a]">
+        Alert thresholds are saved to your account and checked on your Overview dashboard.
+      </p>
+    </div>
+  );
+}
+
+// ── Email Digest Section ──────────────────────────────────────────────────
+
+function DigestSection({ email }: { email: string }) {
+  const [sending, setSending] = useState(false);
+  const [status, setStatus] = useState<"idle" | "sent" | "error">("idle");
+  const [errorMsg, setErrorMsg] = useState("");
+
+  async function sendDigest() {
+    setSending(true);
+    setStatus("idle");
+    setErrorMsg("");
+    try {
+      const res = await fetch("/api/digest/send", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        setErrorMsg(data.error ?? "Failed to send digest.");
+        setStatus("error");
+      } else {
+        setStatus("sent");
+      }
+    } catch {
+      setErrorMsg("Network error.");
+      setStatus("error");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <section className="mb-6 rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/60 p-6">
+      <h2 className="mb-1 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#4a4a6a]">
+        Email Digest
+      </h2>
+      <p className="mb-4 text-sm text-[#8888aa]">
+        Generate and send a full AI-powered weekly summary to <span className="text-[#c0c0d8]">{email}</span>. Includes revenue highlights, anomalies, cross-platform insights, and a top action.
+      </p>
+      <div className="flex items-center gap-3">
+        <button
+          onClick={sendDigest}
+          disabled={sending}
+          className="flex items-center gap-2 rounded-xl border border-[#00d4aa]/20 bg-[#00d4aa]/5 px-5 py-2.5 font-mono text-xs font-semibold text-[#00d4aa] hover:bg-[#00d4aa]/10 disabled:opacity-50 disabled:cursor-not-allowed transition"
+        >
+          {sending ? (
+            <>
+              <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+              </svg>
+              Generating &amp; Sending…
+            </>
+          ) : (
+            <>
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              Send digest now
+            </>
+          )}
+        </button>
+        {status === "sent" && <span className="font-mono text-[11px] text-[#00d4aa]">✓ Digest sent to {email}</span>}
+        {status === "error" && <span className="font-mono text-[11px] text-red-400">{errorMsg}</span>}
+      </div>
+      <p className="mt-3 font-mono text-[9px] text-[#2e2e4a]">
+        Tip: Set up automated weekly sends via your cron script (see AGENTS.md).
+      </p>
+    </section>
+  );
+}
+
 export default function SettingsTab({ email, isPremium, connectedPlatforms }: SettingsTabProps) {
   const router = useRouter();
   const [portalLoading, setPortalLoading] = useState(false);
@@ -242,6 +470,19 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms }: Se
           ))}
         </div>
       </section>
+
+      {/* ── Alert rules ──────────────────────────────────── */}
+      {isPremium && (
+        <section className="mb-6 rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/60 p-6">
+          <h2 className="mb-1 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#4a4a6a]">
+            Alert Rules
+          </h2>
+          <AlertsSection />
+        </section>
+      )}
+
+      {/* ── Email digest ─────────────────────────────────── */}
+      {isPremium && <DigestSection email={email} />}
 
       {/* ── Subscription ─────────────────────────────────── */}
       <section className="rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/60 p-6">

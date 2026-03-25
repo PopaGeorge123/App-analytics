@@ -17,9 +17,13 @@
  *
  *    Every 30 minutes: checks for new users with no data → backfills them
  *    Daily at 02:00 UTC: syncs yesterday's data for ALL users
+ *    After daily sync:   checks alert_rules and sends email if thresholds exceeded
  *
- *  ONE-SHOT sync (yesterday only, then exit):
+ *  ONE-SHOT sync (yesterday + alert check, then exit):
  *    node cronscript/sync-all.mjs
+ *
+ *  ONE-SHOT alert check only (for testing):
+ *    node cronscript/sync-all.mjs --alerts
  *
  *  ONE-SHOT backfill (full history, then exit):
  *    node cronscript/sync-all.mjs --backfill
@@ -78,6 +82,8 @@ const GOOGLE_ID    = g('GOOGLE_CLIENT_ID');
 const GOOGLE_SEC   = g('GOOGLE_CLIENT_SECRET');
 const META_APP_ID  = g('META_APP_ID');
 const META_APP_SEC = g('META_APP_SECRET');
+const RESEND_KEY   = g('RESEND_API_KEY');
+const FROM_EMAIL   = 'Fold Alerts <alerts@tryfold.io>';
 
 if (!SUPABASE_URL || !SERVICE_KEY) {
   console.error('✗ NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required in .env');
@@ -91,6 +97,7 @@ const args         = process.argv.slice(2);
 const daemonMode   = args.includes('--daemon');  // ← recommended: loop forever
 const loopMode     = args.includes('--loop');    // legacy alias for --daemon
 const backfillMode = args.includes('--backfill');
+const alertsOnly   = args.includes('--alerts');  // one-shot: only run alert check
 const targetUser   = args.includes('--user')     ? args[args.indexOf('--user') + 1]     : null;
 const targetPlat   = args.includes('--platform') ? args[args.indexOf('--platform') + 1] : null;
 
@@ -163,6 +170,14 @@ const SB = {
     return r.json();
   },
 
+  // Like select but filter can include not=null checks
+  async selectWhere(table, cols, qs) {
+    const p = new URLSearchParams({ select: cols, ...qs });
+    const r = await fetchRetry(`SB SELECT ${table}`, `${SUPABASE_URL}/rest/v1/${table}?${p}`, { headers: SB.headers });
+    if (!r.ok) throw new Error(`SB SELECT ${table}: ${r.status}`);
+    return r.json();
+  },
+
   async upsert(table, row, onConflict) {
     const r = await fetchRetry(`SB UPSERT ${table}`, `${SUPABASE_URL}/rest/v1/${table}`, {
       method: 'POST',
@@ -181,6 +196,18 @@ const SB = {
       body: JSON.stringify(data),
     });
     if (!r.ok) { const b = await r.text().catch(() => ''); throw new Error(`SB PATCH ${table}: ${r.status} ${b}`); }
+  },
+
+  // Fetch rows with user_id=userId AND date >= cutoff
+  async selectByUserSince(table, cols, userId, dateCutoff) {
+    const p = new URLSearchParams({
+      select: cols,
+      user_id: `eq.${userId}`,
+      date: `gte.${dateCutoff}`,
+    });
+    const r = await fetchRetry(`SB SELECT ${table}`, `${SUPABASE_URL}/rest/v1/${table}?${p}`, { headers: SB.headers });
+    if (!r.ok) throw new Error(`SB SELECT ${table}: ${r.status}`);
+    return r.json();
   },
 };
 
@@ -683,11 +710,207 @@ async function runAutoBackfill() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// ALERT RULES CHECK
+// Run after every daily sync. Fetches all premium users with alert_rules set,
+// checks thresholds against last 7d vs prev 7d data, and sends emails.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Send a plain alert email via Resend REST API (no SDK) */
+async function sendAlertEmail(toEmail, subject, bodyHtml) {
+  if (!RESEND_KEY) { logWarn('[alerts] RESEND_API_KEY not set — skipping email'); return; }
+  try {
+    const res = await fetchRetry('Resend alert email', 'https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${RESEND_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: FROM_EMAIL,
+        to: toEmail,
+        subject,
+        html: bodyHtml,
+      }),
+    });
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      logWarn(`[alerts] Email send failed: ${e?.message ?? res.status}`);
+    } else {
+      logOk(`[alerts] Alert email sent to ${toEmail}`);
+    }
+  } catch (err) {
+    logWarn(`[alerts] Email error: ${err.message}`);
+  }
+}
+
+function buildAlertEmailHtml(alerts, email) {
+  const rows = alerts.map(a => `
+    <tr>
+      <td style="padding:12px 16px;border-bottom:1px solid #1e1e2e;">
+        <span style="font-size:18px;margin-right:8px;">${a.icon}</span>
+        <strong style="color:#f0f0f5;">${a.title}</strong><br>
+        <span style="color:#8888aa;font-size:13px;">${a.detail}</span>
+      </td>
+    </tr>`).join('');
+
+  return `<!DOCTYPE html>
+<html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#0a0a0f;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <div style="max-width:560px;margin:40px auto;background:#0d0d16;border:1px solid #1e1e2e;border-radius:16px;overflow:hidden;">
+    <div style="background:linear-gradient(135deg,#f87171,#f59e0b);padding:24px 28px;">
+      <p style="margin:0;font-family:monospace;font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.7);">Fold — Alert</p>
+      <h1 style="margin:6px 0 0;font-size:22px;color:#fff;">⚠ Metric Alert Triggered</h1>
+    </div>
+    <div style="padding:24px 28px;">
+      <p style="margin:0 0 16px;color:#8888aa;font-size:14px;">The following alert rules were triggered for your account:</p>
+      <table style="width:100%;border-collapse:collapse;background:#12121a;border-radius:12px;overflow:hidden;">
+        ${rows}
+      </table>
+      <div style="margin-top:24px;text-align:center;">
+        <a href="${g('NEXT_PUBLIC_APP_URL') || 'https://usefold.io'}/dashboard"
+           style="display:inline-block;background:#00d4aa;color:#0a0a0f;font-weight:700;font-family:monospace;font-size:12px;text-transform:uppercase;letter-spacing:.08em;padding:12px 28px;border-radius:10px;text-decoration:none;">
+          Open Dashboard →
+        </a>
+      </div>
+    </div>
+    <div style="padding:16px 28px;border-top:1px solid #1e1e2e;text-align:center;color:#444;font-size:11px;">
+      You're receiving this because you have alert rules enabled in Fold.<br>
+      Manage alerts in <a href="${g('NEXT_PUBLIC_APP_URL') || 'https://usefold.io'}/dashboard" style="color:#00d4aa;text-decoration:none;">Settings → Alert Rules</a>.
+    </div>
+  </div>
+</body></html>`;
+}
+
+async function checkAlerts() {
+  log('[alerts] Checking alert rules for all premium users…');
+
+  // 1. Fetch all premium users that have alert_rules configured
+  let users;
+  try {
+    users = await SB.selectWhere('users', 'id,email,alert_rules', {
+      is_premium: 'eq.true',
+      alert_rules: 'not.is.null',
+    });
+  } catch (err) {
+    logFail(`[alerts] Cannot fetch users: ${err.message}`);
+    return;
+  }
+
+  if (!users?.length) { log('[alerts] No users with alert rules found.'); return; }
+
+  const cutoff14 = daysAgo(14);
+  const cutoff7  = daysAgo(7);
+
+  let notified = 0;
+
+  for (const user of users) {
+    const rules = user.alert_rules;
+    if (!rules) continue;
+
+    // Skip if all thresholds are 0 (effectively disabled)
+    const hasAny = rules.revenueDropPct > 0 || rules.bounceSpikeThreshold > 0 || rules.spendSpikeThreshold > 0;
+    if (!hasAny) continue;
+
+    // 2. Fetch last 14 days of snapshots for this user
+    let snaps;
+    try {
+      snaps = await SB.selectByUserSince('daily_snapshots', 'provider,date,data', user.id, cutoff14);
+    } catch (err) {
+      logWarn(`[alerts] Cannot fetch snapshots for ${user.id.slice(0, 8)}: ${err.message}`);
+      continue;
+    }
+
+    if (!snaps?.length) continue;
+
+    // 3. Split into 7d vs prev-7d
+    const snaps7     = snaps.filter(s => s.date >= cutoff7);
+    const snapsPrev7 = snaps.filter(s => s.date <  cutoff7);
+
+    // Helper: sum a field for a provider
+    const sumField = (arr, provider, field) =>
+      arr.filter(s => s.provider === provider)
+         .reduce((acc, s) => acc + ((s.data?.[field]) ?? 0), 0);
+    const avgField = (arr, provider, field) => {
+      const rows = arr.filter(s => s.provider === provider);
+      if (!rows.length) return 0;
+      return rows.reduce((acc, s) => acc + ((s.data?.[field]) ?? 0), 0) / rows.length;
+    };
+
+    const revenue7     = sumField(snaps7,     'stripe', 'revenue');
+    const revenuePrev  = sumField(snapsPrev7,  'stripe', 'revenue');
+    const bounceRate7  = avgField(snaps7,     'ga4',    'bounceRate');
+    const spend7       = sumField(snaps7,     'meta',   'spend'); // dollars (Meta stores as dollars)
+
+    // 4. Evaluate each threshold
+    const triggered = [];
+
+    if (rules.revenueDropPct > 0 && revenuePrev > 0 && revenue7 < revenuePrev) {
+      const dropPct = ((revenuePrev - revenue7) / revenuePrev) * 100;
+      if (dropPct >= rules.revenueDropPct) {
+        triggered.push({
+          icon: '🚨',
+          title: `Revenue down ${dropPct.toFixed(1)}%`,
+          detail: `Last 7 days: $${(revenue7 / 100).toFixed(2)} vs $${(revenuePrev / 100).toFixed(2)} the week before (threshold: ${rules.revenueDropPct}%)`,
+        });
+      }
+    }
+
+    if (rules.bounceSpikeThreshold > 0 && bounceRate7 > 0) {
+      // GA4 bounceRate is stored as a decimal (0–1) in sync, multiply by 100 for %
+      const bounceRatePct = bounceRate7 <= 1 ? bounceRate7 * 100 : bounceRate7;
+      if (bounceRatePct > rules.bounceSpikeThreshold) {
+        triggered.push({
+          icon: '⚠',
+          title: `Bounce rate spike: ${bounceRatePct.toFixed(1)}%`,
+          detail: `7-day average bounce rate exceeded your ${rules.bounceSpikeThreshold}% threshold`,
+        });
+      }
+    }
+
+    if (rules.spendSpikeThreshold > 0 && spend7 > 0) {
+      const avgDailySpend = spend7 / 7; // Meta stores dollars directly
+      if (avgDailySpend > rules.spendSpikeThreshold) {
+        triggered.push({
+          icon: '💸',
+          title: `Ad spend cap exceeded: $${avgDailySpend.toFixed(2)}/day avg`,
+          detail: `Average daily Meta Ads spend exceeded your $${rules.spendSpikeThreshold} cap`,
+        });
+      }
+    }
+
+    if (!triggered.length) {
+      logOk(`[alerts] User ${user.id.slice(0, 8)} — no thresholds exceeded`);
+      continue;
+    }
+
+    log(`[alerts] User ${user.id.slice(0, 8)} — ${triggered.length} alert(s) triggered`);
+    triggered.forEach(t => log(`  → ${t.icon} ${t.title}`));
+
+    const subject = triggered.length === 1
+      ? `Fold Alert: ${triggered[0].title}`
+      : `Fold Alert: ${triggered.length} metrics need attention`;
+
+    await sendAlertEmail(
+      user.email,
+      subject,
+      buildAlertEmailHtml(triggered, user.email)
+    );
+    notified++;
+  }
+
+  log(`[alerts] Done — ${notified} user(s) notified`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // ENTRY POINT
 // ─────────────────────────────────────────────────────────────────────────────
 if (backfillMode) {
   // Manual one-shot full backfill, then exit
   await runBackfill();
+
+} else if (alertsOnly) {
+  // Manual one-shot alert check only, then exit
+  await checkAlerts();
 
 } else if (daemonMode || loopMode) {
   // ── DAEMON MODE ─────────────────────────────────────────────────────────
@@ -698,21 +921,27 @@ if (backfillMode) {
   log('DAEMON started.');
   log(`  • Auto-backfill check: every ${CHECK_INTERVAL_MS / 60000} minutes`);
   log(`  • Daily sync:          02:00 UTC`);
+  log(`  • Alert rules check:   after every daily sync`);
   log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
   // 1. Immediate first run
   await runAutoBackfill();
   await runSync();
+  await checkAlerts();
 
   // 2. Auto-backfill loop — every 30 minutes
   setInterval(async () => {
     try { await runAutoBackfill(); } catch (e) { logFail(`[auto-backfill loop] ${e.message}`); }
   }, CHECK_INTERVAL_MS);
 
-  // 3. Daily sync at 02:00 UTC
-  scheduleDailyAt(DAILY_UTC_HOUR, runSync, 'daily-sync');
+  // 3. Daily sync + alert check at 02:00 UTC
+  scheduleDailyAt(DAILY_UTC_HOUR, async () => {
+    await runSync();
+    await checkAlerts();
+  }, 'daily-sync+alerts');
 
 } else {
-  // One-shot: sync yesterday, then exit
+  // One-shot: sync yesterday + check alerts, then exit
   await runSync();
+  await checkAlerts();
 }

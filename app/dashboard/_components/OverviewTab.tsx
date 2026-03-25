@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { Snapshot } from "./DashboardShell";
+import { DEMO_SNAPSHOTS, DEMO_CONNECTED_PLATFORMS } from "./demoData";
+import { DEFAULT_ALERTS, type AlertRules } from "./SettingsTab";
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -227,6 +229,9 @@ function KpiCard({
             {trend && <TrendBadge current={trend.current} prev={trend.prev} />}
           </div>
           {sub && <p className="mt-1.5 font-mono text-[10px] text-[#4a4a6a]">{sub}</p>}
+          {trend && trendPct(trend.current, trend.prev) !== null && (
+            <p className="mt-1 font-mono text-[9px] text-[#2e2e4a]">vs prev 7 days</p>
+          )}
         </div>
       )}
     </div>
@@ -255,6 +260,158 @@ function MiniScoreRing({ score }: { score: number }) {
         />
       </svg>
       <span className="absolute font-mono text-[13px] font-bold" style={{ color }}>{score}</span>
+    </div>
+  );
+}
+
+// ── Goals Widget ─────────────────────────────────────────────────────────
+
+interface Goals {
+  revenueTarget: number; // cents per week
+  sessionsTarget: number;
+}
+
+function GoalsWidget({
+  revenue7: revenue7,
+  sessions7: sessions7,
+  stripeConn,
+  ga4Conn,
+}: {
+  revenue7: number;
+  sessions7: number;
+  stripeConn: boolean;
+  ga4Conn: boolean;
+}) {
+  const [goals, setGoals] = useState<Goals>({ revenueTarget: 0, sessionsTarget: 0 });
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState({ revenue: "", sessions: "" });
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/user/settings")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.goals) setGoals(d.goals);
+      })
+      .catch(() => {});
+  }, []);
+
+  function openEdit() {
+    setDraft({
+      revenue: goals.revenueTarget ? (goals.revenueTarget / 100).toFixed(0) : "",
+      sessions: goals.sessionsTarget ? String(goals.sessionsTarget) : "",
+    });
+    setEditing(true);
+  }
+
+  async function saveGoals() {
+    const updated: Goals = {
+      revenueTarget: draft.revenue ? Math.round(parseFloat(draft.revenue) * 100) : 0,
+      sessionsTarget: draft.sessions ? parseInt(draft.sessions) : 0,
+    };
+    setGoals(updated);
+    setEditing(false);
+    setSaving(true);
+    try {
+      await fetch("/api/user/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ goals: updated }),
+      });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const revenueProgress = goals.revenueTarget > 0 ? Math.min((revenue7 / goals.revenueTarget) * 100, 100) : 0;
+  const sessionsProgress = goals.sessionsTarget > 0 ? Math.min((sessions7 / goals.sessionsTarget) * 100, 100) : 0;
+
+  const hasGoals = goals.revenueTarget > 0 || goals.sessionsTarget > 0;
+
+  if (!editing && !hasGoals) {
+    return (
+      <button
+        onClick={openEdit}
+        className="w-full flex items-center gap-2 rounded-xl border border-dashed border-[#1e1e2e] bg-transparent px-4 py-3 text-left text-[#4a4a6a] hover:border-[#00d4aa]/30 hover:text-[#00d4aa] transition-colors group"
+      >
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10" /><path d="M12 8v4l3 3" />
+        </svg>
+        <span className="font-mono text-[11px]">Set weekly goals →</span>
+      </button>
+    );
+  }
+
+  if (editing) {
+    return (
+      <div className="rounded-xl border border-[#00d4aa]/20 bg-[#00d4aa]/5 px-4 py-3 space-y-3">
+        <p className="font-mono text-[9px] uppercase tracking-widest text-[#00d4aa]">Set weekly goals</p>
+        {stripeConn && (
+          <div className="flex items-center gap-2">
+            <label className="font-mono text-[10px] text-[#8888aa] w-28 shrink-0">Revenue target ($)</label>
+            <input
+              type="number"
+              placeholder="e.g. 2000"
+              value={draft.revenue}
+              onChange={(e) => setDraft((d) => ({ ...d, revenue: e.target.value }))}
+              className="flex-1 bg-[#12121a] border border-[#1e1e2e] rounded-lg px-3 py-1.5 font-mono text-xs text-[#f0f0f5] placeholder:text-[#2e2e4a] focus:outline-none focus:border-[#00d4aa]/30"
+            />
+          </div>
+        )}
+        {ga4Conn && (
+          <div className="flex items-center gap-2">
+            <label className="font-mono text-[10px] text-[#8888aa] w-28 shrink-0">Sessions target</label>
+            <input
+              type="number"
+              placeholder="e.g. 3000"
+              value={draft.sessions}
+              onChange={(e) => setDraft((d) => ({ ...d, sessions: e.target.value }))}
+              className="flex-1 bg-[#12121a] border border-[#1e1e2e] rounded-lg px-3 py-1.5 font-mono text-xs text-[#f0f0f5] placeholder:text-[#2e2e4a] focus:outline-none focus:border-[#00d4aa]/30"
+            />
+          </div>
+        )}
+        <div className="flex gap-2">
+          <button onClick={saveGoals} disabled={saving} className="flex-1 rounded-lg bg-[#00d4aa] px-3 py-1.5 font-mono text-xs font-bold text-[#0a0a0f] hover:bg-[#00bfa0] transition disabled:opacity-60">{saving ? "Saving…" : "Save"}</button>
+          <button onClick={() => setEditing(false)} className="rounded-lg border border-[#1e1e2e] px-3 py-1.5 font-mono text-xs text-[#4a4a6a] hover:text-[#8888aa] transition">Cancel</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border border-[#1e1e2e] bg-[#12121a] px-4 py-3 space-y-2.5">
+      <div className="flex items-center justify-between">
+        <p className="font-mono text-[9px] uppercase tracking-widest text-[#4a4a6a]">Weekly goals</p>
+        <button onClick={openEdit} className="font-mono text-[9px] text-[#4a4a6a] hover:text-[#00d4aa] transition">Edit</button>
+      </div>
+      {stripeConn && goals.revenueTarget > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <span className="font-mono text-[10px] text-[#8888aa]">Revenue</span>
+            <span className="font-mono text-[10px] text-[#f0f0f5]">
+              {fmt(revenue7, "currency")} <span className="text-[#4a4a6a]">/ {fmt(goals.revenueTarget, "currency")}</span>
+            </span>
+          </div>
+          <div className="h-1.5 w-full rounded-full bg-[#1e1e2e]">
+            <div className="h-full rounded-full transition-all duration-700" style={{ width: `${revenueProgress}%`, backgroundColor: revenueProgress >= 100 ? "#00d4aa" : revenueProgress >= 75 ? "#34d399" : "#f59e0b" }} />
+          </div>
+          {revenueProgress >= 100 && <p className="mt-0.5 font-mono text-[9px] text-[#00d4aa]">🎉 Goal reached!</p>}
+        </div>
+      )}
+      {ga4Conn && goals.sessionsTarget > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <span className="font-mono text-[10px] text-[#8888aa]">Sessions</span>
+            <span className="font-mono text-[10px] text-[#f0f0f5]">
+              {fmt(sessions7)} <span className="text-[#4a4a6a]">/ {fmt(goals.sessionsTarget)}</span>
+            </span>
+          </div>
+          <div className="h-1.5 w-full rounded-full bg-[#1e1e2e]">
+            <div className="h-full rounded-full transition-all duration-700" style={{ width: `${sessionsProgress}%`, backgroundColor: sessionsProgress >= 100 ? "#00d4aa" : sessionsProgress >= 75 ? "#34d399" : "#f59e0b" }} />
+          </div>
+          {sessionsProgress >= 100 && <p className="mt-0.5 font-mono text-[9px] text-[#00d4aa]">🎉 Goal reached!</p>}
+        </div>
+      )}
     </div>
   );
 }
@@ -313,6 +470,16 @@ export default function OverviewTab({
   const router = useRouter();
   const [upgradeLoading, setUpgradeLoading] = useState(false);
   const [upgradeError, setUpgradeError] = useState("");
+  const [alertRules, setAlertRules] = useState<AlertRules>(DEFAULT_ALERTS);
+
+  useEffect(() => {
+    fetch("/api/user/settings")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.alertRules) setAlertRules(d.alertRules);
+      })
+      .catch(() => {});
+  }, []);
 
   async function handleUpgrade() {
     setUpgradeLoading(true);
@@ -333,9 +500,14 @@ export default function OverviewTab({
   }
 
   // ── Metrics: 7d vs previous 7d for trend ───────────────────────────────
-  const { kpis, activity } = useMemo(() => {
-    const snaps7 = filterDays(snapshots, 7);
-    const snaps14 = filterDays(snapshots, 14);
+  // Demo mode: show sample data when no platforms are connected
+  const isDemoMode = isPremium && connectedPlatforms.length === 0;
+  const effectiveSnapshots = isDemoMode ? DEMO_SNAPSHOTS : snapshots;
+  const effectivePlatforms = isDemoMode ? DEMO_CONNECTED_PLATFORMS : connectedPlatforms;
+
+  const { kpis, activity, narrative, crossInsights, metrics7 } = useMemo(() => {
+    const snaps7 = filterDays(effectiveSnapshots, 7);
+    const snaps14 = filterDays(effectiveSnapshots, 14);
     const snapsPrev7 = snaps14.filter((s) => !snaps7.find((x) => x.id === s.id));
 
     const revenue7 = sumField(snaps7, "stripe", "revenue");
@@ -349,10 +521,63 @@ export default function OverviewTab({
     const conversions7 = sumField(snaps7, "ga4", "conversions");
     const bounceRate7 = avgField(snaps7, "ga4", "bounceRate");
 
-    const stripeConn = connectedPlatforms.includes("stripe");
-    const ga4Conn = connectedPlatforms.includes("ga4");
-    const metaConn = connectedPlatforms.includes("meta");
+    const stripeConn = effectivePlatforms.includes("stripe");
+    const ga4Conn = effectivePlatforms.includes("ga4");
+    const metaConn = effectivePlatforms.includes("meta");
     const cac7 = newCustomers7 > 0 ? spend7 / newCustomers7 : null;
+
+    // ── Yesterday's metrics for daily narrative ─────────────────────────
+    const yesterdayStr = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const snapsYesterday = effectiveSnapshots.filter((s) => s.date === yesterdayStr);
+    const revenueYday = sumField(snapsYesterday, "stripe", "revenue");
+    const sessionsYday = sumField(snapsYesterday, "ga4", "sessions");
+    const txYday = sumField(snapsYesterday, "stripe", "transactions");
+    const newCxYday = sumField(snapsYesterday, "stripe", "newCustomers");
+    const spendYday = sumField(snapsYesterday, "meta", "spend");
+    const bounceYday = avgField(snapsYesterday, "ga4", "bounceRate");
+    const hasYesterdayData = snapsYesterday.length > 0;
+
+    // Build narrative sentence
+    const narrativeParts: string[] = [];
+    if (stripeConn && revenueYday > 0) narrativeParts.push(`${fmt(revenueYday, "currency")} revenue (${txYday} txns)`);
+    if (ga4Conn && sessionsYday > 0) narrativeParts.push(`${fmt(sessionsYday)} sessions`);
+    if (stripeConn && newCxYday > 0) narrativeParts.push(`${newCxYday} new customer${newCxYday !== 1 ? "s" : ""}`);
+    if (metaConn && spendYday > 0) narrativeParts.push(`${fmt(spendYday, "currency")} ad spend`);
+
+    const narrative = {
+      hasData: hasYesterdayData && narrativeParts.length > 0,
+      text: narrativeParts.join(" · "),
+      bounceAlert: ga4Conn && bounceYday > 65,
+      bounceRate: bounceYday,
+      date: yesterdayStr,
+    };
+
+    // ── Cross-insight: website + analytics ──────────────────────────────
+    const crossInsights: { icon: string; color: string; message: string; action: string }[] = [];
+    if (ga4Conn && bounceRate7 > 65 && websiteData.score > 0 && websiteData.score < 60) {
+      crossInsights.push({
+        icon: "⚠",
+        color: "#f59e0b",
+        message: `High bounce rate (${fmt(bounceRate7, "percent")}) combined with a low website score (${websiteData.score}/100) suggests UX issues are driving visitors away.`,
+        action: "Fix website →",
+      });
+    }
+    if (ga4Conn && bounceRate7 > 65 && websiteData.score >= 60) {
+      crossInsights.push({
+        icon: "↑",
+        color: "#f87171",
+        message: `Bounce rate is elevated at ${fmt(bounceRate7, "percent")}. Despite a decent website score, consider reviewing your landing page copy and load speed.`,
+        action: "View website →",
+      });
+    }
+    if (stripeConn && metaConn && newCustomers7 > 0 && spend7 > 0 && websiteData.score > 0 && websiteData.score < 55) {
+      crossInsights.push({
+        icon: "💡",
+        color: "#a78bfa",
+        message: `You're spending on ads but your website health score is ${websiteData.score}/100. Fixing website issues could significantly improve your ad-to-customer conversion rate.`,
+        action: "Improve website →",
+      });
+    }
 
     const kpis = [
       {
@@ -428,13 +653,31 @@ export default function OverviewTab({
       });
     }
 
-    return { kpis, activity: activityItems.slice(0, 5) };
-  }, [snapshots, connectedPlatforms, websiteData]);
+    return { kpis, activity: activityItems.slice(0, 5), narrative, crossInsights, metrics7: { revenue7, sessions7: sessions7, bounceRate7, spend7, revenuePrev } };
+  }, [effectiveSnapshots, effectivePlatforms, websiteData]);
 
   const pendingTasks = websiteData.tasks.filter((t) => !t.completed);
   const completedTasks = websiteData.tasks.filter((t) => t.completed);
   const hasAllIntegrations = ["stripe", "ga4", "meta"].every((p) => connectedPlatforms.includes(p));
   const missingIntegrations = INTEGRATIONS.filter((i) => !connectedPlatforms.includes(i.id));
+
+  // ── Active alerts based on user-configured thresholds ─────────────────
+  const activeAlerts: { color: string; message: string }[] = [];
+  if (alertRules.revenueDropPct > 0 && metrics7.revenuePrev > 0) {
+    const dropPct = ((metrics7.revenuePrev - metrics7.revenue7) / metrics7.revenuePrev) * 100;
+    if (dropPct >= alertRules.revenueDropPct) {
+      activeAlerts.push({ color: "#f87171", message: `🚨 Revenue is down ${dropPct.toFixed(1)}% vs last week (threshold: ${alertRules.revenueDropPct}%)` });
+    }
+  }
+  if (alertRules.bounceSpikeThreshold > 0 && metrics7.bounceRate7 > alertRules.bounceSpikeThreshold) {
+    activeAlerts.push({ color: "#f59e0b", message: `⚠ Bounce rate ${fmt(metrics7.bounceRate7, "percent")} exceeds your ${alertRules.bounceSpikeThreshold}% threshold` });
+  }
+  if (alertRules.spendSpikeThreshold > 0 && metrics7.spend7 > 0) {
+    const avgDailySpend = metrics7.spend7 / 7;
+    if (avgDailySpend > alertRules.spendSpikeThreshold * 100) {
+      activeAlerts.push({ color: "#1877f2", message: `💸 Average daily ad spend (${fmt(avgDailySpend, "currency")}) exceeds your $${alertRules.spendSpikeThreshold} cap` });
+    }
+  }
 
   const firstName = email.split("@")[0].split(/[._-]/)[0];
   const capitalFirst = firstName.charAt(0).toUpperCase() + firstName.slice(1);
@@ -473,6 +716,61 @@ export default function OverviewTab({
       </div>
 
       {upgradeError && <p className="font-mono text-xs text-red-400">{upgradeError}</p>}
+
+      {/* ── Demo mode banner ──────────────────────────────────── */}
+      {isDemoMode && (
+        <div className="flex items-start gap-3 rounded-2xl border border-[#a78bfa]/25 bg-[#a78bfa]/8 px-5 py-4">
+          <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#a78bfa]/15 text-[#a78bfa]">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#a78bfa] mb-0.5">Demo Mode</p>
+            <p className="font-mono text-[11px] text-[#c0c0d8]">
+              You&apos;re viewing sample data for a fictional SaaS business. Connect Stripe, GA4, or Meta Ads in Settings to see your real metrics.
+            </p>
+          </div>
+          <button
+            onClick={() => onNavigate("settings")}
+            className="shrink-0 font-mono text-[10px] font-semibold text-[#a78bfa] hover:underline"
+          >
+            Connect →
+          </button>
+        </div>
+      )}
+
+      {/* ── Yesterday at a glance ─────────────────────────────── */}
+      {isPremium && narrative.hasData && (
+        <div className="rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/60 px-5 py-4">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#00d4aa]/10 text-[#00d4aa]">
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <p className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#00d4aa]">Yesterday</p>
+                <span className="font-mono text-[9px] text-[#2e2e4a]">
+                  {new Date(narrative.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
+                </span>
+              </div>
+              <p className="font-mono text-sm text-[#c0c0d8] leading-relaxed">{narrative.text}</p>
+              {narrative.bounceAlert && (
+                <div className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-amber-500/20 bg-amber-500/8 px-2.5 py-1">
+                  <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="#f59e0b" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                  </svg>
+                  <span className="font-mono text-[10px] font-semibold text-amber-400">
+                    Bounce rate {fmt(narrative.bounceRate, "percent")} — high, consider checking landing pages
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Premium gate ─────────────────────────────────────── */}
       {!isPremium && (
@@ -518,10 +816,48 @@ export default function OverviewTab({
       {/* ── Premium content ──────────────────────────────────── */}
       {isPremium && <>
 
+      {/* ── Active alert banners ──────────────────────────── */}
+      {isPremium && activeAlerts.length > 0 && (
+        <div className="space-y-2">
+          {activeAlerts.map((alert, i) => (
+            <div key={i} className="flex items-center gap-3 rounded-xl border px-4 py-3" style={{ borderColor: alert.color + "35", backgroundColor: alert.color + "0d" }}>
+              <p className="flex-1 font-mono text-[11px]" style={{ color: alert.color }}>{alert.message}</p>
+              <button
+                onClick={() => onNavigate("settings")}
+                className="shrink-0 font-mono text-[10px] hover:underline"
+                style={{ color: alert.color }}
+              >
+                Adjust →
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Cross-insights (website + analytics) ──────────────── */}
+      {isPremium && crossInsights.length > 0 && (
+        <div className="space-y-2">
+          {crossInsights.slice(0, 1).map((ci, i) => (
+            <div key={i} className="flex items-start gap-3 rounded-2xl border px-5 py-3.5" style={{ borderColor: ci.color + "30", backgroundColor: ci.color + "08" }}>
+              <span className="mt-0.5 font-mono text-sm shrink-0" style={{ color: ci.color }}>{ci.icon}</span>
+              <p className="flex-1 font-mono text-[11px] text-[#c0c0d8] leading-relaxed">{ci.message}</p>
+              <button
+                onClick={() => onNavigate("website")}
+                className="shrink-0 font-mono text-[10px] font-semibold hover:underline"
+                style={{ color: ci.color }}
+              >
+                {ci.action}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* ── KPI Grid ─────────────────────────────────────────── */}
       <section>
         <div className="flex items-center gap-2 mb-4">
           <p className="font-mono text-[9px] uppercase tracking-widest text-[#4a4a6a]">Last 7 days</p>
+          <span className="font-mono text-[8px] text-[#2e2e4a] border border-[#1e1e2e] rounded px-1.5 py-0.5">▲▼ vs prev 7 days</span>
           <div className="flex-1 border-t border-[#1e1e2e]" />
           <button
             onClick={() => onNavigate("analytics")}
@@ -668,6 +1004,12 @@ export default function OverviewTab({
           <div className="rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/70 p-5">
             <p className="font-mono text-[9px] uppercase tracking-widest text-[#4a4a6a] mb-3">Quick Actions</p>
             <div className="space-y-2">
+              <GoalsWidget
+                revenue7={kpis.find((k) => k.icon === "revenue")?.trend?.current ?? 0}
+                sessions7={kpis.find((k) => k.icon === "sessions")?.trend?.current ?? 0}
+                stripeConn={effectivePlatforms.includes("stripe")}
+                ga4Conn={effectivePlatforms.includes("ga4")}
+              />
               <button
                 onClick={() => onNavigate("website")}
                 className="w-full flex items-center gap-3 rounded-xl border border-[#1e1e2e] bg-[#12121a] px-3 py-2.5 text-left transition hover:border-[#00d4aa]/25 hover:bg-[#0f1420] group"

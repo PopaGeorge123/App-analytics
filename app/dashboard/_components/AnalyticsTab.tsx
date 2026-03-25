@@ -461,6 +461,106 @@ function StripeSection({ snapshots, granularity }: { snapshots: Snapshot[]; gran
   );
 }
 
+// ── Cohort / Retention Section ────────────────────────────────────────────
+
+function CohortSection({ snapshots }: { snapshots: Snapshot[] }) {
+  // Build weekly cohort data: new vs returning customers per week
+  const weeklyData = useMemo(() => {
+    // Group by ISO week
+    const weeks: Record<string, { newCustomers: number; totalTransactions: number }> = {};
+    for (const snap of snapshots) {
+      if (snap.provider !== "stripe") continue;
+      const d = new Date(snap.date + "T12:00:00");
+      // ISO week key: YYYY-Www
+      const jan4 = new Date(d.getFullYear(), 0, 4);
+      const weekNum = Math.ceil((((d.getTime() - jan4.getTime()) / 86400000) + jan4.getDay() + 1) / 7);
+      const key = `${d.getFullYear()}-W${String(weekNum).padStart(2, "0")}`;
+      if (!weeks[key]) weeks[key] = { newCustomers: 0, totalTransactions: 0 };
+      const data = snap.data as Record<string, number>;
+      weeks[key].newCustomers += data.newCustomers ?? 0;
+      weeks[key].totalTransactions += data.transactions ?? data.txCount ?? 0;
+    }
+    return Object.entries(weeks)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .slice(-8) // last 8 weeks
+      .map(([week, vals]) => ({
+        week,
+        newCustomers: vals.newCustomers,
+        returning: Math.max(0, vals.totalTransactions - vals.newCustomers),
+        total: vals.totalTransactions,
+      }));
+  }, [snapshots]);
+
+  const totalNew = weeklyData.reduce((a, w) => a + w.newCustomers, 0);
+  const totalReturning = weeklyData.reduce((a, w) => a + w.returning, 0);
+  const totalAll = totalNew + totalReturning;
+  const retentionRate = totalAll > 0 ? Math.round((totalReturning / totalAll) * 100) : 0;
+
+  if (weeklyData.length === 0) return null;
+
+  const maxVal = Math.max(...weeklyData.map((w) => w.total), 1);
+
+  return (
+    <div className="rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/60 p-5 space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#00d4aa]/10 text-[#00d4aa]">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 00-3-3.87" /><path d="M16 3.13a4 4 0 010 7.75" />
+            </svg>
+          </div>
+          <h3 className="font-mono text-sm font-semibold text-[#f0f0f5]">Customer Cohort</h3>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="text-center">
+            <p className="font-mono text-lg font-bold text-[#00d4aa]">{retentionRate}%</p>
+            <p className="font-mono text-[9px] text-[#4a4a6a] uppercase tracking-widest">Returning</p>
+          </div>
+          <div className="text-center">
+            <p className="font-mono text-lg font-bold text-[#f0f0f5]">{totalNew}</p>
+            <p className="font-mono text-[9px] text-[#4a4a6a] uppercase tracking-widest">New</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Stacked bar chart */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-sm bg-[#635bff]" />
+            <span className="font-mono text-[9px] text-[#4a4a6a]">New customers</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-sm bg-[#00d4aa]" />
+            <span className="font-mono text-[9px] text-[#4a4a6a]">Returning</span>
+          </div>
+        </div>
+        {weeklyData.map((w) => (
+          <div key={w.week} className="flex items-center gap-3">
+            <span className="font-mono text-[9px] text-[#4a4a6a] w-14 shrink-0">{w.week}</span>
+            <div className="flex-1 flex h-5 rounded-md overflow-hidden bg-[#1e1e2e]">
+              <div
+                className="h-full"
+                style={{ width: `${(w.newCustomers / maxVal) * 100}%`, backgroundColor: "#635bff" }}
+              />
+              <div
+                className="h-full"
+                style={{ width: `${(w.returning / maxVal) * 100}%`, backgroundColor: "#00d4aa" }}
+              />
+            </div>
+            <span className="font-mono text-[9px] text-[#8888aa] w-6 shrink-0 text-right">{w.total}</span>
+          </div>
+        ))}
+      </div>
+
+      <p className="font-mono text-[9px] text-[#2e2e4a]">
+        Based on Stripe transactions — new customers are first-time buyers in each week.
+      </p>
+    </div>
+  );
+}
+
 function GA4Section({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
   const grouped = groupSnapshots(snapshots, granularity,
     ["sessions", "users", "newUsers", "conversions"], ["bounceRate", "avgSessionDuration"]);
@@ -693,7 +793,12 @@ export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots 
           )}
           {activeSection === "stripe" && connectedPlatforms.includes("stripe") && (
             snapshotsByPlatform.stripe.length > 0
-              ? <StripeSection snapshots={snapshotsByPlatform.stripe} granularity={granularity} />
+              ? (
+                <div className="space-y-6">
+                  <StripeSection snapshots={snapshotsByPlatform.stripe} granularity={granularity} />
+                  <CohortSection snapshots={snapshotsByPlatform.stripe} />
+                </div>
+              )
               : <EmptySection platform="Stripe" />
           )}
           {activeSection === "ga4" && connectedPlatforms.includes("ga4") && (

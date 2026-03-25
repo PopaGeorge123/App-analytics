@@ -141,7 +141,7 @@ export async function sendDigestEmail(
 </html>`;
 
   await resend.emails.send({
-    from: "Fold Digest <digest@tryfold.io>",
+    from: "Fold Digest <info@usefold.io>",
     to: email,
     subject: `Your Fold Daily Digest — ${digest.date}`,
     html,
