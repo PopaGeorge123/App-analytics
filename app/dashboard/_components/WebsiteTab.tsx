@@ -260,11 +260,11 @@ function TaskCard({
 
 function AnalyzingSkeleton({ url }: { url: string }) {
   const steps = [
-    { label: "Fetching website HTML…",             delay: "0s" },
-    { label: "Running UX & accessibility audit…",  delay: "1.5s" },
-    { label: "Checking SEO & performance…",        delay: "3s" },
-    { label: "Evaluating copy & conversions…",     delay: "4.5s" },
-    { label: "Generating improvement tasks…",      delay: "6s" },
+    { label: "Fetching website HTML…",                   delay: "0s" },
+    { label: "Capturing full-page screenshot…",          delay: "1.5s" },
+    { label: "Running AI vision analysis…",              delay: "3s" },
+    { label: "Checking SEO, performance & copy…",        delay: "5s" },
+    { label: "Generating improvement tasks…",            delay: "7s" },
   ];
 
   return (
@@ -283,6 +283,10 @@ function AnalyzingSkeleton({ url }: { url: string }) {
       <div>
         <p className="font-mono text-sm font-semibold text-[#f8f8fc]">Analyzing your website…</p>
         <p className="mt-1 font-mono text-[11px] text-[#8585aa] truncate max-w-xs mx-auto">{url}</p>
+        <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-[#a78bfa]/10 border border-[#a78bfa]/20 px-3 py-1">
+          <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="#a78bfa" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+          <span className="font-mono text-[10px] text-[#a78bfa]">AI Vision — sees your site as a real browser</span>
+        </div>
       </div>
 
       <div className="text-left space-y-2 max-w-sm mx-auto">
@@ -333,6 +337,7 @@ export default function WebsiteTab({
   const [reAnalyzeMsg, setReAnalyzeMsg] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<"all" | "todo" | "done">("all");
   const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [screenshotUsed, setScreenshotUsed] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -444,6 +449,7 @@ export default function WebsiteTab({
     setProfile((p) => ({ ...p, analysis_status: "analyzing", analysis_error: null }));
     setTasks([]);
     setReAnalyzeMsg(null);
+    setScreenshotUsed(false);
 
     // Try to use the direct response when Claude finishes within the timeout window.
     // If the request takes longer than the browser/server allows, the polling
@@ -451,6 +457,8 @@ export default function WebsiteTab({
     fetch("/api/website/analyze", { method: "POST" })
       .then(async (res) => {
         if (res.ok) {
+          const data = await res.json();
+          if (data.screenshotUsed) setScreenshotUsed(true);
           // Analysis finished — refresh once to get latest profile + tasks
           await refresh();
         } else {
@@ -709,6 +717,12 @@ export default function WebsiteTab({
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-3 justify-center sm:justify-start">
+                  {screenshotUsed && (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[#a78bfa]/10 border border-[#a78bfa]/20 px-2.5 py-1 font-mono text-[10px] text-[#a78bfa]">
+                      <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                      AI Vision analysis
+                    </span>
+                  )}
                   {profile.last_scanned_at && (
                     <span className="font-mono text-[10px] text-[#8585aa]">
                       Last analyzed {timeAgo(profile.last_scanned_at)}

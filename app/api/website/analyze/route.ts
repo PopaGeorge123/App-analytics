@@ -3,10 +3,34 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import Anthropic from "@anthropic-ai/sdk";
 
-// Allow up to 60s for the Claude API call on Vercel
-export const maxDuration = 60;
+// Allow up to 90s — screenshot fetch + Claude vision takes longer
+export const maxDuration = 90;
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+// ── Screenshot capture ────────────────────────────────────────────────────
+// Uses thum.io (free, no API key) to render the page in a real browser
+// and return a JPEG screenshot. Falls back gracefully if unavailable.
+
+async function captureScreenshot(url: string): Promise<{ base64: string; mediaType: "image/jpeg" } | null> {
+  try {
+    // thum.io renders pages server-side with JS enabled — free, no auth needed
+    const screenshotUrl = `https://image.thum.io/get/width/1280/crop/900/noanimate/${encodeURIComponent(url)}`;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000);
+    const res = await fetch(screenshotUrl, {
+      signal: controller.signal,
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; FoldBot/1.0)" },
+    });
+    clearTimeout(timeout);
+    if (!res.ok || !res.headers.get("content-type")?.startsWith("image/")) return null;
+    const buffer = await res.arrayBuffer();
+    const base64 = Buffer.from(buffer).toString("base64");
+    return { base64, mediaType: "image/jpeg" };
+  } catch {
+    return null;
+  }
+}
 
 // ── HTML Content Extractor ────────────────────────────────────────────────
 
@@ -210,7 +234,7 @@ ${visibleText}`;
 
 // ── Prompt ────────────────────────────────────────────────────────────────
 
-function buildPrompt(url: string, html: string, currentScore: number): string {
+function buildPrompt(url: string, html: string, currentScore: number, hasScreenshot: boolean): string {
   const pageContent = extractPageContent(html, url);
 
   // How many points this batch of tasks should cover: 55-65% of the gap,
@@ -220,10 +244,16 @@ function buildPrompt(url: string, html: string, currentScore: number): string {
   const taskCount = currentScore >= 85 ? "3-5" : currentScore >= 70 ? "5-8" : "6-10";
   const maxImpact = currentScore >= 80 ? 4 : currentScore >= 60 ? 6 : 8;
 
-  return `You are a world-class UX, SEO, performance, and conversion-rate expert. You have just crawled a website and extracted all its real content signals.
+  const screenshotNote = hasScreenshot
+    ? `You have been provided with a full-page screenshot of the website as it appears in a real browser with JavaScript fully loaded. Use what you SEE in the screenshot as your primary source of truth — the visual layout, above-the-fold content, colours, spacing, readability, and any UI elements that may not appear in static HTML.`
+    : `No screenshot was available — rely on the extracted HTML content below.`;
+
+  return `You are a world-class UX, SEO, performance, and conversion-rate expert. You have just crawled a website and captured a real browser screenshot.
 
 Website URL: ${url}
 Current optimization score: ${currentScore}/100
+
+${screenshotNote}
 
 ${pageContent}
 
@@ -235,11 +265,12 @@ Your job:
 3. Generate a list of SPECIFIC, DATA-DRIVEN improvement tasks for THIS round only
 
 CRITICAL rules for tasks:
-- Every task MUST reference actual content found on the page. Examples:
+- Every task MUST reference actual content found on the page or visible in the screenshot. Examples:
   ✓ "Your H1 reads 'Welcome to our site' — rewrite it to communicate your core value proposition"
   ✓ "CTA button says 'Submit' — change it to a benefit-driven label like 'Get my free quote'"
   ✓ "Meta description is missing — add a 150-160 char description targeting your main keyword"
   ✓ "X images are missing alt text — add descriptive alt attributes to each"
+  ✓ "The hero section (visible in screenshot) has no clear value proposition above the fold"
   ✗ NEVER write vague tasks like "improve your design" or "make CTAs more compelling" without quoting the actual current text
 - Generate ${taskCount} tasks for this round
 - Each task has an impact_score between 1 and ${maxImpact} points
@@ -251,11 +282,11 @@ CRITICAL rules for tasks:
 IMPORTANT: Respond ONLY with valid JSON, no markdown, no explanation:
 {
   "score": <integer 0-100>,
-  "summary": "<2-3 sentence assessment referencing actual page content you found>",
+  "summary": "<2-3 sentence assessment referencing actual page content and visual elements you observed>",
   "tasks": [
     {
       "title": "<short action title max 8 words>",
-      "description": "<quote the specific existing text/element, explain the exact problem, suggest the concrete fix — 2-3 sentences>",
+      "description": "<quote the specific existing text/element or describe what you saw in the screenshot, explain the exact problem, suggest the concrete fix — 2-3 sentences>",
       "category": "<ux|performance|seo|copy|conversion|accessibility>",
       "impact_score": <integer 1-${maxImpact}>
     }
@@ -290,36 +321,54 @@ export async function POST() {
     .eq("user_id", user.id);
 
   try {
-    // 3. Fetch website HTML
-    let html = "";
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 15000);
-      const res = await fetch(profile.url, {
-        signal: controller.signal,
-        headers: { "User-Agent": "Mozilla/5.0 (compatible; FoldBot/1.0)" },
+    // 3. Fetch website HTML + screenshot in parallel
+    const [html, screenshot] = await Promise.all([
+      (async () => {
+        try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 15000);
+          const res = await fetch(profile.url, {
+            signal: controller.signal,
+            headers: { "User-Agent": "Mozilla/5.0 (compatible; FoldBot/1.0)" },
+          });
+          clearTimeout(timeout);
+          return await res.text();
+        } catch {
+          return `<!-- Could not fetch HTML from ${profile.url} — analyzing URL structure and domain only -->`;
+        }
+      })(),
+      captureScreenshot(profile.url),
+    ]);
+
+    // 4. Build Claude message — include screenshot as vision if available
+    const userContent: Anthropic.MessageParam["content"] = [];
+
+    if (screenshot) {
+      userContent.push({
+        type: "image",
+        source: {
+          type: "base64",
+          media_type: screenshot.mediaType,
+          data: screenshot.base64,
+        },
       });
-      clearTimeout(timeout);
-      html = await res.text();
-    } catch {
-      html = `<!-- Could not fetch HTML from ${profile.url} — analyzing URL structure and domain only -->`;
     }
 
-    // 4. Call Claude
+    userContent.push({
+      type: "text",
+      text: buildPrompt(profile.url, html, profile.score ?? 0, !!screenshot),
+    });
+
+    // 5. Call Claude with vision
     const message = await anthropic.messages.create({
       model: "claude-opus-4-5",
       max_tokens: 2048,
-      messages: [
-        {
-          role: "user",
-          content: buildPrompt(profile.url, html, profile.score ?? 0),
-        },
-      ],
+      messages: [{ role: "user", content: userContent }],
     });
 
     const raw = message.content[0].type === "text" ? message.content[0].text : "";
 
-    // 5. Parse JSON response
+    // 6. Parse JSON response
     let parsed: {
       score: number;
       summary: string;
@@ -337,14 +386,14 @@ export async function POST() {
     // Clamp score
     const newScore = Math.min(100, Math.max(0, Math.round(parsed.score)));
 
-    // 6. Delete old pending tasks (keep completed ones for history)
+    // 7. Delete old pending tasks (keep completed ones for history)
     await db
       .from("website_tasks")
       .delete()
       .eq("user_id", user.id)
       .eq("completed", false);
 
-    // 7. Insert new tasks
+    // 8. Insert new tasks
     const taskRows = parsed.tasks.map((t) => ({
       user_id: user.id,
       title: t.title,
@@ -357,7 +406,7 @@ export async function POST() {
       await db.from("website_tasks").insert(taskRows);
     }
 
-    // 8. Update profile with new score + status
+    // 9. Update profile with new score + status
     await db
       .from("website_profiles")
       .update({
@@ -368,7 +417,7 @@ export async function POST() {
       })
       .eq("user_id", user.id);
 
-    return NextResponse.json({ ok: true, score: newScore, summary: parsed.summary, taskCount: taskRows.length });
+    return NextResponse.json({ ok: true, score: newScore, summary: parsed.summary, taskCount: taskRows.length, screenshotUsed: !!screenshot });
 
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
