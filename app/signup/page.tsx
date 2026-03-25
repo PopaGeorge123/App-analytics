@@ -49,11 +49,11 @@ export default function SignupPage() {
 
   if (step === "check-email") {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#0a0a0f] px-6 py-24">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#13131f] px-6 py-24">
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <div className="h-125 w-125 rounded-full bg-[#00d4aa]/4 blur-3xl" />
         </div>
-        <div className="pointer-events-none absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(#1e1e2e 1px, transparent 1px)", backgroundSize: "24px 24px" }} />
+        <div className="pointer-events-none absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(#363650 1px, transparent 1px)", backgroundSize: "24px 24px" }} />
         <div className="relative w-full max-w-md text-center">
           <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border border-[#00d4aa]/30 bg-[#00d4aa]/10">
             <svg className="h-7 w-7 text-[#00d4aa]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
@@ -63,17 +63,17 @@ export default function SignupPage() {
           <p className="mb-2 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#00d4aa]">
             Check your email
           </p>
-          <h1 className="mb-4 font-mono text-2xl font-bold text-[#f0f0f5]">
+          <h1 className="mb-4 font-mono text-2xl font-bold text-[#f8f8fc]">
             Account created!
           </h1>
-          <p className="text-sm leading-relaxed text-[#8888aa]">
+          <p className="text-sm leading-relaxed text-[#bcbcd8]">
             We sent a confirmation link to{" "}
-            <span className="font-semibold text-[#f0f0f5]">{email}</span>.
+            <span className="font-semibold text-[#f8f8fc]">{email}</span>.
             <br />
             Click it to activate your account and start your{" "}
             <span className="text-[#00d4aa]">3-day free trial</span>.
           </p>
-          <p className="mt-8 text-xs text-[#4a4a6a]">
+          <p className="mt-8 text-xs text-[#8585aa]">
             Already confirmed?{" "}
             <Link href="/login" className="font-semibold text-[#00d4aa] hover:underline underline-offset-4">
               Sign in →
@@ -85,13 +85,13 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-[#0a0a0f] px-6 py-24">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-[#13131f] px-6 py-24">
       {/* Background glow */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
         <div className="h-125 w-125 rounded-full bg-[#00d4aa]/4 blur-3xl" />
       </div>
       {/* Subtle dot grid */}
-      <div className="pointer-events-none absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(#1e1e2e 1px, transparent 1px)", backgroundSize: "24px 24px" }} />
+      <div className="pointer-events-none absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(#363650 1px, transparent 1px)", backgroundSize: "24px 24px" }} />
 
       <div className="relative w-full max-w-md">
         {/* Logo */}
@@ -102,12 +102,12 @@ export default function SignupPage() {
         </div>
 
         {/* Card */}
-        <div className="rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/90 p-8 shadow-2xl backdrop-blur-md">
+        <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/90 p-8 shadow-2xl backdrop-blur-md">
           <div className="mb-7">
-            <h1 className="font-mono text-xl font-bold text-[#f0f0f5]">
+            <h1 className="font-mono text-xl font-bold text-[#f8f8fc]">
               Create an account
             </h1>
-            <p className="mt-1 text-sm text-[#8888aa]">
+            <p className="mt-1 text-sm text-[#bcbcd8]">
               Start your 3-day free trial — no card required
             </p>
           </div>
@@ -117,7 +117,7 @@ export default function SignupPage() {
             <div>
               <label
                 htmlFor="email"
-                className="mb-1.5 block font-mono text-xs font-semibold uppercase tracking-wider text-[#4a4a6a]"
+                className="mb-1.5 block font-mono text-xs font-semibold uppercase tracking-wider text-[#8585aa]"
               >
                 Email
               </label>
@@ -130,7 +130,7 @@ export default function SignupPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@email.com"
                 disabled={loading}
-                className="w-full rounded-xl border border-[#1e1e2e] bg-[#12121a] px-4 py-3 text-sm text-[#f0f0f5] placeholder-[#4a4a6a] outline-none transition-all focus:border-[#00d4aa]/60 focus:ring-2 focus:ring-[#00d4aa]/20 disabled:opacity-60"
+                className="w-full rounded-xl border border-[#363650] bg-[#222235] px-4 py-3 text-sm text-[#f8f8fc] placeholder-[#8585aa] outline-none transition-all focus:border-[#00d4aa]/60 focus:ring-2 focus:ring-[#00d4aa]/20 disabled:opacity-60"
               />
             </div>
 
@@ -138,7 +138,7 @@ export default function SignupPage() {
             <div>
               <label
                 htmlFor="password"
-                className="mb-1.5 block font-mono text-xs font-semibold uppercase tracking-wider text-[#4a4a6a]"
+                className="mb-1.5 block font-mono text-xs font-semibold uppercase tracking-wider text-[#8585aa]"
               >
                 Password
               </label>
@@ -151,7 +151,7 @@ export default function SignupPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="At least 8 characters"
                 disabled={loading}
-                className="w-full rounded-xl border border-[#1e1e2e] bg-[#12121a] px-4 py-3 text-sm text-[#f0f0f5] placeholder-[#4a4a6a] outline-none transition-all focus:border-[#00d4aa]/60 focus:ring-2 focus:ring-[#00d4aa]/20 disabled:opacity-60"
+                className="w-full rounded-xl border border-[#363650] bg-[#222235] px-4 py-3 text-sm text-[#f8f8fc] placeholder-[#8585aa] outline-none transition-all focus:border-[#00d4aa]/60 focus:ring-2 focus:ring-[#00d4aa]/20 disabled:opacity-60"
               />
             </div>
 
@@ -159,7 +159,7 @@ export default function SignupPage() {
             <div>
               <label
                 htmlFor="confirm-password"
-                className="mb-1.5 block font-mono text-xs font-semibold uppercase tracking-wider text-[#4a4a6a]"
+                className="mb-1.5 block font-mono text-xs font-semibold uppercase tracking-wider text-[#8585aa]"
               >
                 Confirm password
               </label>
@@ -172,7 +172,7 @@ export default function SignupPage() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="••••••••"
                 disabled={loading}
-                className="w-full rounded-xl border border-[#1e1e2e] bg-[#12121a] px-4 py-3 text-sm text-[#f0f0f5] placeholder-[#4a4a6a] outline-none transition-all focus:border-[#00d4aa]/60 focus:ring-2 focus:ring-[#00d4aa]/20 disabled:opacity-60"
+                className="w-full rounded-xl border border-[#363650] bg-[#222235] px-4 py-3 text-sm text-[#f8f8fc] placeholder-[#8585aa] outline-none transition-all focus:border-[#00d4aa]/60 focus:ring-2 focus:ring-[#00d4aa]/20 disabled:opacity-60"
               />
             </div>
 
@@ -185,7 +185,7 @@ export default function SignupPage() {
                     className={`h-1 flex-1 rounded-full transition-colors duration-300 ${
                       password.length >= [4, 8, 12, 16][i]
                         ? i < 2 ? "bg-red-500" : i === 2 ? "bg-yellow-500" : "bg-[#00d4aa]"
-                        : "bg-[#1e1e2e]"
+                        : "bg-[#363650]"
                     }`}
                   />
                 ))}
@@ -203,7 +203,7 @@ export default function SignupPage() {
             <button
               type="submit"
               disabled={loading || !email || !password || !confirmPassword}
-              className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-[#00d4aa] py-3 font-semibold text-sm text-[#0a0a0f] transition-all hover:bg-[#00bfa0] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-[#00d4aa] py-3 font-semibold text-sm text-[#13131f] transition-all hover:bg-[#00bfa0] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? (
                 <>
@@ -223,7 +223,7 @@ export default function SignupPage() {
               )}
             </button>
 
-            <p className="text-center text-xs text-[#4a4a6a]">
+            <p className="text-center text-xs text-[#8585aa]">
               By creating an account, you agree to our{" "}
               <Link href="/terms" className="text-[#00d4aa] hover:underline underline-offset-4">Terms</Link>
               {" "}and{" "}
@@ -233,7 +233,7 @@ export default function SignupPage() {
         </div>
 
         {/* Footer link */}
-        <p className="mt-6 text-center text-sm text-[#4a4a6a]">
+        <p className="mt-6 text-center text-sm text-[#8585aa]">
           Already have an account?{" "}
           <Link
             href="/login"

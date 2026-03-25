@@ -36,7 +36,7 @@ function renderMarkdown(text: string): React.ReactNode[] {
     const line = lines[i];
     if (line.startsWith("**") && line.endsWith("**") && line.length > 4) {
       result.push(
-        <p key={key++} className="mt-3 mb-1 font-semibold text-[#f0f0f5]">
+        <p key={key++} className="mt-3 mb-1 font-semibold text-[#f8f8fc]">
           {line.slice(2, -2)}
         </p>
       );
@@ -70,7 +70,7 @@ function inlineFormat(text: string): React.ReactNode {
   const parts = text.split(/(\*\*[^*]+\*\*)/g);
   return parts.map((part, i) =>
     part.startsWith("**") && part.endsWith("**") ? (
-      <strong key={i} className="font-semibold text-[#f0f0f5]">
+      <strong key={i} className="font-semibold text-[#f8f8fc]">
         {part.slice(2, -2)}
       </strong>
     ) : (
@@ -145,8 +145,8 @@ function ConvItem({
       onClick={onSelect}
       className={`group relative flex items-center gap-2 rounded-xl px-3 py-2.5 cursor-pointer transition-all ${
         isActive
-          ? "bg-[#6366f1]/10 border border-[#6366f1]/20 text-[#f0f0f5]"
-          : "border border-transparent text-[#8888aa] hover:bg-[#1e1e2e] hover:text-[#f0f0f5]"
+          ? "bg-[#6366f1]/10 border border-[#6366f1]/20 text-[#f8f8fc]"
+          : "border border-transparent text-[#bcbcd8] hover:bg-[#363650] hover:text-[#f8f8fc]"
       }`}
     >
       <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} className="shrink-0 opacity-60">
@@ -165,7 +165,7 @@ function ConvItem({
             e.stopPropagation();
           }}
           onClick={(e) => e.stopPropagation()}
-          className="flex-1 min-w-0 bg-transparent text-xs text-[#f0f0f5] outline-none border-b border-[#6366f1]/40"
+          className="flex-1 min-w-0 bg-transparent text-xs text-[#f8f8fc] outline-none border-b border-[#6366f1]/40"
         />
       ) : (
         <span className="flex-1 min-w-0 truncate text-xs">{conv.title}</span>
@@ -177,7 +177,7 @@ function ConvItem({
           <button
             onClick={startEdit}
             title="Rename"
-            className="rounded p-0.5 text-[#4a4a6a] hover:text-[#8888aa] transition-colors"
+            className="rounded p-0.5 text-[#8585aa] hover:text-[#bcbcd8] transition-colors"
           >
             <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
@@ -186,7 +186,7 @@ function ConvItem({
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(); }}
             title="Delete"
-            className="rounded p-0.5 text-[#4a4a6a] hover:text-red-400 transition-colors"
+            className="rounded p-0.5 text-[#8585aa] hover:text-red-400 transition-colors"
           >
             <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
@@ -409,18 +409,18 @@ export default function AiTab({ isPremium }: AiTabProps) {
     return (
       <div className="max-w-4xl">
         <div className="mb-8">
-          <h1 className="font-mono text-2xl font-bold text-[#f0f0f5]">AI Advisor</h1>
-          <p className="mt-1 text-sm text-[#8888aa]">Analyzes your Stripe, GA4, Meta &amp; website data in real time.</p>
+          <h1 className="font-mono text-2xl font-bold text-[#f8f8fc]">AI Advisor</h1>
+          <p className="mt-1 text-sm text-[#bcbcd8]">Analyzes your Stripe, GA4, Meta &amp; website data in real time.</p>
         </div>
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/60 py-16 px-6 text-center">
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 py-16 px-6 text-center">
           <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-[#6366f1]/20 bg-[#6366f1]/10 text-[#6366f1]">
             <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
             </svg>
           </div>
           <p className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#6366f1] mb-2">Premium Feature</p>
-          <h2 className="font-mono text-xl font-bold text-[#f0f0f5] mb-3">AI Advisor requires Premium</h2>
-          <p className="text-sm text-[#8888aa] max-w-sm mb-6">
+          <h2 className="font-mono text-xl font-bold text-[#f8f8fc] mb-3">AI Advisor requires Premium</h2>
+          <p className="text-sm text-[#bcbcd8] max-w-sm mb-6">
             Upgrade to access the AI Advisor, get automated insights, and chat with an AI trained on your real business data.
           </p>
           <div className="grid grid-cols-2 gap-2 mb-7 w-full max-w-sm text-left">
@@ -436,17 +436,17 @@ export default function AiTab({ isPremium }: AiTabProps) {
                 <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="#00d4aa" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                 </svg>
-                <span className="font-mono text-[10px] text-[#8888aa]">{f}</span>
+                <span className="font-mono text-[10px] text-[#bcbcd8]">{f}</span>
               </div>
             ))}
           </div>
           <a
             href="/api/stripe/checkout"
-            className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-7 py-3 font-mono text-sm font-bold text-[#0a0a0f] hover:bg-[#00bfa0] transition"
+            className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-7 py-3 font-mono text-sm font-bold text-[#13131f] hover:bg-[#00bfa0] transition"
           >
             Start 3-day free trial →
           </a>
-          <p className="mt-3 font-mono text-[10px] text-[#4a4a6a]">$29/mo after trial · Cancel anytime</p>
+          <p className="mt-3 font-mono text-[10px] text-[#8585aa]">$29/mo after trial · Cancel anytime</p>
         </div>
       </div>
     );
@@ -458,8 +458,8 @@ export default function AiTab({ isPremium }: AiTabProps) {
       {/* ── Page header ─────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-mono text-2xl font-bold text-[#f0f0f5]">AI Advisor</h1>
-          <p className="font-mono text-sm text-[#8888aa] mt-0.5">
+          <h1 className="font-mono text-2xl font-bold text-[#f8f8fc]">AI Advisor</h1>
+          <p className="font-mono text-sm text-[#bcbcd8] mt-0.5">
             Analyzes your Stripe, GA4, Meta &amp; website data in real time
           </p>
         </div>
@@ -471,8 +471,8 @@ export default function AiTab({ isPremium }: AiTabProps) {
       </div>
 
       {/* ── Daily Insight card ───────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-[#00d4aa]/15 bg-[#0d0d16] overflow-hidden" style={{ boxShadow: "0 0 0 1px #00d4aa08" }}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e1e2e]">
+      <div className="rounded-2xl border border-[#00d4aa]/15 bg-[#1c1c2a] overflow-hidden" style={{ boxShadow: "0 0 0 1px #00d4aa08" }}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#363650]">
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#00d4aa]/10 text-[#00d4aa]">
               <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
@@ -480,8 +480,8 @@ export default function AiTab({ isPremium }: AiTabProps) {
               </svg>
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-[#f0f0f5]">Daily AI Insight</h2>
-              {insight && <p className="text-xs text-[#4a4a6a]">Generated {formatDate(insight.created_at)}</p>}
+              <h2 className="text-sm font-semibold text-[#f8f8fc]">Daily AI Insight</h2>
+              {insight && <p className="text-xs text-[#8585aa]">Generated {formatDate(insight.created_at)}</p>}
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -494,7 +494,7 @@ export default function AiTab({ isPremium }: AiTabProps) {
                     return newValue;
                   });
                 }}
-                className="rounded-lg p-1.5 text-[#4a4a6a] hover:bg-[#1e1e2e] hover:text-[#8888aa] transition-colors"
+                className="rounded-lg p-1.5 text-[#8585aa] hover:bg-[#363650] hover:text-[#bcbcd8] transition-colors"
               >
                 <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
                   className={`transition-transform ${insightExpanded ? "" : "rotate-180"}`}>
@@ -524,19 +524,19 @@ export default function AiTab({ isPremium }: AiTabProps) {
           {insightLoading ? (
             <div className="flex flex-col gap-2">
               {[80, 60, 70, 55, 65].map((w, i) => (
-                <div key={i} className="h-4 rounded bg-[#1e1e2e] animate-pulse" style={{ width: `${w}%` }} />
+                <div key={i} className="h-4 rounded bg-[#363650] animate-pulse" style={{ width: `${w}%` }} />
               ))}
             </div>
           ) : !insight ? (
             <div className="flex flex-col items-center gap-3 py-8 text-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-[#1e1e2e] bg-[#0a0a14]">
-                <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="#4a4a6a" strokeWidth={1.5}>
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-[#363650] bg-[#0a0a14]">
+                <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="#8585aa" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                 </svg>
               </div>
               <div>
-                <p className="text-sm font-medium text-[#8888aa]">No insight for today yet</p>
-                <p className="text-xs text-[#4a4a6a] mt-1">Click &ldquo;Generate Insight&rdquo; to analyze your current business data</p>
+                <p className="text-sm font-medium text-[#bcbcd8]">No insight for today yet</p>
+                <p className="text-xs text-[#8585aa] mt-1">Click &ldquo;Generate Insight&rdquo; to analyze your current business data</p>
               </div>
             </div>
           ) : insightExpanded ? (
@@ -551,15 +551,15 @@ export default function AiTab({ isPremium }: AiTabProps) {
       <div className="flex gap-4 min-h-140">
 
         {/* ── Conversations sidebar ──────────────────────────────────────── */}
-        <div className="flex flex-col w-52 shrink-0 rounded-2xl border border-[#1e1e2e] bg-[#0d0d16] overflow-hidden">
+        <div className="flex flex-col w-52 shrink-0 rounded-2xl border border-[#363650] bg-[#1c1c2a] overflow-hidden">
           {/* Sidebar header */}
-          <div className="flex items-center justify-between px-3 py-3 border-b border-[#1e1e2e]">
-            <span className="text-xs font-semibold text-[#8888aa] uppercase tracking-wider">Chats</span>
+          <div className="flex items-center justify-between px-3 py-3 border-b border-[#363650]">
+            <span className="text-xs font-semibold text-[#bcbcd8] uppercase tracking-wider">Chats</span>
             <button
               onClick={createConversation}
               disabled={creatingConv}
               title="New Chat"
-              className="flex items-center gap-1 rounded-lg border border-[#1e1e2e] bg-[#0a0a14] px-2 py-1 text-[10px] font-medium text-[#8888aa] hover:border-[#6366f1]/30 hover:text-[#6366f1] disabled:opacity-50 transition-colors"
+              className="flex items-center gap-1 rounded-lg border border-[#363650] bg-[#0a0a14] px-2 py-1 text-[10px] font-medium text-[#bcbcd8] hover:border-[#6366f1]/30 hover:text-[#6366f1] disabled:opacity-50 transition-colors"
             >
               {creatingConv ? <Spinner size={10} /> : (
                 <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -574,14 +574,14 @@ export default function AiTab({ isPremium }: AiTabProps) {
           <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-1">
             {convsLoading ? (
               [1, 2, 3].map((i) => (
-                <div key={i} className="h-9 rounded-xl bg-[#1e1e2e] animate-pulse" />
+                <div key={i} className="h-9 rounded-xl bg-[#363650] animate-pulse" />
               ))
             ) : conversations.length === 0 ? (
               <div className="flex flex-col items-center gap-2 py-8 text-center px-2">
-                <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#4a4a6a" strokeWidth={1.5}>
+                <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#8585aa" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
                 </svg>
-                <p className="text-[11px] text-[#4a4a6a]">No chats yet.<br />Click &ldquo;New&rdquo; to start.</p>
+                <p className="text-[11px] text-[#8585aa]">No chats yet.<br />Click &ldquo;New&rdquo; to start.</p>
               </div>
             ) : (
               conversations.map((conv) => (
@@ -599,9 +599,9 @@ export default function AiTab({ isPremium }: AiTabProps) {
         </div>
 
         {/* ── Chat panel ────────────────────────────────────────────────── */}
-        <div className="flex flex-1 flex-col rounded-2xl border border-[#1e1e2e] bg-[#0d0d16] overflow-hidden min-w-0">
+        <div className="flex flex-1 flex-col rounded-2xl border border-[#363650] bg-[#1c1c2a] overflow-hidden min-w-0">
           {/* Chat header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e1e2e]">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-[#363650]">
             <div className="flex items-center gap-3 min-w-0">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#6366f1]/10 text-[#6366f1]">
                 <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
@@ -609,10 +609,10 @@ export default function AiTab({ isPremium }: AiTabProps) {
                 </svg>
               </div>
               <div className="min-w-0">
-                <h2 className="text-sm font-semibold text-[#f0f0f5] truncate">
+                <h2 className="text-sm font-semibold text-[#f8f8fc] truncate">
                   {activeConv ? activeConv.title : "AI Advisor"}
                 </h2>
-                <p className="text-xs text-[#4a4a6a]">
+                <p className="text-xs text-[#8585aa]">
                   {!activeConvId
                     ? "Select or create a chat"
                     : messages.length === 0
@@ -627,10 +627,10 @@ export default function AiTab({ isPremium }: AiTabProps) {
           <div className="flex flex-col gap-4 flex-1 px-5 py-4 overflow-y-auto min-h-72 max-h-120">
             {!activeConvId ? (
               <div className="flex flex-1 flex-col items-center justify-center gap-3 py-10 text-center">
-                <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="#4a4a6a" strokeWidth={1.2}>
+                <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="#8585aa" strokeWidth={1.2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
                 </svg>
-                <p className="text-sm text-[#4a4a6a]">Create a new chat to get started</p>
+                <p className="text-sm text-[#8585aa]">Create a new chat to get started</p>
                 <button
                   onClick={createConversation}
                   disabled={creatingConv}
@@ -648,20 +648,20 @@ export default function AiTab({ isPremium }: AiTabProps) {
               <div className="flex flex-col gap-3">
                 {[true, false, true].map((isUser, i) => (
                   <div key={i} className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
-                    <div className="h-12 rounded-2xl bg-[#1e1e2e] animate-pulse" style={{ width: `${40 + i * 15}%` }} />
+                    <div className="h-12 rounded-2xl bg-[#363650] animate-pulse" style={{ width: `${40 + i * 15}%` }} />
                   </div>
                 ))}
               </div>
             ) : messages.length === 0 ? (
               <div className="flex flex-1 flex-col items-center justify-center gap-3 py-10 text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[#1e1e2e] bg-[#0a0a14]">
-                  <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="#4a4a6a" strokeWidth={1.5}>
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[#363650] bg-[#0a0a14]">
+                  <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="#8585aa" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
                   </svg>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-[#8888aa]">Ask me anything about your business</p>
-                  <p className="text-xs text-[#4a4a6a] mt-1 max-w-xs">I have access to your last 30 days of revenue, traffic, ad spend, and website data</p>
+                  <p className="text-sm font-medium text-[#bcbcd8]">Ask me anything about your business</p>
+                  <p className="text-xs text-[#8585aa] mt-1 max-w-xs">I have access to your last 30 days of revenue, traffic, ad spend, and website data</p>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap justify-center mt-1">
                   {[
@@ -681,7 +681,7 @@ export default function AiTab({ isPremium }: AiTabProps) {
                     <button
                       key={s}
                       onClick={() => { setInput(s); textareaRef.current?.focus(); }}
-                      className="rounded-lg border border-[#1e1e2e] bg-[#0a0a14] px-3 py-1.5 text-xs text-[#8888aa] hover:border-[#00d4aa]/20 hover:text-[#00d4aa] transition-colors"
+                      className="rounded-lg border border-[#363650] bg-[#0a0a14] px-3 py-1.5 text-xs text-[#bcbcd8] hover:border-[#00d4aa]/20 hover:text-[#00d4aa] transition-colors"
                     >
                       {s}
                     </button>
@@ -700,30 +700,30 @@ export default function AiTab({ isPremium }: AiTabProps) {
                               <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                             </svg>
                           </div>
-                          <span className="text-[10px] font-medium text-[#4a4a6a]">AI Advisor</span>
+                          <span className="text-[10px] font-medium text-[#8585aa]">AI Advisor</span>
                         </div>
                       )}
                       <div className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${
                         msg.role === "user"
-                          ? "bg-[#00d4aa]/10 border border-[#00d4aa]/20 text-[#f0f0f5] rounded-tr-sm"
-                          : "bg-[#0a0a14] border border-[#1e1e2e] text-[#c0c0d5] rounded-tl-sm"
+                          ? "bg-[#00d4aa]/10 border border-[#00d4aa]/20 text-[#f8f8fc] rounded-tr-sm"
+                          : "bg-[#0a0a14] border border-[#363650] text-[#c0c0d5] rounded-tl-sm"
                       }`}>
                         {msg.role === "assistant" ? renderMarkdown(msg.content) : <p>{msg.content}</p>}
                       </div>
-                      <span className="text-[10px] text-[#4a4a6a] px-1">{formatTime(msg.created_at)}</span>
+                      <span className="text-[10px] text-[#8585aa] px-1">{formatTime(msg.created_at)}</span>
                     </div>
                   </div>
                 ))}
 
                 {sending && (
                   <div className="flex justify-start">
-                    <div className="flex items-center gap-2 rounded-2xl rounded-tl-sm bg-[#0a0a14] border border-[#1e1e2e] px-4 py-3">
+                    <div className="flex items-center gap-2 rounded-2xl rounded-tl-sm bg-[#0a0a14] border border-[#363650] px-4 py-3">
                       <div className="flex gap-1">
                         {[0, 150, 300].map((delay) => (
                           <span key={delay} className="h-1.5 w-1.5 rounded-full bg-[#6366f1] animate-bounce" style={{ animationDelay: `${delay}ms` }} />
                         ))}
                       </div>
-                      <span className="text-xs text-[#4a4a6a]">Thinking…</span>
+                      <span className="text-xs text-[#8585aa]">Thinking…</span>
                     </div>
                   </div>
                 )}
@@ -733,7 +733,7 @@ export default function AiTab({ isPremium }: AiTabProps) {
           </div>
 
           {/* Input bar */}
-          <div className="border-t border-[#1e1e2e] px-4 py-3">
+          <div className="border-t border-[#363650] px-4 py-3">
             <div className="flex items-end gap-3">
               <textarea
                 ref={textareaRef}
@@ -743,7 +743,7 @@ export default function AiTab({ isPremium }: AiTabProps) {
                 placeholder={activeConvId ? "Ask about your revenue, traffic, ad spend, website…" : "Select or create a chat first"}
                 rows={1}
                 disabled={sending || !activeConvId}
-                className="flex-1 resize-none rounded-xl border border-[#1e1e2e] bg-[#0a0a14] px-4 py-3 text-sm text-[#f0f0f5] placeholder:text-[#4a4a6a] focus:border-[#00d4aa]/30 focus:outline-none disabled:opacity-50 transition-colors"
+                className="flex-1 resize-none rounded-xl border border-[#363650] bg-[#0a0a14] px-4 py-3 text-sm text-[#f8f8fc] placeholder:text-[#8585aa] focus:border-[#00d4aa]/30 focus:outline-none disabled:opacity-50 transition-colors"
                 style={{ minHeight: "44px", maxHeight: "160px" }}
               />
               <button
@@ -759,7 +759,7 @@ export default function AiTab({ isPremium }: AiTabProps) {
                 )}
               </button>
             </div>
-            <p className="mt-2 text-[10px] text-[#4a4a6a]">Press Enter to send · Shift+Enter for new line</p>
+            <p className="mt-2 text-[10px] text-[#8585aa]">Press Enter to send · Shift+Enter for new line</p>
           </div>
         </div>
 

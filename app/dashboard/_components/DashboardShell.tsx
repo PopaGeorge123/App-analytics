@@ -132,7 +132,7 @@ function DashboardShellInner({ email, isPremium, connectedPlatforms, snapshots, 
       {/* ── Sidebar ────────────────────────────────────────── */}
       <aside
         className={`
-          fixed top-14 left-0 z-30 h-[calc(100vh-56px)] w-56 shrink-0 border-r border-[#1e1e2e] bg-[#0d0d16]
+          fixed top-14 left-0 z-30 h-[calc(100vh-56px)] w-56 shrink-0 border-r border-[#363650] bg-[#1c1c2a]
           transform transition-transform duration-200 flex flex-col
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
           lg:relative lg:top-0 lg:h-full lg:translate-x-0 lg:flex
@@ -142,27 +142,27 @@ function DashboardShellInner({ email, isPremium, connectedPlatforms, snapshots, 
         <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-linear-to-b from-[#00d4aa]/4 to-transparent" />
 
         {/* User info */}
-        <div className="relative px-4 pt-5 pb-4 border-b border-[#1e1e2e]/60">
+        <div className="relative px-4 pt-5 pb-4 border-b border-[#363650]/60">
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#00d4aa]/15 text-[#00d4aa] font-mono text-xs font-bold uppercase select-none">
               {email.charAt(0)}
             </div>
             <div className="min-w-0">
-              <p className="truncate font-mono text-[10px] font-semibold text-[#8888aa]" title={email}>{email}</p>
+              <p className="truncate font-mono text-[10px] font-semibold text-[#bcbcd8]" title={email}>{email}</p>
               {isPremium ? (
                 <span className="inline-flex items-center gap-1 font-mono text-[9px] font-semibold text-[#00d4aa]">
                   <span className="h-1 w-1 rounded-full bg-[#00d4aa] animate-pulse" />
                   Premium
                 </span>
               ) : (
-                <span className="font-mono text-[9px] text-[#4a4a6a]">Free plan</span>
+                <span className="font-mono text-[9px] text-[#8585aa]">Free plan</span>
               )}
             </div>
           </div>
         </div>
 
         <nav className="flex flex-col gap-0.5 p-3 flex-1">
-          <p className="px-2 pb-2 pt-1 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#2a2a4a]">Navigation</p>
+          <p className="px-2 pb-2 pt-1 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#8585aa]">Navigation</p>
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -170,21 +170,21 @@ function DashboardShellInner({ email, isPremium, connectedPlatforms, snapshots, 
               className={`relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-all ${
                 activeTab === tab.id
                   ? "bg-[#00d4aa]/10 text-[#00d4aa] border border-[#00d4aa]/20"
-                  : "text-[#8888aa] hover:bg-[#1e1e2e]/80 hover:text-[#f0f0f5] border border-transparent"
+                  : "text-[#bcbcd8] hover:bg-[#363650]/80 hover:text-[#f8f8fc] border border-transparent"
               }`}
             >
               {/* Active left-border indicator */}
               {activeTab === tab.id && (
                 <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 rounded-r-full bg-[#00d4aa]" />
               )}
-              <span className={activeTab === tab.id ? "text-[#00d4aa]" : "text-[#4a4a6a]"}>
+              <span className={activeTab === tab.id ? "text-[#00d4aa]" : "text-[#8585aa]"}>
                 {tab.icon}
               </span>
               {tab.label}
               {/* Premium lock badge for non-premium tabs */}
               {!isPremium && (tab.id === "analytics" || tab.id === "website" || tab.id === "ai") && (
                 <span className="ml-auto">
-                  <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className="text-[#2a2a4a]">
+                  <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className="text-[#8585aa]">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
                   </svg>
                 </span>
@@ -194,7 +194,7 @@ function DashboardShellInner({ email, isPremium, connectedPlatforms, snapshots, 
         </nav>
 
         {/* Bottom section */}
-        <div className="relative p-3 border-t border-[#1e1e2e]/60">
+        <div className="relative p-3 border-t border-[#363650]/60">
           {isPremium ? (
             <div className="rounded-xl border border-[#00d4aa]/20 bg-[#00d4aa]/5 px-3 py-2.5">
               <div className="flex items-center gap-2">
@@ -203,12 +203,12 @@ function DashboardShellInner({ email, isPremium, connectedPlatforms, snapshots, 
                 </svg>
                 <p className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#00d4aa]">Premium Active</p>
               </div>
-              <p className="mt-1 font-mono text-[9px] text-[#4a4a6a]">All features unlocked</p>
+              <p className="mt-1 font-mono text-[9px] text-[#8585aa]">All features unlocked</p>
             </div>
           ) : (
             <div className="rounded-xl border border-[#a78bfa]/20 bg-[#a78bfa]/5 px-3 py-2.5">
               <p className="font-mono text-[9px] font-semibold text-[#a78bfa]">Upgrade to Premium</p>
-              <p className="mt-0.5 font-mono text-[9px] text-[#4a4a6a]">Unlock all features</p>
+              <p className="mt-0.5 font-mono text-[9px] text-[#8585aa]">Unlock all features</p>
             </div>
           )}
         </div>
@@ -217,22 +217,22 @@ function DashboardShellInner({ email, isPremium, connectedPlatforms, snapshots, 
       {/* ── Main content ───────────────────────────────────── */}
       <main className="flex-1 overflow-auto">
         {/* Mobile hamburger */}
-        <div className="flex items-center gap-3 border-b border-[#1e1e2e] bg-[#0d0d16]/60 px-4 py-3 lg:hidden">
+        <div className="flex items-center gap-3 border-b border-[#363650] bg-[#1c1c2a]/60 px-4 py-3 lg:hidden">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="rounded-lg p-1.5 text-[#8888aa] hover:bg-[#1e1e2e] hover:text-[#f0f0f5] transition-colors"
+            className="rounded-lg p-1.5 text-[#bcbcd8] hover:bg-[#363650] hover:text-[#f8f8fc] transition-colors"
             aria-label="Open menu"
           >
             <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
             </svg>
           </button>
-          <span className="text-[#4a4a6a]">/</span>
+          <span className="text-[#8585aa]">/</span>
           <div className="flex items-center gap-2">
-            <span className="text-[#4a4a6a]">
+            <span className="text-[#8585aa]">
               {tabs.find((t) => t.id === activeTab)?.icon}
             </span>
-            <span className="font-mono text-sm font-semibold text-[#f0f0f5]">
+            <span className="font-mono text-sm font-semibold text-[#f8f8fc]">
               {tabs.find((t) => t.id === activeTab)?.label}
             </span>
           </div>

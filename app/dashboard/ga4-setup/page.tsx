@@ -58,8 +58,8 @@ export default function GA4SetupPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#0a0a0f] px-4">
-      <div className="w-full max-w-lg rounded-2xl border border-[#1e1e2e] bg-[#0d0d16] p-8">
+    <div className="flex min-h-screen items-center justify-center bg-[#13131f] px-4">
+      <div className="w-full max-w-lg rounded-2xl border border-[#363650] bg-[#1c1c2a] p-8">
         {/* Header */}
         <div className="mb-6 flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#f59e0b]/10">
@@ -71,8 +71,8 @@ export default function GA4SetupPage() {
             </svg>
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-[#f0f0f5]">Select GA4 Property</h1>
-            <p className="text-xs text-[#4a4a6a]">Choose which website to track</p>
+            <h1 className="text-lg font-semibold text-[#f8f8fc]">Select GA4 Property</h1>
+            <p className="text-xs text-[#8585aa]">Choose which website to track</p>
           </div>
         </div>
 
@@ -83,25 +83,25 @@ export default function GA4SetupPage() {
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
             </svg>
-            <span className="ml-3 text-sm text-[#4a4a6a]">Loading properties…</span>
+            <span className="ml-3 text-sm text-[#8585aa]">Loading properties…</span>
           </div>
         ) : error ? (
           <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-400">
             {error}
             <button
               onClick={() => router.push("/dashboard?tab=settings")}
-              className="mt-3 block text-xs text-[#4a4a6a] underline hover:text-[#8888aa]"
+              className="mt-3 block text-xs text-[#8585aa] underline hover:text-[#bcbcd8]"
             >
               ← Back to Settings
             </button>
           </div>
         ) : properties.length === 0 ? (
-          <div className="rounded-lg border border-[#1e1e2e] bg-[#12121a] p-6 text-center">
-            <p className="text-sm text-[#4a4a6a]">No GA4 properties found on this Google account.</p>
-            <p className="mt-1 text-xs text-[#2a2a4a]">Make sure Google Analytics 4 is set up at analytics.google.com</p>
+          <div className="rounded-lg border border-[#363650] bg-[#222235] p-6 text-center">
+            <p className="text-sm text-[#8585aa]">No GA4 properties found on this Google account.</p>
+            <p className="mt-1 text-xs text-[#8585aa]">Make sure Google Analytics 4 is set up at analytics.google.com</p>
             <button
               onClick={() => router.push("/dashboard?tab=settings")}
-              className="mt-4 text-xs text-[#4a4a6a] underline hover:text-[#8888aa]"
+              className="mt-4 text-xs text-[#8585aa] underline hover:text-[#bcbcd8]"
             >
               ← Back to Settings
             </button>
@@ -115,7 +115,7 @@ export default function GA4SetupPage() {
                   className={`flex cursor-pointer items-center gap-3 rounded-xl border p-4 transition-all ${
                     selected === prop.id
                       ? "border-[#00d4aa]/40 bg-[#00d4aa]/5"
-                      : "border-[#1e1e2e] bg-[#12121a] hover:border-[#2a2a4a]"
+                      : "border-[#363650] bg-[#222235] hover:border-[#8585aa]"
                   }`}
                 >
                   <input
@@ -127,8 +127,8 @@ export default function GA4SetupPage() {
                     className="accent-[#00d4aa]"
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-[#f0f0f5]">{prop.displayName}</p>
-                    <p className="truncate text-xs text-[#4a4a6a]">
+                    <p className="truncate text-sm font-medium text-[#f8f8fc]">{prop.displayName}</p>
+                    <p className="truncate text-xs text-[#8585aa]">
                       {prop.accountName} · Property {prop.id}
                     </p>
                   </div>
@@ -146,14 +146,14 @@ export default function GA4SetupPage() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => router.push("/dashboard?tab=settings")}
-                className="rounded-xl border border-[#1e1e2e] px-4 py-2.5 text-sm text-[#4a4a6a] transition-all hover:text-[#8888aa]"
+                className="rounded-xl border border-[#363650] px-4 py-2.5 text-sm text-[#8585aa] transition-all hover:text-[#bcbcd8]"
               >
                 Cancel
               </button>
               <button
                 onClick={handleConfirm}
                 disabled={!selected || saving}
-                className="flex-1 rounded-xl bg-[#00d4aa] px-4 py-2.5 text-sm font-semibold text-[#0a0a0f] transition-all hover:bg-[#00bfa0] disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-1 rounded-xl bg-[#00d4aa] px-4 py-2.5 text-sm font-semibold text-[#13131f] transition-all hover:bg-[#00bfa0] disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {saving ? (
                   <>

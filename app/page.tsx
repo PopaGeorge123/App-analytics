@@ -74,20 +74,20 @@ function DashboardMockup() {
   return (
     <div className="relative w-full max-w-xl mx-auto select-none">
       <div className="pointer-events-none absolute -inset-6 rounded-3xl bg-[#00d4aa]/6 blur-3xl" />
-      <div className="relative rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/95 shadow-2xl overflow-hidden">
+      <div className="relative rounded-2xl border border-[#363650] bg-[#1c1c2a]/95 shadow-2xl overflow-hidden">
         {/* Title bar */}
         <div className="flex items-center gap-1.5 px-4 pt-3 pb-0">
           <div className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
           <div className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
           <div className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
-          <span className="ml-3 font-mono text-[9px] tracking-widest text-[#2a2a4a] uppercase">fold / dashboard</span>
+          <span className="ml-3 font-mono text-[9px] tracking-widest text-[#8585aa] uppercase">fold / dashboard</span>
           <div className="ml-auto flex items-center gap-1 mr-1">
             <span className="h-1.5 w-1.5 rounded-full bg-[#00d4aa] animate-pulse" />
             <span className="font-mono text-[9px] text-[#00d4aa] tracking-widest">LIVE</span>
           </div>
         </div>
         {/* Tab bar */}
-        <div className="flex border-b border-[#1e1e2e] px-4 mt-3">
+        <div className="flex border-b border-[#363650] px-4 mt-3">
           {tabs.map((t) => (
             <button
               key={t.id}
@@ -97,7 +97,7 @@ function DashboardMockup() {
                   ? "border-[#00d4aa] text-[#00d4aa]"
                   : t.premium
                   ? "border-transparent text-[#3a3a5a] hover:text-[#6a6a8a]"
-                  : "border-transparent text-[#4a4a6a] hover:text-[#8888aa]"
+                  : "border-transparent text-[#8585aa] hover:text-[#bcbcd8]"
               }`}
             >
               {t.label}
@@ -118,17 +118,17 @@ function DashboardMockup() {
 
           {/* Premium overlay — shown over locked tabs */}
           {activePremium && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center rounded-b-2xl backdrop-blur-sm bg-[#0d0d16]/80">
+            <div className="absolute inset-0 flex flex-col items-center justify-center rounded-b-2xl backdrop-blur-sm bg-[#1c1c2a]/80">
               <div className="flex h-11 w-11 items-center justify-center rounded-full border border-[#a78bfa]/30 bg-[#a78bfa]/10 mb-3">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-[#a78bfa]">
                   <path d="M12 1a5 5 0 00-5 5v3H5a2 2 0 00-2 2v10a2 2 0 002 2h14a2 2 0 002-2V11a2 2 0 00-2-2h-2V6a5 5 0 00-5-5zm3 8H9V6a3 3 0 116 0v3z"/>
                 </svg>
               </div>
-              <p className="font-mono text-xs font-bold uppercase tracking-widest text-[#f0f0f5] mb-1">Premium feature</p>
-              <p className="font-mono text-[10px] text-[#4a4a6a] mb-4 text-center px-6">Upgrade to unlock Analytics, Website Optimizer &amp; AI Advisor.</p>
+              <p className="font-mono text-xs font-bold uppercase tracking-widest text-[#f8f8fc] mb-1">Premium feature</p>
+              <p className="font-mono text-[10px] text-[#8585aa] mb-4 text-center px-6">Upgrade to unlock Analytics, Website Optimizer &amp; AI Advisor.</p>
               <a
                 href="/signup"
-                className="rounded-xl bg-[#a78bfa] px-5 py-2 font-mono text-[10px] font-bold uppercase tracking-wider text-[#0a0a0f] transition-all hover:bg-[#9674f5]"
+                className="rounded-xl bg-[#a78bfa] px-5 py-2 font-mono text-[10px] font-bold uppercase tracking-wider text-[#13131f] transition-all hover:bg-[#9674f5]"
               >
                 Upgrade to Premium
               </a>
@@ -157,23 +157,23 @@ function OverviewMockup() {
           <span className="h-1 w-1 rounded-full bg-[#00d4aa]" />
           Free plan
         </span>
-        <span className="font-mono text-[8px] text-[#2a2a4a] uppercase tracking-widest">7-day view</span>
+        <span className="font-mono text-[8px] text-[#8585aa] uppercase tracking-widest">7-day view</span>
       </div>
 
       {/* KPI grid */}
       <div className="grid grid-cols-3 gap-2">
         {kpis.map((k) => (
-          <div key={k.label} className="rounded-xl border border-[#1e1e2e] bg-[#12121a] p-2.5">
-            <p className="font-mono text-[8px] uppercase tracking-widest text-[#4a4a6a] mb-1">{k.label}</p>
-            <p className="font-mono text-sm font-bold text-[#f0f0f5]">{k.value}</p>
+          <div key={k.label} className="rounded-xl border border-[#363650] bg-[#222235] p-2.5">
+            <p className="font-mono text-[8px] uppercase tracking-widest text-[#8585aa] mb-1">{k.label}</p>
+            <p className="font-mono text-sm font-bold text-[#f8f8fc]">{k.value}</p>
             <p className={`font-mono text-[9px] ${k.up ? "text-[#00d4aa]" : "text-red-400"}`}>{k.change}</p>
           </div>
         ))}
       </div>
 
       {/* Revenue bar chart */}
-      <div className="rounded-xl border border-[#1e1e2e] bg-[#12121a] p-3">
-        <p className="mb-2 font-mono text-[8px] uppercase tracking-widest text-[#4a4a6a]">Revenue — last 7 days</p>
+      <div className="rounded-xl border border-[#363650] bg-[#222235] p-3">
+        <p className="mb-2 font-mono text-[8px] uppercase tracking-widest text-[#8585aa]">Revenue — last 7 days</p>
         <div className="flex items-end gap-1 h-10">
           {[45, 62, 55, 78, 70, 88, 95].map((h, i) => (
             <div key={i} className="flex-1 rounded-sm" style={{ height: `${h}%`, background: i === 6 ? "#00d4aa" : `rgba(0,212,170,${0.12 + i * 0.09})` }} />
@@ -214,9 +214,9 @@ function AnalyticsMockup() {
   return (
     <div className="space-y-2.5">
       {platforms.map((p) => (
-        <div key={p.name} className="rounded-xl border border-[#1e1e2e] bg-[#12121a] p-3">
+        <div key={p.name} className="rounded-xl border border-[#363650] bg-[#222235] p-3">
           <div className="flex items-center justify-between mb-2">
-            <p className="font-mono text-[9px] uppercase tracking-widest text-[#8888aa]">{p.name}</p>
+            <p className="font-mono text-[9px] uppercase tracking-widest text-[#bcbcd8]">{p.name}</p>
             <span className="font-mono text-[9px] text-[#00d4aa]">▲ 12%</span>
           </div>
           <div className="flex items-end gap-1 h-8">
@@ -239,26 +239,26 @@ function WebsiteMockup() {
   ];
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-4 rounded-xl border border-[#1e1e2e] bg-[#12121a] p-3">
+      <div className="flex items-center gap-4 rounded-xl border border-[#363650] bg-[#222235] p-3">
         <div className="relative flex items-center justify-center shrink-0">
           <svg width="64" height="64" viewBox="0 0 64 64" className="-rotate-90">
-            <circle cx="32" cy="32" r="26" fill="none" stroke="#1e1e2e" strokeWidth="5" />
+            <circle cx="32" cy="32" r="26" fill="none" stroke="#363650" strokeWidth="5" />
             <circle cx="32" cy="32" r="26" fill="none" stroke="#f59e0b" strokeWidth="5" strokeLinecap="round"
               strokeDasharray={`${2 * Math.PI * 26}`} strokeDashoffset={`${2 * Math.PI * 26 * (1 - score / 100)}`} />
           </svg>
           <span className="absolute font-mono text-base font-bold text-[#f59e0b]">{score}</span>
         </div>
         <div>
-          <p className="font-mono text-[9px] uppercase tracking-widest text-[#4a4a6a] mb-0.5">Website Health</p>
+          <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa] mb-0.5">Website Health</p>
           <p className="font-mono text-sm font-semibold text-[#f59e0b]">Average</p>
-          <p className="font-mono text-[9px] text-[#4a4a6a]">3 tasks pending</p>
+          <p className="font-mono text-[9px] text-[#8585aa]">3 tasks pending</p>
         </div>
       </div>
       <div className="space-y-1.5">
         {tasks.map((t) => (
-          <div key={t.label} className="flex items-center gap-2.5 rounded-xl border border-[#1e1e2e] bg-[#12121a] px-3 py-2">
+          <div key={t.label} className="flex items-center gap-2.5 rounded-xl border border-[#363650] bg-[#222235] px-3 py-2">
             <span className="font-mono text-[8px] font-bold px-1.5 py-0.5 rounded" style={{ color: t.color, backgroundColor: `${t.color}15` }}>{t.cat}</span>
-            <span className="flex-1 min-w-0 font-mono text-[10px] text-[#c0c0d8] truncate">{t.label}</span>
+            <span className="flex-1 min-w-0 font-mono text-[10px] text-[#e0e0f0] truncate">{t.label}</span>
             <span className="font-mono text-[9px] font-bold text-[#f59e0b] shrink-0">+{t.pts}</span>
           </div>
         ))}
@@ -276,16 +276,16 @@ function AiMockup() {
     <div className="space-y-2.5">
       <div className="rounded-xl border border-[#00d4aa]/20 bg-[#00d4aa]/5 p-3 mb-1">
         <p className="font-mono text-[8px] uppercase tracking-widest text-[#00d4aa] mb-1.5">Daily Insight</p>
-        <p className="font-mono text-[10px] text-[#c0c0d8] leading-relaxed">
-          <span className="text-[#f0f0f5] font-semibold">Revenue up 8.2%</span> this week. Highest-converting source is organic search (34% CR). CAC improved 18% — your A/B test is working.
+        <p className="font-mono text-[10px] text-[#e0e0f0] leading-relaxed">
+          <span className="text-[#f8f8fc] font-semibold">Revenue up 8.2%</span> this week. Highest-converting source is organic search (34% CR). CAC improved 18% — your A/B test is working.
         </p>
       </div>
       {msgs.map((m, i) => (
         <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
           <div className={`max-w-[85%] rounded-xl px-3 py-2 font-mono text-[10px] leading-relaxed ${
             m.role === "user"
-              ? "bg-[#6366f1]/15 border border-[#6366f1]/20 text-[#c0c0d8]"
-              : "bg-[#12121a] border border-[#1e1e2e] text-[#c0c0d8]"
+              ? "bg-[#6366f1]/15 border border-[#6366f1]/20 text-[#e0e0f0]"
+              : "bg-[#222235] border border-[#363650] text-[#e0e0f0]"
           }`}>
             {m.role === "ai" && <span className="block font-mono text-[8px] uppercase tracking-widest text-[#00d4aa] mb-1">AI Advisor</span>}
             {m.text}
@@ -326,14 +326,14 @@ function FeatureCard({
   color?: string;
 }) {
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/60 p-6 transition-all duration-300 hover:border-[#00d4aa]/30 hover:shadow-[0_0_40px_rgba(0,212,170,0.06)]">
+    <div className="group relative overflow-hidden rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-6 transition-all duration-300 hover:border-[#00d4aa]/30 hover:shadow-[0_0_40px_rgba(0,212,170,0.06)]">
       <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100 bg-[radial-gradient(ellipse_at_top_left,rgba(0,212,170,0.04)_0%,transparent_65%)]" />
       <div className="relative">
-        <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[#1e1e2e] bg-[#12121a] transition-all group-hover:border-[#00d4aa]/30" style={{ color }}>
+        <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[#363650] bg-[#222235] transition-all group-hover:border-[#00d4aa]/30" style={{ color }}>
           {icon}
         </div>
-        <h3 className="mb-2 font-mono text-sm font-semibold uppercase tracking-wide text-[#f0f0f5]">{title}</h3>
-        <p className="text-sm leading-relaxed text-[#8888aa]">{description}</p>
+        <h3 className="mb-2 font-mono text-sm font-semibold uppercase tracking-wide text-[#f8f8fc]">{title}</h3>
+        <p className="text-sm leading-relaxed text-[#bcbcd8]">{description}</p>
       </div>
     </div>
   );
@@ -352,8 +352,8 @@ function Step({ n, title, description }: { n: number; title: string; description
         {n < 3 && <div className="mt-3 flex-1 w-px bg-linear-to-b from-[#00d4aa]/20 to-transparent min-h-8" />}
       </div>
       <div className="pb-10">
-        <h3 className="font-mono text-base font-bold text-[#f0f0f5] mb-2">{title}</h3>
-        <p className="text-sm leading-relaxed text-[#8888aa]">{description}</p>
+        <h3 className="font-mono text-base font-bold text-[#f8f8fc] mb-2">{title}</h3>
+        <p className="text-sm leading-relaxed text-[#bcbcd8]">{description}</p>
       </div>
     </div>
   );
@@ -381,24 +381,24 @@ function PricingCard({
     <div className={`relative flex flex-col rounded-2xl border p-8 transition-all ${
       highlight
         ? "border-[#00d4aa]/40 bg-[#00d4aa]/5 shadow-[0_0_60px_rgba(0,212,170,0.08)]"
-        : "border-[#1e1e2e] bg-[#0d0d16]/60"
+        : "border-[#363650] bg-[#1c1c2a]/60"
     }`}>
       {highlight && (
-        <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full border border-[#00d4aa]/40 bg-[#0a0a0f] px-4 py-1 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#00d4aa]">
+        <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full border border-[#00d4aa]/40 bg-[#13131f] px-4 py-1 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#00d4aa]">
           Most Popular
         </div>
       )}
       <div className="mb-6">
-        <p className="font-mono text-xs font-semibold uppercase tracking-widest text-[#4a4a6a] mb-2">{name}</p>
+        <p className="font-mono text-xs font-semibold uppercase tracking-widest text-[#8585aa] mb-2">{name}</p>
         <div className="flex items-end gap-1.5 mb-3">
-          <span className="font-mono text-4xl font-bold text-[#f0f0f5]">{price}</span>
-          {price !== "Free" && <span className="font-mono text-sm text-[#4a4a6a] mb-1">/ month</span>}
+          <span className="font-mono text-4xl font-bold text-[#f8f8fc]">{price}</span>
+          {price !== "Free" && <span className="font-mono text-sm text-[#8585aa] mb-1">/ month</span>}
         </div>
-        <p className="text-sm text-[#8888aa]">{description}</p>
+        <p className="text-sm text-[#bcbcd8]">{description}</p>
       </div>
       <ul className="flex-1 space-y-3 mb-8">
         {features.map((f) => (
-          <li key={f} className="flex items-start gap-3 text-sm text-[#c0c0d8]">
+          <li key={f} className="flex items-start gap-3 text-sm text-[#e0e0f0]">
             <svg className="mt-0.5 h-4 w-4 shrink-0 text-[#00d4aa]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
             </svg>
@@ -408,8 +408,8 @@ function PricingCard({
       </ul>
       <a href="/signup" className={`block w-full rounded-xl py-3 text-center font-mono text-sm font-semibold uppercase tracking-wider transition-all ${
         highlight
-          ? "bg-[#00d4aa] text-[#0a0a0f] hover:bg-[#00bfa0]"
-          : "border border-[#1e1e2e] text-[#8888aa] hover:border-[#00d4aa]/40 hover:text-[#00d4aa]"
+          ? "bg-[#00d4aa] text-[#13131f] hover:bg-[#00bfa0]"
+          : "border border-[#363650] text-[#bcbcd8] hover:border-[#00d4aa]/40 hover:text-[#00d4aa]"
       }`}>{cta}</a>
     </div>
   );
@@ -420,7 +420,7 @@ function PricingCard({
 // ─────────────────────────────────────────────────────────────────────────────
 function Testimonial({ quote, name, role, avatar }: { quote: string; name: string; role: string; avatar: string }) {
   return (
-    <div className="rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/60 p-6">
+    <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-6">
       <div className="mb-4 flex gap-0.5">
         {Array.from({ length: 5 }).map((_, i) => (
           <svg key={i} className="h-3.5 w-3.5 text-[#f59e0b]" viewBox="0 0 24 24" fill="currentColor">
@@ -428,12 +428,12 @@ function Testimonial({ quote, name, role, avatar }: { quote: string; name: strin
           </svg>
         ))}
       </div>
-      <p className="mb-5 text-sm leading-relaxed text-[#c0c0d8]">&ldquo;{quote}&rdquo;</p>
+      <p className="mb-5 text-sm leading-relaxed text-[#e0e0f0]">&ldquo;{quote}&rdquo;</p>
       <div className="flex items-center gap-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1e1e2e] font-mono text-sm font-bold text-[#00d4aa]">{avatar}</div>
+        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#363650] font-mono text-sm font-bold text-[#00d4aa]">{avatar}</div>
         <div>
-          <p className="font-mono text-xs font-semibold text-[#f0f0f5]">{name}</p>
-          <p className="font-mono text-[10px] text-[#4a4a6a]">{role}</p>
+          <p className="font-mono text-xs font-semibold text-[#f8f8fc]">{name}</p>
+          <p className="font-mono text-[10px] text-[#8585aa]">{role}</p>
         </div>
       </div>
     </div>
@@ -461,27 +461,27 @@ function Nav() {
 
   return (
     <nav className={`fixed top-0 z-50 w-full backdrop-blur-xl transition-all duration-300 ${
-      scrolled ? "border-b border-[#1e1e2e] bg-[#0a0a0f]/90" : "bg-[#0a0a0f]/60 border-b border-[#1e1e2e]/40"
+      scrolled ? "border-b border-[#363650] bg-[#13131f]/90" : "bg-[#13131f]/60 border-b border-[#363650]/40"
     }`}>
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         <img src="/fold-primary-dark.svg" alt="Fold" className="h-9 w-auto" />
 
         <div className="hidden md:flex items-center gap-8">
           {links.map((l) => (
-            <a key={l.href} href={l.href} className="font-mono text-xs uppercase tracking-widest text-[#4a4a6a] transition-colors hover:text-[#f0f0f5]">
+            <a key={l.href} href={l.href} className="font-mono text-xs uppercase tracking-widest text-[#8585aa] transition-colors hover:text-[#f8f8fc]">
               {l.label}
             </a>
           ))}
         </div>
 
         <div className="flex items-center gap-3">
-          <a href="/login" className="hidden md:block font-mono text-xs uppercase tracking-widest text-[#4a4a6a] transition-colors hover:text-[#f0f0f5] px-3 py-2">
+          <a href="/login" className="hidden md:block font-mono text-xs uppercase tracking-widest text-[#8585aa] transition-colors hover:text-[#f8f8fc] px-3 py-2">
             Sign in
           </a>
-          <a href="/signup" className="rounded-xl bg-[#00d4aa] px-4 py-2 font-mono text-xs font-semibold uppercase tracking-wider text-[#0a0a0f] transition-all hover:bg-[#00bfa0]">
+          <a href="/signup" className="rounded-xl bg-[#00d4aa] px-4 py-2 font-mono text-xs font-semibold uppercase tracking-wider text-[#13131f] transition-all hover:bg-[#00bfa0]">
             Get started free
           </a>
-          <button className="md:hidden p-2 text-[#4a4a6a] hover:text-[#f0f0f5]" onClick={() => setMobileOpen((v) => !v)} aria-label="Toggle menu">
+          <button className="md:hidden p-2 text-[#8585aa] hover:text-[#f8f8fc]" onClick={() => setMobileOpen((v) => !v)} aria-label="Toggle menu">
             <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth={1.8}>
               {mobileOpen ? (
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -497,13 +497,13 @@ function Nav() {
         </div>
       </div>
       {mobileOpen && (
-        <div className="md:hidden border-t border-[#1e1e2e] bg-[#0a0a0f]/95 backdrop-blur-xl px-6 py-4 space-y-3">
+        <div className="md:hidden border-t border-[#363650] bg-[#13131f]/95 backdrop-blur-xl px-6 py-4 space-y-3">
           {links.map((l) => (
-            <a key={l.href} href={l.href} onClick={() => setMobileOpen(false)} className="block font-mono text-xs uppercase tracking-widest text-[#8888aa] py-2 hover:text-[#f0f0f5]">
+            <a key={l.href} href={l.href} onClick={() => setMobileOpen(false)} className="block font-mono text-xs uppercase tracking-widest text-[#bcbcd8] py-2 hover:text-[#f8f8fc]">
               {l.label}
             </a>
           ))}
-          <a href="/login" className="block font-mono text-xs uppercase tracking-widest text-[#8888aa] py-2 hover:text-[#f0f0f5]">Sign in</a>
+          <a href="/login" className="block font-mono text-xs uppercase tracking-widest text-[#bcbcd8] py-2 hover:text-[#f8f8fc]">Sign in</a>
           <a href="/signup" className="block font-mono text-xs uppercase tracking-widest text-[#00d4aa] py-2 font-semibold hover:text-[#00bfa0]">Get started free</a>
         </div>
       )}
@@ -516,7 +516,7 @@ function Nav() {
 // ─────────────────────────────────────────────────────────────────────────────
 export default function Home() {
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-[#f0f0f5]">
+    <div className="min-h-screen bg-[#13131f] text-[#f8f8fc]">
       <Nav />
 
       {/* ── HERO ──────────────────────────────────────────────────────────── */}
@@ -533,22 +533,22 @@ export default function Home() {
                 <span className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#00d4aa]">Free to start — no card needed</span>
               </div>
 
-              <h1 className="mb-6 font-mono text-4xl font-bold leading-tight tracking-tight text-[#f0f0f5] sm:text-5xl lg:text-[3.4rem]">
+              <h1 className="mb-6 font-mono text-4xl font-bold leading-tight tracking-tight text-[#f8f8fc] sm:text-5xl lg:text-[3.4rem]">
                 Know why your revenue changed,{" "}
                 <span className="text-[#00d4aa]">instantly<span className="text-white">.</span></span>{" "}
                 
               </h1>
 
-              <p className="mb-8 max-w-lg text-base leading-relaxed text-[#8888aa] sm:text-lg">
+              <p className="mb-8 max-w-lg text-base leading-relaxed text-[#bcbcd8] sm:text-lg">
                 Fold connects Stripe, Google Analytics, and Meta Ads, then uses AI to surface what changed, what matters, and exactly what to do next — every time.
               </p>
 
               <div className="mb-8 flex flex-wrap gap-3">
-                <a href="/signup" className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-6 py-3.5 font-mono text-sm font-semibold uppercase tracking-wider text-[#0a0a0f] transition-all hover:bg-[#00bfa0] hover:shadow-[0_0_30px_rgba(0,212,170,0.3)]">
+                <a href="/signup" className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-6 py-3.5 font-mono text-sm font-semibold uppercase tracking-wider text-[#13131f] transition-all hover:bg-[#00bfa0] hover:shadow-[0_0_30px_rgba(0,212,170,0.3)]">
                   Get started free
                   <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
                 </a>
-                <a href="/login" className="inline-flex items-center gap-2 rounded-xl border border-[#1e1e2e] px-6 py-3.5 font-mono text-sm font-semibold uppercase tracking-wider text-[#8888aa] transition-all hover:border-[#4a4a6a] hover:text-[#f0f0f5]">
+                <a href="/login" className="inline-flex items-center gap-2 rounded-xl border border-[#363650] px-6 py-3.5 font-mono text-sm font-semibold uppercase tracking-wider text-[#bcbcd8] transition-all hover:border-[#8585aa] hover:text-[#f8f8fc]">
                   Sign in
                 </a>
               </div>
@@ -562,9 +562,9 @@ export default function Home() {
       </section>
 
       {/* ── SOCIAL PROOF BAR ──────────────────────────────────────────────── */}
-      <section className="border-y border-[#1e1e2e] bg-[#0d0d16]/60">
+      <section className="border-y border-[#363650] bg-[#1c1c2a]/60">
         <div className="mx-auto max-w-6xl px-6 py-8">
-          <div className="grid grid-cols-2 gap-6 sm:grid-cols-4 sm:divide-x sm:divide-[#1e1e2e]">
+          <div className="grid grid-cols-2 gap-6 sm:grid-cols-4 sm:divide-x sm:divide-[#363650]">
             {[
               { label: "Integrations at launch", value: <AnimatedCounter target={3} />, color: "#00d4aa" },
               { label: "Founders using Fold", value: <AnimatedCounter target={200} suffix="+" />, color: "#00d4aa" },
@@ -572,7 +572,7 @@ export default function Home() {
               { label: "Manual exports needed", value: "Zero", color: "#00d4aa" },
             ].map((s, i) => (
               <div key={i} className="text-center sm:px-6">
-                <p className="font-mono text-xs uppercase tracking-widest text-[#4a4a6a]">{s.label}</p>
+                <p className="font-mono text-xs uppercase tracking-widest text-[#8585aa]">{s.label}</p>
                 <p className="mt-1 font-mono text-3xl font-bold" style={{ color: s.color }}>{s.value}</p>
               </div>
             ))}
@@ -585,8 +585,8 @@ export default function Home() {
         <div className="mx-auto max-w-6xl">
           <div className="mb-16 text-center">
             <p className="mb-3 font-mono text-xs font-semibold uppercase tracking-widest text-[#00d4aa]">How it works</p>
-            <h2 className="font-mono text-3xl font-bold text-[#f0f0f5] sm:text-4xl">From fragmented data to clear action</h2>
-            <p className="mx-auto mt-4 max-w-xl text-[#8888aa]">
+            <h2 className="font-mono text-3xl font-bold text-[#f8f8fc] sm:text-4xl">From fragmented data to clear action</h2>
+            <p className="mx-auto mt-4 max-w-xl text-[#bcbcd8]">
               Three steps from &ldquo;I have no idea what&apos;s going on&rdquo; to &ldquo;here&apos;s exactly what I need to do today.&rdquo;
             </p>
           </div>
@@ -609,15 +609,15 @@ export default function Home() {
         <div className="relative mx-auto max-w-6xl">
           <div className="mb-16 text-center">
             <p className="mb-3 font-mono text-xs font-semibold uppercase tracking-widest text-[#00d4aa]">Features</p>
-            <h2 className="font-mono text-3xl font-bold text-[#f0f0f5] sm:text-4xl">Everything you need to stay ahead</h2>
-            <p className="mx-auto mt-4 max-w-xl text-[#8888aa]">Four powerful modules. One dashboard. Always on.</p>
+            <h2 className="font-mono text-3xl font-bold text-[#f8f8fc] sm:text-4xl">Everything you need to stay ahead</h2>
+            <p className="mx-auto mt-4 max-w-xl text-[#bcbcd8]">Four powerful modules. One dashboard. Always on.</p>
           </div>
 
           {/* Module deep-dives */}
           <div className="space-y-6 mb-10">
 
             {/* Overview */}
-            <div className="rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/60 p-6 md:p-8">
+            <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-6 md:p-8">
               <div className="flex flex-col md:flex-row md:items-center gap-8">
                 <div className="flex-1">
                   <div className="mb-3 inline-flex items-center gap-2">
@@ -626,23 +626,23 @@ export default function Home() {
                     </div>
                     <span className="font-mono text-xs font-semibold uppercase tracking-widest text-[#00d4aa]">Overview Dashboard</span>
                   </div>
-                  <h3 className="font-mono text-xl font-bold text-[#f0f0f5] mb-3">6 KPIs. One glance.</h3>
-                  <p className="text-[#8888aa] leading-relaxed mb-4">Revenue, sessions, ad spend, new customers, conversions, and customer acquisition cost — all with 7-day trends and comparisons to the prior period.</p>
+                  <h3 className="font-mono text-xl font-bold text-[#f8f8fc] mb-3">6 KPIs. One glance.</h3>
+                  <p className="text-[#bcbcd8] leading-relaxed mb-4">Revenue, sessions, ad spend, new customers, conversions, and customer acquisition cost — all with 7-day trends and comparisons to the prior period.</p>
                   <ul className="space-y-2">
                     {["Revenue & MRR from Stripe", "Sessions & conversions from GA4", "Ad spend & CAC from Meta", "Website health score at a glance", "Quick actions & recent activity feed"].map((f) => (
-                      <li key={f} className="flex items-center gap-2 text-sm text-[#c0c0d8]">
+                      <li key={f} className="flex items-center gap-2 text-sm text-[#e0e0f0]">
                         <span className="h-1.5 w-1.5 rounded-full bg-[#00d4aa] shrink-0" />{f}
                       </li>
                     ))}
                   </ul>
                 </div>
                 <div className="md:w-56 shrink-0">
-                  <div className="rounded-xl border border-[#1e1e2e] bg-[#12121a] p-4">
+                  <div className="rounded-xl border border-[#363650] bg-[#222235] p-4">
                     <div className="grid grid-cols-2 gap-2 mb-3">
                       {[{ l: "Revenue", v: "$12.4k", up: true }, { l: "Sessions", v: "9,340", up: true }, { l: "Ad Spend", v: "$1,920", up: false }, { l: "CAC", v: "$22.86", up: true }].map((k) => (
-                        <div key={k.l} className="rounded-lg border border-[#1e1e2e] bg-[#0d0d16] p-2">
-                          <p className="font-mono text-[8px] uppercase tracking-widest text-[#4a4a6a]">{k.l}</p>
-                          <p className="font-mono text-sm font-bold text-[#f0f0f5]">{k.v}</p>
+                        <div key={k.l} className="rounded-lg border border-[#363650] bg-[#1c1c2a] p-2">
+                          <p className="font-mono text-[8px] uppercase tracking-widest text-[#8585aa]">{k.l}</p>
+                          <p className="font-mono text-sm font-bold text-[#f8f8fc]">{k.v}</p>
                           <p className={`font-mono text-[9px] ${k.up ? "text-[#00d4aa]" : "text-red-400"}`}>{k.up ? "▲ 8.2%" : "▼ 3.4%"}</p>
                         </div>
                       ))}
@@ -658,7 +658,7 @@ export default function Home() {
             </div>
 
             {/* Analytics */}
-            <div className="rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/60 p-6 md:p-8">
+            <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-6 md:p-8">
               <div className="flex flex-col md:flex-row-reverse md:items-center gap-8">
                 <div className="flex-1">
                   <div className="mb-3 inline-flex items-center gap-2 flex-wrap">
@@ -668,11 +668,11 @@ export default function Home() {
                     <span className="font-mono text-xs font-semibold uppercase tracking-widest text-[#6366f1]">Analytics</span>
                     <span className="font-mono text-[8px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-full border border-[#00d4aa]/30 text-[#00d4aa] bg-[#00d4aa]/8">Premium</span>
                   </div>
-                  <h3 className="font-mono text-xl font-bold text-[#f0f0f5] mb-3">Deep-dive into every metric.</h3>
-                  <p className="text-[#8888aa] leading-relaxed mb-4">Full 30-day daily breakdown per platform. Sparklines, trend percentages, and per-integration deep dives — Stripe, GA4, and Meta Ads each get their own view.</p>
+                  <h3 className="font-mono text-xl font-bold text-[#f8f8fc] mb-3">Deep-dive into every metric.</h3>
+                  <p className="text-[#bcbcd8] leading-relaxed mb-4">Full 30-day daily breakdown per platform. Sparklines, trend percentages, and per-integration deep dives — Stripe, GA4, and Meta Ads each get their own view.</p>
                   <ul className="space-y-2">
                     {["30-day daily time-series per integration", "Stripe: MRR, revenue, new customers, refunds", "GA4: sessions, bounce rate, conversions, top pages", "Meta Ads: spend, ROAS, CPC, impressions"].map((f) => (
-                      <li key={f} className="flex items-center gap-2 text-sm text-[#c0c0d8]">
+                      <li key={f} className="flex items-center gap-2 text-sm text-[#e0e0f0]">
                         <span className="h-1.5 w-1.5 rounded-full bg-[#6366f1] shrink-0" />{f}
                       </li>
                     ))}
@@ -682,7 +682,7 @@ export default function Home() {
                   {[{ n: "Stripe", c: "#6366f1", bars: [40, 55, 48, 70, 65, 80, 88] },
                     { n: "GA4", c: "#f59e0b", bars: [30, 45, 42, 58, 52, 68, 76] },
                     { n: "Meta", c: "#f87171", bars: [20, 30, 25, 38, 32, 28, 35] }].map((pl) => (
-                    <div key={pl.n} className="rounded-xl border border-[#1e1e2e] bg-[#12121a] p-3">
+                    <div key={pl.n} className="rounded-xl border border-[#363650] bg-[#222235] p-3">
                       <div className="flex justify-between mb-1.5">
                         <span className="font-mono text-[9px] uppercase tracking-widest" style={{ color: pl.c }}>{pl.n}</span>
                         <span className="font-mono text-[9px] font-bold text-[#00d4aa]">▲ 12%</span>
@@ -699,7 +699,7 @@ export default function Home() {
             </div>
 
             {/* Website Optimizer */}
-            <div className="rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/60 p-6 md:p-8">
+            <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-6 md:p-8">
               <div className="flex flex-col md:flex-row md:items-center gap-8">
                 <div className="flex-1">
                   <div className="mb-3 inline-flex items-center gap-2 flex-wrap">
@@ -709,36 +709,36 @@ export default function Home() {
                     <span className="font-mono text-xs font-semibold uppercase tracking-widest text-[#34d399]">Website Optimizer</span>
                     <span className="font-mono text-[8px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-full border border-[#00d4aa]/30 text-[#00d4aa] bg-[#00d4aa]/8">Premium</span>
                   </div>
-                  <h3 className="font-mono text-xl font-bold text-[#f0f0f5] mb-3">AI scores your website. Then fixes it.</h3>
-                  <p className="text-[#8888aa] leading-relaxed mb-4">AI crawls your website, assigns a health score out of 100, and generates a prioritized task list across UX, SEO, performance, copy, conversion, and accessibility.</p>
+                  <h3 className="font-mono text-xl font-bold text-[#f8f8fc] mb-3">AI scores your website. Then fixes it.</h3>
+                  <p className="text-[#bcbcd8] leading-relaxed mb-4">AI crawls your website, assigns a health score out of 100, and generates a prioritized task list across UX, SEO, performance, copy, conversion, and accessibility.</p>
                   <ul className="space-y-2">
                     {["AI-generated health score 0–100", "Tasks ranked by impact score", "6 categories: UX, SEO, Performance, Copy, Conversion, Accessibility", "Mark tasks complete — score updates live", "Re-analyze anytime with one click"].map((f) => (
-                      <li key={f} className="flex items-center gap-2 text-sm text-[#c0c0d8]">
+                      <li key={f} className="flex items-center gap-2 text-sm text-[#e0e0f0]">
                         <span className="h-1.5 w-1.5 rounded-full bg-[#34d399] shrink-0" />{f}
                       </li>
                     ))}
                   </ul>
                 </div>
                 <div className="md:w-56 shrink-0">
-                  <div className="rounded-xl border border-[#1e1e2e] bg-[#12121a] p-4 space-y-3">
+                  <div className="rounded-xl border border-[#363650] bg-[#222235] p-4 space-y-3">
                     <div className="flex items-center gap-4">
                       <div className="relative flex items-center justify-center">
                         <svg width="60" height="60" viewBox="0 0 60 60" className="-rotate-90">
-                          <circle cx="30" cy="30" r="24" fill="none" stroke="#1e1e2e" strokeWidth="5" />
+                          <circle cx="30" cy="30" r="24" fill="none" stroke="#363650" strokeWidth="5" />
                           <circle cx="30" cy="30" r="24" fill="none" stroke="#f59e0b" strokeWidth="5" strokeLinecap="round"
                             strokeDasharray={`${2 * Math.PI * 24}`} strokeDashoffset={`${2 * Math.PI * 24 * 0.26}`} />
                         </svg>
                         <span className="absolute font-mono text-base font-bold text-[#f59e0b]">74</span>
                       </div>
                       <div>
-                        <p className="font-mono text-[9px] uppercase tracking-widest text-[#4a4a6a]">Health Score</p>
+                        <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Health Score</p>
                         <p className="font-mono text-sm font-semibold text-[#f59e0b]">Average</p>
                       </div>
                     </div>
                     {[{ c: "SEO", l: "Add meta descriptions", pts: 8, color: "#34d399" }, { c: "Perf", l: "Compress hero images", pts: 12, color: "#60a5fa" }, { c: "Copy", l: "Sharpen headline", pts: 6, color: "#f59e0b" }].map((t) => (
-                      <div key={t.c} className="flex items-center gap-2 rounded-lg border border-[#1e1e2e] bg-[#0d0d16] px-2.5 py-2">
+                      <div key={t.c} className="flex items-center gap-2 rounded-lg border border-[#363650] bg-[#1c1c2a] px-2.5 py-2">
                         <span className="font-mono text-[8px] font-bold px-1.5 rounded" style={{ color: t.color, backgroundColor: `${t.color}18` }}>{t.c}</span>
-                        <span className="flex-1 min-w-0 font-mono text-[9px] text-[#8888aa] truncate">{t.l}</span>
+                        <span className="flex-1 min-w-0 font-mono text-[9px] text-[#bcbcd8] truncate">{t.l}</span>
                         <span className="font-mono text-[9px] font-bold text-[#f59e0b]">+{t.pts}</span>
                       </div>
                     ))}
@@ -758,11 +758,11 @@ export default function Home() {
                     <span className="font-mono text-xs font-semibold uppercase tracking-widest text-[#00d4aa]">AI Advisor</span>
                     <span className="font-mono text-[8px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-full border border-[#00d4aa]/30 text-[#00d4aa] bg-[#00d4aa]/8">Premium</span>
                   </div>
-                  <h3 className="font-mono text-xl font-bold text-[#f0f0f5] mb-3">Ask your data anything.</h3>
-                  <p className="text-[#8888aa] leading-relaxed mb-4">Multiple persistent conversations, each with full context of your live Stripe, GA4, and Meta data. Get a fresh daily insight generated automatically — and chat with follow-ups any time.</p>
+                  <h3 className="font-mono text-xl font-bold text-[#f8f8fc] mb-3">Ask your data anything.</h3>
+                  <p className="text-[#bcbcd8] leading-relaxed mb-4">Multiple persistent conversations, each with full context of your live Stripe, GA4, and Meta data. Get a fresh daily insight generated automatically — and chat with follow-ups any time.</p>
                   <ul className="space-y-2">
                     {["Daily AI-generated insight from your live data", "Multi-conversation chat — revisit old chats anytime", "Ask anything: \"Why did revenue drop last Tuesday?\"", "AI has full context of your actual metrics", "Rename, organize, and manage chat history"].map((f) => (
-                      <li key={f} className="flex items-center gap-2 text-sm text-[#c0c0d8]">
+                      <li key={f} className="flex items-center gap-2 text-sm text-[#e0e0f0]">
                         <span className="h-1.5 w-1.5 rounded-full bg-[#00d4aa] shrink-0" />{f}
                       </li>
                     ))}
@@ -771,16 +771,16 @@ export default function Home() {
                 <div className="md:w-56 shrink-0 space-y-2">
                   <div className="rounded-xl border border-[#00d4aa]/20 bg-[#00d4aa]/5 p-3">
                     <p className="font-mono text-[8px] uppercase tracking-widest text-[#00d4aa] mb-1.5">Daily Insight</p>
-                    <p className="font-mono text-[10px] text-[#c0c0d8] leading-relaxed"><span className="text-[#f0f0f5] font-semibold">Revenue up 8.2%</span> this week. Highest-converting source is organic search (34% CR). CAC improved 18% — your last A/B test is working.</p>
+                    <p className="font-mono text-[10px] text-[#e0e0f0] leading-relaxed"><span className="text-[#f8f8fc] font-semibold">Revenue up 8.2%</span> this week. Highest-converting source is organic search (34% CR). CAC improved 18% — your last A/B test is working.</p>
                   </div>
                   <div className="flex justify-end">
-                    <div className="max-w-[90%] rounded-xl bg-[#6366f1]/12 border border-[#6366f1]/20 px-3 py-2 font-mono text-[10px] text-[#c0c0d8]">
+                    <div className="max-w-[90%] rounded-xl bg-[#6366f1]/12 border border-[#6366f1]/20 px-3 py-2 font-mono text-[10px] text-[#e0e0f0]">
                       Why did revenue drop last Tuesday?
                     </div>
                   </div>
-                  <div className="rounded-xl border border-[#1e1e2e] bg-[#12121a] px-3 py-2">
+                  <div className="rounded-xl border border-[#363650] bg-[#222235] px-3 py-2">
                     <p className="font-mono text-[8px] uppercase tracking-widest text-[#00d4aa] mb-1">AI Advisor</p>
-                    <p className="font-mono text-[10px] text-[#c0c0d8] leading-relaxed">Revenue dropped 18% because your Meta campaign hit its budget cap at 2pm. Paid sessions fell 42%. Increase daily budget by ~$40 to fix it.</p>
+                    <p className="font-mono text-[10px] text-[#e0e0f0] leading-relaxed">Revenue dropped 18% because your Meta campaign hit its budget cap at 2pm. Paid sessions fell 42%. Increase daily budget by ~$40 to fix it.</p>
                   </div>
                 </div>
               </div>
@@ -828,15 +828,15 @@ export default function Home() {
       </section>
 
       {/* ── PRICING ───────────────────────────────────────────────────────── */}
-      <section id="pricing" className="relative px-6 py-24 border-t border-[#1e1e2e]">
+      <section id="pricing" className="relative px-6 py-24 border-t border-[#363650]">
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <div className="h-125 w-125 rounded-full bg-[#6366f1]/4 blur-3xl" />
         </div>
         <div className="relative mx-auto max-w-6xl">
           <div className="mb-16 text-center">
             <p className="mb-3 font-mono text-xs font-semibold uppercase tracking-widest text-[#00d4aa]">Pricing</p>
-            <h2 className="font-mono text-3xl font-bold text-[#f0f0f5] sm:text-4xl">Simple, transparent pricing</h2>
-            <p className="mx-auto mt-4 max-w-xl text-[#8888aa]">Start free. Upgrade when you&apos;re ready for the full picture.</p>
+            <h2 className="font-mono text-3xl font-bold text-[#f8f8fc] sm:text-4xl">Simple, transparent pricing</h2>
+            <p className="mx-auto mt-4 max-w-xl text-[#bcbcd8]">Start free. Upgrade when you&apos;re ready for the full picture.</p>
           </div>
           <div className="grid gap-6 md:grid-cols-2 max-w-3xl mx-auto">
             <PricingCard
@@ -873,11 +873,11 @@ export default function Home() {
       </section>
 
       {/* ── TESTIMONIALS ──────────────────────────────────────────────────── */}
-      <section className="px-6 py-24 border-t border-[#1e1e2e]">
+      <section className="px-6 py-24 border-t border-[#363650]">
         <div className="mx-auto max-w-6xl">
           <div className="mb-12 text-center">
             <p className="mb-3 font-mono text-xs font-semibold uppercase tracking-widest text-[#00d4aa]">Early access</p>
-            <h2 className="font-mono text-3xl font-bold text-[#f0f0f5]">What early users are saying</h2>
+            <h2 className="font-mono text-3xl font-bold text-[#f8f8fc]">What early users are saying</h2>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Testimonial
@@ -903,7 +903,7 @@ export default function Home() {
       </section>
 
       {/* ── FINAL CTA ─────────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden px-6 py-32 border-t border-[#1e1e2e]">
+      <section className="relative overflow-hidden px-6 py-32 border-t border-[#363650]">
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <div className="h-125 w-125 rounded-full bg-[#00d4aa]/5 blur-3xl" />
         </div>
@@ -913,34 +913,34 @@ export default function Home() {
             <span className="h-1.5 w-1.5 rounded-full bg-[#00d4aa] animate-pulse" />
             <span className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#00d4aa]">Free to start — no credit card needed</span>
           </div>
-          <h2 className="mb-4 font-mono text-4xl font-bold text-[#f0f0f5] sm:text-5xl leading-tight">
+          <h2 className="mb-4 font-mono text-4xl font-bold text-[#f8f8fc] sm:text-5xl leading-tight">
             Stop guessing.
             <br />
             <span className="text-[#00d4aa]">Start knowing.</span>
           </h2>
-          <p className="mb-10 text-lg text-[#8888aa] max-w-lg mx-auto">
+          <p className="mb-10 text-lg text-[#bcbcd8] max-w-lg mx-auto">
             Connect your tools in minutes. Get a unified dashboard, AI-generated daily insights, and a website optimizer — all in one place.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <a href="/signup" className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-8 py-4 font-mono text-sm font-bold uppercase tracking-wider text-[#0a0a0f] transition-all hover:bg-[#00bfa0] hover:shadow-[0_0_40px_rgba(0,212,170,0.35)]">
+            <a href="/signup" className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-8 py-4 font-mono text-sm font-bold uppercase tracking-wider text-[#13131f] transition-all hover:bg-[#00bfa0] hover:shadow-[0_0_40px_rgba(0,212,170,0.35)]">
               Get started free
               <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
             </a>
-            <a href="/login" className="font-mono text-sm text-[#4a4a6a] uppercase tracking-widest hover:text-[#f0f0f5] transition-colors">
+            <a href="/login" className="font-mono text-sm text-[#8585aa] uppercase tracking-widest hover:text-[#f8f8fc] transition-colors">
               Already have an account? Sign in →
             </a>
           </div>
-          <p className="mt-6 font-mono text-[10px] text-[#2a2a4a]">No credit card required. Free plan available forever.</p>
+          <p className="mt-6 font-mono text-[10px] text-[#8585aa]">No credit card required. Free plan available forever.</p>
         </div>
       </section>
 
       {/* ── FOOTER ────────────────────────────────────────────────────────── */}
-      <footer className="border-t border-[#1e1e2e] px-6 py-14">
+      <footer className="border-t border-[#363650] px-6 py-14">
         <div className="mx-auto max-w-6xl">
           <div className="grid grid-cols-1 gap-10 sm:grid-cols-3">
             <div>
               <img src="/fold-primary-dark.svg" alt="Fold" className="h-9 w-auto mb-3" />
-              <p className="text-sm text-[#4a4a6a] leading-relaxed max-w-xs">
+              <p className="text-sm text-[#8585aa] leading-relaxed max-w-xs">
                 AI-powered business intelligence for small business founders. Know what&apos;s happening. Know what to do.
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
@@ -950,24 +950,24 @@ export default function Home() {
               </div>
             </div>
             <div>
-              <p className="font-mono text-[10px] uppercase tracking-widest text-[#4a4a6a] mb-4">Product</p>
+              <p className="font-mono text-[10px] uppercase tracking-widest text-[#8585aa] mb-4">Product</p>
               <ul className="space-y-3">
                 {[{ l: "Features", h: "#features" }, { l: "How it works", h: "#how-it-works" }, { l: "Pricing", h: "#pricing" }, { l: "Sign in", h: "/login" }, { l: "Get started free", h: "/register" }].map((item) => (
-                  <li key={item.l}><a href={item.h} className="text-sm text-[#4a4a6a] hover:text-[#f0f0f5] transition-colors">{item.l}</a></li>
+                  <li key={item.l}><a href={item.h} className="text-sm text-[#8585aa] hover:text-[#f8f8fc] transition-colors">{item.l}</a></li>
                 ))}
               </ul>
             </div>
             <div>
-              <p className="font-mono text-[10px] uppercase tracking-widest text-[#4a4a6a] mb-4">Legal</p>
+              <p className="font-mono text-[10px] uppercase tracking-widest text-[#8585aa] mb-4">Legal</p>
               <ul className="space-y-3">
                 {[{ l: "Privacy Policy", h: "/privacy" }, { l: "Terms of Service", h: "/terms" }].map((item) => (
-                  <li key={item.l}><a href={item.h} className="text-sm text-[#4a4a6a] hover:text-[#f0f0f5] transition-colors">{item.l}</a></li>
+                  <li key={item.l}><a href={item.h} className="text-sm text-[#8585aa] hover:text-[#f8f8fc] transition-colors">{item.l}</a></li>
                 ))}
               </ul>
             </div>
           </div>
-          <div className="mt-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-t border-[#1e1e2e] pt-8">
-            <p className="font-mono text-[11px] text-[#2a2a4a]">© 2026 Fold. Built for founders who want clarity, not complexity.</p>
+          <div className="mt-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-t border-[#363650] pt-8">
+            <p className="font-mono text-[11px] text-[#8585aa]">© 2026 Fold. Built for founders who want clarity, not complexity.</p>
             <div className="flex items-center gap-1.5">
               <span className="h-1.5 w-1.5 rounded-full bg-[#00d4aa] animate-pulse" />
               <span className="font-mono text-[10px] text-[#00d4aa]">Systems nominal</span>

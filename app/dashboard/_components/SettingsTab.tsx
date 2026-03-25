@@ -87,18 +87,18 @@ function IntegrationRow({
   }
 
   return (
-    <div className="rounded-xl border border-[#1e1e2e] bg-[#12121a] p-4 transition-all hover:border-[#2a2a3e]">
+    <div className="rounded-xl border border-[#363650] bg-[#222235] p-4 transition-all hover:border-[#454560]">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
-            style={{ backgroundColor: connected ? `${integration.color}18` : "#1a1a28", color: connected ? integration.color : "#2a2a4a" }}
+            style={{ backgroundColor: connected ? `${integration.color}18` : "#222235", color: connected ? integration.color : "#8585aa" }}
           >
             {integration.icon}
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <p className="text-sm font-semibold text-[#f0f0f5]">{integration.name}</p>
+              <p className="text-sm font-semibold text-[#f8f8fc]">{integration.name}</p>
               {connected && (
                 <span
                   className="inline-flex items-center gap-1 font-mono text-[9px] font-semibold px-1.5 py-0.5 rounded-md"
@@ -109,7 +109,7 @@ function IntegrationRow({
                 </span>
               )}
             </div>
-            <p className="text-xs text-[#4a4a6a]">{integration.description}</p>
+            <p className="text-xs text-[#8585aa]">{integration.description}</p>
           </div>
         </div>
 
@@ -118,7 +118,7 @@ function IntegrationRow({
             {/* Switch account */}
             <a
               href={integration.connectUrl}
-              className="rounded-lg border border-[#1e1e2e] bg-[#0d0d16] px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#8888aa] transition-all hover:border-[#00d4aa]/30 hover:text-[#00d4aa]"
+              className="rounded-lg border border-[#363650] bg-[#1c1c2a] px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#bcbcd8] transition-all hover:border-[#00d4aa]/30 hover:text-[#00d4aa]"
               title="Connect a different account"
             >
               Switch
@@ -126,7 +126,7 @@ function IntegrationRow({
             {/* Disconnect */}
             {confirmDisconnect ? (
               <div className="flex items-center gap-1.5">
-                <span className="font-mono text-[10px] text-[#8888aa]">Sure?</span>
+                <span className="font-mono text-[10px] text-[#bcbcd8]">Sure?</span>
                 <button
                   onClick={handleDisconnect}
                   disabled={loading === "disconnect"}
@@ -136,7 +136,7 @@ function IntegrationRow({
                 </button>
                 <button
                   onClick={() => setConfirmDisconnect(false)}
-                  className="rounded-lg border border-[#1e1e2e] px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#4a4a6a] transition-all hover:text-[#8888aa]"
+                  className="rounded-lg border border-[#363650] px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#8585aa] transition-all hover:text-[#bcbcd8]"
                 >
                   Cancel
                 </button>
@@ -144,7 +144,7 @@ function IntegrationRow({
             ) : (
               <button
                 onClick={handleDisconnect}
-                className="rounded-lg border border-[#1e1e2e] bg-[#0d0d16] px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#4a4a6a] transition-all hover:border-red-500/30 hover:text-red-400"
+                className="rounded-lg border border-[#363650] bg-[#1c1c2a] px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#8585aa] transition-all hover:border-red-500/30 hover:text-red-400"
               >
                 Disconnect
               </button>
@@ -153,7 +153,7 @@ function IntegrationRow({
         ) : (
           <a
             href={integration.connectUrl}
-            className="rounded-xl border border-[#1e1e2e] bg-[#0d0d16] px-4 py-2 font-mono text-[11px] font-semibold uppercase tracking-wider text-[#8888aa] transition-all hover:border-[#00d4aa]/30 hover:bg-[#0f1420] hover:text-[#00d4aa]"
+            className="rounded-xl border border-[#363650] bg-[#1c1c2a] px-4 py-2 font-mono text-[11px] font-semibold uppercase tracking-wider text-[#bcbcd8] transition-all hover:border-[#00d4aa]/30 hover:bg-[#0f1420] hover:text-[#00d4aa]"
           >
             Connect →
           </a>
@@ -218,21 +218,21 @@ function AlertsSection() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-[#8888aa]">
+      <p className="text-sm text-[#bcbcd8]">
         Get notified on your Overview dashboard when key metrics cross these thresholds.
       </p>
 
       <div className="space-y-3">
         {/* Revenue drop */}
-        <div className="flex items-center gap-3 rounded-xl border border-[#1e1e2e] bg-[#12121a] px-4 py-3">
+        <div className="flex items-center gap-3 rounded-xl border border-[#363650] bg-[#222235] px-4 py-3">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#f87171]/10 text-[#f87171]">
             <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
               <polyline points="23 18 13.5 8.5 8.5 13.5 1 6" /><polyline points="17 18 23 18 23 12" />
             </svg>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-mono text-[11px] font-semibold text-[#c0c0d8]">Revenue drop alert</p>
-            <p className="font-mono text-[9px] text-[#4a4a6a]">Alert if 7d revenue drops by X% vs previous week</p>
+            <p className="font-mono text-[11px] font-semibold text-[#e0e0f0]">Revenue drop alert</p>
+            <p className="font-mono text-[9px] text-[#8585aa]">Alert if 7d revenue drops by X% vs previous week</p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <input
@@ -242,22 +242,22 @@ function AlertsSection() {
               placeholder="0"
               value={rules.revenueDropPct || ""}
               onChange={(e) => setRules((r) => ({ ...r, revenueDropPct: parseInt(e.target.value) || 0 }))}
-              className="w-16 bg-[#0d0d16] border border-[#1e1e2e] rounded-lg px-2 py-1.5 font-mono text-xs text-[#f0f0f5] text-right placeholder:text-[#2e2e4a] focus:outline-none focus:border-[#00d4aa]/30"
+              className="w-16 bg-[#1c1c2a] border border-[#363650] rounded-lg px-2 py-1.5 font-mono text-xs text-[#f8f8fc] text-right placeholder:text-[#58588a] focus:outline-none focus:border-[#00d4aa]/30"
             />
-            <span className="font-mono text-[10px] text-[#4a4a6a]">%</span>
+            <span className="font-mono text-[10px] text-[#8585aa]">%</span>
           </div>
         </div>
 
         {/* Bounce spike */}
-        <div className="flex items-center gap-3 rounded-xl border border-[#1e1e2e] bg-[#12121a] px-4 py-3">
+        <div className="flex items-center gap-3 rounded-xl border border-[#363650] bg-[#222235] px-4 py-3">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#f59e0b]/10 text-[#f59e0b]">
             <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
               <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" />
             </svg>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-mono text-[11px] font-semibold text-[#c0c0d8]">Bounce rate spike</p>
-            <p className="font-mono text-[9px] text-[#4a4a6a]">Alert if 7d average bounce rate exceeds X%</p>
+            <p className="font-mono text-[11px] font-semibold text-[#e0e0f0]">Bounce rate spike</p>
+            <p className="font-mono text-[9px] text-[#8585aa]">Alert if 7d average bounce rate exceeds X%</p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <input
@@ -267,32 +267,32 @@ function AlertsSection() {
               placeholder="0"
               value={rules.bounceSpikeThreshold || ""}
               onChange={(e) => setRules((r) => ({ ...r, bounceSpikeThreshold: parseInt(e.target.value) || 0 }))}
-              className="w-16 bg-[#0d0d16] border border-[#1e1e2e] rounded-lg px-2 py-1.5 font-mono text-xs text-[#f0f0f5] text-right placeholder:text-[#2e2e4a] focus:outline-none focus:border-[#00d4aa]/30"
+              className="w-16 bg-[#1c1c2a] border border-[#363650] rounded-lg px-2 py-1.5 font-mono text-xs text-[#f8f8fc] text-right placeholder:text-[#58588a] focus:outline-none focus:border-[#00d4aa]/30"
             />
-            <span className="font-mono text-[10px] text-[#4a4a6a]">%</span>
+            <span className="font-mono text-[10px] text-[#8585aa]">%</span>
           </div>
         </div>
 
         {/* Daily ad spend cap */}
-        <div className="flex items-center gap-3 rounded-xl border border-[#1e1e2e] bg-[#12121a] px-4 py-3">
+        <div className="flex items-center gap-3 rounded-xl border border-[#363650] bg-[#222235] px-4 py-3">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#1877f2]/10 text-[#1877f2]">
             <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
             </svg>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-mono text-[11px] font-semibold text-[#c0c0d8]">Ad spend cap</p>
-            <p className="font-mono text-[9px] text-[#4a4a6a]">Alert if a single day&apos;s ad spend exceeds $X</p>
+            <p className="font-mono text-[11px] font-semibold text-[#e0e0f0]">Ad spend cap</p>
+            <p className="font-mono text-[9px] text-[#8585aa]">Alert if a single day&apos;s ad spend exceeds $X</p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <span className="font-mono text-[10px] text-[#4a4a6a]">$</span>
+            <span className="font-mono text-[10px] text-[#8585aa]">$</span>
             <input
               type="number"
               min={0}
               placeholder="0"
               value={rules.spendSpikeThreshold || ""}
               onChange={(e) => setRules((r) => ({ ...r, spendSpikeThreshold: parseInt(e.target.value) || 0 }))}
-              className="w-16 bg-[#0d0d16] border border-[#1e1e2e] rounded-lg px-2 py-1.5 font-mono text-xs text-[#f0f0f5] text-right placeholder:text-[#2e2e4a] focus:outline-none focus:border-[#00d4aa]/30"
+              className="w-16 bg-[#1c1c2a] border border-[#363650] rounded-lg px-2 py-1.5 font-mono text-xs text-[#f8f8fc] text-right placeholder:text-[#58588a] focus:outline-none focus:border-[#00d4aa]/30"
             />
           </div>
         </div>
@@ -302,7 +302,7 @@ function AlertsSection() {
         <button
           onClick={saveRules}
           disabled={saving}
-          className="rounded-xl bg-[#00d4aa] px-5 py-2 font-mono text-xs font-bold text-[#0a0a0f] hover:bg-[#00bfa0] transition disabled:opacity-60"
+          className="rounded-xl bg-[#00d4aa] px-5 py-2 font-mono text-xs font-bold text-[#13131f] hover:bg-[#00bfa0] transition disabled:opacity-60"
         >
           {saving ? "Saving…" : "Save alert rules"}
         </button>
@@ -310,13 +310,13 @@ function AlertsSection() {
         {(rules.revenueDropPct > 0 || rules.bounceSpikeThreshold > 0 || rules.spendSpikeThreshold > 0) && (
           <button
             onClick={clearRules}
-            className="font-mono text-[10px] text-[#4a4a6a] hover:text-red-400 transition"
+            className="font-mono text-[10px] text-[#8585aa] hover:text-red-400 transition"
           >
             Clear all
           </button>
         )}
       </div>
-      <p className="font-mono text-[9px] text-[#2e2e4a]">
+      <p className="font-mono text-[9px] text-[#58588a]">
         Alert thresholds are saved to your account and checked on your Overview dashboard.
       </p>
     </div>
@@ -352,12 +352,12 @@ function DigestSection({ email }: { email: string }) {
   }
 
   return (
-    <section className="mb-6 rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/60 p-6">
-      <h2 className="mb-1 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#4a4a6a]">
+    <section className="mb-6 rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-6">
+      <h2 className="mb-1 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#8585aa]">
         Email Digest
       </h2>
-      <p className="mb-4 text-sm text-[#8888aa]">
-        Generate and send a full AI-powered weekly summary to <span className="text-[#c0c0d8]">{email}</span>. Includes revenue highlights, anomalies, cross-platform insights, and a top action.
+      <p className="mb-4 text-sm text-[#bcbcd8]">
+        Generate and send a full AI-powered weekly summary to <span className="text-[#e0e0f0]">{email}</span>. Includes revenue highlights, anomalies, cross-platform insights, and a top action.
       </p>
       <div className="flex items-center gap-3">
         <button
@@ -385,7 +385,7 @@ function DigestSection({ email }: { email: string }) {
         {status === "sent" && <span className="font-mono text-[11px] text-[#00d4aa]">✓ Digest sent to {email}</span>}
         {status === "error" && <span className="font-mono text-[11px] text-red-400">{errorMsg}</span>}
       </div>
-      <p className="mt-3 font-mono text-[9px] text-[#2e2e4a]">
+      <p className="mt-3 font-mono text-[9px] text-[#58588a]">
         Tip: Set up automated weekly sends via your cron script (see AGENTS.md).
       </p>
     </section>
@@ -418,13 +418,13 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms }: Se
   return (
     <div className="max-w-2xl">
       <div className="mb-8">
-        <h1 className="font-mono text-2xl font-bold text-[#f0f0f5]">Settings</h1>
-        <p className="mt-1 text-sm text-[#8888aa]">Manage your account, integrations and subscription.</p>
+        <h1 className="font-mono text-2xl font-bold text-[#f8f8fc]">Settings</h1>
+        <p className="mt-1 text-sm text-[#bcbcd8]">Manage your account, integrations and subscription.</p>
       </div>
 
       {/* ── Account info ─────────────────────────────────── */}
-      <section className="mb-6 rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/60 p-6">
-        <h2 className="mb-4 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#4a4a6a]">
+      <section className="mb-6 rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-6">
+        <h2 className="mb-4 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#8585aa]">
           Account
         </h2>
         <div className="flex items-center justify-between gap-4">
@@ -433,8 +433,8 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms }: Se
               {email.charAt(0)}
             </div>
             <div>
-              <p className="text-sm font-medium text-[#f0f0f5]">{email}</p>
-              <p className="mt-0.5 font-mono text-[10px] uppercase tracking-wider text-[#4a4a6a]">
+              <p className="text-sm font-medium text-[#f8f8fc]">{email}</p>
+              <p className="mt-0.5 font-mono text-[10px] uppercase tracking-wider text-[#8585aa]">
                 Email address
               </p>
             </div>
@@ -443,7 +443,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms }: Se
             className={`shrink-0 rounded-full px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-widest ${
               isPremium
                 ? "border border-[#00d4aa]/30 bg-[#00d4aa]/10 text-[#00d4aa]"
-                : "border border-[#1e1e2e] bg-[#12121a] text-[#4a4a6a]"
+                : "border border-[#363650] bg-[#222235] text-[#8585aa]"
             }`}
           >
             {isPremium ? "✦ Premium" : "Free"}
@@ -452,11 +452,11 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms }: Se
       </section>
 
       {/* ── Integrations ─────────────────────────────────── */}
-      <section className="mb-6 rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/60 p-6">
-        <h2 className="mb-1 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#4a4a6a]">
+      <section className="mb-6 rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-6">
+        <h2 className="mb-1 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#8585aa]">
           Integrations
         </h2>
-        <p className="mb-5 text-sm text-[#8888aa]">
+        <p className="mb-5 text-sm text-[#bcbcd8]">
           Connect your data sources. Data syncs automatically every night at 02:00 UTC.
         </p>
 
@@ -473,8 +473,8 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms }: Se
 
       {/* ── Alert rules ──────────────────────────────────── */}
       {isPremium && (
-        <section className="mb-6 rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/60 p-6">
-          <h2 className="mb-1 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#4a4a6a]">
+        <section className="mb-6 rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-6">
+          <h2 className="mb-1 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#8585aa]">
             Alert Rules
           </h2>
           <AlertsSection />
@@ -485,8 +485,8 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms }: Se
       {isPremium && <DigestSection email={email} />}
 
       {/* ── Subscription ─────────────────────────────────── */}
-      <section className="rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/60 p-6">
-        <h2 className="mb-4 font-mono text-xs font-semibold uppercase tracking-widest text-[#4a4a6a]">
+      <section className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-6">
+        <h2 className="mb-4 font-mono text-xs font-semibold uppercase tracking-widest text-[#8585aa]">
           Subscription
         </h2>
 
@@ -499,8 +499,8 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms }: Se
                 </svg>
               </div>
               <div>
-                <p className="text-sm font-semibold text-[#f0f0f5]">Premium Plan — Active</p>
-                <p className="text-xs text-[#8888aa]">
+                <p className="text-sm font-semibold text-[#f8f8fc]">Premium Plan — Active</p>
+                <p className="text-xs text-[#bcbcd8]">
                   Manage billing, change plan, or cancel via the Stripe portal.
                 </p>
               </div>
@@ -513,7 +513,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms }: Se
             <button
               onClick={handlePortal}
               disabled={portalLoading}
-              className="flex items-center gap-2 rounded-xl border border-[#1e1e2e] bg-[#12121a] px-5 py-3 text-sm font-semibold text-[#f0f0f5] transition-all hover:border-[#00d4aa]/30 hover:text-[#00d4aa] disabled:opacity-60 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 rounded-xl border border-[#363650] bg-[#222235] px-5 py-3 text-sm font-semibold text-[#f8f8fc] transition-all hover:border-[#00d4aa]/30 hover:text-[#00d4aa] disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {portalLoading ? (
                 <>
@@ -532,7 +532,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms }: Se
                 </>
               )}
             </button>
-            <p className="mt-2 text-xs text-[#4a4a6a]">
+            <p className="mt-2 text-xs text-[#8585aa]">
               You&apos;ll be redirected to Stripe&apos;s secure billing portal.
             </p>
           </div>
@@ -546,12 +546,12 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms }: Se
                   </svg>
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-[#f0f0f5]">Upgrade to Premium</p>
-                  <p className="mt-1 text-xs text-[#8888aa]">
+                  <p className="text-sm font-semibold text-[#f8f8fc]">Upgrade to Premium</p>
+                  <p className="mt-1 text-xs text-[#bcbcd8]">
                     Unlock analytics, AI advisor, website optimizer and all integrations.
                   </p>
-                  <p className="mt-1 font-mono text-xs font-bold text-[#f0f0f5]">
-                    $29<span className="font-normal text-[#4a4a6a]">/month</span>
+                  <p className="mt-1 font-mono text-xs font-bold text-[#f8f8fc]">
+                    $29<span className="font-normal text-[#8585aa]">/month</span>
                     <span className="ml-2 font-mono text-[9px] font-semibold text-[#00d4aa] bg-[#00d4aa]/10 px-2 py-0.5 rounded-full">3-day free trial</span>
                   </p>
                 </div>
@@ -559,11 +559,11 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms }: Se
             </div>
             <a
               href="/api/stripe/checkout"
-              className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-5 py-2.5 font-mono text-sm font-bold text-[#0a0a0f] hover:bg-[#00bfa0] transition"
+              className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-5 py-2.5 font-mono text-sm font-bold text-[#13131f] hover:bg-[#00bfa0] transition"
             >
               Start free trial →
             </a>
-            <p className="mt-2 font-mono text-[10px] text-[#4a4a6a]">No card required during trial · Cancel anytime</p>
+            <p className="mt-2 font-mono text-[10px] text-[#8585aa]">No card required during trial · Cancel anytime</p>
           </div>
         )}
       </section>

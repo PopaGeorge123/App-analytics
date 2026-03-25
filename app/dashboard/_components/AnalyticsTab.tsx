@@ -179,10 +179,10 @@ function StatCard({ label, value, sub, values, color }: {
   const t = trend(values);
   const accent = color ?? "#00d4aa";
   return (
-    <div className="relative overflow-hidden rounded-xl border border-[#1e1e2e] bg-[#12121a] p-5 flex flex-col gap-3 transition-all hover:border-[#2a2a3e] hover:bg-[#141420]">
+    <div className="relative overflow-hidden rounded-xl border border-[#363650] bg-[#222235] p-5 flex flex-col gap-3 transition-all hover:border-[#454560] hover:bg-[#1c1c2a]">
       <div className="absolute left-0 top-0 bottom-0 w-0.5 rounded-l-xl opacity-60" style={{ backgroundColor: accent }} />
       <div className="flex items-start justify-between">
-        <p className="font-mono text-[9px] uppercase tracking-widest text-[#4a4a6a]">{label}</p>
+        <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">{label}</p>
         {t && (
           <span className={`inline-flex items-center gap-0.5 font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-md ${t.up ? "text-[#00d4aa] bg-[#00d4aa]/10" : "text-red-400 bg-red-400/10"}`}>
             {t.up ? "▲" : "▼"} {t.pct.toFixed(1)}%
@@ -190,8 +190,8 @@ function StatCard({ label, value, sub, values, color }: {
         )}
       </div>
       <div>
-        <p className="font-mono text-2xl font-bold text-[#f0f0f5]">{value}</p>
-        {sub && <p className="mt-0.5 font-mono text-[10px] text-[#4a4a6a]">{sub}</p>}
+        <p className="font-mono text-2xl font-bold text-[#f8f8fc]">{value}</p>
+        {sub && <p className="mt-0.5 font-mono text-[10px] text-[#8585aa]">{sub}</p>}
       </div>
       <Sparkline values={values} color={accent} />
     </div>
@@ -248,7 +248,7 @@ function DateRangePicker({
         className={`flex items-center gap-2 rounded-xl border px-3 py-1.5 font-mono text-[11px] font-semibold transition-all ${
           customRange
             ? "border-[#00d4aa]/40 bg-[#00d4aa]/10 text-[#00d4aa]"
-            : "border-[#1e1e2e] bg-[#0d0d16] text-[#4a4a6a] hover:text-[#8888aa]"
+            : "border-[#363650] bg-[#1c1c2a] text-[#8585aa] hover:text-[#bcbcd8]"
         }`}
       >
         {/* calendar icon */}
@@ -260,35 +260,35 @@ function DateRangePicker({
         {customRange && (
           <span
             onClick={(e) => { e.stopPropagation(); clear(); }}
-            className="ml-1 text-[#4a4a6a] hover:text-red-400 transition-colors cursor-pointer"
+            className="ml-1 text-[#8585aa] hover:text-red-400 transition-colors cursor-pointer"
           >✕</span>
         )}
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-2 z-50 w-72 rounded-2xl border border-[#1e1e2e] bg-[#0d0d16] p-5 shadow-2xl">
-          <p className="mb-4 font-mono text-[9px] uppercase tracking-widest text-[#4a4a6a]">Custom Date Range</p>
+        <div className="absolute left-0 top-full mt-2 z-50 w-72 rounded-2xl border border-[#363650] bg-[#1c1c2a] p-5 shadow-2xl">
+          <p className="mb-4 font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Custom Date Range</p>
 
           <div className="space-y-3">
             <div>
-              <label className="mb-1 block font-mono text-[10px] text-[#4a4a6a]">From</label>
+              <label className="mb-1 block font-mono text-[10px] text-[#8585aa]">From</label>
               <input
                 type="date"
                 value={from}
                 max={to || new Date().toISOString().slice(0, 10)}
                 onChange={(e) => setFrom(e.target.value)}
-                className="w-full rounded-lg border border-[#1e1e2e] bg-[#12121a] px-3 py-2 font-mono text-[12px] text-[#f0f0f5] outline-none focus:border-[#00d4aa]/40 transition-colors scheme-dark"
+                className="w-full rounded-lg border border-[#363650] bg-[#222235] px-3 py-2 font-mono text-[12px] text-[#f8f8fc] outline-none focus:border-[#00d4aa]/40 transition-colors scheme-dark"
               />
             </div>
             <div>
-              <label className="mb-1 block font-mono text-[10px] text-[#4a4a6a]">To</label>
+              <label className="mb-1 block font-mono text-[10px] text-[#8585aa]">To</label>
               <input
                 type="date"
                 value={to}
                 min={from}
                 max={new Date().toISOString().slice(0, 10)}
                 onChange={(e) => setTo(e.target.value)}
-                className="w-full rounded-lg border border-[#1e1e2e] bg-[#12121a] px-3 py-2 font-mono text-[12px] text-[#f0f0f5] outline-none focus:border-[#00d4aa]/40 transition-colors scheme-dark"
+                className="w-full rounded-lg border border-[#363650] bg-[#222235] px-3 py-2 font-mono text-[12px] text-[#f8f8fc] outline-none focus:border-[#00d4aa]/40 transition-colors scheme-dark"
               />
             </div>
           </div>
@@ -297,13 +297,13 @@ function DateRangePicker({
             <button
               onClick={apply}
               disabled={!from || !to || from > to}
-              className="flex-1 rounded-lg bg-[#00d4aa] px-3 py-2 font-mono text-[11px] font-bold text-[#0a0a0f] transition hover:bg-[#00bfa0] disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex-1 rounded-lg bg-[#00d4aa] px-3 py-2 font-mono text-[11px] font-bold text-[#13131f] transition hover:bg-[#00bfa0] disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Apply
             </button>
             <button
               onClick={clear}
-              className="rounded-lg border border-[#1e1e2e] px-3 py-2 font-mono text-[11px] text-[#4a4a6a] hover:text-[#8888aa] transition"
+              className="rounded-lg border border-[#363650] px-3 py-2 font-mono text-[11px] text-[#8585aa] hover:text-[#bcbcd8] transition"
             >
               Clear
             </button>
@@ -328,7 +328,7 @@ function AnalyticsControls({
   return (
     <div className="flex flex-wrap items-center gap-3 mb-6">
       {/* Time range pills */}
-      <div className="flex items-center gap-1 rounded-xl border border-[#1e1e2e] bg-[#0d0d16] p-1">
+      <div className="flex items-center gap-1 rounded-xl border border-[#363650] bg-[#1c1c2a] p-1">
         {TIME_RANGES.map((tr) => (
           <button
             key={tr.id}
@@ -341,8 +341,8 @@ function AnalyticsControls({
             }}
             className={`rounded-lg px-3 py-1.5 font-mono text-[11px] font-semibold transition-all ${
               !customRange && timeRange === tr.id
-                ? "bg-[#1e1e2e] text-[#f0f0f5]"
-                : "text-[#4a4a6a] hover:text-[#8888aa]"
+                ? "bg-[#363650] text-[#f8f8fc]"
+                : "text-[#8585aa] hover:text-[#bcbcd8]"
             }`}
           >
             {tr.label}
@@ -351,12 +351,12 @@ function AnalyticsControls({
       </div>
 
       {/* Divider */}
-      <div className="h-5 w-px bg-[#1e1e2e]" />
+      <div className="h-5 w-px bg-[#363650]" />
 
       {/* View by pills */}
       <div className="flex items-center gap-2">
-        <span className="font-mono text-[9px] uppercase tracking-widest text-[#4a4a6a]">View by</span>
-        <div className="flex items-center gap-1 rounded-xl border border-[#1e1e2e] bg-[#0d0d16] p-1">
+        <span className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">View by</span>
+        <div className="flex items-center gap-1 rounded-xl border border-[#363650] bg-[#1c1c2a] p-1">
           {availableGrans.map((g) => (
             <button
               key={g}
@@ -364,7 +364,7 @@ function AnalyticsControls({
               className={`rounded-lg px-3 py-1.5 font-mono text-[11px] font-semibold transition-all ${
                 granularity === g
                   ? "bg-[#00d4aa]/15 text-[#00d4aa]"
-                  : "text-[#4a4a6a] hover:text-[#8888aa]"
+                  : "text-[#8585aa] hover:text-[#bcbcd8]"
               }`}
             >
               {GRANULARITY_LABELS[g]}
@@ -374,7 +374,7 @@ function AnalyticsControls({
       </div>
 
       {/* Divider */}
-      <div className="h-5 w-px bg-[#1e1e2e]" />
+      <div className="h-5 w-px bg-[#363650]" />
 
       {/* Custom date range picker */}
       <DateRangePicker
@@ -391,22 +391,22 @@ function AnalyticsControls({
 function DataTable({ rows }: { rows: { period: string; cells: { label: string; value: string }[] }[] }) {
   if (!rows.length) return null;
   return (
-    <div className="overflow-x-auto rounded-xl border border-[#1e1e2e]">
+    <div className="overflow-x-auto rounded-xl border border-[#363650]">
       <table className="w-full text-left text-xs">
         <thead>
-          <tr className="border-b border-[#1e1e2e]">
-            <th className="px-4 py-3 font-mono text-[9px] uppercase tracking-widest text-[#4a4a6a]">Period</th>
+          <tr className="border-b border-[#363650]">
+            <th className="px-4 py-3 font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Period</th>
             {rows[0].cells.map((c) => (
-              <th key={c.label} className="px-4 py-3 font-mono text-[9px] uppercase tracking-widest text-[#4a4a6a]">{c.label}</th>
+              <th key={c.label} className="px-4 py-3 font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">{c.label}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {[...rows].reverse().map((row, i) => (
-            <tr key={row.period} className={`border-b border-[#1e1e2e]/50 ${i % 2 === 0 ? "bg-[#0d0d16]/40" : ""}`}>
-              <td className="px-4 py-2.5 font-mono text-[11px] text-[#8888aa]">{row.period}</td>
+            <tr key={row.period} className={`border-b border-[#363650]/50 ${i % 2 === 0 ? "bg-[#1c1c2a]/40" : ""}`}>
+              <td className="px-4 py-2.5 font-mono text-[11px] text-[#bcbcd8]">{row.period}</td>
               {row.cells.map((c) => (
-                <td key={c.label} className="px-4 py-2.5 font-mono text-[11px] text-[#f0f0f5]">{c.value}</td>
+                <td key={c.label} className="px-4 py-2.5 font-mono text-[11px] text-[#f8f8fc]">{c.value}</td>
               ))}
             </tr>
           ))}
@@ -448,7 +448,7 @@ function StripeSection({ snapshots, granularity }: { snapshots: Snapshot[]; gran
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#635bff]/15 text-[#635bff]">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.591-7.305z" /></svg>
         </div>
-        <h3 className="font-mono text-sm font-semibold text-[#f0f0f5]">Stripe Revenue</h3>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Stripe Revenue</h3>
       </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Total Revenue"   value={fmt(totalRevenue, "currency")} values={revenue}      color="#635bff" />
@@ -501,7 +501,7 @@ function CohortSection({ snapshots }: { snapshots: Snapshot[] }) {
   const maxVal = Math.max(...weeklyData.map((w) => w.total), 1);
 
   return (
-    <div className="rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/60 p-5 space-y-4">
+    <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-5 space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#00d4aa]/10 text-[#00d4aa]">
@@ -510,16 +510,16 @@ function CohortSection({ snapshots }: { snapshots: Snapshot[] }) {
               <path d="M23 21v-2a4 4 0 00-3-3.87" /><path d="M16 3.13a4 4 0 010 7.75" />
             </svg>
           </div>
-          <h3 className="font-mono text-sm font-semibold text-[#f0f0f5]">Customer Cohort</h3>
+          <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Customer Cohort</h3>
         </div>
         <div className="flex items-center gap-4">
           <div className="text-center">
             <p className="font-mono text-lg font-bold text-[#00d4aa]">{retentionRate}%</p>
-            <p className="font-mono text-[9px] text-[#4a4a6a] uppercase tracking-widest">Returning</p>
+            <p className="font-mono text-[9px] text-[#8585aa] uppercase tracking-widest">Returning</p>
           </div>
           <div className="text-center">
-            <p className="font-mono text-lg font-bold text-[#f0f0f5]">{totalNew}</p>
-            <p className="font-mono text-[9px] text-[#4a4a6a] uppercase tracking-widest">New</p>
+            <p className="font-mono text-lg font-bold text-[#f8f8fc]">{totalNew}</p>
+            <p className="font-mono text-[9px] text-[#8585aa] uppercase tracking-widest">New</p>
           </div>
         </div>
       </div>
@@ -529,17 +529,17 @@ function CohortSection({ snapshots }: { snapshots: Snapshot[] }) {
         <div className="flex items-center gap-3 mb-3">
           <div className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-sm bg-[#635bff]" />
-            <span className="font-mono text-[9px] text-[#4a4a6a]">New customers</span>
+            <span className="font-mono text-[9px] text-[#8585aa]">New customers</span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-sm bg-[#00d4aa]" />
-            <span className="font-mono text-[9px] text-[#4a4a6a]">Returning</span>
+            <span className="font-mono text-[9px] text-[#8585aa]">Returning</span>
           </div>
         </div>
         {weeklyData.map((w) => (
           <div key={w.week} className="flex items-center gap-3">
-            <span className="font-mono text-[9px] text-[#4a4a6a] w-14 shrink-0">{w.week}</span>
-            <div className="flex-1 flex h-5 rounded-md overflow-hidden bg-[#1e1e2e]">
+            <span className="font-mono text-[9px] text-[#8585aa] w-14 shrink-0">{w.week}</span>
+            <div className="flex-1 flex h-5 rounded-md overflow-hidden bg-[#363650]">
               <div
                 className="h-full"
                 style={{ width: `${(w.newCustomers / maxVal) * 100}%`, backgroundColor: "#635bff" }}
@@ -549,12 +549,12 @@ function CohortSection({ snapshots }: { snapshots: Snapshot[] }) {
                 style={{ width: `${(w.returning / maxVal) * 100}%`, backgroundColor: "#00d4aa" }}
               />
             </div>
-            <span className="font-mono text-[9px] text-[#8888aa] w-6 shrink-0 text-right">{w.total}</span>
+            <span className="font-mono text-[9px] text-[#bcbcd8] w-6 shrink-0 text-right">{w.total}</span>
           </div>
         ))}
       </div>
 
-      <p className="font-mono text-[9px] text-[#2e2e4a]">
+      <p className="font-mono text-[9px] text-[#58588a]">
         Based on Stripe transactions — new customers are first-time buyers in each week.
       </p>
     </div>
@@ -592,7 +592,7 @@ function GA4Section({ snapshots, granularity }: { snapshots: Snapshot[]; granula
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f59e0b]/15 text-[#f59e0b]">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12.545 10.239v3.821h5.445c-.712 2.315-2.647 3.972-5.445 3.972a6.033 6.033 0 110-12.064c1.498 0 2.866.549 3.921 1.453l2.814-2.814A9.969 9.969 0 0012.545 2C7.021 2 2.543 6.477 2.543 12s4.478 10 10.002 10c8.396 0 10.249-7.85 9.426-11.748l-9.426-.013z" /></svg>
         </div>
-        <h3 className="font-mono text-sm font-semibold text-[#f0f0f5]">Google Analytics 4</h3>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Google Analytics 4</h3>
       </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Sessions"        value={fmt(totalSessions)}    values={sessions}    color="#f59e0b" />
@@ -637,7 +637,7 @@ function MetaSection({ snapshots, granularity }: { snapshots: Snapshot[]; granul
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1877f2]/15 text-[#1877f2]">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
         </div>
-        <h3 className="font-mono text-sm font-semibold text-[#f0f0f5]">Meta Ads</h3>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Meta Ads</h3>
       </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Ad Spend"    value={`$${totalSpend.toFixed(2)}`}  values={spend}       color="#1877f2" />
@@ -654,30 +654,30 @@ function MetaSection({ snapshots, granularity }: { snapshots: Snapshot[]; granul
 
 function LockScreen() {
   return (
-    <div className="flex flex-col items-center justify-center rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/60 py-20 px-6 text-center">
+    <div className="flex flex-col items-center justify-center rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 py-20 px-6 text-center">
       <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-[#a78bfa]/20 bg-[#a78bfa]/10 text-[#a78bfa]">
         <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>
       </div>
       <p className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#a78bfa] mb-2">Premium Feature</p>
-      <h2 className="font-mono text-xl font-bold text-[#f0f0f5] mb-3">Analytics requires Premium</h2>
-      <p className="text-sm text-[#8888aa] max-w-sm mb-6">Upgrade to access full analytics, revenue trends, and AI-generated insights.</p>
-      <a href="/api/stripe/checkout" className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-6 py-2.5 font-mono text-sm font-bold text-[#0a0a0f] hover:bg-[#00bfa0] transition">
+      <h2 className="font-mono text-xl font-bold text-[#f8f8fc] mb-3">Analytics requires Premium</h2>
+      <p className="text-sm text-[#bcbcd8] max-w-sm mb-6">Upgrade to access full analytics, revenue trends, and AI-generated insights.</p>
+      <a href="/api/stripe/checkout" className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-6 py-2.5 font-mono text-sm font-bold text-[#13131f] hover:bg-[#00bfa0] transition">
         Start 3-day free trial →
       </a>
-      <p className="mt-3 font-mono text-[10px] text-[#4a4a6a]">$29/mo after trial · Cancel anytime</p>
+      <p className="mt-3 font-mono text-[10px] text-[#8585aa]">$29/mo after trial · Cancel anytime</p>
     </div>
   );
 }
 
 function EmptySection({ platform }: { platform: string }) {
   return (
-    <div className="rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/60 p-10 text-center">
+    <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-10 text-center">
       <div className="mx-auto mb-4 inline-flex items-center gap-2 rounded-full border border-[#00d4aa]/20 bg-[#00d4aa]/8 px-4 py-2">
         <span className="h-1.5 w-1.5 rounded-full bg-[#00d4aa] animate-pulse" />
         <span className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#00d4aa]">Syncing data</span>
       </div>
-      <p className="text-sm text-[#8888aa]">
-        <span className="text-[#f0f0f5]">{platform}</span> is connected. Data will appear after the first nightly sync (02:00 UTC).
+      <p className="text-sm text-[#bcbcd8]">
+        <span className="text-[#f8f8fc]">{platform}</span> is connected. Data will appear after the first nightly sync (02:00 UTC).
       </p>
     </div>
   );
@@ -733,8 +733,8 @@ export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots 
     return (
       <div className="max-w-4xl">
         <div className="mb-8">
-          <h1 className="font-mono text-2xl font-bold text-[#f0f0f5]">Analytics</h1>
-          <p className="mt-1 text-sm text-[#8888aa]">Deep-dive into your business metrics.</p>
+          <h1 className="font-mono text-2xl font-bold text-[#f8f8fc]">Analytics</h1>
+          <p className="mt-1 text-sm text-[#bcbcd8]">Deep-dive into your business metrics.</p>
         </div>
         <LockScreen />
       </div>
@@ -744,22 +744,22 @@ export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots 
   return (
     <div className="max-w-4xl">
       <div className="mb-6">
-        <h1 className="font-mono text-2xl font-bold text-[#f0f0f5]">Analytics</h1>
-        <p className="mt-1 text-sm text-[#8888aa]">Daily breakdown per integration.</p>
+        <h1 className="font-mono text-2xl font-bold text-[#f8f8fc]">Analytics</h1>
+        <p className="mt-1 text-sm text-[#bcbcd8]">Daily breakdown per integration.</p>
       </div>
 
       {availablePlatforms.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-[#1e1e2e] p-12 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl border border-[#1e1e2e] bg-[#12121a] text-[#4a4a6a]">
+        <div className="rounded-2xl border border-dashed border-[#363650] p-12 text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl border border-[#363650] bg-[#222235] text-[#8585aa]">
             <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" /></svg>
           </div>
-          <p className="font-mono text-xs font-semibold uppercase tracking-widest text-[#4a4a6a] mb-2">No data yet</p>
-          <p className="text-sm text-[#8888aa]">Connect at least one integration from the Overview tab to see analytics.</p>
+          <p className="font-mono text-xs font-semibold uppercase tracking-widest text-[#8585aa] mb-2">No data yet</p>
+          <p className="text-sm text-[#bcbcd8]">Connect at least one integration from the Overview tab to see analytics.</p>
         </div>
       ) : (
         <>
           {/* ── Platform tabs ─────────────────────────────────── */}
-          <div className="mb-4 flex gap-2 border-b border-[#1e1e2e]">
+          <div className="mb-4 flex gap-2 border-b border-[#363650]">
             {(["overview", ...availablePlatforms] as PlatformTab[]).map((p) => (
               <button
                 key={p}
@@ -767,7 +767,7 @@ export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots 
                 className={`pb-3 px-1 font-mono text-xs font-semibold uppercase tracking-widest transition-colors border-b-2 -mb-px ${
                   activeSection === p
                     ? "border-[#00d4aa] text-[#00d4aa]"
-                    : "border-transparent text-[#4a4a6a] hover:text-[#8888aa]"
+                    : "border-transparent text-[#8585aa] hover:text-[#bcbcd8]"
                 }`}
               >
                 {PLATFORM_LABELS[p]}

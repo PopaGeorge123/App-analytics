@@ -51,7 +51,7 @@ export default async function ConfirmPage({ searchParams }: ConfirmPageProps) {
 
   if (result.status === "success") {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center bg-[#0a0a0f] px-6 py-24">
+      <main className="flex min-h-screen flex-col items-center justify-center bg-[#13131f] px-6 py-24">
         {/* Glow */}
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <div className="h-96 w-96 rounded-full bg-[#00d4aa]/5 blur-3xl" />
@@ -75,25 +75,25 @@ export default async function ConfirmPage({ searchParams }: ConfirmPageProps) {
           <p className="mb-3 font-mono text-xs font-semibold uppercase tracking-widest text-[#00d4aa]">
             Confirmed
           </p>
-          <h1 className="mb-4 font-mono text-4xl font-bold text-[#f0f0f5] sm:text-5xl">
+          <h1 className="mb-4 font-mono text-4xl font-bold text-[#f8f8fc] sm:text-5xl">
             You&apos;re in.&nbsp;🎉
           </h1>
-          <p className="mb-10 text-base leading-relaxed text-[#8888aa]">
+          <p className="mb-10 text-base leading-relaxed text-[#bcbcd8]">
             Your spot is confirmed. We&apos;ll email you when Fold is ready for early access.
           </p>
 
           {/* Share prompt */}
-          <div className="rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/60 p-6 backdrop-blur-sm">
-            <p className="mb-4 font-mono text-xs font-semibold uppercase tracking-wider text-[#4a4a6a]">
+          <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-6 backdrop-blur-sm">
+            <p className="mb-4 font-mono text-xs font-semibold uppercase tracking-wider text-[#8585aa]">
               Know a founder who&apos;d love this?
             </p>
-            <p className="mb-5 text-sm text-[#8888aa]">Share Fold with your network:</p>
+            <p className="mb-5 text-sm text-[#bcbcd8]">Share Fold with your network:</p>
             <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
               <a
                 href={`https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#1e1e2e] bg-[#12121a] px-5 py-3 text-sm font-semibold text-[#f0f0f5] transition-all hover:border-[#00d4aa]/30 hover:bg-[#0a1a16] hover:text-[#00d4aa]"
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#363650] bg-[#222235] px-5 py-3 text-sm font-semibold text-[#f8f8fc] transition-all hover:border-[#00d4aa]/30 hover:bg-[#0a1a16] hover:text-[#00d4aa]"
               >
                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                   <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
@@ -104,7 +104,7 @@ export default async function ConfirmPage({ searchParams }: ConfirmPageProps) {
                 href={`https://www.linkedin.com/sharing/share-offsite/?url=${shareUrl}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#1e1e2e] bg-[#12121a] px-5 py-3 text-sm font-semibold text-[#f0f0f5] transition-all hover:border-[#00d4aa]/30 hover:bg-[#0a1a16] hover:text-[#00d4aa]"
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#363650] bg-[#222235] px-5 py-3 text-sm font-semibold text-[#f8f8fc] transition-all hover:border-[#00d4aa]/30 hover:bg-[#0a1a16] hover:text-[#00d4aa]"
               >
                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                   <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
@@ -117,7 +117,7 @@ export default async function ConfirmPage({ searchParams }: ConfirmPageProps) {
           <div className="mt-10">
             <Link
               href="/"
-              className="text-sm text-[#4a4a6a] underline-offset-4 hover:text-[#8888aa] hover:underline"
+              className="text-sm text-[#8585aa] underline-offset-4 hover:text-[#bcbcd8] hover:underline"
             >
               ← Back to home
             </Link>
@@ -129,7 +129,7 @@ export default async function ConfirmPage({ searchParams }: ConfirmPageProps) {
 
   if (result.status === "already_confirmed") {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center bg-[#0a0a0f] px-6 py-24">
+      <main className="flex min-h-screen flex-col items-center justify-center bg-[#13131f] px-6 py-24">
         <div className="max-w-lg w-full text-center">
           <div className="mx-auto mb-8 flex h-16 w-16 items-center justify-center rounded-full border border-[#00d4aa]/30 bg-[#00d4aa]/10">
             <svg
@@ -143,15 +143,15 @@ export default async function ConfirmPage({ searchParams }: ConfirmPageProps) {
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h1 className="mb-4 font-mono text-3xl font-bold text-[#f0f0f5]">
+          <h1 className="mb-4 font-mono text-3xl font-bold text-[#f8f8fc]">
             You&apos;re already on the list!
           </h1>
-          <p className="mb-8 text-[#8888aa]">
+          <p className="mb-8 text-[#bcbcd8]">
             Your spot is already confirmed. We&apos;ll be in touch when Fold launches.
           </p>
           <Link
             href="/"
-            className="text-sm text-[#4a4a6a] underline-offset-4 hover:text-[#8888aa] hover:underline"
+            className="text-sm text-[#8585aa] underline-offset-4 hover:text-[#bcbcd8] hover:underline"
           >
             ← Back to home
           </Link>
@@ -162,7 +162,7 @@ export default async function ConfirmPage({ searchParams }: ConfirmPageProps) {
 
   // Invalid / expired token
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-[#0a0a0f] px-6 py-24">
+    <main className="flex min-h-screen flex-col items-center justify-center bg-[#13131f] px-6 py-24">
       <div className="max-w-lg w-full text-center">
         <div className="mx-auto mb-8 flex h-16 w-16 items-center justify-center rounded-full border border-red-500/30 bg-red-500/10">
           <svg
@@ -176,15 +176,15 @@ export default async function ConfirmPage({ searchParams }: ConfirmPageProps) {
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </div>
-        <h1 className="mb-4 font-mono text-3xl font-bold text-[#f0f0f5]">
+        <h1 className="mb-4 font-mono text-3xl font-bold text-[#f8f8fc]">
           Invalid or expired link
         </h1>
-        <p className="mb-8 text-[#8888aa]">
+        <p className="mb-8 text-[#bcbcd8]">
           This confirmation link is invalid or has already expired. Try signing up again.
         </p>
         <Link
           href="/"
-          className="inline-flex items-center justify-center rounded-xl bg-[#00d4aa] px-6 py-3 text-sm font-semibold text-[#0a0a0f] transition-all hover:bg-[#00bfa0]"
+          className="inline-flex items-center justify-center rounded-xl bg-[#00d4aa] px-6 py-3 text-sm font-semibold text-[#13131f] transition-all hover:bg-[#00bfa0]"
         >
           Back to home
         </Link>

@@ -219,15 +219,15 @@ function pctChange(curr: number, prev: number): { pct: number; up: boolean } | n
 function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload || !payload.length) return null;
   return (
-    <div className="rounded-xl border border-[#1e1e2e] bg-[#0d0d16]/95 px-4 py-3 shadow-2xl backdrop-blur-sm">
-      <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-[#4a4a6a]">{label}</p>
+    <div className="rounded-xl border border-[#363650] bg-[#1c1c2a]/95 px-4 py-3 shadow-2xl backdrop-blur-sm">
+      <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-[#8585aa]">{label}</p>
       {payload.map(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (entry: any) => (
           <div key={entry.name} className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full" style={{ backgroundColor: entry.color }} />
-            <span className="font-mono text-[11px] text-[#8888aa]">{entry.name}:</span>
-            <span className="font-mono text-[11px] font-semibold text-[#f0f0f5]">{entry.value}</span>
+            <span className="font-mono text-[11px] text-[#bcbcd8]">{entry.name}:</span>
+            <span className="font-mono text-[11px] font-semibold text-[#f8f8fc]">{entry.value}</span>
           </div>
         )
       )}
@@ -253,7 +253,7 @@ function KpiCard({
   icon: string;
 }) {
   return (
-    <div className="rounded-xl border border-[#1e1e2e] bg-[#12121a] p-5 flex flex-col gap-2">
+    <div className="rounded-xl border border-[#363650] bg-[#222235] p-5 flex flex-col gap-2">
       <div className="flex items-center justify-between">
         <span className="text-lg">{icon}</span>
         {change && (
@@ -272,7 +272,7 @@ function KpiCard({
         <p className="font-mono text-2xl font-bold" style={{ color }}>
           {value}
         </p>
-        <p className="mt-0.5 font-mono text-[9px] uppercase tracking-widest text-[#4a4a6a]">
+        <p className="mt-0.5 font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">
           {label}
         </p>
         {sub && <p className="mt-1 font-mono text-[10px] text-[#6666888]">{sub}</p>}
@@ -296,13 +296,13 @@ function InsightCard({
 }) {
   return (
     <div
-      className="rounded-xl border bg-[#12121a] p-4 flex gap-3"
+      className="rounded-xl border bg-[#222235] p-4 flex gap-3"
       style={{ borderColor: `${accent}30` }}
     >
       <span className="text-xl shrink-0 mt-0.5">{icon}</span>
       <div>
-        <p className="font-mono text-xs font-semibold text-[#f0f0f5]">{title}</p>
-        <p className="mt-1 text-xs leading-relaxed text-[#8888aa]">{body}</p>
+        <p className="font-mono text-xs font-semibold text-[#f8f8fc]">{title}</p>
+        <p className="mt-1 text-xs leading-relaxed text-[#bcbcd8]">{body}</p>
       </div>
     </div>
   );
@@ -788,12 +788,12 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
       </div>
 
       {/* ── Chart Panel ─────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-[#1e1e2e] bg-[#12121a] p-6">
+      <div className="rounded-2xl border border-[#363650] bg-[#222235] p-6">
 
         {/* Header: Report selector + Time range */}
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="font-mono text-[9px] uppercase tracking-widest text-[#4a4a6a] mb-3">Report Type</p>
+            <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa] mb-3">Report Type</p>
             <div className="flex flex-wrap gap-2">
               {REPORT_TYPES.map((r) => (
                 <button
@@ -803,7 +803,7 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
                   className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-mono text-[10px] font-semibold transition-all ${
                     report === r.key
                       ? "border-[#00d4aa]/40 bg-[#00d4aa]/10 text-[#00d4aa]"
-                      : "border-[#1e1e2e] text-[#4a4a6a] hover:border-[#2e2e4e] hover:text-[#8888aa]"
+                      : "border-[#363650] text-[#8585aa] hover:border-[#2e2e4e] hover:text-[#bcbcd8]"
                   }`}
                 >
                   <span>{r.icon}</span>
@@ -816,16 +816,16 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
           {/* Hide internal time range selector when parent controls it */}
           {!externalTimeRange && (
           <div>
-            <p className="font-mono text-[9px] uppercase tracking-widest text-[#4a4a6a] mb-3">Time Range</p>
-            <div className="flex gap-1 rounded-lg border border-[#1e1e2e] bg-[#0d0d16] p-1">
+            <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa] mb-3">Time Range</p>
+            <div className="flex gap-1 rounded-lg border border-[#363650] bg-[#1c1c2a] p-1">
               {TIME_RANGES.map((t) => (
                 <button
                   key={t.key}
                   onClick={() => setInternalTimeRange(t.key)}
                   className={`rounded-md px-3 py-1 font-mono text-[11px] font-semibold transition-all ${
                     timeRange === t.key
-                      ? "bg-[#1e1e2e] text-[#f0f0f5]"
-                      : "text-[#4a4a6a] hover:text-[#8888aa]"
+                      ? "bg-[#363650] text-[#f8f8fc]"
+                      : "text-[#8585aa] hover:text-[#bcbcd8]"
                   }`}
                 >
                   {t.label}
@@ -837,32 +837,32 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
         </div>
 
         {/* Report description */}
-        <p className="mb-5 font-mono text-[11px] text-[#4a4a6a]">
+        <p className="mb-5 font-mono text-[11px] text-[#8585aa]">
           {REPORT_TYPES.find((r) => r.key === report)?.description}
         </p>
 
         {/* Chart */}
         {!hasData ? (
-          <div className="flex h-64 items-center justify-center rounded-xl border border-[#1e1e2e] bg-[#0d0d16]/60">
+          <div className="flex h-64 items-center justify-center rounded-xl border border-[#363650] bg-[#1c1c2a]/60">
             <div className="text-center">
-              <p className="font-mono text-xs text-[#4a4a6a]">No data for selected period</p>
+              <p className="font-mono text-xs text-[#8585aa]">No data for selected period</p>
               <p className="mt-1 font-mono text-[10px] text-[#2e2e4e]">Try a wider time range</p>
             </div>
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={320}>
             <ComposedChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e1e2e" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#363650" vertical={false} />
               <XAxis
                 dataKey="date"
-                tick={{ fill: "#4a4a6a", fontSize: 10, fontFamily: "monospace" }}
+                tick={{ fill: "#8585aa", fontSize: 10, fontFamily: "monospace" }}
                 tickLine={false}
-                axisLine={{ stroke: "#1e1e2e" }}
+                axisLine={{ stroke: "#363650" }}
                 interval="preserveStartEnd"
               />
               <YAxis
                 yAxisId="left"
-                tick={{ fill: "#4a4a6a", fontSize: 10, fontFamily: "monospace" }}
+                tick={{ fill: "#8585aa", fontSize: 10, fontFamily: "monospace" }}
                 tickLine={false}
                 axisLine={false}
                 width={50}
@@ -870,7 +870,7 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
               <YAxis
                 yAxisId="right"
                 orientation="right"
-                tick={{ fill: "#4a4a6a", fontSize: 10, fontFamily: "monospace" }}
+                tick={{ fill: "#8585aa", fontSize: 10, fontFamily: "monospace" }}
                 tickLine={false}
                 axisLine={false}
                 width={50}
@@ -879,7 +879,7 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
               <Legend
                 wrapperStyle={{ fontFamily: "monospace", fontSize: 10, paddingTop: 16 }}
                 formatter={(value) => (
-                  <span style={{ color: "#8888aa" }}>{value}</span>
+                  <span style={{ color: "#bcbcd8" }}>{value}</span>
                 )}
               />
               {lines.map((l) => {
@@ -934,8 +934,8 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
       {insights.length > 0 && (
         <div>
           <div className="mb-4 flex items-center gap-2">
-            <span className="font-mono text-[9px] uppercase tracking-widest text-[#4a4a6a]">Key Insights</span>
-            <div className="flex-1 border-t border-[#1e1e2e]" />
+            <span className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Key Insights</span>
+            <div className="flex-1 border-t border-[#363650]" />
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             {insights.map((ins, i) => (
@@ -1014,10 +1014,10 @@ function HealthScore({ snapshots, connectedPlatforms }: { snapshots: Snapshot[];
   if (!score) return null;
 
   return (
-    <div className="rounded-2xl border border-[#1e1e2e] bg-[#12121a] p-6">
+    <div className="rounded-2xl border border-[#363650] bg-[#222235] p-6">
       <div className="mb-5 flex items-center gap-2">
-        <span className="font-mono text-[9px] uppercase tracking-widest text-[#4a4a6a]">Business Health Score</span>
-        <div className="flex-1 border-t border-[#1e1e2e]" />
+        <span className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Business Health Score</span>
+        <div className="flex-1 border-t border-[#363650]" />
       </div>
 
       <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
@@ -1031,13 +1031,13 @@ function HealthScore({ snapshots, connectedPlatforms }: { snapshots: Snapshot[];
               <p className="font-mono text-3xl font-bold" style={{ color: score.color }}>
                 {score.pct}
               </p>
-              <p className="font-mono text-[10px] text-[#4a4a6a]">/ 100</p>
+              <p className="font-mono text-[10px] text-[#8585aa]">/ 100</p>
             </div>
           </div>
           <p className="font-mono text-sm font-semibold" style={{ color: score.color }}>
             {score.label}
           </p>
-          <p className="font-mono text-[9px] text-[#4a4a6a]">
+          <p className="font-mono text-[9px] text-[#8585aa]">
             {score.connectedCount} platform{score.connectedCount !== 1 ? "s" : ""} connected
           </p>
         </div>
@@ -1047,10 +1047,10 @@ function HealthScore({ snapshots, connectedPlatforms }: { snapshots: Snapshot[];
           {score.metrics.map((m) => (
             <div key={m.label}>
               <div className="mb-1 flex items-center justify-between">
-                <span className="font-mono text-[10px] text-[#8888aa]">{m.label}</span>
-                <span className="font-mono text-[10px] text-[#4a4a6a]">{m.note}</span>
+                <span className="font-mono text-[10px] text-[#bcbcd8]">{m.label}</span>
+                <span className="font-mono text-[10px] text-[#8585aa]">{m.note}</span>
               </div>
-              <div className="h-1.5 w-full rounded-full bg-[#1e1e2e]">
+              <div className="h-1.5 w-full rounded-full bg-[#363650]">
                 <div
                   className="h-full rounded-full transition-all duration-700"
                   style={{

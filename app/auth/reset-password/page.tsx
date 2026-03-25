@@ -60,7 +60,7 @@ export default function ResetPasswordPage() {
 
   if (step === "success") {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#0a0a0f] px-6 py-24">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#13131f] px-6 py-24">
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <div className="h-125 w-125 rounded-full bg-[#00d4aa]/4 blur-3xl" />
         </div>
@@ -80,10 +80,10 @@ export default function ResetPasswordPage() {
           <p className="mb-2 font-mono text-xs font-semibold uppercase tracking-widest text-[#00d4aa]">
             Done
           </p>
-          <h1 className="mb-4 font-mono text-2xl font-bold text-[#f0f0f5]">
+          <h1 className="mb-4 font-mono text-2xl font-bold text-[#f8f8fc]">
             Password updated!
           </h1>
-          <p className="text-sm text-[#8888aa]">
+          <p className="text-sm text-[#bcbcd8]">
             Redirecting you to the dashboard…
           </p>
         </div>
@@ -92,7 +92,7 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-[#0a0a0f] px-6 py-24">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-[#13131f] px-6 py-24">
       {/* Background glow */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
         <div className="h-125 w-125 rounded-full bg-[#00d4aa]/4 blur-3xl" />
@@ -102,22 +102,22 @@ export default function ResetPasswordPage() {
         {/* Logo */}
         <div className="mb-10 text-center">
           <Link href="/">
-            <span className="font-mono text-2xl font-bold tracking-tight text-[#f0f0f5]">
+            <span className="font-mono text-2xl font-bold tracking-tight text-[#f8f8fc]">
               FOLD
             </span>
           </Link>
-          <p className="mt-1 font-mono text-[10px] uppercase tracking-widest text-[#4a4a6a]">
+          <p className="mt-1 font-mono text-[10px] uppercase tracking-widest text-[#8585aa]">
             AI Business Intelligence
           </p>
         </div>
 
         {/* Card */}
-        <div className="rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/80 p-8 backdrop-blur-sm">
+        <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/80 p-8 backdrop-blur-sm">
           <div className="mb-6">
-            <h1 className="font-mono text-xl font-bold text-[#f0f0f5]">
+            <h1 className="font-mono text-xl font-bold text-[#f8f8fc]">
               Set new password
             </h1>
-            <p className="mt-1 text-sm text-[#8888aa]">
+            <p className="mt-1 text-sm text-[#bcbcd8]">
               Choose a strong password for your account.
             </p>
           </div>
@@ -127,7 +127,7 @@ export default function ResetPasswordPage() {
             <div>
               <label
                 htmlFor="password"
-                className="mb-1.5 block font-mono text-xs font-semibold uppercase tracking-wider text-[#4a4a6a]"
+                className="mb-1.5 block font-mono text-xs font-semibold uppercase tracking-wider text-[#8585aa]"
               >
                 New password
               </label>
@@ -140,7 +140,7 @@ export default function ResetPasswordPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="At least 8 characters"
                 disabled={loading || !ready}
-                className="w-full rounded-xl border border-[#1e1e2e] bg-[#12121a] px-4 py-3 text-sm text-[#f0f0f5] placeholder-[#4a4a6a] outline-none transition-all focus:border-[#00d4aa]/60 focus:ring-2 focus:ring-[#00d4aa]/20 disabled:opacity-60"
+                className="w-full rounded-xl border border-[#363650] bg-[#222235] px-4 py-3 text-sm text-[#f8f8fc] placeholder-[#8585aa] outline-none transition-all focus:border-[#00d4aa]/60 focus:ring-2 focus:ring-[#00d4aa]/20 disabled:opacity-60"
               />
             </div>
 
@@ -148,7 +148,7 @@ export default function ResetPasswordPage() {
             <div>
               <label
                 htmlFor="confirm-password"
-                className="mb-1.5 block font-mono text-xs font-semibold uppercase tracking-wider text-[#4a4a6a]"
+                className="mb-1.5 block font-mono text-xs font-semibold uppercase tracking-wider text-[#8585aa]"
               >
                 Confirm password
               </label>
@@ -161,7 +161,7 @@ export default function ResetPasswordPage() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="••••••••"
                 disabled={loading || !ready}
-                className="w-full rounded-xl border border-[#1e1e2e] bg-[#12121a] px-4 py-3 text-sm text-[#f0f0f5] placeholder-[#4a4a6a] outline-none transition-all focus:border-[#00d4aa]/60 focus:ring-2 focus:ring-[#00d4aa]/20 disabled:opacity-60"
+                className="w-full rounded-xl border border-[#363650] bg-[#222235] px-4 py-3 text-sm text-[#f8f8fc] placeholder-[#8585aa] outline-none transition-all focus:border-[#00d4aa]/60 focus:ring-2 focus:ring-[#00d4aa]/20 disabled:opacity-60"
               />
             </div>
 
@@ -178,7 +178,7 @@ export default function ResetPasswordPage() {
                           : i === 2
                           ? "bg-yellow-500"
                           : "bg-[#00d4aa]"
-                        : "bg-[#1e1e2e]"
+                        : "bg-[#363650]"
                     }`}
                   />
                 ))}
@@ -204,7 +204,7 @@ export default function ResetPasswordPage() {
             <button
               type="submit"
               disabled={loading || !ready || !password || !confirmPassword}
-              className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-[#00d4aa] py-3 font-semibold text-sm text-[#0a0a0f] transition-all hover:bg-[#00bfa0] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-[#00d4aa] py-3 font-semibold text-sm text-[#13131f] transition-all hover:bg-[#00bfa0] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? (
                 <>

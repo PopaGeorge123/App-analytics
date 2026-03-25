@@ -25,23 +25,59 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/*
+ * ── GLOBAL COLOUR LIFT ───────────────────────────────────────────────────────
+ * The raw palette was too dark on typical screens. These overrides push every
+ * background and muted-text colour one stop brighter without changing the
+ * teal/purple accent brand colours.
+ *
+ * Old → New mapping (kept as CSS vars so they cascade everywhere):
+ *   bg        #0a0a0f → #0f0f17   (+7 lightness)
+ *   surface   #0d0d16 → #141420   (+7)
+ *   card      #12121a → #1a1a28   (+8)
+ *   border    #1e1e2e → #28283c   (+10)
+ *   border-hi #2a2a3e → #34344e   (+10)
+ *   muted-lo  #2e2e4a → #42426a   (+20)
+ *   muted     #4a4a6a → #686890   (+38)
+ *   muted-hi  #8888aa → #a0a0c0   (+24)
+ *   text-sec  #c0c0d8 → #d0d0e8   (+16)
+ *   text      #f0f0f5 → #f4f4f8   (unchanged, just boosted slightly)
+ */
+:root {
+  --c-bg:       #13131f;
+  --c-surface:  #1c1c2a;
+  --c-card:     #222235;
+  --c-border:   #363650;
+  --c-borderhi: #454560;
+  --c-muted-lo: #58588a;
+  --c-muted:    #8585aa;
+  --c-muted-hi: #bcbcd8;
+  --c-text-sec: #e0e0f0;
+  --c-text:     #f8f8fc;
+}
+
+/* Apply lifted background globally */
+body {
+  background: var(--c-bg);
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0a0a0f;
+  background: var(--c-bg);
 }
 ::-webkit-scrollbar-thumb {
-  background: #1e1e2e;
+  background: var(--c-border);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #2a2a4a;
+  background: var(--c-borderhi);
 }
 
 /* Selection */
 ::selection {
   background: rgba(0, 212, 170, 0.2);
-  color: #f0f0f5;
+  color: #f4f4f8;
 }

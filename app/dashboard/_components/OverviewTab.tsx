@@ -205,7 +205,7 @@ function KpiCard({
   const accent = KPI_ACCENT_COLORS[icon] ?? "#00d4aa";
   return (
     <div
-      className="relative overflow-hidden rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/70 p-5 flex flex-col gap-3 transition-all hover:border-[#2a2a3e] hover:bg-[#0f0f18]"
+      className="relative overflow-hidden rounded-2xl border border-[#363650] bg-[#1c1c2a]/70 p-5 flex flex-col gap-3 transition-all hover:border-[#454560] hover:bg-[#0f0f18]"
       style={{ boxShadow: "inset 3px 0 0 " + accent + "30" }}
     >
       {/* Left accent bar */}
@@ -214,23 +214,23 @@ function KpiCard({
         style={{ backgroundColor: accent }}
       />
       <div className="flex items-center justify-between">
-        <span className="font-mono text-[9px] uppercase tracking-widest text-[#4a4a6a]">{label}</span>
+        <span className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">{label}</span>
         <span style={{ color: accent + "99" }}>{KPI_ICONS[icon]}</span>
       </div>
       {value === null ? (
         <div>
-          <p className="font-mono text-2xl font-bold text-[#2a2a4a]">—</p>
-          <p className="mt-1 font-mono text-[10px] text-[#2e2e4a]">Not connected</p>
+          <p className="font-mono text-2xl font-bold text-[#8585aa]">—</p>
+          <p className="mt-1 font-mono text-[10px] text-[#58588a]">Not connected</p>
         </div>
       ) : (
         <div>
           <div className="flex items-end gap-2">
-            <p className="font-mono text-2xl font-bold text-[#f0f0f5] leading-none">{value}</p>
+            <p className="font-mono text-2xl font-bold text-[#f8f8fc] leading-none">{value}</p>
             {trend && <TrendBadge current={trend.current} prev={trend.prev} />}
           </div>
-          {sub && <p className="mt-1.5 font-mono text-[10px] text-[#4a4a6a]">{sub}</p>}
+          {sub && <p className="mt-1.5 font-mono text-[10px] text-[#8585aa]">{sub}</p>}
           {trend && trendPct(trend.current, trend.prev) !== null && (
-            <p className="mt-1 font-mono text-[9px] text-[#2e2e4a]">vs prev 7 days</p>
+            <p className="mt-1 font-mono text-[9px] text-[#58588a]">vs prev 7 days</p>
           )}
         </div>
       )}
@@ -247,7 +247,7 @@ function MiniScoreRing({ score }: { score: number }) {
   return (
     <div className="relative flex items-center justify-center h-16 w-16 shrink-0">
       <svg width="64" height="64" viewBox="0 0 64 64" className="-rotate-90">
-        <circle cx="32" cy="32" r={R} fill="none" stroke="#1e1e2e" strokeWidth="6" />
+        <circle cx="32" cy="32" r={R} fill="none" stroke="#363650" strokeWidth="6" />
         <circle
           cx="32" cy="32" r={R}
           fill="none"
@@ -332,7 +332,7 @@ function GoalsWidget({
     return (
       <button
         onClick={openEdit}
-        className="w-full flex items-center gap-2 rounded-xl border border-dashed border-[#1e1e2e] bg-transparent px-4 py-3 text-left text-[#4a4a6a] hover:border-[#00d4aa]/30 hover:text-[#00d4aa] transition-colors group"
+        className="w-full flex items-center gap-2 rounded-xl border border-dashed border-[#363650] bg-transparent px-4 py-3 text-left text-[#8585aa] hover:border-[#00d4aa]/30 hover:text-[#00d4aa] transition-colors group"
       >
         <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="10" /><path d="M12 8v4l3 3" />
@@ -348,51 +348,51 @@ function GoalsWidget({
         <p className="font-mono text-[9px] uppercase tracking-widest text-[#00d4aa]">Set weekly goals</p>
         {stripeConn && (
           <div className="flex items-center gap-2">
-            <label className="font-mono text-[10px] text-[#8888aa] w-28 shrink-0">Revenue target ($)</label>
+            <label className="font-mono text-[10px] text-[#bcbcd8] w-28 shrink-0">Revenue target ($)</label>
             <input
               type="number"
               placeholder="e.g. 2000"
               value={draft.revenue}
               onChange={(e) => setDraft((d) => ({ ...d, revenue: e.target.value }))}
-              className="flex-1 bg-[#12121a] border border-[#1e1e2e] rounded-lg px-3 py-1.5 font-mono text-xs text-[#f0f0f5] placeholder:text-[#2e2e4a] focus:outline-none focus:border-[#00d4aa]/30"
+              className="flex-1 bg-[#222235] border border-[#363650] rounded-lg px-3 py-1.5 font-mono text-xs text-[#f8f8fc] placeholder:text-[#58588a] focus:outline-none focus:border-[#00d4aa]/30"
             />
           </div>
         )}
         {ga4Conn && (
           <div className="flex items-center gap-2">
-            <label className="font-mono text-[10px] text-[#8888aa] w-28 shrink-0">Sessions target</label>
+            <label className="font-mono text-[10px] text-[#bcbcd8] w-28 shrink-0">Sessions target</label>
             <input
               type="number"
               placeholder="e.g. 3000"
               value={draft.sessions}
               onChange={(e) => setDraft((d) => ({ ...d, sessions: e.target.value }))}
-              className="flex-1 bg-[#12121a] border border-[#1e1e2e] rounded-lg px-3 py-1.5 font-mono text-xs text-[#f0f0f5] placeholder:text-[#2e2e4a] focus:outline-none focus:border-[#00d4aa]/30"
+              className="flex-1 bg-[#222235] border border-[#363650] rounded-lg px-3 py-1.5 font-mono text-xs text-[#f8f8fc] placeholder:text-[#58588a] focus:outline-none focus:border-[#00d4aa]/30"
             />
           </div>
         )}
         <div className="flex gap-2">
-          <button onClick={saveGoals} disabled={saving} className="flex-1 rounded-lg bg-[#00d4aa] px-3 py-1.5 font-mono text-xs font-bold text-[#0a0a0f] hover:bg-[#00bfa0] transition disabled:opacity-60">{saving ? "Saving…" : "Save"}</button>
-          <button onClick={() => setEditing(false)} className="rounded-lg border border-[#1e1e2e] px-3 py-1.5 font-mono text-xs text-[#4a4a6a] hover:text-[#8888aa] transition">Cancel</button>
+          <button onClick={saveGoals} disabled={saving} className="flex-1 rounded-lg bg-[#00d4aa] px-3 py-1.5 font-mono text-xs font-bold text-[#13131f] hover:bg-[#00bfa0] transition disabled:opacity-60">{saving ? "Saving…" : "Save"}</button>
+          <button onClick={() => setEditing(false)} className="rounded-lg border border-[#363650] px-3 py-1.5 font-mono text-xs text-[#8585aa] hover:text-[#bcbcd8] transition">Cancel</button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border border-[#1e1e2e] bg-[#12121a] px-4 py-3 space-y-2.5">
+    <div className="rounded-xl border border-[#363650] bg-[#222235] px-4 py-3 space-y-2.5">
       <div className="flex items-center justify-between">
-        <p className="font-mono text-[9px] uppercase tracking-widest text-[#4a4a6a]">Weekly goals</p>
-        <button onClick={openEdit} className="font-mono text-[9px] text-[#4a4a6a] hover:text-[#00d4aa] transition">Edit</button>
+        <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Weekly goals</p>
+        <button onClick={openEdit} className="font-mono text-[9px] text-[#8585aa] hover:text-[#00d4aa] transition">Edit</button>
       </div>
       {stripeConn && goals.revenueTarget > 0 && (
         <div>
           <div className="flex items-center justify-between mb-1">
-            <span className="font-mono text-[10px] text-[#8888aa]">Revenue</span>
-            <span className="font-mono text-[10px] text-[#f0f0f5]">
-              {fmt(revenue7, "currency")} <span className="text-[#4a4a6a]">/ {fmt(goals.revenueTarget, "currency")}</span>
+            <span className="font-mono text-[10px] text-[#bcbcd8]">Revenue</span>
+            <span className="font-mono text-[10px] text-[#f8f8fc]">
+              {fmt(revenue7, "currency")} <span className="text-[#8585aa]">/ {fmt(goals.revenueTarget, "currency")}</span>
             </span>
           </div>
-          <div className="h-1.5 w-full rounded-full bg-[#1e1e2e]">
+          <div className="h-1.5 w-full rounded-full bg-[#363650]">
             <div className="h-full rounded-full transition-all duration-700" style={{ width: `${revenueProgress}%`, backgroundColor: revenueProgress >= 100 ? "#00d4aa" : revenueProgress >= 75 ? "#34d399" : "#f59e0b" }} />
           </div>
           {revenueProgress >= 100 && <p className="mt-0.5 font-mono text-[9px] text-[#00d4aa]">🎉 Goal reached!</p>}
@@ -401,12 +401,12 @@ function GoalsWidget({
       {ga4Conn && goals.sessionsTarget > 0 && (
         <div>
           <div className="flex items-center justify-between mb-1">
-            <span className="font-mono text-[10px] text-[#8888aa]">Sessions</span>
-            <span className="font-mono text-[10px] text-[#f0f0f5]">
-              {fmt(sessions7)} <span className="text-[#4a4a6a]">/ {fmt(goals.sessionsTarget)}</span>
+            <span className="font-mono text-[10px] text-[#bcbcd8]">Sessions</span>
+            <span className="font-mono text-[10px] text-[#f8f8fc]">
+              {fmt(sessions7)} <span className="text-[#8585aa]">/ {fmt(goals.sessionsTarget)}</span>
             </span>
           </div>
-          <div className="h-1.5 w-full rounded-full bg-[#1e1e2e]">
+          <div className="h-1.5 w-full rounded-full bg-[#363650]">
             <div className="h-full rounded-full transition-all duration-700" style={{ width: `${sessionsProgress}%`, backgroundColor: sessionsProgress >= 100 ? "#00d4aa" : sessionsProgress >= 75 ? "#34d399" : "#f59e0b" }} />
           </div>
           {sessionsProgress >= 100 && <p className="mt-0.5 font-mono text-[9px] text-[#00d4aa]">🎉 Goal reached!</p>}
@@ -688,10 +688,10 @@ export default function OverviewTab({
       {/* ── Greeting ─────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
         <div>
-          <h1 className="font-mono text-2xl font-bold text-[#f0f0f5]">
+          <h1 className="font-mono text-2xl font-bold text-[#f8f8fc]">
             {greetingTime()}, {capitalFirst}
           </h1>
-          <p className="mt-1 font-mono text-[11px] text-[#4a4a6a]">{formatDate()}</p>
+          <p className="mt-1 font-mono text-[11px] text-[#8585aa]">{formatDate()}</p>
         </div>
         {isPremium ? (
           <div className="inline-flex items-center gap-2 rounded-full border border-[#00d4aa]/30 bg-[#00d4aa]/8 px-3 py-1.5">
@@ -727,7 +727,7 @@ export default function OverviewTab({
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#a78bfa] mb-0.5">Demo Mode</p>
-            <p className="font-mono text-[11px] text-[#c0c0d8]">
+            <p className="font-mono text-[11px] text-[#e0e0f0]">
               You&apos;re viewing sample data for a fictional SaaS business. Connect Stripe, GA4, or Meta Ads in Settings to see your real metrics.
             </p>
           </div>
@@ -742,7 +742,7 @@ export default function OverviewTab({
 
       {/* ── Yesterday at a glance ─────────────────────────────── */}
       {isPremium && narrative.hasData && (
-        <div className="rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/60 px-5 py-4">
+        <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 px-5 py-4">
           <div className="flex items-start gap-3">
             <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#00d4aa]/10 text-[#00d4aa]">
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -752,11 +752,11 @@ export default function OverviewTab({
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
                 <p className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#00d4aa]">Yesterday</p>
-                <span className="font-mono text-[9px] text-[#2e2e4a]">
+                <span className="font-mono text-[9px] text-[#58588a]">
                   {new Date(narrative.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
                 </span>
               </div>
-              <p className="font-mono text-sm text-[#c0c0d8] leading-relaxed">{narrative.text}</p>
+              <p className="font-mono text-sm text-[#e0e0f0] leading-relaxed">{narrative.text}</p>
               {narrative.bounceAlert && (
                 <div className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-amber-500/20 bg-amber-500/8 px-2.5 py-1">
                   <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="#f59e0b" strokeWidth={2.5}>
@@ -774,15 +774,15 @@ export default function OverviewTab({
 
       {/* ── Premium gate ─────────────────────────────────────── */}
       {!isPremium && (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/60 py-16 px-6 text-center">
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 py-16 px-6 text-center">
           <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-[#a78bfa]/20 bg-[#a78bfa]/10 text-[#a78bfa]">
             <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
             </svg>
           </div>
           <p className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#a78bfa] mb-2">Premium Required</p>
-          <h2 className="font-mono text-xl font-bold text-[#f0f0f5] mb-3">Unlock your full dashboard</h2>
-          <p className="text-sm text-[#8888aa] max-w-sm mb-6">
+          <h2 className="font-mono text-xl font-bold text-[#f8f8fc] mb-3">Unlock your full dashboard</h2>
+          <p className="text-sm text-[#bcbcd8] max-w-sm mb-6">
             Get real-time business intelligence with live data from all your connected tools.
           </p>
           <div className="grid grid-cols-2 gap-2 mb-7 w-full max-w-sm text-left">
@@ -798,18 +798,18 @@ export default function OverviewTab({
                 <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="#00d4aa" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                 </svg>
-                <span className="font-mono text-[10px] text-[#8888aa]">{f}</span>
+                <span className="font-mono text-[10px] text-[#bcbcd8]">{f}</span>
               </div>
             ))}
           </div>
           <button
             onClick={handleUpgrade}
             disabled={upgradeLoading}
-            className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-7 py-3 font-mono text-sm font-bold text-[#0a0a0f] hover:bg-[#00bfa0] transition disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-7 py-3 font-mono text-sm font-bold text-[#13131f] hover:bg-[#00bfa0] transition disabled:opacity-50"
           >
             {upgradeLoading ? "Redirecting…" : "Start 3-day free trial →"}
           </button>
-          <p className="mt-3 font-mono text-[10px] text-[#4a4a6a]">$29/mo after trial · Cancel anytime</p>
+          <p className="mt-3 font-mono text-[10px] text-[#8585aa]">$29/mo after trial · Cancel anytime</p>
         </div>
       )}
 
@@ -840,7 +840,7 @@ export default function OverviewTab({
           {crossInsights.slice(0, 1).map((ci, i) => (
             <div key={i} className="flex items-start gap-3 rounded-2xl border px-5 py-3.5" style={{ borderColor: ci.color + "30", backgroundColor: ci.color + "08" }}>
               <span className="mt-0.5 font-mono text-sm shrink-0" style={{ color: ci.color }}>{ci.icon}</span>
-              <p className="flex-1 font-mono text-[11px] text-[#c0c0d8] leading-relaxed">{ci.message}</p>
+              <p className="flex-1 font-mono text-[11px] text-[#e0e0f0] leading-relaxed">{ci.message}</p>
               <button
                 onClick={() => onNavigate("website")}
                 className="shrink-0 font-mono text-[10px] font-semibold hover:underline"
@@ -856,12 +856,12 @@ export default function OverviewTab({
       {/* ── KPI Grid ─────────────────────────────────────────── */}
       <section>
         <div className="flex items-center gap-2 mb-4">
-          <p className="font-mono text-[9px] uppercase tracking-widest text-[#4a4a6a]">Last 7 days</p>
-          <span className="font-mono text-[8px] text-[#2e2e4a] border border-[#1e1e2e] rounded px-1.5 py-0.5">▲▼ vs prev 7 days</span>
-          <div className="flex-1 border-t border-[#1e1e2e]" />
+          <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Last 7 days</p>
+          <span className="font-mono text-[8px] text-[#58588a] border border-[#363650] rounded px-1.5 py-0.5">▲▼ vs prev 7 days</span>
+          <div className="flex-1 border-t border-[#363650]" />
           <button
             onClick={() => onNavigate("analytics")}
-            className="font-mono text-[9px] text-[#4a4a6a] hover:text-[#00d4aa] transition"
+            className="font-mono text-[9px] text-[#8585aa] hover:text-[#00d4aa] transition"
           >
             Full analytics →
           </button>
@@ -884,12 +884,12 @@ export default function OverviewTab({
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
 
         {/* Website Health card (2/3 width) */}
-        <div className="lg:col-span-2 rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/70 p-5">
+        <div className="lg:col-span-2 rounded-2xl border border-[#363650] bg-[#1c1c2a]/70 p-5">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="font-mono text-[9px] uppercase tracking-widest text-[#4a4a6a]">Website Health</p>
+              <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Website Health</p>
               {websiteData.url && (
-                <p className="mt-0.5 font-mono text-[11px] text-[#8888aa] truncate max-w-60">
+                <p className="mt-0.5 font-mono text-[11px] text-[#bcbcd8] truncate max-w-60">
                   {websiteData.url.replace(/^https?:\/\//, "")}
                 </p>
               )}
@@ -903,7 +903,7 @@ export default function OverviewTab({
           </div>
 
           {!websiteData.url ? (
-            <div className="flex items-center gap-4 rounded-xl border border-dashed border-[#1e1e2e] p-4">
+            <div className="flex items-center gap-4 rounded-xl border border-dashed border-[#363650] p-4">
               <span className="text-[#2e2e4e]">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.2} strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="10" />
@@ -912,7 +912,7 @@ export default function OverviewTab({
                 </svg>
               </span>
               <div>
-                <p className="font-mono text-sm font-semibold text-[#4a4a6a]">No website added yet</p>
+                <p className="font-mono text-sm font-semibold text-[#8585aa]">No website added yet</p>
                 <button
                   onClick={() => onNavigate("website")}
                   className="mt-1 font-mono text-[11px] font-semibold text-[#00d4aa] hover:underline"
@@ -934,7 +934,7 @@ export default function OverviewTab({
               <MiniScoreRing score={websiteData.score} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="font-mono text-lg font-bold text-[#f0f0f5]">{websiteData.score}/100</span>
+                  <span className="font-mono text-lg font-bold text-[#f8f8fc]">{websiteData.score}/100</span>
                   <span
                     className="font-mono text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md"
                     style={{
@@ -945,7 +945,7 @@ export default function OverviewTab({
                     {scoreLabel(websiteData.score)}
                   </span>
                 </div>
-                <div className="h-1.5 w-full rounded-full bg-[#1e1e2e] mb-3">
+                <div className="h-1.5 w-full rounded-full bg-[#363650] mb-3">
                   <div
                     className="h-full rounded-full transition-all duration-700"
                     style={{
@@ -954,7 +954,7 @@ export default function OverviewTab({
                     }}
                   />
                 </div>
-                <div className="flex flex-wrap gap-3 text-[10px] font-mono text-[#4a4a6a]">
+                <div className="flex flex-wrap gap-3 text-[10px] font-mono text-[#8585aa]">
                   <span>
                     <span className="text-[#f59e0b] font-bold">{pendingTasks.length}</span> tasks pending
                   </span>
@@ -972,14 +972,14 @@ export default function OverviewTab({
           {/* Top 2 pending tasks preview */}
           {pendingTasks.length > 0 && (
             <div className="mt-4 space-y-2">
-              <p className="font-mono text-[9px] uppercase tracking-widest text-[#4a4a6a]">Top improvements</p>
+              <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Top improvements</p>
               {pendingTasks.slice(0, 2).map((t) => (
                 <div
                   key={t.id}
-                  className="flex items-center gap-3 rounded-xl border border-[#1e1e2e] bg-[#12121a] px-3 py-2.5"
+                  className="flex items-center gap-3 rounded-xl border border-[#363650] bg-[#222235] px-3 py-2.5"
                 >
                   <span className="h-1.5 w-1.5 rounded-full bg-[#f59e0b] shrink-0" />
-                  <p className="flex-1 min-w-0 font-mono text-[11px] text-[#c0c0d8] truncate">{t.title}</p>
+                  <p className="flex-1 min-w-0 font-mono text-[11px] text-[#e0e0f0] truncate">{t.title}</p>
                   <span className="font-mono text-[10px] font-bold text-[#f59e0b] shrink-0">
                     +{t.impact_score} pts
                   </span>
@@ -988,7 +988,7 @@ export default function OverviewTab({
               {pendingTasks.length > 2 && (
                 <button
                   onClick={() => onNavigate("website")}
-                  className="font-mono text-[10px] text-[#4a4a6a] hover:text-[#00d4aa] transition"
+                  className="font-mono text-[10px] text-[#8585aa] hover:text-[#00d4aa] transition"
                 >
                   +{pendingTasks.length - 2} more tasks →
                 </button>
@@ -1001,8 +1001,8 @@ export default function OverviewTab({
         <div className="flex flex-col gap-4">
 
           {/* Quick Actions */}
-          <div className="rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/70 p-5">
-            <p className="font-mono text-[9px] uppercase tracking-widest text-[#4a4a6a] mb-3">Quick Actions</p>
+          <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/70 p-5">
+            <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa] mb-3">Quick Actions</p>
             <div className="space-y-2">
               <GoalsWidget
                 revenue7={kpis.find((k) => k.icon === "revenue")?.trend?.current ?? 0}
@@ -1012,45 +1012,45 @@ export default function OverviewTab({
               />
               <button
                 onClick={() => onNavigate("website")}
-                className="w-full flex items-center gap-3 rounded-xl border border-[#1e1e2e] bg-[#12121a] px-3 py-2.5 text-left transition hover:border-[#00d4aa]/25 hover:bg-[#0f1420] group"
+                className="w-full flex items-center gap-3 rounded-xl border border-[#363650] bg-[#222235] px-3 py-2.5 text-left transition hover:border-[#00d4aa]/25 hover:bg-[#0f1420] group"
               >
-                <span className="text-[#4a4a6a] group-hover:text-[#00d4aa] transition">
+                <span className="text-[#8585aa] group-hover:text-[#00d4aa] transition">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="10" />
                     <line x1="2" y1="12" x2="22" y2="12" />
                     <path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />
                   </svg>
                 </span>
-                <span className="font-mono text-[11px] font-semibold text-[#c0c0d8] group-hover:text-[#f0f0f5]">
+                <span className="font-mono text-[11px] font-semibold text-[#e0e0f0] group-hover:text-[#f8f8fc]">
                   {websiteData.url ? "Re-analyze website" : "Add website"}
                 </span>
               </button>
               <button
                 onClick={() => onNavigate("analytics")}
-                className="w-full flex items-center gap-3 rounded-xl border border-[#1e1e2e] bg-[#12121a] px-3 py-2.5 text-left transition hover:border-[#00d4aa]/25 hover:bg-[#0f1420] group"
+                className="w-full flex items-center gap-3 rounded-xl border border-[#363650] bg-[#222235] px-3 py-2.5 text-left transition hover:border-[#00d4aa]/25 hover:bg-[#0f1420] group"
               >
-                <span className="text-[#4a4a6a] group-hover:text-[#00d4aa] transition">
+                <span className="text-[#8585aa] group-hover:text-[#00d4aa] transition">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
                     <line x1="18" y1="20" x2="18" y2="10" />
                     <line x1="12" y1="20" x2="12" y2="4" />
                     <line x1="6" y1="20" x2="6" y2="14" />
                   </svg>
                 </span>
-                <span className="font-mono text-[11px] font-semibold text-[#c0c0d8] group-hover:text-[#f0f0f5]">
+                <span className="font-mono text-[11px] font-semibold text-[#e0e0f0] group-hover:text-[#f8f8fc]">
                   View analytics
                 </span>
               </button>
               <button
                 onClick={() => onNavigate("settings")}
-                className="w-full flex items-center gap-3 rounded-xl border border-[#1e1e2e] bg-[#12121a] px-3 py-2.5 text-left transition hover:border-[#00d4aa]/25 hover:bg-[#0f1420] group"
+                className="w-full flex items-center gap-3 rounded-xl border border-[#363650] bg-[#222235] px-3 py-2.5 text-left transition hover:border-[#00d4aa]/25 hover:bg-[#0f1420] group"
               >
-                <span className="text-[#4a4a6a] group-hover:text-[#00d4aa] transition">
+                <span className="text-[#8585aa] group-hover:text-[#00d4aa] transition">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
                     <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
                     <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
                   </svg>
                 </span>
-                <span className="font-mono text-[11px] font-semibold text-[#c0c0d8] group-hover:text-[#f0f0f5]">
+                <span className="font-mono text-[11px] font-semibold text-[#e0e0f0] group-hover:text-[#f8f8fc]">
                   Manage integrations
                 </span>
               </button>
@@ -1075,12 +1075,12 @@ export default function OverviewTab({
           </div>
 
           {/* Recent Activity */}
-          <div className="rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/70 p-5 flex-1">
-            <p className="font-mono text-[9px] uppercase tracking-widest text-[#4a4a6a] mb-3">Recent Activity</p>
+          <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/70 p-5 flex-1">
+            <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa] mb-3">Recent Activity</p>
             {activity.length === 0 ? (
               <div className="py-4 text-center">
-                <p className="font-mono text-[11px] text-[#2e2e4a]">No activity yet</p>
-                <p className="mt-1 font-mono text-[10px] text-[#2e2e4a]">
+                <p className="font-mono text-[11px] text-[#58588a]">No activity yet</p>
+                <p className="mt-1 font-mono text-[10px] text-[#58588a]">
                   Analyze your website to get started
                 </p>
               </div>
@@ -1107,8 +1107,8 @@ export default function OverviewTab({
                       )}
                     </div>
                     <div className="min-w-0">
-                      <p className="font-mono text-[11px] text-[#c0c0d8] leading-snug">{a.label}</p>
-                      <p className="font-mono text-[9px] text-[#4a4a6a] mt-0.5">{a.time}</p>
+                      <p className="font-mono text-[11px] text-[#e0e0f0] leading-snug">{a.label}</p>
+                      <p className="font-mono text-[9px] text-[#8585aa] mt-0.5">{a.time}</p>
                     </div>
                   </div>
                 ))}
@@ -1120,13 +1120,13 @@ export default function OverviewTab({
 
       {/* ── Integrations (only if not all connected) ──────────── */}
       {!hasAllIntegrations && (
-        <section className="rounded-2xl border border-[#1e1e2e] bg-[#0d0d16]/70 p-5">
+        <section className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/70 p-5">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="font-mono text-[9px] uppercase tracking-widest text-[#4a4a6a]">Integrations</p>
-              <p className="mt-1 text-sm text-[#8888aa]">Connect your tools to unlock real data.</p>
+              <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Integrations</p>
+              <p className="mt-1 text-sm text-[#bcbcd8]">Connect your tools to unlock real data.</p>
             </div>
-            <span className="font-mono text-[10px] text-[#4a4a6a]">
+            <span className="font-mono text-[10px] text-[#8585aa]">
               {connectedPlatforms.length}/3 connected
             </span>
           </div>
@@ -1135,7 +1135,7 @@ export default function OverviewTab({
               <a
                 key={intg.id}
                 href={intg.connectUrl}
-                className="flex items-center gap-3 rounded-xl border border-[#1e1e2e] bg-[#12121a] px-4 py-3 transition hover:border-[#00d4aa]/25 hover:bg-[#0f1420] group"
+                className="flex items-center gap-3 rounded-xl border border-[#363650] bg-[#222235] px-4 py-3 transition hover:border-[#00d4aa]/25 hover:bg-[#0f1420] group"
               >
                 <div
                   className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
@@ -1144,12 +1144,12 @@ export default function OverviewTab({
                   {intg.icon}
                 </div>
                 <div className="min-w-0">
-                  <p className="font-mono text-[11px] font-semibold text-[#c0c0d8] group-hover:text-[#f0f0f5]">
+                  <p className="font-mono text-[11px] font-semibold text-[#e0e0f0] group-hover:text-[#f8f8fc]">
                     {intg.name}
                   </p>
-                  <p className="font-mono text-[9px] text-[#4a4a6a]">{intg.description}</p>
+                  <p className="font-mono text-[9px] text-[#8585aa]">{intg.description}</p>
                 </div>
-                <span className="ml-auto font-mono text-[9px] text-[#4a4a6a] group-hover:text-[#00d4aa] shrink-0">
+                <span className="ml-auto font-mono text-[9px] text-[#8585aa] group-hover:text-[#00d4aa] shrink-0">
                   Connect →
                 </span>
               </a>
