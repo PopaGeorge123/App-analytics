@@ -60,14 +60,15 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
-        <Script async src="https://www.googletagmanager.com/gtag/js?id=G-YYVDYMF75Q"></Script>
-        <Script>
-          window.dataLayer = window.dataLayer || [];
-          function gtag(){dataLayer.push(arguments);}
-          gtag('js', new Date());
-
-          gtag('config', 'G-YYVDYMF75Q');
-        </Script>
+        <Script async src="https://www.googletagmanager.com/gtag/js?id=G-YYVDYMF75Q" strategy="afterInteractive" />
+        <Script id="gtag-init" strategy="afterInteractive" dangerouslySetInnerHTML={{
+          __html: `
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-YYVDYMF75Q');
+          `,
+        }} />
       </head>
       <body className="min-h-full flex flex-col bg-[#13131f]">
         <PostHogProvider>
