@@ -48,11 +48,20 @@ export async function POST(req: NextRequest) {
           : session.subscription?.id;
 
       if (userId) {
+        // Fetch the subscription to check if a trial was granted
+        let hadTrial = false;
+        if (subscriptionId) {
+          const sub = await stripe.subscriptions.retrieve(subscriptionId);
+          hadTrial = sub.trial_end !== null;
+        }
+
         const { error } = await admin
           .from("users")
           .update({
             is_premium: true,
             stripe_subscription_id: subscriptionId ?? null,
+            // Mark trial as used so they can never get another one
+            ...(hadTrial ? { trial_used: true } : {}),
           })
           .eq("id", userId);
 

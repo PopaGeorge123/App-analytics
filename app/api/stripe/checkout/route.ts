@@ -14,11 +14,12 @@ async function createCheckoutSession() {
 
   const { data: dbUser } = await supabase
     .from("users")
-    .select("stripe_customer_id")
+    .select("stripe_customer_id, trial_used")
     .eq("id", user.id)
     .single();
 
   let customerId = dbUser?.stripe_customer_id as string | undefined;
+  const trialAlreadyUsed = dbUser?.trial_used === true;
 
   if (!customerId) {
     const customer = await stripe.customers.create({
@@ -47,7 +48,9 @@ async function createCheckoutSession() {
     cancel_url: `${baseUrl}/dashboard?tab=overview`,
     metadata: { supabase_user_id: user.id },
     subscription_data: {
-      trial_period_days: 3,
+      // Only grant the 3-day trial once per user — if they have used it before,
+      // they go straight to paid without any trial period.
+      ...(trialAlreadyUsed ? {} : { trial_period_days: 3 }),
       metadata: { supabase_user_id: user.id },
     },
   });
