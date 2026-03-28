@@ -32,12 +32,14 @@ export async function handleMetaCallback(
   const longData = await longRes.json();
   const accessToken: string = longData.access_token;
 
-  // Get ad account ID
+  // Get ad account ID + currency
   const adAccountRes = await fetch(
-    `https://graph.facebook.com/v19.0/me/adaccounts?access_token=${accessToken}`
+    `https://graph.facebook.com/v20.0/me/adaccounts?fields=id,currency&access_token=${accessToken}`
   );
   const adAccountData = await adAccountRes.json();
-  const accountId: string = adAccountData.data?.[0]?.id ?? "";
+  const firstAccount  = adAccountData.data?.[0] ?? {};
+  const accountId: string  = firstAccount.id       ?? "";
+  const currency: string   = firstAccount.currency ?? "USD";
 
   // If account changed, clear stale snapshots before backfill
   await clearSnapshotsIfAccountChanged(userId, "meta", accountId);
@@ -49,6 +51,7 @@ export async function handleMetaCallback(
       platform: "meta",
       access_token: accessToken,
       account_id: accountId,
+      currency,
       connected_at: new Date().toISOString(),
     },
     { onConflict: "user_id,platform" }

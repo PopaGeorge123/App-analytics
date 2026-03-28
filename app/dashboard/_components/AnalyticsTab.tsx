@@ -621,15 +621,33 @@ function MetaSection({ snapshots, granularity }: { snapshots: Snapshot[]; granul
   const ctr = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
   const cpc = totalClicks > 0 ? totalSpend / totalClicks : 0;
 
-  const tableRows = grouped.map((r) => ({
-    period: fmtPeriod(r.period, granularity),
-    cells: [
-      { label: "Spend",       value: `$${r.data.spend.toFixed(2)}` },
-      { label: "Impressions", value: fmt(r.data.impressions) },
-      { label: "Clicks",      value: fmt(r.data.clicks) },
-      { label: "Conversions", value: fmt(r.data.conversions) },
-    ],
-  }));
+  // Pick currency from the most recent snapshot that has one; fall back to USD
+  const currency: string =
+    ([...snapshots].reverse().find((s) => (s.data as Record<string, unknown>)?.currency) as { data: Record<string, unknown> } | undefined)
+      ?.data.currency as string ?? "USD";
+
+  // Format spend with the real account currency using the browser's Intl API
+  const fmtSpend = (amount: number) =>
+    new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+
+  const tableRows = grouped.map((r) => {
+    const rowCpc = r.data.clicks > 0 ? r.data.spend / r.data.clicks : 0;
+    return {
+      period: fmtPeriod(r.period, granularity),
+      cells: [
+        { label: "Spend",       value: fmtSpend(r.data.spend) },
+        { label: "Impressions", value: fmt(r.data.impressions) },
+        { label: "Clicks",      value: fmt(r.data.clicks) },
+        { label: "CPC",         value: fmtSpend(rowCpc) },
+        { label: "Conversions", value: fmt(r.data.conversions) },
+      ],
+    };
+  });
 
   return (
     <div className="space-y-5">
@@ -638,12 +656,17 @@ function MetaSection({ snapshots, granularity }: { snapshots: Snapshot[]; granul
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
         </div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Meta Ads</h3>
+        {currency !== "USD" && (
+          <span className="ml-auto font-mono text-[10px] text-[#8585aa] bg-[#363650] px-2 py-0.5 rounded-full">
+            {currency}
+          </span>
+        )}
       </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard label="Ad Spend"    value={`$${totalSpend.toFixed(2)}`}  values={spend}       color="#1877f2" />
-        <StatCard label="Impressions" value={fmt(totalImpressions)}         values={impressions} color="#1877f2" />
-        <StatCard label="Clicks"      value={fmt(totalClicks)}              sub={`${ctr.toFixed(2)}% CTR`} values={clicks} color="#00d4aa" />
-        <StatCard label="CPC"         value={`$${cpc.toFixed(2)}`}          sub={`${fmt(totalConversions)} conversions`} values={spend.length ? [cpc] : []} color="#f59e0b" />
+        <StatCard label="Ad Spend"    value={fmtSpend(totalSpend)}  values={spend}       color="#1877f2" />
+        <StatCard label="Impressions" value={fmt(totalImpressions)}  values={impressions} color="#1877f2" />
+        <StatCard label="Clicks"      value={fmt(totalClicks)}       sub={`${ctr.toFixed(2)}% CTR`} values={clicks} color="#00d4aa" />
+        <StatCard label="CPC"         value={fmtSpend(cpc)}          sub={`${fmt(totalConversions)} conversions`} values={spend.length ? [cpc] : []} color="#f59e0b" />
       </div>
       <DataTable rows={tableRows} />
     </div>
