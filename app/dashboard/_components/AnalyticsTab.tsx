@@ -476,7 +476,7 @@ function DataTable({ rows }: { rows: { period: string; cells: { label: string; v
 
 // ── Cross-platform Funnel Waterfall ──────────────────────────────────────
 
-export function FunnelSection({ snapshots, connectedPlatforms }: { snapshots: Snapshot[]; connectedPlatforms: string[] }) {
+export function FunnelSection({ snapshots, connectedPlatforms, metaCurrency = "USD" }: { snapshots: Snapshot[]; connectedPlatforms: string[]; metaCurrency?: string }) {
   const hasStripe = connectedPlatforms.includes("stripe");
   const hasGA4    = connectedPlatforms.includes("ga4");
   const hasMeta   = connectedPlatforms.includes("meta");
@@ -609,11 +609,12 @@ export function FunnelSection({ snapshots, connectedPlatforms }: { snapshots: Sn
       </div>
 
       {/* ROAS / efficiency summary */}
-      {hasMeta && hasStripe && adSpend > 0 && revenue > 0 && (
+      {hasMeta && hasStripe && adSpend > 0 && revenue > 0 && metaCurrency === "USD" && (
         <div className="flex items-center gap-6 rounded-xl border border-[#363650] bg-[#222235] px-4 py-3">
           <div>
             <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">ROAS</p>
-            <p className="font-mono text-base font-bold text-[#f8f8fc]">{(revenue / adSpend / 100).toFixed(2)}×</p>
+            {/* revenue is Stripe cents → /100 to get USD; adSpend is Meta full units in USD */}
+            <p className="font-mono text-base font-bold text-[#f8f8fc]">{((revenue / 100) / adSpend).toFixed(2)}×</p>
           </div>
           {adClicks > 0 && (
             <div>
@@ -633,6 +634,14 @@ export function FunnelSection({ snapshots, connectedPlatforms }: { snapshots: Sn
               <p className="font-mono text-base font-bold text-[#f8f8fc]">{((conversions / sessions) * 100).toFixed(2)}%</p>
             </div>
           )}
+        </div>
+      )}
+      {hasMeta && hasStripe && metaCurrency !== "USD" && (
+        <div className="flex items-center gap-3 rounded-xl border border-[#f59e0b]/30 bg-[#f59e0b]/8 px-4 py-3">
+          <span className="text-sm">⚠️</span>
+          <p className="font-mono text-[10px] text-[#f59e0b]">
+            ROAS and cross-platform efficiency metrics are hidden — Meta spend is in <strong>{metaCurrency}</strong> while Stripe revenue is in <strong>USD</strong>.
+          </p>
         </div>
       )}
 

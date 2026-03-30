@@ -827,8 +827,14 @@ export default function OverviewTab({
       },
       {
         label: "CAC",
+        // CAC = ad spend ÷ new customers. Only shown when both platforms are connected.
+        // When currencies differ, we still show the spend-per-customer figure but label it clearly.
         value: metaConn && stripeConn && cac7 !== null ? fmtMetaSpend(cac7, metaCurrency) : null,
-        sub: metaConn && stripeConn && cac7 !== null ? "ad spend ÷ new customers" : null,
+        sub: metaConn && stripeConn && cac7 !== null
+          ? metaCurrency !== "USD"
+            ? `${metaCurrency} spend ÷ new customers`
+            : "ad spend ÷ new customers"
+          : null,
         trend: null,
         icon: "cac",
       },

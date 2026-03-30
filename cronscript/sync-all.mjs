@@ -324,7 +324,11 @@ async function syncGA4(userId, integration) {
 
   const token  = await refreshGoogleToken(integration.refresh_token);
   const date   = yesterday();
-  const propId = integration.account_id;
+  // account_id stores the bare numeric property ID (e.g. "123456789")
+  // The GA4 Data API requires the "properties/XXXXXXXXX" prefix in the URL
+  const propId = integration.account_id.startsWith('properties/')
+    ? integration.account_id
+    : `properties/${integration.account_id}`;
 
   const res = await fetchRetry('GA4 runReport',
     `https://analyticsdata.googleapis.com/v1beta/${propId}:runReport`, {
@@ -363,7 +367,11 @@ async function backfillGA4(userId, integration, days = BACKFILL_DAYS.ga4) {
   const token     = await refreshGoogleToken(integration.refresh_token);
   const startDate = daysAgo(days);
   const endDate   = yesterday();
-  const propId    = integration.account_id;
+  // account_id stores the bare numeric property ID (e.g. "123456789")
+  // The GA4 Data API requires the "properties/XXXXXXXXX" prefix in the URL
+  const propId    = integration.account_id.startsWith('properties/')
+    ? integration.account_id
+    : `properties/${integration.account_id}`;
 
   const res = await fetchRetry('GA4 backfill runReport',
     `https://analyticsdata.googleapis.com/v1beta/${propId}:runReport`, {
