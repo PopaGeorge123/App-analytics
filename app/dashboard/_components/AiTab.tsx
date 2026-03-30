@@ -661,7 +661,7 @@ export default function AiTab({ isPremium }: AiTabProps) {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-[#bcbcd8]">Ask me anything about your business</p>
-                  <p className="text-xs text-[#8585aa] mt-1 max-w-xs">I have access to your last 30 days of revenue, traffic, ad spend, and website data</p>
+                  <p className="text-xs text-[#8585aa] mt-1 max-w-xs">I have access to your last 30 days of revenue, MRR, subscriptions, churn, traffic, ad spend, and website data</p>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap justify-center mt-1">
                   {[

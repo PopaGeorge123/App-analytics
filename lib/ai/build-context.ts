@@ -4,9 +4,30 @@ import { sum, avg, calcTrend } from "@/lib/utils/math";
 
 export interface StripeContext {
   connected: boolean;
-  current7: { revenue: number; refunds: number; newCustomers: number; txCount: number };
-  prev7: { revenue: number; refunds: number; newCustomers: number; txCount: number };
+  current7: {
+    revenue: number;
+    refunds: number;
+    newCustomers: number;
+    txCount: number;
+    mrr: number;
+    activeSubscriptions: number;
+    trialingSubscriptions: number;
+    churnedToday: number;
+    arpu: number;
+  };
+  prev7: {
+    revenue: number;
+    refunds: number;
+    newCustomers: number;
+    txCount: number;
+    mrr: number;
+    activeSubscriptions: number;
+    trialingSubscriptions: number;
+    churnedToday: number;
+    arpu: number;
+  };
   revenueTrend: number;
+  mrrTrend: number;
 }
 
 export interface GA4Context {
@@ -81,12 +102,23 @@ export async function buildContext(userId: string): Promise<DigestContext> {
     refunds: sum(pick(stripeCurRows, "refunds")),
     newCustomers: sum(pick(stripeCurRows, "newCustomers")),
     txCount: sum(pick(stripeCurRows, "txCount")),
+    // Subscription / SaaS metrics — use latest day's value (point-in-time, not sum)
+    mrr: Math.max(...pick(stripeCurRows, "mrr").filter(v => v > 0), 0),
+    activeSubscriptions: Math.max(...pick(stripeCurRows, "activeSubscriptions").filter(v => v > 0), 0),
+    trialingSubscriptions: Math.max(...pick(stripeCurRows, "trialingSubscriptions").filter(v => v > 0), 0),
+    churnedToday: sum(pick(stripeCurRows, "churnedToday")),
+    arpu: Math.max(...pick(stripeCurRows, "arpu").filter(v => v > 0), 0),
   };
   const stripePrev7 = {
     revenue: sum(pick(stripePrevRows, "revenue")),
     refunds: sum(pick(stripePrevRows, "refunds")),
     newCustomers: sum(pick(stripePrevRows, "newCustomers")),
     txCount: sum(pick(stripePrevRows, "txCount")),
+    mrr: Math.max(...pick(stripePrevRows, "mrr").filter(v => v > 0), 0),
+    activeSubscriptions: Math.max(...pick(stripePrevRows, "activeSubscriptions").filter(v => v > 0), 0),
+    trialingSubscriptions: Math.max(...pick(stripePrevRows, "trialingSubscriptions").filter(v => v > 0), 0),
+    churnedToday: sum(pick(stripePrevRows, "churnedToday")),
+    arpu: Math.max(...pick(stripePrevRows, "arpu").filter(v => v > 0), 0),
   };
 
   // ── GA4 ─────────────────────────────────────────────────────────────────
@@ -154,6 +186,7 @@ export async function buildContext(userId: string): Promise<DigestContext> {
       current7: stripeCurrent7,
       prev7: stripePrev7,
       revenueTrend: calcTrend(stripeCurrent7.revenue, stripePrev7.revenue),
+      mrrTrend: calcTrend(stripeCurrent7.mrr, stripePrev7.mrr),
     },
     ga4: {
       connected: ga4Connected,

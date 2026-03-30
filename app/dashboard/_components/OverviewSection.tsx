@@ -726,6 +726,11 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
     let totalSpend = 0, prevSpend = 0;
     let totalConversions = 0, prevConversions = 0;
 
+    // Point-in-time subscription metrics — latest non-zero value wins
+    let currentMRR = 0, prevMRR = 0;
+    let currentActiveSubs = 0;
+    let totalChurned = 0;
+
     const half = Math.floor(filtered.length / 2);
     filtered.forEach((s, _i) => {
       const idx = filtered.indexOf(s);
@@ -735,6 +740,16 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
         const r = getField(s, "revenue");
         totalRevenue += r;
         if (!isSecondHalf) prevRevenue += r;
+
+        const mrr = getField(s, "mrr");
+        if (mrr > 0) {
+          if (!isSecondHalf) prevMRR = mrr;
+          currentMRR = mrr; // keep overwriting — last row is most recent
+        }
+        const activeSubs = getField(s, "activeSubscriptions");
+        if (activeSubs > 0) currentActiveSubs = activeSubs;
+
+        totalChurned += getField(s, "churnedToday");
       }
       if (s.provider === "ga4") {
         const sess = getField(s, "sessions");
@@ -757,6 +772,7 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
     const profit = sameCurr ? revenueUSD - totalSpend : null;
     const roas   = sameCurr && totalSpend > 0 ? revenueUSD / totalSpend : 0;
     const convRate = totalSessions > 0 ? (totalConversions / totalSessions) * 100 : 0;
+    const churnRate = currentActiveSubs > 0 ? (totalChurned / currentActiveSubs) * 100 : 0;
 
     return [
       connectedPlatforms.includes("stripe") && {
@@ -765,6 +781,15 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
         icon: "",
         color: COLORS.revenue,
         change: pctChange(revenueUSD, prevRevenueUSD),
+      },
+      // MRR card — only when subscription data is present
+      connectedPlatforms.includes("stripe") && currentMRR > 0 && {
+        label: "MRR",
+        value: `$${(currentMRR / 100).toFixed(2)}`,
+        sub: churnRate > 0 ? `${churnRate.toFixed(1)}% churn` : currentActiveSubs > 0 ? `${currentActiveSubs} subscribers` : undefined,
+        icon: "",
+        color: "#a78bfa",
+        change: pctChange(currentMRR / 100, prevMRR / 100),
       },
       connectedPlatforms.includes("ga4") && {
         label: "Website Sessions",

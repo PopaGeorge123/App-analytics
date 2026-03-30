@@ -228,22 +228,20 @@ const SB = {
 // ① STRIPE  (Stripe REST API — no SDK)
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Fetch + upsert one day of Stripe PaymentIntents */
+/** Fetch + upsert one day of Stripe data (payments + subscriptions + customers) */
 async function syncStripeDay(userId, accessToken, date) {
   const gte = Math.floor(new Date(`${date}T00:00:00Z`).getTime() / 1000);
   const lte = gte + 86399;
+  const stripeHeaders = { Authorization: `Bearer ${accessToken}`, 'Stripe-Version': '2024-12-18.acacia' };
 
+  // ── 1. PaymentIntents for this day ──────────────────────────────────────
   const intents = [];
   let startingAfter = null;
   while (true) {
     const p = new URLSearchParams({ 'created[gte]': gte, 'created[lte]': lte, limit: '100' });
     if (startingAfter) p.set('starting_after', startingAfter);
-
-    const res = await fetchRetry('Stripe paymentIntents', `https://api.stripe.com/v1/payment_intents?${p}`, {
-      headers: { Authorization: `Bearer ${accessToken}`, 'Stripe-Version': '2024-12-18.acacia' },
-    });
+    const res = await fetchRetry('Stripe paymentIntents', `https://api.stripe.com/v1/payment_intents?${p}`, { headers: stripeHeaders });
     if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(`Stripe: ${e?.error?.message ?? res.status}`); }
-
     const page = await res.json();
     intents.push(...page.data);
     if (!page.has_more) break;
@@ -255,11 +253,106 @@ async function syncStripeDay(userId, accessToken, date) {
   const txCount      = succeeded.length;
   const newCustomers = new Set(succeeded.filter(pi => pi.customer).map(pi => String(pi.customer))).size;
 
+  // ── 2. Refunds for this day ──────────────────────────────────────────────
+  let refunds = 0;
+  try {
+    const refundItems = [];
+    let ra = null;
+    while (true) {
+      const p = new URLSearchParams({ 'created[gte]': gte, 'created[lte]': lte, limit: '100' });
+      if (ra) p.set('starting_after', ra);
+      const res = await fetchRetry('Stripe refunds', `https://api.stripe.com/v1/refunds?${p}`, { headers: stripeHeaders });
+      if (!res.ok) break;
+      const page = await res.json();
+      refundItems.push(...page.data);
+      if (!page.has_more) break;
+      ra = page.data.at(-1).id;
+    }
+    refunds = refundItems.reduce((s, r) => s + (r.amount ?? 0), 0);
+  } catch (_) { /* refunds optional */ }
+
+  // ── 3. Active subscriptions snapshot (current state) ────────────────────
+  // We fetch all active + trialing subscriptions to compute MRR.
+  let activeSubscriptions = 0;
+  let mrr = 0; // in cents
+  let trialingSubscriptions = 0;
+  try {
+    for (const status of ['active', 'trialing']) {
+      let sa = null;
+      while (true) {
+        const p = new URLSearchParams({ status, limit: '100', expand: 'data.items.data.price' });
+        if (sa) p.set('starting_after', sa);
+        const res = await fetchRetry(`Stripe subscriptions(${status})`, `https://api.stripe.com/v1/subscriptions?${p}`, { headers: stripeHeaders });
+        if (!res.ok) break;
+        const page = await res.json();
+        for (const sub of page.data) {
+          if (status === 'active') activeSubscriptions++;
+          if (status === 'trialing') trialingSubscriptions++;
+          // MRR: normalise each item's price to monthly
+          for (const item of (sub.items?.data ?? [])) {
+            const price = item.price ?? {};
+            const unitAmount = price.unit_amount ?? 0;
+            const qty = item.quantity ?? 1;
+            const interval = price.recurring?.interval ?? 'month';
+            const intervalCount = price.recurring?.interval_count ?? 1;
+            // Convert to monthly equivalent
+            let monthlyAmount = 0;
+            if (interval === 'month')  monthlyAmount = (unitAmount * qty) / intervalCount;
+            else if (interval === 'year')  monthlyAmount = (unitAmount * qty) / (intervalCount * 12);
+            else if (interval === 'week')  monthlyAmount = (unitAmount * qty * 52) / (intervalCount * 12);
+            else if (interval === 'day')   monthlyAmount = (unitAmount * qty * 365) / (intervalCount * 12);
+            mrr += Math.round(monthlyAmount);
+          }
+        }
+        if (!page.has_more) break;
+        sa = page.data.at(-1).id;
+      }
+    }
+  } catch (_) { /* subscriptions optional */ }
+
+  // ── 4. Subscriptions canceled today (churn) ─────────────────────────────
+  let churnedToday = 0;
+  try {
+    let sa = null;
+    while (true) {
+      const p = new URLSearchParams({ status: 'canceled', 'canceled_at[gte]': gte, 'canceled_at[lte]': lte, limit: '100' });
+      if (sa) p.set('starting_after', sa);
+      const res = await fetchRetry('Stripe canceled subs', `https://api.stripe.com/v1/subscriptions?${p}`, { headers: stripeHeaders });
+      if (!res.ok) break;
+      const page = await res.json();
+      churnedToday += page.data.length;
+      if (!page.has_more) break;
+      sa = page.data.at(-1).id;
+    }
+  } catch (_) { /* churn optional */ }
+
+  // ── 5. Total customer count (current state) ──────────────────────────────
+  let totalCustomers = 0;
+  try {
+    const res = await fetchRetry('Stripe customers count', `https://api.stripe.com/v1/customers?limit=1`, { headers: stripeHeaders });
+    if (res.ok) {
+      const page = await res.json();
+      // Stripe doesn't give a total count directly, but we can use list metadata
+      // total_count is not available in list — we store what we have
+      totalCustomers = page.data?.length ?? 0; // fallback: store page count, backfill will aggregate
+    }
+  } catch (_) { /* optional */ }
+
+  // ARPU = MRR / activeSubscriptions (in cents)
+  const arpu = activeSubscriptions > 0 ? Math.round(mrr / activeSubscriptions) : 0;
+
   await SB.upsert('daily_snapshots',
-    { user_id: userId, provider: 'stripe', date, data: { revenue, refunds: 0, newCustomers, txCount } },
+    {
+      user_id: userId, provider: 'stripe', date,
+      data: {
+        revenue, refunds, newCustomers, txCount,
+        mrr, activeSubscriptions, trialingSubscriptions,
+        churnedToday, arpu,
+      }
+    },
     'user_id,provider,date');
 
-  return { revenue, txCount, newCustomers };
+  return { revenue, txCount, newCustomers, mrr, activeSubscriptions, churnedToday };
 }
 
 /** Daily sync — yesterday only */
@@ -290,7 +383,7 @@ async function backfillStripe(userId, accessToken, days = BACKFILL_DAYS.stripe) 
       const res  = results[j];
       const date = daysAgo(offsets[j]);
       if (res.status === 'fulfilled') {
-        if (res.value.txCount > 0) logOk(`  stripe ${date} — $${(res.value.revenue / 100).toFixed(2)} | ${res.value.txCount} tx`);
+        if (res.value.txCount > 0 || res.value.mrr > 0) logOk(`  stripe ${date} — $${(res.value.revenue / 100).toFixed(2)} | ${res.value.txCount} tx | MRR $${(res.value.mrr / 100).toFixed(0)} | ${res.value.activeSubscriptions} subs`);
         ok++;
       } else {
         logFail(`  stripe ${date} — ${res.reason?.message ?? res.reason}`);

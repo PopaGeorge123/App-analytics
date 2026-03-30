@@ -51,12 +51,20 @@ export function buildUserPrompt(context: DigestContext): string {
 
   const stripeSection = context.stripe.connected
     ? `--- STRIPE (Revenue) ---
-Revenue this week:    $${fmt(context.stripe.current7.revenue / 100)} (in cents: ${fmt(context.stripe.current7.revenue)})
-Revenue last week:    $${fmt(context.stripe.prev7.revenue / 100)}
-Revenue trend:        ${trend(context.stripe.revenueTrend)}
-New customers:        ${context.stripe.current7.newCustomers}
-Refunds:              $${fmt(context.stripe.current7.refunds / 100)}
-Transactions:         ${context.stripe.current7.txCount}`
+Revenue this week:         $${fmt(context.stripe.current7.revenue / 100)} (in cents: ${fmt(context.stripe.current7.revenue)})
+Revenue last week:         $${fmt(context.stripe.prev7.revenue / 100)}
+Revenue trend:             ${trend(context.stripe.revenueTrend)}
+MRR (Monthly Recurring):   $${fmt(context.stripe.current7.mrr / 100)}
+MRR last week:             $${fmt(context.stripe.prev7.mrr / 100)}
+MRR trend:                 ${trend(context.stripe.mrrTrend)}
+Active subscriptions:      ${fmt(context.stripe.current7.activeSubscriptions)}
+Trialing subscriptions:    ${fmt(context.stripe.current7.trialingSubscriptions)}
+Churned this week:         ${context.stripe.current7.churnedToday} cancellations
+ARPU (avg revenue/sub):    $${fmt(context.stripe.current7.arpu / 100)}/month
+New customers this week:   ${context.stripe.current7.newCustomers}
+New customers last week:   ${context.stripe.prev7.newCustomers}
+Refunds this week:         $${fmt(context.stripe.current7.refunds / 100)}
+Transactions this week:    ${context.stripe.current7.txCount}`
     : "--- STRIPE --- Not connected";
 
   const ga4Section = context.ga4.connected

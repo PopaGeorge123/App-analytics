@@ -45,11 +45,32 @@ async function buildDataContext(userId: string, db: ReturnType<typeof createServ
     .order("impact_score", { ascending: false })
     .limit(10);
 
+  // ── Helper: latest point-in-time value for a field (e.g. MRR, active subs) ──
+  function latest(
+    snaps: Array<{ provider: string; date: string; data: unknown }> | null,
+    provider: string,
+    field: string
+  ): number {
+    const rows = (snaps ?? []).filter(
+      (s) => s.provider === provider && (s.data as Record<string, number>)[field] != null
+    );
+    if (rows.length === 0) return 0;
+    // rows are ordered desc (most recent first)
+    return (rows[0].data as Record<string, number>)[field] ?? 0;
+  }
+
   const revenue30 = sum(snapshots, "stripe", "revenue");
+  const refunds30 = sum(snapshots, "stripe", "refunds");
   const sessions30 = sum(snapshots, "ga4", "sessions");
   const spend30 = sum(snapshots, "meta", "spend");
   const conversions30 = sum(snapshots, "ga4", "conversions");
   const newCustomers30 = sum(snapshots, "stripe", "newCustomers");
+  const churned30 = sum(snapshots, "stripe", "churnedToday");
+  // Point-in-time (latest snapshot value)
+  const currentMRR = latest(snapshots, "stripe", "mrr");
+  const activeSubscriptions = latest(snapshots, "stripe", "activeSubscriptions");
+  const trialingSubscriptions = latest(snapshots, "stripe", "trialingSubscriptions");
+  const arpu = latest(snapshots, "stripe", "arpu");
 
   const cutoff7 = new Date();
   cutoff7.setDate(cutoff7.getDate() - 7);
@@ -59,6 +80,16 @@ async function buildDataContext(userId: string, db: ReturnType<typeof createServ
   const revenue7 = sum(snaps7, "stripe", "revenue");
   const sessions7 = sum(snaps7, "ga4", "sessions");
   const spend7 = sum(snaps7, "meta", "spend");
+  const newCustomers7 = sum(snaps7, "stripe", "newCustomers");
+  const churned7 = sum(snaps7, "stripe", "churnedToday");
+  // MRR 30 days ago for comparison
+  const cutoff30 = new Date();
+  cutoff30.setDate(cutoff30.getDate() - 30);
+  const cutoffStr30 = cutoff30.toISOString().slice(0, 10);
+  const snaps30End = (snapshots ?? []).filter((s) => s.date <= cutoffStr30 && s.provider === "stripe" && (s.data as Record<string, number>).mrr != null);
+  const mrrPrev = snaps30End.length > 0 ? (snaps30End[0].data as Record<string, number>).mrr ?? 0 : 0;
+  const mrrGrowth = mrrPrev > 0 ? (((currentMRR - mrrPrev) / mrrPrev) * 100).toFixed(1) : "N/A";
+  const churnRate = activeSubscriptions > 0 ? ((churned30 / activeSubscriptions) * 100).toFixed(2) : "N/A";
 
   // Meta currency — stored in snapshot data.currency
   const metaCurrency: string =
@@ -74,13 +105,26 @@ async function buildDataContext(userId: string, db: ReturnType<typeof createServ
 
   return `TODAY: ${today}
 
-=== BUSINESS METRICS (last 30 days) ===
-Revenue: $${(revenue30 / 100).toFixed(2)} | Last 7d: $${(revenue7 / 100).toFixed(2)}
-Sessions: ${sessions30} | Last 7d: ${sessions7}
-Ad Spend (${metaCurrency}): ${fmtMeta(spend30)} | Last 7d: ${fmtMeta(spend7)}
-Conversions: ${conversions30}
-New Customers: ${newCustomers30}
-CAC: ${newCustomers30 > 0 ? `${fmtMeta(spend30 / newCustomers30)}` : "N/A"}
+=== STRIPE — REVENUE & SUBSCRIPTIONS ===
+Revenue (30d):              $${(revenue30 / 100).toFixed(2)} | Last 7d: $${(revenue7 / 100).toFixed(2)}
+Refunds (30d):              $${(refunds30 / 100).toFixed(2)}
+Transactions (30d):         ${sum(snapshots, "stripe", "txCount")}
+New Customers (30d):        ${newCustomers30} | Last 7d: ${newCustomers7}
+MRR (current):              $${(currentMRR / 100).toFixed(2)}/month
+MRR growth (vs 30d ago):    ${mrrGrowth}%
+Active Subscriptions:       ${activeSubscriptions}
+Trialing Subscriptions:     ${trialingSubscriptions}
+ARPU:                       $${(arpu / 100).toFixed(2)}/month
+Cancellations (30d):        ${churned30} | Last 7d: ${churned7}
+Monthly Churn Rate:         ${churnRate}%
+CAC (30d):                  ${newCustomers30 > 0 ? `${fmtMeta(spend30 / newCustomers30)}` : "N/A"}
+
+=== GOOGLE ANALYTICS — TRAFFIC ===
+Sessions (30d): ${sessions30} | Last 7d: ${sessions7}
+Conversions (30d): ${conversions30}
+
+=== META ADS — ADVERTISING ===
+Ad Spend (${metaCurrency}, 30d): ${fmtMeta(spend30)} | Last 7d: ${fmtMeta(spend7)}
 
 === WEBSITE ===
 URL: ${website?.url ?? "Not set"}

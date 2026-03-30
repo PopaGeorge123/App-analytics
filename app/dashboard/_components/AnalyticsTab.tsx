@@ -108,14 +108,21 @@ function fmtPeriod(key: string, granularity: Granularity): string {
   return "W " + d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 }
 
-/** Group snapshots by period, summing sum-fields and averaging avg-fields */
+/** Group snapshots by period, summing sum-fields, averaging avg-fields,
+ *  and taking the last (most recent) value for latestFields (point-in-time metrics
+ *  like MRR, active subscriptions, ARPU that should NOT be summed across days). */
 function groupSnapshots(
   snapshots: Snapshot[],
   granularity: Granularity,
   sumFields: string[],
-  avgFields: string[]
+  avgFields: string[],
+  latestFields: string[] = []
 ): { period: string; data: Record<string, number> }[] {
-  const grouped: Record<string, { sums: Record<string, number>; avgs: Record<string, number[]> }> = {};
+  const grouped: Record<string, {
+    sums: Record<string, number>;
+    avgs: Record<string, number[]>;
+    latests: Record<string, number>;
+  }> = {};
 
   for (const snap of snapshots) {
     const pk = periodKey(snap.date, granularity);
@@ -123,18 +130,25 @@ function groupSnapshots(
       grouped[pk] = {
         sums: Object.fromEntries(sumFields.map((f) => [f, 0])),
         avgs: Object.fromEntries(avgFields.map((f) => [f, []])),
+        latests: Object.fromEntries(latestFields.map((f) => [f, 0])),
       };
     }
     for (const f of sumFields) grouped[pk].sums[f] += getField(snap, f);
     for (const f of avgFields) grouped[pk].avgs[f].push(getField(snap, f));
+    // Latest: overwrite each time — snapshots are sorted asc so last write wins
+    for (const f of latestFields) {
+      const v = getField(snap, f);
+      if (v > 0) grouped[pk].latests[f] = v;
+    }
   }
 
   return Object.entries(grouped)
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([period, { sums, avgs }]) => ({
+    .map(([period, { sums, avgs, latests }]) => ({
       period,
       data: {
         ...sums,
+        ...latests,
         ...Object.fromEntries(
           avgFields.map((f) => [f, avgs[f].length ? avgs[f].reduce((a, b) => a + b, 0) / avgs[f].length : 0])
         ),
@@ -655,18 +669,33 @@ export function FunnelSection({ snapshots, connectedPlatforms, metaCurrency = "U
 // ── Platform sections ─────────────────────────────────────────────────────
 
 function StripeSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
-  const grouped = groupSnapshots(snapshots, granularity,
-    ["revenue", "txCount", "refunds", "newCustomers"], []);
+  const grouped = groupSnapshots(
+    snapshots, granularity,
+    ["revenue", "txCount", "refunds", "newCustomers", "churnedToday"],
+    [],
+    ["mrr", "activeSubscriptions", "trialingSubscriptions", "arpu"]
+  );
 
-  const revenue      = grouped.map((r) => r.data.revenue);
-  const txCount      = grouped.map((r) => r.data.txCount);
-  const newCustomers = grouped.map((r) => r.data.newCustomers);
+  const revenue             = grouped.map((r) => r.data.revenue);
+  const txCount             = grouped.map((r) => r.data.txCount);
+  const newCustomers        = grouped.map((r) => r.data.newCustomers);
+  const mrrSeries           = grouped.map((r) => r.data.mrr);
 
-  const totalRevenue = revenue.reduce((a, b) => a + b, 0);
-  const totalTx      = txCount.reduce((a, b) => a + b, 0);
-  const totalRefunds = grouped.reduce((a, r) => a + r.data.refunds, 0);
-  const totalNew     = newCustomers.reduce((a, b) => a + b, 0);
-  const avgOrderVal  = totalTx > 0 ? totalRevenue / totalTx : 0;
+  const totalRevenue  = revenue.reduce((a, b) => a + b, 0);
+  const totalTx       = txCount.reduce((a, b) => a + b, 0);
+  const totalRefunds  = grouped.reduce((a, r) => a + r.data.refunds, 0);
+  const totalNew      = newCustomers.reduce((a, b) => a + b, 0);
+  const totalChurned  = grouped.reduce((a, r) => a + r.data.churnedToday, 0);
+  const avgOrderVal   = totalTx > 0 ? totalRevenue / totalTx : 0;
+
+  // Point-in-time subscription metrics — use latest non-zero value
+  const currentMRR            = [...mrrSeries].reverse().find((v) => v > 0) ?? 0;
+  const currentActiveSubs     = [...grouped].reverse().map((r) => r.data.activeSubscriptions).find((v) => v > 0) ?? 0;
+  const currentTrialingSubs   = [...grouped].reverse().map((r) => r.data.trialingSubscriptions).find((v) => v > 0) ?? 0;
+  const currentARPU           = [...grouped].reverse().map((r) => r.data.arpu).find((v) => v > 0) ?? 0;
+  const churnRate             = currentActiveSubs > 0 ? ((totalChurned / currentActiveSubs) * 100) : 0;
+
+  const hasSubscriptions = currentActiveSubs > 0 || currentMRR > 0;
 
   const tableRows = grouped.map((r) => ({
     period: fmtPeriod(r.period, granularity),
@@ -675,23 +704,75 @@ function StripeSection({ snapshots, granularity }: { snapshots: Snapshot[]; gran
       { label: "Transactions",  value: fmt(r.data.txCount) },
       { label: "New Customers", value: fmt(r.data.newCustomers) },
       { label: "Refunds",       value: fmt(r.data.refunds, "currency") },
+      ...(hasSubscriptions ? [
+        { label: "MRR",         value: fmt(r.data.mrr, "currency") },
+        { label: "Active Subs", value: fmt(r.data.activeSubscriptions) },
+        { label: "Churned",     value: fmt(r.data.churnedToday) },
+      ] : []),
     ],
   }));
 
   return (
     <div className="space-y-5">
+      {/* ── Header ── */}
       <div className="flex items-center gap-3 rounded-xl border border-[#635bff]/15 bg-[#635bff]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#635bff]/15 text-[#635bff]">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.591-7.305z" /></svg>
         </div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Stripe Revenue</h3>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">
+          Stripe Revenue{hasSubscriptions ? " & Subscriptions" : ""}
+        </h3>
       </div>
+
+      {/* ── Revenue row ── */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Total Revenue"   value={fmt(totalRevenue, "currency")} values={revenue}      color="#635bff" />
         <StatCard label="Transactions"    value={fmt(totalTx)}                  values={txCount}      color="#635bff" />
         <StatCard label="New Customers"   value={fmt(totalNew)}                 values={newCustomers} color="#00d4aa" />
         <StatCard label="Avg Order Val"   value={fmt(avgOrderVal, "currency")}  sub={`${fmt(totalRefunds, "currency")} refunds`} values={revenue.length ? [avgOrderVal] : []} color="#f59e0b" />
       </div>
+
+      {/* ── Subscription health row (only when subscription data exists) ── */}
+      {hasSubscriptions && (
+        <>
+          <div className="flex items-center gap-2 pt-1">
+            <div className="h-px flex-1 bg-[#363650]" />
+            <span className="font-mono text-[10px] text-[#8585aa] uppercase tracking-widest">Subscription Health</span>
+            <div className="h-px flex-1 bg-[#363650]" />
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <StatCard
+              label="MRR"
+              value={fmt(currentMRR, "currency")}
+              sub="monthly recurring"
+              values={mrrSeries}
+              color="#a78bfa"
+            />
+            <StatCard
+              label="Active Subs"
+              value={fmt(currentActiveSubs)}
+              sub={currentTrialingSubs > 0 ? `${currentTrialingSubs} trialing` : undefined}
+              values={grouped.map((r) => r.data.activeSubscriptions)}
+              color="#00d4aa"
+            />
+            <StatCard
+              label="ARPU"
+              value={fmt(currentARPU, "currency")}
+              sub="avg per subscriber/mo"
+              values={grouped.map((r) => r.data.arpu)}
+              color="#635bff"
+            />
+            <StatCard
+              label="Churn"
+              value={fmt(totalChurned)}
+              sub={churnRate > 0 ? `${churnRate.toFixed(1)}% rate` : "cancellations"}
+              values={grouped.map((r) => r.data.churnedToday)}
+              color={churnRate > 5 ? "#f87171" : "#f59e0b"}
+            />
+          </div>
+        </>
+      )}
+
       <DataTable rows={tableRows} />
     </div>
   );

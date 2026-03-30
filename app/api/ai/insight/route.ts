@@ -76,11 +76,24 @@ export async function POST() {
       }, 0);
   }
 
+  function latest(snaps: typeof snapshots, provider: string, field: string): number {
+    const rows = (snaps ?? []).filter(
+      (s) => s.provider === provider && (s.data as Record<string, number>)[field] != null
+    );
+    return rows.length > 0 ? (rows[0].data as Record<string, number>)[field] ?? 0 : 0;
+  }
+
   const revenue30 = sum(snapshots, "stripe", "revenue");
+  const refunds30 = sum(snapshots, "stripe", "refunds");
   const sessions30 = sum(snapshots, "ga4", "sessions");
   const spend30 = sum(snapshots, "meta", "spend");
   const conversions30 = sum(snapshots, "ga4", "conversions");
   const newCustomers30 = sum(snapshots, "stripe", "newCustomers");
+  const churned30 = sum(snapshots, "stripe", "churnedToday");
+  const currentMRR = latest(snapshots, "stripe", "mrr");
+  const activeSubscriptions = latest(snapshots, "stripe", "activeSubscriptions");
+  const trialingSubscriptions = latest(snapshots, "stripe", "trialingSubscriptions");
+  const arpu = latest(snapshots, "stripe", "arpu");
 
   // Last 7 days for comparison
   const cutoff7 = new Date();
@@ -91,6 +104,9 @@ export async function POST() {
   const revenue7 = sum(snaps7, "stripe", "revenue");
   const sessions7 = sum(snaps7, "ga4", "sessions");
   const spend7 = sum(snaps7, "meta", "spend");
+  const newCustomers7 = sum(snaps7, "stripe", "newCustomers");
+  const churned7 = sum(snaps7, "stripe", "churnedToday");
+  const churnRate = activeSubscriptions > 0 ? ((churned30 / activeSubscriptions) * 100).toFixed(2) : "N/A";
 
   const pendingTasks = (tasks ?? []).filter((t) => !t.completed);
   const completedTasks = (tasks ?? []).filter((t) => t.completed);
@@ -98,13 +114,24 @@ export async function POST() {
   const contextBlock = `
 TODAY: ${today}
 
-=== BUSINESS METRICS (last 30 days) ===
-Revenue: $${(revenue30 / 100).toFixed(2)} | Last 7d: $${(revenue7 / 100).toFixed(2)}
-Sessions: ${sessions30} | Last 7d: ${sessions7}
-Ad Spend: $${(spend30 / 100).toFixed(2)} | Last 7d: $${(spend7 / 100).toFixed(2)}
-Conversions: ${conversions30}
-New Customers: ${newCustomers30}
+=== STRIPE — REVENUE & SUBSCRIPTIONS ===
+Revenue (30d): $${(revenue30 / 100).toFixed(2)} | Last 7d: $${(revenue7 / 100).toFixed(2)}
+Refunds (30d): $${(refunds30 / 100).toFixed(2)}
+New Customers (30d): ${newCustomers30} | Last 7d: ${newCustomers7}
+MRR (current): $${(currentMRR / 100).toFixed(2)}/month
+Active Subscriptions: ${activeSubscriptions}
+Trialing Subscriptions: ${trialingSubscriptions}
+ARPU: $${(arpu / 100).toFixed(2)}/month
+Cancellations (30d): ${churned30} | Last 7d: ${churned7}
+Monthly Churn Rate: ${churnRate}%
 CAC: ${newCustomers30 > 0 ? `$${((spend30 / 100) / newCustomers30).toFixed(2)}` : "N/A"}
+
+=== GOOGLE ANALYTICS — TRAFFIC ===
+Sessions (30d): ${sessions30} | Last 7d: ${sessions7}
+Conversions (30d): ${conversions30}
+
+=== META ADS — ADVERTISING ===
+Ad Spend (30d): $${(spend30 / 100).toFixed(2)} | Last 7d: $${(spend7 / 100).toFixed(2)}
 
 === WEBSITE ===
 URL: ${website?.url ?? "Not set"}
