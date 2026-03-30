@@ -314,19 +314,64 @@ function DateRangePicker({
   );
 }
 
+// ── CSV export ────────────────────────────────────────────────────────────
+
+function exportCSV(snapshots: Snapshot[], platform: string, timeRangeLabel: string) {
+  const rows = snapshots
+    .filter((s) => platform === "overview" || s.provider === platform)
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  if (rows.length === 0) return;
+
+  // Collect all unique field names from data objects
+  const fieldSet = new Set<string>();
+  for (const s of rows) {
+    for (const key of Object.keys(s.data as Record<string, unknown>)) {
+      fieldSet.add(key);
+    }
+  }
+  const fields = Array.from(fieldSet);
+
+  const headerRow = ["date", "provider", ...fields].join(",");
+  const dataRows = rows.map((s) => {
+    const d = s.data as Record<string, unknown>;
+    return [
+      s.date,
+      s.provider,
+      ...fields.map((f) => {
+        const v = d[f] ?? "";
+        return typeof v === "string" && v.includes(",") ? `"${v}"` : String(v);
+      }),
+    ].join(",");
+  });
+
+  const csv = [headerRow, ...dataRows].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `fold-${platform}-${timeRangeLabel}-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 function AnalyticsControls({
   timeRange, setTimeRange,
   granularity, setGranularity,
   customRange, setCustomRange,
+  snapshots, activeSection,
 }: {
   timeRange: TimeRange; setTimeRange: (t: TimeRange) => void;
   granularity: Granularity; setGranularity: (g: Granularity) => void;
   customRange: CustomRange | null; setCustomRange: (r: CustomRange | null) => void;
+  snapshots: Snapshot[]; activeSection: PlatformTab;
 }) {
   const availableGrans = GRANULARITY_OPTIONS[timeRange];
 
   return (
-    <div className="flex flex-wrap items-center gap-3 mb-6">
+    <div className="flex flex-wrap items-center gap-2 mb-6">
       {/* Time range pills */}
       <div className="flex items-center gap-1 rounded-xl border border-[#363650] bg-[#1c1c2a] p-1">
         {TIME_RANGES.map((tr) => (
@@ -339,7 +384,7 @@ function AnalyticsControls({
               const avail = GRANULARITY_OPTIONS[tr.id];
               if (!avail.includes(granularity)) setGranularity(avail[0]);
             }}
-            className={`rounded-lg px-3 py-1.5 font-mono text-[11px] font-semibold transition-all ${
+            className={`rounded-lg px-2.5 py-1.5 font-mono text-[11px] font-semibold transition-all ${
               !customRange && timeRange === tr.id
                 ? "bg-[#363650] text-[#f8f8fc]"
                 : "text-[#8585aa] hover:text-[#bcbcd8]"
@@ -350,8 +395,8 @@ function AnalyticsControls({
         ))}
       </div>
 
-      {/* Divider */}
-      <div className="h-5 w-px bg-[#363650]" />
+      {/* Divider — hidden on mobile wrap */}
+      <div className="hidden sm:block h-5 w-px bg-[#363650]" />
 
       {/* View by pills */}
       <div className="flex items-center gap-2">
@@ -361,7 +406,7 @@ function AnalyticsControls({
             <button
               key={g}
               onClick={() => setGranularity(g)}
-              className={`rounded-lg px-3 py-1.5 font-mono text-[11px] font-semibold transition-all ${
+              className={`rounded-lg px-2.5 py-1.5 font-mono text-[11px] font-semibold transition-all ${
                 granularity === g
                   ? "bg-[#00d4aa]/15 text-[#00d4aa]"
                   : "text-[#8585aa] hover:text-[#bcbcd8]"
@@ -373,8 +418,8 @@ function AnalyticsControls({
         </div>
       </div>
 
-      {/* Divider */}
-      <div className="h-5 w-px bg-[#363650]" />
+      {/* Divider — hidden on mobile wrap */}
+      <div className="hidden sm:block h-5 w-px bg-[#363650]" />
 
       {/* Custom date range picker */}
       <DateRangePicker
@@ -382,6 +427,18 @@ function AnalyticsControls({
         setCustomRange={setCustomRange}
         onClear={() => {}}
       />
+
+      {/* Export CSV */}
+      <button
+        onClick={() => exportCSV(snapshots, activeSection, customRange ? `${customRange.from}_${customRange.to}` : timeRange)}
+        className="sm:ml-auto flex items-center gap-1.5 rounded-xl border border-[#363650] px-3 py-1.5 font-mono text-[11px] text-[#8585aa] hover:text-[#00d4aa] hover:border-[#00d4aa]/40 transition-all"
+        title="Export visible data as CSV"
+      >
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M6 1v7M3.5 5.5 6 8l2.5-2.5M2 10.5h8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+        Export CSV
+      </button>
     </div>
   );
 }
@@ -412,6 +469,175 @@ function DataTable({ rows }: { rows: { period: string; cells: { label: string; v
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+// ── Cross-platform Funnel Waterfall ──────────────────────────────────────
+
+export function FunnelSection({ snapshots, connectedPlatforms }: { snapshots: Snapshot[]; connectedPlatforms: string[] }) {
+  const hasStripe = connectedPlatforms.includes("stripe");
+  const hasGA4    = connectedPlatforms.includes("ga4");
+  const hasMeta   = connectedPlatforms.includes("meta");
+
+  if (!hasStripe && !hasGA4 && !hasMeta) return null;
+  if (connectedPlatforms.length < 2) return null; // need at least 2 sources to show a funnel
+
+  const adSpend     = snapshots.filter((s) => s.provider === "meta").reduce((a, s)    => a + ((s.data as Record<string, number>).spend ?? 0), 0);
+  const adClicks    = snapshots.filter((s) => s.provider === "meta").reduce((a, s)    => a + ((s.data as Record<string, number>).clicks ?? 0), 0);
+  const sessions    = snapshots.filter((s) => s.provider === "ga4").reduce((a, s)     => a + ((s.data as Record<string, number>).sessions ?? 0), 0);
+  const conversions = snapshots.filter((s) => s.provider === "ga4").reduce((a, s)     => a + ((s.data as Record<string, number>).conversions ?? 0), 0);
+  const revenue     = snapshots.filter((s) => s.provider === "stripe").reduce((a, s)  => a + ((s.data as Record<string, number>).revenue ?? 0), 0);
+
+  type FunnelStage = {
+    label: string;
+    value: number;
+    displayValue: string;
+    color: string;
+    sub: string;
+    available: boolean;
+  };
+
+  // Build currency for meta spend
+  const currency: string =
+    ([...snapshots].reverse().find((s) => s.provider === "meta" && (s.data as Record<string, unknown>)?.currency) as { data: Record<string, unknown> } | undefined)
+      ?.data.currency as string ?? "USD";
+  const fmtSpend = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
+
+  const stages: FunnelStage[] = [
+    {
+      label: "Ad Spend",
+      value: adSpend,
+      displayValue: hasMeta ? fmtSpend(adSpend) : "—",
+      color: "#1877f2",
+      sub: "Meta Ads",
+      available: hasMeta,
+    },
+    {
+      label: "Ad Clicks",
+      value: adClicks,
+      displayValue: hasMeta ? fmt(adClicks) : "—",
+      color: "#1877f2",
+      sub: `${adSpend > 0 && adClicks > 0 ? fmtSpend(adSpend / adClicks) + " CPC" : "Meta Ads"}`,
+      available: hasMeta,
+    },
+    {
+      label: "Sessions",
+      value: sessions,
+      displayValue: hasGA4 ? fmt(sessions) : "—",
+      color: "#f59e0b",
+      sub: `${adClicks > 0 && sessions > 0 ? ((sessions / adClicks) * 100).toFixed(1) + "% click-to-session" : "Google Analytics"}`,
+      available: hasGA4,
+    },
+    {
+      label: "Conversions",
+      value: conversions,
+      displayValue: hasGA4 ? fmt(conversions) : "—",
+      color: "#00d4aa",
+      sub: `${sessions > 0 ? ((conversions / sessions) * 100).toFixed(2) + "% conv rate" : "Google Analytics"}`,
+      available: hasGA4,
+    },
+    {
+      label: "Revenue",
+      value: revenue,
+      displayValue: hasStripe ? fmt(revenue, "currency") : "—",
+      color: "#635bff",
+      sub: `${conversions > 0 && revenue > 0 ? fmt(revenue / conversions, "currency") + " per conv" : "Stripe"}`,
+      available: hasStripe,
+    },
+  ].filter((s) => s.available);
+
+  if (stages.length < 2) return null;
+
+  // Compute drop-off between consecutive stages (only meaningful for same-unit stages)
+  // We show the percentage drop between consecutive absolute values where both are > 0
+  const maxVal = Math.max(...stages.map((s) => s.value), 1);
+
+  return (
+    <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-5 space-y-4">
+      <div className="flex items-center gap-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#a78bfa]/10 text-[#a78bfa]">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 4h18M6 8h12M10 12h4M12 16v0M11 20h2" />
+          </svg>
+        </div>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Full Funnel</h3>
+        <span className="ml-auto font-mono text-[9px] text-[#8585aa]">Spend → Revenue</span>
+      </div>
+
+      {/* Waterfall bars */}
+      <div className="space-y-1.5">
+        {stages.map((stage, i) => {
+          const barPct = stage.value > 0 ? (stage.value / maxVal) * 100 : 0;
+          const prevStage = i > 0 ? stages[i - 1] : null;
+          // Drop-off only when both are plain counts (not currency) — skip for spend/revenue
+          const showDropoff = prevStage && prevStage.value > 0 && stage.value > 0
+            && prevStage.color === stage.color; // same data source
+          const dropoffPct = showDropoff
+            ? Math.round(((prevStage!.value - stage.value) / prevStage!.value) * 100)
+            : null;
+
+          return (
+            <div key={stage.label}>
+              {/* Drop-off connector */}
+              {dropoffPct !== null && dropoffPct > 0 && (
+                <div className="flex items-center gap-2 py-0.5 pl-4">
+                  <div className="w-px h-3 bg-[#363650]" />
+                  <span className="font-mono text-[9px] text-[#f87171]">▼ {dropoffPct}% drop-off</span>
+                </div>
+              )}
+              <div className="flex items-center gap-3">
+                <span className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa] w-24 shrink-0">{stage.label}</span>
+                <div className="flex-1 relative h-7 rounded-lg overflow-hidden bg-[#363650]/60">
+                  <div
+                    className="h-full rounded-lg transition-all duration-700 flex items-center"
+                    style={{ width: `${Math.max(barPct, 1)}%`, backgroundColor: stage.color + "30", borderLeft: `3px solid ${stage.color}` }}
+                  />
+                  <span
+                    className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-[11px] font-bold"
+                    style={{ color: stage.color }}
+                  >
+                    {stage.displayValue}
+                  </span>
+                </div>
+                <span className="font-mono text-[9px] text-[#58588a] w-32 shrink-0 truncate">{stage.sub}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ROAS / efficiency summary */}
+      {hasMeta && hasStripe && adSpend > 0 && revenue > 0 && (
+        <div className="flex items-center gap-6 rounded-xl border border-[#363650] bg-[#222235] px-4 py-3">
+          <div>
+            <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">ROAS</p>
+            <p className="font-mono text-base font-bold text-[#f8f8fc]">{(revenue / adSpend / 100).toFixed(2)}×</p>
+          </div>
+          {adClicks > 0 && (
+            <div>
+              <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">CPC</p>
+              <p className="font-mono text-base font-bold text-[#f8f8fc]">{fmtSpend(adSpend / adClicks)}</p>
+            </div>
+          )}
+          {conversions > 0 && (
+            <div>
+              <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Cost / Conv</p>
+              <p className="font-mono text-base font-bold text-[#f8f8fc]">{fmtSpend(adSpend / conversions)}</p>
+            </div>
+          )}
+          {sessions > 0 && conversions > 0 && (
+            <div>
+              <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Conv Rate</p>
+              <p className="font-mono text-base font-bold text-[#f8f8fc]">{((conversions / sessions) * 100).toFixed(2)}%</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      <p className="font-mono text-[9px] text-[#58588a]">
+        Connects Meta Ads → Google Analytics → Stripe across the selected time range. This is your unique full-funnel view.
+      </p>
     </div>
   );
 }
@@ -461,17 +687,115 @@ function StripeSection({ snapshots, granularity }: { snapshots: Snapshot[]; gran
   );
 }
 
+// ── Product Revenue Breakdown ─────────────────────────────────────────────
+
+function ProductBreakdownSection({ snapshots }: { snapshots: Snapshot[] }) {
+  const products = useMemo(() => {
+    // Aggregate revenue by product name / price ID across all snapshots.
+    // Stripe sync stores either:
+    //   data.products = [{ id, name, revenue, count }]  (array, preferred)
+    //   data.topProduct / data.topProductRevenue        (legacy single-field)
+    const map: Record<string, { revenue: number; count: number }> = {};
+
+    for (const snap of snapshots) {
+      if (snap.provider !== "stripe") continue;
+      const d = snap.data as Record<string, unknown>;
+
+      // Array form
+      if (Array.isArray(d.products)) {
+        for (const p of d.products as { id?: string; name?: string; revenue?: number; count?: number }[]) {
+          const key = p.name ?? p.id ?? "Unknown";
+          if (!map[key]) map[key] = { revenue: 0, count: 0 };
+          map[key].revenue += p.revenue ?? 0;
+          map[key].count   += p.count ?? 1;
+        }
+        continue;
+      }
+
+      // Legacy: topProduct + topProductRevenue
+      if (d.topProduct) {
+        const key = String(d.topProduct);
+        if (!map[key]) map[key] = { revenue: 0, count: 0 };
+        map[key].revenue += (d.topProductRevenue as number) ?? 0;
+        map[key].count   += 1;
+      }
+    }
+
+    return Object.entries(map)
+      .map(([name, v]) => ({ name, ...v }))
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 8);
+  }, [snapshots]);
+
+  if (products.length === 0) return null;
+
+  const maxRevenue = Math.max(...products.map((p) => p.revenue), 1);
+  const totalRevenue = products.reduce((a, p) => a + p.revenue, 0);
+  const palette = ["#635bff", "#00d4aa", "#f59e0b", "#f87171", "#a78bfa", "#1877f2", "#34d399", "#fb923c"];
+
+  return (
+    <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-5 space-y-4">
+      <div className="flex items-center gap-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#635bff]/10 text-[#635bff]">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="3" width="20" height="14" rx="2" />
+            <path d="M8 21h8M12 17v4" />
+          </svg>
+        </div>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Revenue by Product</h3>
+        <span className="ml-auto font-mono text-[10px] text-[#8585aa]">{fmt(totalRevenue, "currency")} total</span>
+      </div>
+
+      <div className="space-y-3">
+        {products.map((p, i) => {
+          const pct = Math.round((p.revenue / totalRevenue) * 100);
+          const color = palette[i % palette.length];
+          return (
+            <div key={p.name} className="space-y-1">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                  <span className="font-mono text-[10px] text-[#bcbcd8] truncate max-w-48">{p.name}</span>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className="font-mono text-[9px] text-[#8585aa]">{p.count} sales</span>
+                  <span className="font-mono text-[10px] font-bold text-[#f8f8fc]">{fmt(p.revenue, "currency")}</span>
+                  <span className="font-mono text-[9px] text-[#8585aa] w-8 text-right">{pct}%</span>
+                </div>
+              </div>
+              <div className="h-1.5 w-full rounded-full bg-[#363650]">
+                <div
+                  className="h-full rounded-full transition-all duration-700"
+                  style={{ width: `${(p.revenue / maxRevenue) * 100}%`, backgroundColor: color }}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <p className="font-mono text-[9px] text-[#58588a]">
+        Revenue aggregated from Stripe transactions across the selected time range. Product names sourced from Stripe price/product objects.
+      </p>
+    </div>
+  );
+}
+
 // ── Cohort / Retention Section ────────────────────────────────────────────
 
 function CohortSection({ snapshots }: { snapshots: Snapshot[] }) {
-  // Build weekly cohort data: new vs returning customers per week
-  const weeklyData = useMemo(() => {
-    // Group by ISO week
-    const weeks: Record<string, { newCustomers: number; totalTransactions: number }> = {};
+  // Build week-over-week retention grid.
+  // Each cohort = week they first appeared. Columns = weeks since acquisition (W0..W4).
+  // We approximate retention by tracking whether a customer who joined in week W
+  // also made a transaction in week W+n.
+  const cohortData = useMemo(() => {
+    // Collect weekly buckets: week key → { newCustomers, totalTransactions }
+    type WeekBucket = { newCustomers: number; totalTransactions: number };
+    const weeks: Record<string, WeekBucket> = {};
+
     for (const snap of snapshots) {
       if (snap.provider !== "stripe") continue;
       const d = new Date(snap.date + "T12:00:00");
-      // ISO week key: YYYY-Www
       const jan4 = new Date(d.getFullYear(), 0, 4);
       const weekNum = Math.ceil((((d.getTime() - jan4.getTime()) / 86400000) + jan4.getDay() + 1) / 7);
       const key = `${d.getFullYear()}-W${String(weekNum).padStart(2, "0")}`;
@@ -480,25 +804,49 @@ function CohortSection({ snapshots }: { snapshots: Snapshot[] }) {
       weeks[key].newCustomers += data.newCustomers ?? 0;
       weeks[key].totalTransactions += data.transactions ?? data.txCount ?? 0;
     }
-    return Object.entries(weeks)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .slice(-8) // last 8 weeks
-      .map(([week, vals]) => ({
-        week,
-        newCustomers: vals.newCustomers,
-        returning: Math.max(0, vals.totalTransactions - vals.newCustomers),
-        total: vals.totalTransactions,
-      }));
+
+    const sortedKeys = Object.keys(weeks).sort().slice(-10); // last 10 weeks
+    if (sortedKeys.length < 2) return null;
+
+    // Build cohort rows: cohort week → retention % for W0, W1, W2, W3, W4
+    // W0 = acquisition week (always 100%), W1..W4 = returning % estimated from
+    // totalTransactions in that later week vs cohort size
+    type CohortRow = { week: string; cohortSize: number; retention: (number | null)[] };
+    const rows: CohortRow[] = sortedKeys.slice(0, -1).map((key, i) => {
+      const cohortSize = weeks[key].newCustomers;
+      const retention: (number | null)[] = [100]; // W0 = 100%
+      for (let w = 1; w <= 4; w++) {
+        const futureKey = sortedKeys[i + w];
+        if (!futureKey || cohortSize === 0) {
+          retention.push(null);
+        } else {
+          const returning = Math.max(0, (weeks[futureKey]?.totalTransactions ?? 0) - (weeks[futureKey]?.newCustomers ?? 0));
+          retention.push(Math.min(100, Math.round((returning / cohortSize) * 100)));
+        }
+      }
+      return { week: key, cohortSize, retention };
+    });
+
+    // Average retention per column (excluding null cells)
+    const avgRetention: (number | null)[] = [100];
+    for (let w = 1; w <= 4; w++) {
+      const vals = rows.map((r) => r.retention[w]).filter((v): v is number => v !== null);
+      avgRetention.push(vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null);
+    }
+
+    return { rows: rows.slice(-6), avgRetention }; // show last 6 cohorts
   }, [snapshots]);
 
-  const totalNew = weeklyData.reduce((a, w) => a + w.newCustomers, 0);
-  const totalReturning = weeklyData.reduce((a, w) => a + w.returning, 0);
-  const totalAll = totalNew + totalReturning;
-  const retentionRate = totalAll > 0 ? Math.round((totalReturning / totalAll) * 100) : 0;
+  if (!cohortData || cohortData.rows.length === 0) return null;
 
-  if (weeklyData.length === 0) return null;
-
-  const maxVal = Math.max(...weeklyData.map((w) => w.total), 1);
+  function retColor(pct: number | null): string {
+    if (pct === null) return "transparent";
+    if (pct >= 80) return "#00d4aa";
+    if (pct >= 60) return "#34d399";
+    if (pct >= 40) return "#f59e0b";
+    if (pct >= 20) return "#fb923c";
+    return "#f87171";
+  }
 
   return (
     <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-5 space-y-4">
@@ -510,52 +858,72 @@ function CohortSection({ snapshots }: { snapshots: Snapshot[] }) {
               <path d="M23 21v-2a4 4 0 00-3-3.87" /><path d="M16 3.13a4 4 0 010 7.75" />
             </svg>
           </div>
-          <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Customer Cohort</h3>
+          <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Retention Cohorts</h3>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="text-center">
-            <p className="font-mono text-lg font-bold text-[#00d4aa]">{retentionRate}%</p>
-            <p className="font-mono text-[9px] text-[#8585aa] uppercase tracking-widest">Returning</p>
-          </div>
-          <div className="text-center">
-            <p className="font-mono text-lg font-bold text-[#f8f8fc]">{totalNew}</p>
-            <p className="font-mono text-[9px] text-[#8585aa] uppercase tracking-widest">New</p>
-          </div>
+        <div className="flex items-center gap-2 text-[9px] font-mono text-[#58588a]">
+          <span className="w-2 h-2 rounded-sm" style={{ backgroundColor: "#00d4aa" }} />≥80%
+          <span className="w-2 h-2 rounded-sm ml-1" style={{ backgroundColor: "#f59e0b" }} />≥40%
+          <span className="w-2 h-2 rounded-sm ml-1" style={{ backgroundColor: "#f87171" }} />&lt;20%
         </div>
       </div>
 
-      {/* Stacked bar chart */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-sm bg-[#635bff]" />
-            <span className="font-mono text-[9px] text-[#8585aa]">New customers</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-sm bg-[#00d4aa]" />
-            <span className="font-mono text-[9px] text-[#8585aa]">Returning</span>
-          </div>
-        </div>
-        {weeklyData.map((w) => (
-          <div key={w.week} className="flex items-center gap-3">
-            <span className="font-mono text-[9px] text-[#8585aa] w-14 shrink-0">{w.week}</span>
-            <div className="flex-1 flex h-5 rounded-md overflow-hidden bg-[#363650]">
-              <div
-                className="h-full"
-                style={{ width: `${(w.newCustomers / maxVal) * 100}%`, backgroundColor: "#635bff" }}
-              />
-              <div
-                className="h-full"
-                style={{ width: `${(w.returning / maxVal) * 100}%`, backgroundColor: "#00d4aa" }}
-              />
-            </div>
-            <span className="font-mono text-[9px] text-[#bcbcd8] w-6 shrink-0 text-right">{w.total}</span>
-          </div>
-        ))}
+      <div className="overflow-x-auto">
+        <table className="w-full text-left">
+          <thead>
+            <tr>
+              <th className="pb-2 pr-4 font-mono text-[9px] uppercase tracking-widest text-[#8585aa] whitespace-nowrap">Cohort week</th>
+              <th className="pb-2 pr-4 font-mono text-[9px] uppercase tracking-widest text-[#8585aa] text-right">Size</th>
+              {["W0", "W1", "W2", "W3", "W4"].map((w) => (
+                <th key={w} className="pb-2 px-2 font-mono text-[9px] uppercase tracking-widest text-[#8585aa] text-center">{w}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {cohortData.rows.map((row) => (
+              <tr key={row.week} className="border-t border-[#363650]/40">
+                <td className="py-1.5 pr-4 font-mono text-[10px] text-[#bcbcd8] whitespace-nowrap">{row.week}</td>
+                <td className="py-1.5 pr-4 font-mono text-[10px] text-[#8585aa] text-right">{row.cohortSize}</td>
+                {row.retention.map((pct, i) => (
+                  <td key={i} className="py-1.5 px-2 text-center">
+                    {pct !== null ? (
+                      <span
+                        className="inline-block rounded px-1.5 py-0.5 font-mono text-[10px] font-bold"
+                        style={{ backgroundColor: retColor(pct) + "22", color: retColor(pct) }}
+                      >
+                        {pct}%
+                      </span>
+                    ) : (
+                      <span className="font-mono text-[10px] text-[#363650]">–</span>
+                    )}
+                  </td>
+                ))}
+              </tr>
+            ))}
+            {/* Average row */}
+            <tr className="border-t-2 border-[#363650]">
+              <td className="pt-2 pr-4 font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Avg</td>
+              <td />
+              {cohortData.avgRetention.map((pct, i) => (
+                <td key={i} className="pt-2 px-2 text-center">
+                  {pct !== null ? (
+                    <span
+                      className="inline-block rounded px-1.5 py-0.5 font-mono text-[10px] font-bold"
+                      style={{ backgroundColor: retColor(pct) + "22", color: retColor(pct) }}
+                    >
+                      {pct}%
+                    </span>
+                  ) : (
+                    <span className="font-mono text-[10px] text-[#363650]">–</span>
+                  )}
+                </td>
+              ))}
+            </tr>
+          </tbody>
+        </table>
       </div>
 
       <p className="font-mono text-[9px] text-[#58588a]">
-        Based on Stripe transactions — new customers are first-time buyers in each week.
+        W0 = acquisition week (always 100%). W1–W4 = % of cohort who transacted in subsequent weeks. Estimated from daily Stripe snapshots.
       </p>
     </div>
   );
@@ -727,6 +1095,36 @@ export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots 
   const [granularity, setGranularity]     = useState<Granularity>("day");
   const [customRange, setCustomRange]     = useState<CustomRange | null>(null);
 
+  // Share report state
+  const [shareState, setShareState] = useState<"idle" | "loading" | "copied" | "error">("idle");
+  const shareTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  async function handleShare() {
+    if (shareState === "loading") return;
+    setShareState("loading");
+    try {
+      const res = await fetch("/api/report/share", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          dateFrom: cutoff,
+          dateTo: ceilDate,
+          label: `Analytics ${cutoff} → ${ceilDate}`,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      const { url } = await res.json();
+      await navigator.clipboard.writeText(url);
+      setShareState("copied");
+      if (shareTimeoutRef.current) clearTimeout(shareTimeoutRef.current);
+      shareTimeoutRef.current = setTimeout(() => setShareState("idle"), 3000);
+    } catch {
+      setShareState("error");
+      if (shareTimeoutRef.current) clearTimeout(shareTimeoutRef.current);
+      shareTimeoutRef.current = setTimeout(() => setShareState("idle"), 3000);
+    }
+  }
+
   // Filter snapshots — custom range takes priority over preset
   const cutoff = useMemo(() => {
     if (customRange) return customRange.from;
@@ -766,9 +1164,44 @@ export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots 
 
   return (
     <div className="max-w-4xl">
-      <div className="mb-6">
-        <h1 className="font-mono text-2xl font-bold text-[#f8f8fc]">Analytics</h1>
-        <p className="mt-1 text-sm text-[#bcbcd8]">Daily breakdown per integration.</p>
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="font-mono text-2xl font-bold text-[#f8f8fc]">Analytics</h1>
+          <p className="mt-1 text-sm text-[#bcbcd8]">Daily breakdown per integration.</p>
+        </div>
+        {availablePlatforms.length > 0 && (
+          <button
+            onClick={handleShare}
+            disabled={shareState === "loading"}
+            className="flex shrink-0 items-center gap-2 rounded-xl border border-[#363650] bg-[#1c1c2a] px-4 py-2.5 font-mono text-xs font-semibold transition-all hover:border-[#00d4aa]/40 hover:text-[#00d4aa] disabled:opacity-50"
+            style={{
+              color: shareState === "copied" ? "#00d4aa" : shareState === "error" ? "#f87171" : "#bcbcd8",
+              borderColor: shareState === "copied" ? "#00d4aa40" : shareState === "error" ? "#f8717140" : undefined,
+            }}
+          >
+            {shareState === "loading" ? (
+              <>
+                <svg className="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
+                Generating…
+              </>
+            ) : shareState === "copied" ? (
+              <>
+                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                Link copied!
+              </>
+            ) : shareState === "error" ? (
+              <>
+                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                Error — retry
+              </>
+            ) : (
+              <>
+                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
+                Share report
+              </>
+            )}
+          </button>
+        )}
       </div>
 
       {availablePlatforms.length === 0 ? (
@@ -803,6 +1236,7 @@ export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots 
             timeRange={timeRange} setTimeRange={(t) => { setTimeRange(t); setCustomRange(null); }}
             granularity={granularity} setGranularity={setGranularity}
             customRange={customRange} setCustomRange={setCustomRange}
+            snapshots={filteredSnapshots} activeSection={activeSection}
           />
 
           {/* ── Sections ──────────────────────────────────────── */}
@@ -819,6 +1253,7 @@ export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots 
               ? (
                 <div className="space-y-6">
                   <StripeSection snapshots={snapshotsByPlatform.stripe} granularity={granularity} />
+                  <ProductBreakdownSection snapshots={snapshotsByPlatform.stripe} />
                   <CohortSection snapshots={snapshotsByPlatform.stripe} />
                 </div>
               )

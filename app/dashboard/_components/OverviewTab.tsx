@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import type { Snapshot } from "./DashboardShell";
+import { pushNotification } from "./DashboardShell";
 import { DEMO_SNAPSHOTS, DEMO_CONNECTED_PLATFORMS } from "./demoData";
 import { DEFAULT_ALERTS, type AlertRules } from "./SettingsTab";
 
@@ -286,18 +287,58 @@ function MiniScoreRing({ score }: { score: number }) {
 // ── Goals Widget ─────────────────────────────────────────────────────────
 
 interface Goals {
-  revenueTarget: number; // cents per week
-  sessionsTarget: number;
+  revenueTarget: number;  // cents per MONTH
+  sessionsTarget: number; // per month
+}
+
+/** Given the N-day running total and elapsed days in current month, project month-end value */
+function projectMonthEnd(runningTotal: number, elapsedDays: number): number {
+  if (elapsedDays <= 0) return 0;
+  const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+  return (runningTotal / elapsedDays) * daysInMonth;
+}
+
+/** Mini forecast trajectory bar: shows actual so far + projected remainder */
+function TrajectoryBar({
+  actual, projected, target, color,
+}: {
+  actual: number; projected: number; target: number; color: string;
+}) {
+  const max = Math.max(target, projected, actual, 1);
+  const actualPct  = Math.min((actual / max) * 100, 100);
+  const projPct    = Math.min((projected / max) * 100, 100);
+  const targetPct  = Math.min((target / max) * 100, 100);
+  const onTrack    = projected >= target * 0.9;
+
+  return (
+    <div className="relative h-2 w-full rounded-full bg-[#363650] overflow-visible">
+      {/* projected (faded) */}
+      <div
+        className="absolute left-0 top-0 h-full rounded-full opacity-25 transition-all duration-700"
+        style={{ width: `${projPct}%`, backgroundColor: onTrack ? "#00d4aa" : "#f59e0b" }}
+      />
+      {/* actual (solid) */}
+      <div
+        className="absolute left-0 top-0 h-full rounded-full transition-all duration-700"
+        style={{ width: `${actualPct}%`, backgroundColor: color }}
+      />
+      {/* target tick */}
+      <div
+        className="absolute top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full"
+        style={{ left: `${targetPct}%`, backgroundColor: "#f8f8fc", opacity: 0.35 }}
+      />
+    </div>
+  );
 }
 
 function GoalsWidget({
-  revenue7: revenue7,
-  sessions7: sessions7,
+  revenueMonth,
+  sessionsMonth,
   stripeConn,
   ga4Conn,
 }: {
-  revenue7: number;
-  sessions7: number;
+  revenueMonth: number;
+  sessionsMonth: number;
   stripeConn: boolean;
   ga4Conn: boolean;
 }) {
@@ -342,8 +383,14 @@ function GoalsWidget({
     }
   }
 
-  const revenueProgress = goals.revenueTarget > 0 ? Math.min((revenue7 / goals.revenueTarget) * 100, 100) : 0;
-  const sessionsProgress = goals.sessionsTarget > 0 ? Math.min((sessions7 / goals.sessionsTarget) * 100, 100) : 0;
+  // Days elapsed in this calendar month
+  const today = new Date();
+  const elapsedDays = today.getDate();
+  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+  const daysLeft = daysInMonth - elapsedDays;
+
+  const revProjected  = projectMonthEnd(revenueMonth, elapsedDays);
+  const sessProjected = projectMonthEnd(sessionsMonth, elapsedDays);
 
   const hasGoals = goals.revenueTarget > 0 || goals.sessionsTarget > 0;
 
@@ -354,9 +401,9 @@ function GoalsWidget({
         className="w-full flex items-center gap-2 rounded-xl border border-dashed border-[#363650] bg-transparent px-4 py-3 text-left text-[#8585aa] hover:border-[#00d4aa]/30 hover:text-[#00d4aa] transition-colors group"
       >
         <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="10" /><path d="M12 8v4l3 3" />
+          <path d="M3 3v18h18" /><path d="M18 17V9M13 17V5M8 17v-3" />
         </svg>
-        <span className="font-mono text-[11px]">Set weekly goals →</span>
+        <span className="font-mono text-[11px]">Set monthly goals + forecast →</span>
       </button>
     );
   }
@@ -364,13 +411,13 @@ function GoalsWidget({
   if (editing) {
     return (
       <div className="rounded-xl border border-[#00d4aa]/20 bg-[#00d4aa]/5 px-4 py-3 space-y-3">
-        <p className="font-mono text-[9px] uppercase tracking-widest text-[#00d4aa]">Set weekly goals</p>
+        <p className="font-mono text-[9px] uppercase tracking-widest text-[#00d4aa]">Monthly goals</p>
         {stripeConn && (
           <div className="flex items-center gap-2">
-            <label className="font-mono text-[10px] text-[#bcbcd8] w-28 shrink-0">Revenue target ($)</label>
+            <label className="font-mono text-[10px] text-[#bcbcd8] w-28 shrink-0">Revenue / mo ($)</label>
             <input
               type="number"
-              placeholder="e.g. 2000"
+              placeholder="e.g. 10000"
               value={draft.revenue}
               onChange={(e) => setDraft((d) => ({ ...d, revenue: e.target.value }))}
               className="flex-1 bg-[#222235] border border-[#363650] rounded-lg px-3 py-1.5 font-mono text-xs text-[#f8f8fc] placeholder:text-[#58588a] focus:outline-none focus:border-[#00d4aa]/30"
@@ -379,10 +426,10 @@ function GoalsWidget({
         )}
         {ga4Conn && (
           <div className="flex items-center gap-2">
-            <label className="font-mono text-[10px] text-[#bcbcd8] w-28 shrink-0">Sessions target</label>
+            <label className="font-mono text-[10px] text-[#bcbcd8] w-28 shrink-0">Sessions / mo</label>
             <input
               type="number"
-              placeholder="e.g. 3000"
+              placeholder="e.g. 20000"
               value={draft.sessions}
               onChange={(e) => setDraft((d) => ({ ...d, sessions: e.target.value }))}
               className="flex-1 bg-[#222235] border border-[#363650] rounded-lg px-3 py-1.5 font-mono text-xs text-[#f8f8fc] placeholder:text-[#58588a] focus:outline-none focus:border-[#00d4aa]/30"
@@ -398,37 +445,58 @@ function GoalsWidget({
   }
 
   return (
-    <div className="rounded-xl border border-[#363650] bg-[#222235] px-4 py-3 space-y-2.5">
+    <div className="rounded-xl border border-[#363650] bg-[#222235] px-4 py-3 space-y-3">
       <div className="flex items-center justify-between">
-        <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Weekly goals</p>
-        <button onClick={openEdit} className="font-mono text-[9px] text-[#8585aa] hover:text-[#00d4aa] transition">Edit</button>
+        <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Monthly goals</p>
+        <div className="flex items-center gap-3">
+          <span className="font-mono text-[9px] text-[#58588a]">{daysLeft}d left</span>
+          <button onClick={openEdit} className="font-mono text-[9px] text-[#8585aa] hover:text-[#00d4aa] transition">Edit</button>
+        </div>
       </div>
+
       {stripeConn && goals.revenueTarget > 0 && (
-        <div>
-          <div className="flex items-center justify-between mb-1">
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
             <span className="font-mono text-[10px] text-[#bcbcd8]">Revenue</span>
-            <span className="font-mono text-[10px] text-[#f8f8fc]">
-              {fmt(revenue7, "currency")} <span className="text-[#8585aa]">/ {fmt(goals.revenueTarget, "currency")}</span>
+            <span className="font-mono text-[10px]">
+              <span className="text-[#f8f8fc]">{fmt(revenueMonth, "currency")}</span>
+              <span className="text-[#58588a]"> / {fmt(goals.revenueTarget, "currency")}</span>
             </span>
           </div>
-          <div className="h-1.5 w-full rounded-full bg-[#363650]">
-            <div className="h-full rounded-full transition-all duration-700" style={{ width: `${revenueProgress}%`, backgroundColor: revenueProgress >= 100 ? "#00d4aa" : revenueProgress >= 75 ? "#34d399" : "#f59e0b" }} />
+          <TrajectoryBar actual={revenueMonth} projected={revProjected} target={goals.revenueTarget} color="#635bff" />
+          <div className="flex items-center justify-between">
+            {revenueMonth >= goals.revenueTarget ? (
+              <span className="font-mono text-[9px] text-[#00d4aa]">🎉 Goal reached!</span>
+            ) : (
+              <span className="font-mono text-[9px]" style={{ color: revProjected >= goals.revenueTarget * 0.9 ? "#00d4aa" : "#f59e0b" }}>
+                {revProjected >= goals.revenueTarget * 0.9 ? "✓ On track" : "⚠ Below pace"} · projected {fmt(revProjected, "currency")}
+              </span>
+            )}
+            <span className="font-mono text-[9px] text-[#58588a]">{Math.round((revenueMonth / goals.revenueTarget) * 100)}%</span>
           </div>
-          {revenueProgress >= 100 && <p className="mt-0.5 font-mono text-[9px] text-[#00d4aa]">🎉 Goal reached!</p>}
         </div>
       )}
+
       {ga4Conn && goals.sessionsTarget > 0 && (
-        <div>
-          <div className="flex items-center justify-between mb-1">
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
             <span className="font-mono text-[10px] text-[#bcbcd8]">Sessions</span>
-            <span className="font-mono text-[10px] text-[#f8f8fc]">
-              {fmt(sessions7)} <span className="text-[#8585aa]">/ {fmt(goals.sessionsTarget)}</span>
+            <span className="font-mono text-[10px]">
+              <span className="text-[#f8f8fc]">{fmt(sessionsMonth)}</span>
+              <span className="text-[#58588a]"> / {fmt(goals.sessionsTarget)}</span>
             </span>
           </div>
-          <div className="h-1.5 w-full rounded-full bg-[#363650]">
-            <div className="h-full rounded-full transition-all duration-700" style={{ width: `${sessionsProgress}%`, backgroundColor: sessionsProgress >= 100 ? "#00d4aa" : sessionsProgress >= 75 ? "#34d399" : "#f59e0b" }} />
+          <TrajectoryBar actual={sessionsMonth} projected={sessProjected} target={goals.sessionsTarget} color="#f59e0b" />
+          <div className="flex items-center justify-between">
+            {sessionsMonth >= goals.sessionsTarget ? (
+              <span className="font-mono text-[9px] text-[#00d4aa]">🎉 Goal reached!</span>
+            ) : (
+              <span className="font-mono text-[9px]" style={{ color: sessProjected >= goals.sessionsTarget * 0.9 ? "#00d4aa" : "#f59e0b" }}>
+                {sessProjected >= goals.sessionsTarget * 0.9 ? "✓ On track" : "⚠ Below pace"} · projected {fmt(sessProjected)}
+              </span>
+            )}
+            <span className="font-mono text-[9px] text-[#58588a]">{Math.round((sessionsMonth / goals.sessionsTarget) * 100)}%</span>
           </div>
-          {sessionsProgress >= 100 && <p className="mt-0.5 font-mono text-[9px] text-[#00d4aa]">🎉 Goal reached!</p>}
         </div>
       )}
     </div>
@@ -475,6 +543,128 @@ const INTEGRATIONS = [
     ),
   },
 ];
+
+// ── Onboarding Wizard ─────────────────────────────────────────────────────
+
+const SETUP_STEPS = [
+  {
+    id: "stripe",
+    num: 1,
+    title: "Connect Stripe",
+    description: "Track revenue, transactions, and new customers automatically.",
+    connectUrl: "/api/auth/stripe/url",
+    color: "#635bff",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.591-7.305z" />
+      </svg>
+    ),
+  },
+  {
+    id: "ga4",
+    num: 2,
+    title: "Connect Google Analytics",
+    description: "See sessions, bounce rate, and conversion data alongside revenue.",
+    connectUrl: "/api/auth/google/url",
+    color: "#f59e0b",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+      </svg>
+    ),
+  },
+  {
+    id: "meta",
+    num: 3,
+    title: "Connect Meta Ads",
+    description: "Monitor ad spend, reach, and cost-per-acquisition in one place.",
+    connectUrl: "/api/auth/meta/url",
+    color: "#1877f2",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+      </svg>
+    ),
+  },
+];
+
+function OnboardingWizard({ onNavigate }: { onNavigate: (tab: "overview" | "analytics" | "website" | "settings") => void }) {
+  const completedCount = 0; // no platforms yet — this component only renders when count === 0
+
+  return (
+    <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 overflow-hidden">
+      {/* Header */}
+      <div className="px-6 pt-6 pb-5 border-b border-[#363650]">
+        <div className="flex items-center gap-3 mb-1">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#00d4aa]/10 text-[#00d4aa]">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div>
+            <p className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#00d4aa]">
+              Get started — {completedCount}/3 complete
+            </p>
+            <h2 className="font-mono text-base font-bold text-[#f8f8fc]">Connect your data sources</h2>
+          </div>
+        </div>
+        <p className="font-mono text-[11px] text-[#8585aa] mt-1">
+          Your dashboard populates automatically once connected. Each integration takes about 30 seconds.
+        </p>
+        {/* Progress bar */}
+        <div className="mt-4 h-1.5 w-full rounded-full bg-[#363650]">
+          <div
+            className="h-full rounded-full bg-[#00d4aa] transition-all duration-700"
+            style={{ width: `${(completedCount / 3) * 100}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Steps */}
+      <div className="divide-y divide-[#363650]">
+        {SETUP_STEPS.map((step) => (
+          <div key={step.id} className="flex items-center gap-4 px-6 py-4 hover:bg-[#222235]/40 transition-colors">
+            {/* Step number / check */}
+            <div
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
+              style={{ backgroundColor: `${step.color}18`, color: step.color }}
+            >
+              {step.icon}
+            </div>
+
+            {/* Text */}
+            <div className="flex-1 min-w-0">
+              <p className="font-mono text-sm font-semibold text-[#f8f8fc]">{step.title}</p>
+              <p className="font-mono text-[10px] text-[#8585aa] mt-0.5">{step.description}</p>
+            </div>
+
+            {/* CTA */}
+            <a
+              href={step.connectUrl}
+              className="shrink-0 inline-flex items-center gap-1.5 rounded-xl border px-4 py-2 font-mono text-[11px] font-semibold transition-all hover:opacity-80"
+              style={{ borderColor: `${step.color}40`, color: step.color, backgroundColor: `${step.color}10` }}
+            >
+              Connect
+              <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12h15m0 0l-6.75-6.75M19.5 12l-6.75 6.75" />
+              </svg>
+            </a>
+          </div>
+        ))}
+      </div>
+
+      {/* Footer tip */}
+      <div className="px-6 py-3 bg-[#13131f]/40 border-t border-[#363650]">
+        <p className="font-mono text-[10px] text-[#58588a]">
+          💡 Tip: Start with Stripe for the fastest time-to-value. Revenue data backfills automatically up to 18 months.
+        </p>
+      </div>
+    </div>
+  );
+}
 
 // ── Main Component ────────────────────────────────────────────────────────
 
@@ -525,7 +715,7 @@ export default function OverviewTab({
   const effectiveSnapshots = isDemoMode ? DEMO_SNAPSHOTS : snapshots;
   const effectivePlatforms = isDemoMode ? DEMO_CONNECTED_PLATFORMS : connectedPlatforms;
 
-  const { kpis, activity, narrative, crossInsights, metrics7 } = useMemo(() => {
+  const { kpis, activity, narrative, crossInsights, metrics7, revenueMonth, sessionsMonth } = useMemo(() => {
     const snaps7 = filterDays(effectiveSnapshots, 7);
     const snaps14 = filterDays(effectiveSnapshots, 14);
     const snapsPrev7 = snaps14.filter((s) => !snaps7.find((x) => x.id === s.id));
@@ -676,7 +866,7 @@ export default function OverviewTab({
       });
     }
 
-    return { kpis, activity: activityItems.slice(0, 5), narrative, crossInsights, metrics7: { revenue7, sessions7: sessions7, bounceRate7, spend7, revenuePrev } };
+    return { kpis, activity: activityItems.slice(0, 5), narrative, crossInsights, metrics7: { revenue7, sessions7: sessions7, bounceRate7, spend7, revenuePrev }, revenueMonth: sumField(filterDays(effectiveSnapshots, new Date().getDate()), "stripe", "revenue"), sessionsMonth: sumField(filterDays(effectiveSnapshots, new Date().getDate()), "ga4", "sessions") };
   }, [effectiveSnapshots, effectivePlatforms, websiteData]);
 
   const pendingTasks = websiteData.tasks.filter((t) => !t.completed);
@@ -701,6 +891,133 @@ export default function OverviewTab({
       activeAlerts.push({ color: "#1877f2", message: `💸 Average daily ad spend (${fmt(avgDailySpend, "currency")}) exceeds your $${alertRules.spendSpikeThreshold} cap` });
     }
   }
+
+  // ── Statistical anomaly detection (auto, no threshold required) ────────
+  const anomalies = useMemo(() => {
+    const results: { color: string; message: string }[] = [];
+    if (!isPremium || effectiveSnapshots.length < 14) return results;
+
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const yesterdayStr = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const dayOfWeek = new Date().toLocaleDateString("en-US", { weekday: "long" });
+
+    /** Compute mean + stddev for a daily series */
+    function stats(values: number[]): { mean: number; std: number } {
+      if (values.length === 0) return { mean: 0, std: 0 };
+      const mean = values.reduce((a, b) => a + b, 0) / values.length;
+      const variance = values.reduce((a, b) => a + (b - mean) ** 2, 0) / values.length;
+      return { mean, std: Math.sqrt(variance) };
+    }
+
+    /** Get daily values for a metric over the last N days (excluding today/yesterday) */
+    function dailyValues(provider: string, field: string, excludeDays = 2): number[] {
+      return effectiveSnapshots
+        .filter((s) => s.provider === provider && s.date < yesterdayStr)
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .slice(-30)
+        .slice(0, -excludeDays + (excludeDays > 0 ? 0 : undefined as unknown as number))
+        .map((s) => (s.data as Record<string, number>)[field] ?? 0)
+        .filter((v) => v > 0); // exclude zero days (no data)
+    }
+
+    /** Get yesterday's value */
+    function yesterday(provider: string, field: string): number {
+      const snap = effectiveSnapshots.find((s) => s.provider === provider && s.date === yesterdayStr);
+      return snap ? ((snap.data as Record<string, number>)[field] ?? 0) : 0;
+    }
+
+    const stripeConn = effectivePlatforms.includes("stripe");
+    const ga4Conn    = effectivePlatforms.includes("ga4");
+    const metaConn   = effectivePlatforms.includes("meta");
+
+    // Revenue anomaly
+    if (stripeConn) {
+      const revValues = dailyValues("stripe", "revenue");
+      const revYday   = yesterday("stripe", "revenue");
+      const { mean, std } = stats(revValues);
+      if (mean > 0 && std > 0 && revYday > 0) {
+        const zScore = (revYday - mean) / std;
+        if (zScore < -2) {
+          const dropPct = Math.round(((mean - revYday) / mean) * 100);
+          results.push({
+            color: "#f87171",
+            message: `📉 Revenue yesterday was ${fmt(revYday, "currency")} — ${dropPct}% below your 30-day average${std > 0 ? ` (unusual for a ${dayOfWeek})` : ""}`,
+          });
+        } else if (zScore > 2.5) {
+          const gainPct = Math.round(((revYday - mean) / mean) * 100);
+          results.push({
+            color: "#00d4aa",
+            message: `🚀 Revenue yesterday was ${fmt(revYday, "currency")} — ${gainPct}% above your 30-day average! Best ${dayOfWeek} in a month.`,
+          });
+        }
+      }
+    }
+
+    // Sessions anomaly
+    if (ga4Conn) {
+      const sessValues = dailyValues("ga4", "sessions");
+      const sessYday   = yesterday("ga4", "sessions");
+      const { mean, std } = stats(sessValues);
+      if (mean > 0 && std > 0 && sessYday > 0) {
+        const zScore = (sessYday - mean) / std;
+        if (zScore < -2) {
+          const dropPct = Math.round(((mean - sessYday) / mean) * 100);
+          results.push({
+            color: "#f59e0b",
+            message: `👻 Traffic dropped ${dropPct}% yesterday (${fmt(sessYday)} sessions vs ${fmt(Math.round(mean))} avg). Check for indexing or ad issues.`,
+          });
+        }
+      }
+    }
+
+    // Bounce rate spike
+    if (ga4Conn) {
+      const bounceValues = dailyValues("ga4", "bounceRate");
+      const bounceYday   = yesterday("ga4", "bounceRate");
+      const { mean, std } = stats(bounceValues);
+      if (mean > 0 && std > 0 && bounceYday > 0) {
+        const zScore = (bounceYday - mean) / std;
+        if (zScore > 2) {
+          results.push({
+            color: "#f59e0b",
+            message: `⚠ Bounce rate spiked to ${fmt(bounceYday, "percent")} yesterday — ${Math.round(bounceYday - mean)}pp above your 30-day average. Something may have broken.`,
+          });
+        }
+      }
+    }
+
+    // Ad spend anomaly
+    if (metaConn) {
+      const spendValues = dailyValues("meta", "spend");
+      const spendYday   = yesterday("meta", "spend");
+      const { mean, std } = stats(spendValues);
+      if (mean > 0 && std > 0 && spendYday > 0) {
+        const zScore = (spendYday - mean) / std;
+        if (zScore > 2) {
+          const pct = Math.round(((spendYday - mean) / mean) * 100);
+          results.push({
+            color: "#1877f2",
+            message: `💸 Ad spend was ${pct}% above average yesterday. Check your Meta campaigns for runaway spend.`,
+          });
+        }
+      }
+    }
+
+    return results;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectiveSnapshots, effectivePlatforms, isPremium]);
+
+  // Push triggered alerts + anomalies to the in-app notification bell (once per session)
+  const pushedAlertsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    for (const alert of [...activeAlerts, ...anomalies]) {
+      if (!pushedAlertsRef.current.has(alert.message)) {
+        pushedAlertsRef.current.add(alert.message);
+        pushNotification(alert.message, alert.color);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeAlerts.map((a) => a.message).join("|"), anomalies.map((a) => a.message).join("|")]);
 
   const firstName = email.split("@")[0].split(/[._-]/)[0];
   const capitalFirst = firstName.charAt(0).toUpperCase() + firstName.slice(1);
@@ -761,6 +1078,11 @@ export default function OverviewTab({
             Connect →
           </button>
         </div>
+      )}
+
+      {/* ── Onboarding wizard — shown when premium + no platforms connected ── */}
+      {isPremium && !isDemoMode && connectedPlatforms.length === 0 && (
+        <OnboardingWizard onNavigate={onNavigate} />
       )}
 
       {/* ── Yesterday at a glance ─────────────────────────────── */}
@@ -852,6 +1174,23 @@ export default function OverviewTab({
               >
                 Adjust →
               </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Statistical anomaly banners (auto-detected) ───── */}
+      {isPremium && anomalies.length > 0 && (
+        <div className="space-y-2">
+          {anomalies.map((a, i) => (
+            <div key={i} className="flex items-start gap-3 rounded-xl border px-4 py-3" style={{ borderColor: a.color + "35", backgroundColor: a.color + "0d" }}>
+              <div className="mt-0.5 shrink-0 flex h-5 w-5 items-center justify-center rounded-full" style={{ backgroundColor: a.color + "20", color: a.color }}>
+                <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <p className="flex-1 font-mono text-[11px] leading-relaxed" style={{ color: a.color }}>{a.message}</p>
+              <span className="shrink-0 font-mono text-[9px] text-[#58588a] whitespace-nowrap">Auto-detected</span>
             </div>
           ))}
         </div>
@@ -1028,8 +1367,8 @@ export default function OverviewTab({
             <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa] mb-3">Quick Actions</p>
             <div className="space-y-2">
               <GoalsWidget
-                revenue7={kpis.find((k) => k.icon === "revenue")?.trend?.current ?? 0}
-                sessions7={kpis.find((k) => k.icon === "sessions")?.trend?.current ?? 0}
+                revenueMonth={revenueMonth}
+                sessionsMonth={sessionsMonth}
                 stripeConn={effectivePlatforms.includes("stripe")}
                 ga4Conn={effectivePlatforms.includes("ga4")}
               />

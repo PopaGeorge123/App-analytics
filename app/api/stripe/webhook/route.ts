@@ -123,6 +123,60 @@ export async function POST(req: NextRequest) {
       break;
     }
 
+    // ── Real-time revenue snapshot ─────────────────────────────────────
+    // Upsert today's daily_snapshot whenever a payment succeeds so the
+    // dashboard shows live revenue without waiting for the nightly cron.
+    case "payment_intent.succeeded": {
+      const pi = event.data.object as Stripe.PaymentIntent;
+      if (pi.status !== "succeeded") break;
+
+      // Resolve the Stripe Connect account ID (stored in integrations.account_id)
+      const connectedAccountId = (event.account as string | undefined) ?? null;
+      if (!connectedAccountId) break; // only process Connect charges
+
+      // Find the user who owns this Stripe account
+      const { data: integration } = await admin
+        .from("integrations")
+        .select("user_id")
+        .eq("platform", "stripe")
+        .eq("account_id", connectedAccountId)
+        .maybeSingle();
+
+      if (!integration?.user_id) break;
+
+      const userId = integration.user_id;
+      const todayStr = new Date().toISOString().slice(0, 10);
+
+      // Fetch today's existing snapshot so we can increment it
+      const { data: existing } = await admin
+        .from("daily_snapshots")
+        .select("data")
+        .eq("user_id", userId)
+        .eq("provider", "stripe")
+        .eq("date", todayStr)
+        .maybeSingle();
+
+      const prev = (existing?.data ?? {}) as Record<string, number>;
+      const amount = pi.amount_received ?? pi.amount ?? 0;
+
+      const updated = {
+        revenue:      (prev.revenue      ?? 0) + amount,
+        txCount:      (prev.txCount      ?? 0) + 1,
+        refunds:       prev.refunds      ?? 0,
+        newCustomers:  prev.newCustomers ?? 0,
+      };
+
+      const { error: upsertErr } = await admin
+        .from("daily_snapshots")
+        .upsert(
+          { user_id: userId, provider: "stripe", date: todayStr, data: updated },
+          { onConflict: "user_id,provider,date" }
+        );
+
+      if (upsertErr) console.error("[webhook] payment_intent.succeeded upsert error:", upsertErr);
+      break;
+    }
+
     default:
       // Unknown event — ignore
       break;

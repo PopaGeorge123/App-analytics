@@ -132,6 +132,37 @@ export interface Database {
           raw_context?: Json;
         };
       };
+      share_tokens: {
+        Row: {
+          id: string;
+          token: string;
+          user_id: string;
+          label: string;
+          date_from: string;
+          date_to: string;
+          platforms: string[];
+          payload: Json;
+          expires_at: string;
+          created_at: string;
+          view_count: number;
+        };
+        Insert: {
+          id?: string;
+          token: string;
+          user_id: string;
+          label?: string;
+          date_from: string;
+          date_to: string;
+          platforms: string[];
+          payload: Json;
+          expires_at: string;
+          view_count?: number;
+        };
+        Update: {
+          view_count?: number;
+          expires_at?: string;
+        };
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -146,4 +177,5 @@ export type DailySnapshot =
   Database["public"]["Tables"]["daily_snapshots"]["Row"];
 export type Digest = Database["public"]["Tables"]["digests"]["Row"];
 export type DbUser = Database["public"]["Tables"]["users"]["Row"];
+export type ShareToken = Database["public"]["Tables"]["share_tokens"]["Row"];
 

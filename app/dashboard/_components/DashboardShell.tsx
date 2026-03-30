@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import OverviewTab from "./OverviewTab";
 import AnalyticsTab from "./AnalyticsTab";
@@ -98,6 +98,164 @@ export default function DashboardShell(props: DashboardShellProps) {
     <Suspense>
       <DashboardShellInner {...props} />
     </Suspense>
+  );
+}
+
+// ── Notification Bell ─────────────────────────────────────────────────────
+
+export interface AppNotification {
+  id: string;
+  message: string;
+  color: string;       // hex
+  timestamp: number;   // Date.now()
+  read: boolean;
+}
+
+const NOTIF_STORAGE_KEY = "fold_notifications";
+const MAX_NOTIFICATIONS = 30;
+
+function loadNotifications(): AppNotification[] {
+  try {
+    const raw = localStorage.getItem(NOTIF_STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as AppNotification[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveNotifications(notifications: AppNotification[]) {
+  try {
+    localStorage.setItem(NOTIF_STORAGE_KEY, JSON.stringify(notifications.slice(0, MAX_NOTIFICATIONS)));
+  } catch { /* storage full — silently skip */ }
+}
+
+export function pushNotification(message: string, color = "#f59e0b") {
+  const notifications = loadNotifications();
+  const notif: AppNotification = {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    message,
+    color,
+    timestamp: Date.now(),
+    read: false,
+  };
+  saveNotifications([notif, ...notifications]);
+  // Dispatch custom event so the bell re-renders without a page refresh
+  window.dispatchEvent(new CustomEvent("fold:notification"));
+}
+
+function timeAgoShort(ts: number): string {
+  const diff = Date.now() - ts;
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+
+function NotificationBell() {
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const reload = useCallback(() => setNotifications(loadNotifications()), []);
+
+  useEffect(() => {
+    reload();
+    window.addEventListener("fold:notification", reload);
+    return () => window.removeEventListener("fold:notification", reload);
+  }, [reload]);
+
+  // Close on outside click
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const unread = notifications.filter((n) => !n.read).length;
+
+  function markAllRead() {
+    const updated = notifications.map((n) => ({ ...n, read: true }));
+    setNotifications(updated);
+    saveNotifications(updated);
+  }
+
+  function clearAll() {
+    setNotifications([]);
+    saveNotifications([]);
+    setOpen(false);
+  }
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => { setOpen((v) => !v); if (!open) markAllRead(); }}
+        className="relative flex h-8 w-8 items-center justify-center rounded-lg border border-[#363650] bg-[#222235] text-[#8585aa] hover:border-[#454560] hover:text-[#bcbcd8] transition-all"
+        aria-label="Notifications"
+      >
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+        </svg>
+        {unread > 0 && (
+          <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 font-mono text-[8px] font-bold text-white">
+            {unread > 9 ? "9+" : unread}
+          </span>
+        )}
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full mt-2 z-50 w-80 rounded-2xl border border-[#363650] bg-[#1c1c2a] shadow-2xl overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[#363650]">
+            <p className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#8585aa]">Notifications</p>
+            {notifications.length > 0 && (
+              <button
+                onClick={clearAll}
+                className="font-mono text-[9px] text-[#8585aa] hover:text-red-400 transition-colors"
+              >
+                Clear all
+              </button>
+            )}
+          </div>
+
+          {/* List */}
+          <div className="max-h-80 overflow-y-auto">
+            {notifications.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 text-center px-4">
+                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#222235] text-[#58588a]">
+                  <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                  </svg>
+                </div>
+                <p className="font-mono text-[10px] text-[#8585aa]">No notifications yet</p>
+                <p className="font-mono text-[9px] text-[#58588a] mt-0.5">Alerts will appear here when thresholds are crossed</p>
+              </div>
+            ) : (
+              notifications.map((n) => (
+                <div
+                  key={n.id}
+                  className={`flex items-start gap-3 px-4 py-3 border-b border-[#363650]/50 transition-colors ${
+                    n.read ? "opacity-60" : "bg-[#222235]/40"
+                  }`}
+                >
+                  <span
+                    className="mt-0.5 h-2 w-2 shrink-0 rounded-full"
+                    style={{ backgroundColor: n.color }}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-mono text-[11px] text-[#e0e0f0] leading-relaxed">{n.message}</p>
+                    <p className="font-mono text-[9px] text-[#58588a] mt-0.5">{timeAgoShort(n.timestamp)}</p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -230,7 +388,7 @@ function DashboardShellInner({ email, isPremium, connectedPlatforms, snapshots, 
             </svg>
           </button>
           <span className="text-[#8585aa]">/</span>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-1">
             <span className="text-[#8585aa]">
               {tabs.find((t) => t.id === activeTab)?.icon}
             </span>
@@ -238,6 +396,13 @@ function DashboardShellInner({ email, isPremium, connectedPlatforms, snapshots, 
               {tabs.find((t) => t.id === activeTab)?.label}
             </span>
           </div>
+          {/* Bell in mobile bar */}
+          <NotificationBell />
+        </div>
+
+        {/* Desktop notification bell — fixed top-right of the content area */}
+        <div className="hidden lg:flex items-center justify-end px-8 pt-5 pb-0">
+          <NotificationBell />
         </div>
 
         <div className="p-6 lg:p-8">

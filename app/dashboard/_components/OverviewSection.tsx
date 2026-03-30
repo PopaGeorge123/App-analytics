@@ -14,6 +14,7 @@ import {
   Area,
 } from "recharts";
 import type { Snapshot } from "./DashboardShell";
+import { FunnelSection } from "./AnalyticsTab";
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -929,6 +930,9 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
           </ResponsiveContainer>
         )}
       </div>
+
+      {/* ── Full Funnel ──────────────────────────────────────── */}
+      <FunnelSection snapshots={filtered} connectedPlatforms={connectedPlatforms} />
 
       {/* ── AI Insights ─────────────────────────────────────────── */}
       {insights.length > 0 && (
