@@ -1068,7 +1068,7 @@ function EmptySection({ platform }: { platform: string }) {
         <span className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#00d4aa]">Syncing data</span>
       </div>
       <p className="text-sm text-[#bcbcd8]">
-        <span className="text-[#f8f8fc]">{platform}</span> is connected. Data will appear after the first nightly sync (02:00 UTC).
+        <span className="text-[#f8f8fc]">{platform}</span> is connected. Waiting for data to sync...
       </p>
     </div>
   );

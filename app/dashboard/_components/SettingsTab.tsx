@@ -457,7 +457,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms }: Se
           Integrations
         </h2>
         <p className="mb-5 text-sm text-[#bcbcd8]">
-          Connect your data sources. Data syncs automatically every night at 02:00 UTC.
+          Connect your data sources. Data syncs automatically every day — you can also trigger a manual sync anytime from the Overview tab.
         </p>
 
         <div className="flex flex-col gap-3">
