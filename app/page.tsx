@@ -441,6 +441,145 @@ function Testimonial({ quote, name, role, avatar }: { quote: string; name: strin
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// FAQ
+// ─────────────────────────────────────────────────────────────────────────────
+const FAQ_ITEMS = [
+  {
+    q: "Is my financial data safe?",
+    a: "Yes. Fold connects via official OAuth — we never see or store your Stripe secret key, Google password, or Meta credentials. All data is transmitted over TLS 1.3 and stored encrypted at rest. We read-only aggregated metrics; we cannot move money or modify your accounts.",
+  },
+  {
+    q: "What integrations do you support?",
+    a: "At launch: Stripe (revenue, MRR, transactions, refunds, new customers), Google Analytics 4 (sessions, conversions, bounce rate, top pages), and Meta Ads (spend, ROAS, CPC, impressions, clicks). More integrations are on the roadmap.",
+  },
+  {
+    q: "How is Fold different from Stripe Dashboard or GA4?",
+    a: "Stripe Dashboard shows Stripe data. GA4 shows website data. Meta Ads Manager shows ad data. None of them talk to each other. Fold connects all three, normalises them into one timeline, calculates cross-platform metrics like ROAS and CAC, and adds AI that explains what it all means in plain English.",
+  },
+  {
+    q: "Do I need to know how to code?",
+    a: "No. Setup is three OAuth clicks — one for each integration. There are no API keys, no webhooks to configure, and no developer required. If you can log in to Stripe, you can set up Fold.",
+  },
+  {
+    q: "What does the free plan include?",
+    a: "The free plan gives you the full Overview dashboard — 6 KPI tiles, 7-day trends, recent activity feed, and quick actions — forever. The Premium plan unlocks deep per-platform analytics, the AI Advisor, the website optimizer, anomaly alerts, and the daily digest.",
+  },
+  {
+    q: "How much does Premium cost?",
+    a: "Premium is $29/month. There's no annual lock-in — cancel any time. We also offer a free trial so you can see the full product before committing.",
+  },
+  {
+    q: "Can I cancel my subscription at any time?",
+    a: "Yes. Cancel with one click from your account settings. You keep access until the end of your billing period. No questions, no retention loops.",
+  },
+  {
+    q: "How often does my data update?",
+    a: "Fold syncs your Stripe, GA4, and Meta data automatically every day. The overview dashboard reflects yesterday's numbers by default. You can also trigger a manual sync at any time from the settings page.",
+  },
+];
+
+function FaqItem({ q, a }: { q: string; a: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="border-b border-[#363650] last:border-0">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between gap-4 py-5 text-left"
+      >
+        <span className="font-mono text-sm font-semibold text-[#f8f8fc]">{q}</span>
+        <span
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[#363650] text-[#8585aa] transition-transform duration-200"
+          style={{ transform: open ? "rotate(45deg)" : "rotate(0deg)" }}
+        >
+          <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+        </span>
+      </button>
+      {open && (
+        <p className="pb-5 text-sm leading-relaxed text-[#bcbcd8]">{a}</p>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Security trust badges
+// ─────────────────────────────────────────────────────────────────────────────
+function SecurityBadges() {
+  const badges = [
+    {
+      icon: (
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+        </svg>
+      ),
+      label: "OAuth 2.0 only",
+      sub: "No passwords stored",
+    },
+    {
+      icon: (
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+          <path d="M7 11V7a5 5 0 0110 0v4" />
+        </svg>
+      ),
+      label: "TLS 1.3 encrypted",
+      sub: "All data in transit",
+    },
+    {
+      icon: (
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+      ),
+      label: "Read-only access",
+      sub: "We never write to your accounts",
+    },
+    {
+      icon: (
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 2L2 7l10 5 10-5-10-5z" />
+          <path d="M2 17l10 5 10-5" />
+          <path d="M2 12l10 5 10-5" />
+        </svg>
+      ),
+      label: "Encrypted at rest",
+      sub: "Supabase AES-256",
+    },
+    {
+      icon: (
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+      ),
+      label: "GDPR ready",
+      sub: "Delete your data anytime",
+    },
+  ];
+
+  return (
+    <div className="mt-10 rounded-2xl border border-[#363650] bg-[#1c1c2a]/40 px-6 py-5">
+      <p className="mb-4 text-center font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Security & Privacy</p>
+      <div className="flex flex-wrap justify-center gap-4 sm:gap-6">
+        {badges.map((b) => (
+          <div key={b.label} className="flex items-center gap-2.5">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-[#00d4aa]/20 bg-[#00d4aa]/8 text-[#00d4aa]">
+              {b.icon}
+            </div>
+            <div>
+              <p className="font-mono text-[11px] font-semibold text-[#f8f8fc]">{b.label}</p>
+              <p className="font-mono text-[9px] text-[#8585aa]">{b.sub}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Nav
 // ─────────────────────────────────────────────────────────────────────────────
 function Nav() {
@@ -457,6 +596,7 @@ function Nav() {
     { label: "Features", href: "#features" },
     { label: "How it works", href: "#how-it-works" },
     { label: "Pricing", href: "#pricing" },
+    { label: "FAQ", href: "#faq" },
   ];
 
   return (
@@ -534,13 +674,12 @@ export default function Home() {
               </div>
 
               <h1 className="mb-6 font-mono text-4xl font-bold leading-tight tracking-tight text-[#f8f8fc] sm:text-5xl lg:text-[3.4rem]">
-                Know why your revenue changed,{" "}
-                <span className="text-[#00d4aa]">instantly<span className="text-white">.</span></span>{" "}
-                
+                Stop spending Monday mornings{" "}
+                <span className="text-[#00d4aa]">in spreadsheets<span className="text-white">.</span></span>
               </h1>
 
               <p className="mb-8 max-w-lg text-base leading-relaxed text-[#bcbcd8] sm:text-lg">
-                Fold connects Stripe, Google Analytics, and Meta Ads, then uses AI to surface what changed, what matters, and exactly what to do next — every time.
+                Fold connects Stripe, Google Analytics, and Meta Ads — then tells you <strong className="text-[#f8f8fc] font-semibold">exactly what changed, why it changed, and what to do next</strong>. Before your first coffee.
               </p>
 
               <div className="mb-8 flex flex-wrap gap-3">
@@ -552,11 +691,60 @@ export default function Home() {
                   Sign in
                 </a>
               </div>
+
+              {/* Risk-zero pills */}
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { icon: "✓", text: "Free forever" },
+                  { icon: "✓", text: "No credit card" },
+                  { icon: "✓", text: "Connect in 90 seconds" },
+                  { icon: "✓", text: "Disconnect anytime" },
+                ].map((pill) => (
+                  <span key={pill.text} className="inline-flex items-center gap-1.5 rounded-full border border-[#363650] bg-[#1c1c2a] px-3 py-1 font-mono text-[10px] font-semibold text-[#bcbcd8]">
+                    <span className="text-[#00d4aa]">{pill.icon}</span>
+                    {pill.text}
+                  </span>
+                ))}
+              </div>
             </div>
 
             <div className="flex items-center justify-center">
               <DashboardMockup />
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── PAIN STRIP ────────────────────────────────────────────────────── */}
+      <section className="border-t border-[#363650] bg-[#0f0f1a] px-6 py-10">
+        <div className="mx-auto max-w-4xl">
+          <p className="mb-6 text-center font-mono text-[10px] uppercase tracking-widest text-[#58588a]">Sound familiar?</p>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {[
+              {
+                bad: "Checking 4 different tabs every Monday morning",
+                good: "One tab. Everything explained.",
+              },
+              {
+                bad: "Exporting CSVs to compare Stripe vs. ad spend",
+                good: "Automatic cross-platform view. Daily.",
+              },
+              {
+                bad: "Guessing why revenue dropped last week",
+                good: "AI tells you why. In plain English.",
+              },
+            ].map((item) => (
+              <div key={item.bad} className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-4 space-y-3">
+                <div className="flex items-start gap-2.5">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#f87171]/10 text-[#f87171] font-bold text-[10px]">✕</span>
+                  <p className="text-sm text-[#8585aa] leading-snug">{item.bad}</p>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#00d4aa]/10 text-[#00d4aa] font-bold text-[10px]">✓</span>
+                  <p className="text-sm font-semibold text-[#f8f8fc] leading-snug">{item.good}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -568,8 +756,8 @@ export default function Home() {
             {[
               { label: "Integrations at launch", value: <AnimatedCounter target={3} />, color: "#00d4aa" },
               { label: "Founders using Fold", value: <AnimatedCounter target={200} suffix="+" />, color: "#00d4aa" },
-              { label: "Tabs replaced", value: <AnimatedCounter target={12} suffix="+" />, color: "#f87171" },
-              { label: "Manual exports needed", value: "Zero", color: "#00d4aa" },
+              { label: "Hours saved per week", value: <><AnimatedCounter target={3} suffix="." /><span>5</span></>, color: "#00d4aa" },
+              { label: "Manual exports needed", value: "Zero", color: "#f87171" },
             ].map((s, i) => (
               <div key={i} className="text-center sm:px-6">
                 <p className="font-mono text-xs uppercase tracking-widest text-[#8585aa]">{s.label}</p>
@@ -598,6 +786,27 @@ export default function Home() {
             <Step n={3} title="Let AI do the heavy lifting"
               description="Fold surfaces anomalies, explains trends in plain English, analyzes your website, and gives you a prioritized action list — refreshed daily." />
           </div>
+
+          {/* Platform OAuth trust strip */}
+          <div className="mt-12 flex flex-wrap justify-center items-center gap-6 sm:gap-10">
+            {[
+              { name: "Stripe", color: "#635bff", sub: "Official OAuth — read-only", svg: <path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.591-7.305z" fill="currentColor" /> },
+              { name: "Google", color: "#f59e0b", sub: "Google OAuth 2.0 — GA4 only", svg: <><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></> },
+              { name: "Meta", color: "#1877f2", sub: "Meta Business OAuth — read-only", svg: <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" fill="currentColor" /> },
+            ].map((p) => (
+              <div key={p.name} className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#363650] bg-[#1c1c2a]" style={{ color: p.color }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">{p.svg}</svg>
+                </div>
+                <div>
+                  <p className="font-mono text-xs font-semibold text-[#f8f8fc]">{p.name}</p>
+                  <p className="font-mono text-[9px] text-[#8585aa]">{p.sub}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <SecurityBadges />
         </div>
       </section>
 
@@ -902,6 +1111,26 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ── FAQ ───────────────────────────────────────────────────────────── */}
+      <section id="faq" className="px-6 py-24 border-t border-[#363650]">
+        <div className="mx-auto max-w-3xl">
+          <div className="mb-12 text-center">
+            <p className="mb-3 font-mono text-xs font-semibold uppercase tracking-widest text-[#00d4aa]">FAQ</p>
+            <h2 className="font-mono text-3xl font-bold text-[#f8f8fc] sm:text-4xl">Common questions</h2>
+            <p className="mx-auto mt-4 max-w-lg text-[#bcbcd8]">Everything you need to know before you connect your first integration.</p>
+          </div>
+          <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 px-6 divide-y-0">
+            {FAQ_ITEMS.map((item) => (
+              <FaqItem key={item.q} q={item.q} a={item.a} />
+            ))}
+          </div>
+          <p className="mt-6 text-center font-mono text-xs text-[#8585aa]">
+            Still have questions?{" "}
+            <a href="mailto:support@usefold.io" className="text-[#00d4aa] hover:underline">Email us →</a>
+          </p>
+        </div>
+      </section>
+
       {/* ── FINAL CTA ─────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden px-6 py-32 border-t border-[#363650]">
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -952,7 +1181,7 @@ export default function Home() {
             <div>
               <p className="font-mono text-[10px] uppercase tracking-widest text-[#8585aa] mb-4">Product</p>
               <ul className="space-y-3">
-                {[{ l: "Features", h: "#features" }, { l: "How it works", h: "#how-it-works" }, { l: "Pricing", h: "#pricing" }, { l: "Sign in", h: "/login" }, { l: "Get started free", h: "/register" }].map((item) => (
+                {[{ l: "Features", h: "#features" }, { l: "How it works", h: "#how-it-works" }, { l: "Pricing", h: "#pricing" }, { l: "FAQ", h: "#faq" }, { l: "Sign in", h: "/login" }, { l: "Get started free", h: "/register" }].map((item) => (
                   <li key={item.l}><a href={item.h} className="text-sm text-[#8585aa] hover:text-[#f8f8fc] transition-colors">{item.l}</a></li>
                 ))}
               </ul>
