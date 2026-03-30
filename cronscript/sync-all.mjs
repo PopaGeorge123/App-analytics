@@ -31,9 +31,9 @@
  *    node cronscript/sync-all.mjs --backfill --platform stripe --days 180
  *
  *  Backfill depth (default):
- *    Stripe  → 90 days (parallel batches of 10 — override with --days N)
- *    GA4     → 90 days (single batched API call)
- *    Meta    → 90 days (parallel batches of 5)
+ *    Stripe  → 365 days (parallel batches of 10 — override with --days N)
+ *    GA4     → 365 days (single batched API call)
+ *    Meta    → 365 days (parallel batches of 5)
  *
  *  FILTERS (work with any mode):
  *    --user <uuid>        only this user
@@ -116,9 +116,9 @@ const targetPlat   = args.includes('--platform') ? args[args.indexOf('--platform
 
 // How many days to backfill per platform (override with --days N)
 const BACKFILL_DAYS = {
-  stripe: args.includes('--days') ? parseInt(args[args.indexOf('--days') + 1], 10) : 90,
-  ga4:    90,
-  meta:   90,
+  stripe: args.includes('--days') ? parseInt(args[args.indexOf('--days') + 1], 10) : 365,
+  ga4:    365,
+  meta:   365,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -948,10 +948,46 @@ async function checkAlerts() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// STALE DATA CLEANUP
+// Called when a user reconnects a platform with a DIFFERENT account.
+// Deletes snapshots for that provider + all digests + all share_tokens.
+// ─────────────────────────────────────────────────────────────────────────────
+async function clearStaleData(userId, provider) {
+  log(`[clear] Clearing stale data for user=${userId.slice(0, 8)} provider=${provider}`);
+
+  // 1. Delete snapshots for this provider
+  const snapUrl = `${SUPABASE_URL}/rest/v1/daily_snapshots?` +
+    new URLSearchParams({ user_id: `eq.${userId}`, provider: `eq.${provider}` });
+  const snapRes = await fetchRetry(`SB DELETE daily_snapshots[${provider}]`, snapUrl, {
+    method: 'DELETE', headers: SB.headers,
+  });
+  if (!snapRes.ok) logWarn(`[clear] Could not delete ${provider} snapshots: ${snapRes.status}`);
+  else logOk(`[clear] Deleted ${provider} snapshots`);
+
+  // 2. Delete all digests (cross-platform — now stale)
+  const digestUrl = `${SUPABASE_URL}/rest/v1/digests?user_id=eq.${userId}`;
+  const digestRes = await fetchRetry('SB DELETE digests', digestUrl, {
+    method: 'DELETE', headers: SB.headers,
+  });
+  if (!digestRes.ok) logWarn(`[clear] Could not delete digests: ${digestRes.status}`);
+  else logOk(`[clear] Deleted digests`);
+
+  // 3. Delete all share_tokens (embedded payloads are now stale)
+  const tokenUrl = `${SUPABASE_URL}/rest/v1/share_tokens?user_id=eq.${userId}`;
+  const tokenRes = await fetchRetry('SB DELETE share_tokens', tokenUrl, {
+    method: 'DELETE', headers: SB.headers,
+  });
+  if (!tokenRes.ok) logWarn(`[clear] Could not delete share_tokens: ${tokenRes.status}`);
+  else logOk(`[clear] Deleted share_tokens`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // TARGETED BACKFILL — single user + single platform
 // Called by the HTTP trigger server when a user connects a platform via OAuth.
+// If newAccountId is provided AND differs from stored account_id → clear stale
+// data first, then backfill.
 // ─────────────────────────────────────────────────────────────────────────────
-async function runBackfillForUser(userId, platform) {
+async function runBackfillForUser(userId, platform, newAccountId = null) {
   log(`[trigger] Backfill start — user=${userId.slice(0, 8)} platform=${platform}`);
 
   let rows;
@@ -969,6 +1005,12 @@ async function runBackfillForUser(userId, platform) {
   if (!integration) {
     logWarn(`[trigger] No integration found for user=${userId.slice(0, 8)} platform=${platform}`);
     return;
+  }
+
+  // If the account changed, clear stale data before backfilling
+  if (newAccountId && integration.account_id &&
+      integration.account_id !== newAccountId) {
+    await clearStaleData(userId, platform);
   }
 
   try {
@@ -1036,9 +1078,9 @@ function startTriggerServer() {
       return;
     }
 
-    let userId, platform;
+    let userId, platform, newAccountId;
     try {
-      ({ userId, platform } = JSON.parse(body));
+      ({ userId, platform, newAccountId = null } = JSON.parse(body));
       if (!userId || !platform) throw new Error('Missing userId or platform');
     } catch (err) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -1046,13 +1088,13 @@ function startTriggerServer() {
       return;
     }
 
-    log(`[trigger] Received — user=${userId.slice(0, 8)} platform=${platform}`);
+    log(`[trigger] Received — user=${userId.slice(0, 8)} platform=${platform}${newAccountId ? ' (account change)' : ''}`);
 
     // Respond immediately, run backfill in background
     res.writeHead(202, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ ok: true, message: 'Backfill queued' }));
 
-    runBackfillForUser(userId, platform).catch(e =>
+    runBackfillForUser(userId, platform, newAccountId).catch(e =>
       logFail(`[trigger] Unhandled error in backfill: ${e.message}`)
     );
   });

@@ -1,6 +1,4 @@
 import { createServiceClient } from "@/lib/supabase/service";
-import { backfillMetaHistory } from "./backfill";
-import { clearSnapshotsIfAccountChanged } from "@/lib/utils/snapshots";
 import { triggerRemoteBackfill } from "@/lib/utils/triggerBackfill";
 
 export async function handleMetaCallback(
@@ -42,10 +40,15 @@ export async function handleMetaCallback(
   const accountId: string  = firstAccount.id       ?? "";
   const currency: string   = firstAccount.currency ?? "USD";
 
-  // If account changed, clear stale snapshots before backfill
-  await clearSnapshotsIfAccountChanged(userId, "meta", accountId);
-
+  // Fetch current account_id before overwriting so the daemon can detect a change
   const db = createServiceClient();
+  const { data: existing } = await db
+    .from("integrations")
+    .select("account_id")
+    .eq("user_id", userId)
+    .eq("platform", "meta")
+    .maybeSingle();
+
   await db.from("integrations").upsert(
     {
       user_id: userId,
@@ -58,7 +61,7 @@ export async function handleMetaCallback(
     { onConflict: "user_id,platform" }
   );
 
-  // Trigger remote backfill on upbid.dev server; fall back to local if remote not configured
-  triggerRemoteBackfill(userId, "meta");
-  backfillMetaHistory(userId).catch(console.error);
+  // Trigger remote backfill — pass newAccountId so the daemon clears stale data
+  // if the account changed. All data population happens on the remote sync server.
+  triggerRemoteBackfill(userId, "meta", existing?.account_id !== accountId ? accountId : undefined);
 }

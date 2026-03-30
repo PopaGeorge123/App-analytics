@@ -1,6 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import { google } from "googleapis";
-import { clearSnapshotsIfAccountChanged } from "@/lib/utils/snapshots";
 import { triggerRemoteBackfill } from "@/lib/utils/triggerBackfill";
 
 export async function handleGoogleCallback(
@@ -86,15 +85,25 @@ export async function selectGA4Property(
 ): Promise<void> {
   const db = createServiceClient();
 
-  await clearSnapshotsIfAccountChanged(userId, "ga4", propertyId);
+  // Fetch current property before overwriting so the daemon can detect a change
+  const { data: existing } = await db
+    .from("integrations")
+    .select("account_id")
+    .eq("user_id", userId)
+    .eq("platform", "ga4")
+    .maybeSingle();
 
   await db.from("integrations")
     .update({ account_id: propertyId })
     .eq("user_id", userId)
     .eq("platform", "ga4");
 
-  // Start backfill in background + trigger remote server
-  const { backfillGA4History } = await import("./backfill");
-  triggerRemoteBackfill(userId, "ga4");
-  backfillGA4History(userId).catch(console.error);
+  // Trigger remote backfill — pass newAccountId so the daemon clears stale data
+  // if the property changed. All data population happens on the remote sync server.
+  const previousId = existing?.account_id;
+  triggerRemoteBackfill(
+    userId,
+    "ga4",
+    previousId && previousId !== "" && previousId !== propertyId ? propertyId : undefined
+  );
 }

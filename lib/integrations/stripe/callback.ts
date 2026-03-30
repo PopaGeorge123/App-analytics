@@ -1,6 +1,4 @@
 import { createServiceClient } from "@/lib/supabase/service";
-import { backfillStripeHistory } from "./backfill";
-import { clearSnapshotsIfAccountChanged } from "@/lib/utils/snapshots";
 import { triggerRemoteBackfill } from "@/lib/utils/triggerBackfill";
 
 export async function handleStripeCallback(
@@ -29,10 +27,15 @@ export async function handleStripeCallback(
   const accessToken = response.access_token as string;
   const accountId = response.stripe_user_id as string;
 
-  // If account changed, clear stale snapshots before backfill
-  await clearSnapshotsIfAccountChanged(userId, "stripe", accountId);
-
+  // Fetch current account_id before overwriting so the daemon can detect a change
   const db = createServiceClient();
+  const { data: existing } = await db
+    .from("integrations")
+    .select("account_id")
+    .eq("user_id", userId)
+    .eq("platform", "stripe")
+    .maybeSingle();
+
   await db.from("integrations").upsert(
     {
       user_id: userId,
@@ -44,7 +47,7 @@ export async function handleStripeCallback(
     { onConflict: "user_id,platform" }
   );
 
-  // Trigger remote backfill on upbid.dev server; fall back to local if remote not configured
-  triggerRemoteBackfill(userId, "stripe");
-  backfillStripeHistory(userId).catch(console.error);
+  // Trigger remote backfill — pass newAccountId so the daemon clears stale data
+  // if the account changed. All data population happens on the remote sync server.
+  triggerRemoteBackfill(userId, "stripe", existing?.account_id !== accountId ? accountId : undefined);
 }
