@@ -1,6 +1,7 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import { backfillMetaHistory } from "./backfill";
 import { clearSnapshotsIfAccountChanged } from "@/lib/utils/snapshots";
+import { triggerRemoteBackfill } from "@/lib/utils/triggerBackfill";
 
 export async function handleMetaCallback(
   userId: string,
@@ -57,6 +58,7 @@ export async function handleMetaCallback(
     { onConflict: "user_id,platform" }
   );
 
-  // Always re-backfill after connect/reconnect
+  // Trigger remote backfill on upbid.dev server; fall back to local if remote not configured
+  triggerRemoteBackfill(userId, "meta");
   backfillMetaHistory(userId).catch(console.error);
 }

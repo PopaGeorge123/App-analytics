@@ -4,13 +4,21 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { daysAgo } from "@/lib/utils/dates";
 import DashboardShell from "./_components/DashboardShell";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) redirect("/login");
+
+  // Read ?syncing=platform from the URL (set by OAuth success redirects)
+  const params = await searchParams;
+  const isSyncing = (params.syncing as string | undefined) ?? null;
 
   // Fetch premium status from public.users (Supabase)
   const { data: dbUser } = await supabase
@@ -26,10 +34,14 @@ export default async function DashboardPage() {
   // Fetch connected integrations
   const { data: integrations } = await db
     .from("integrations")
-    .select("platform, connected_at")
+    .select("platform, connected_at, currency")
     .eq("user_id", user.id);
 
   const connectedPlatforms = (integrations ?? []).map((i) => i.platform);
+
+  // Meta currency from the integrations table (authoritative — updated on every reconnect)
+  const metaCurrency: string =
+    (integrations ?? []).find((i) => i.platform === "meta")?.currency ?? "USD";
 
   // Fetch last 180 days of snapshots across all providers (Analytics needs broad range)
   const { data: rawSnapshots } = await db
@@ -122,6 +134,8 @@ export default async function DashboardPage() {
         connectedPlatforms={connectedPlatforms}
         snapshots={snapshots}
         websiteData={websiteData}
+        metaCurrency={metaCurrency}
+        isSyncing={isSyncing}
       />
     </div>
   );

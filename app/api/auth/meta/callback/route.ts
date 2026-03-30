@@ -14,11 +14,9 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Save the token only — backfill runs locally via:
-    //   node cronscript/sync-all.mjs --backfill --user <userId> --platform meta
     await handleMetaCallback(state, code);
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&meta=connected", process.env.NEXT_PUBLIC_APP_URL)
+      new URL("/dashboard?tab=settings&meta=connected&syncing=meta", process.env.NEXT_PUBLIC_APP_URL)
     );
   } catch (err) {
     console.error("Meta OAuth callback error:", err);

@@ -18,6 +18,7 @@ export interface GA4Context {
 
 export interface MetaContext {
   connected: boolean;
+  currency: string;
   current7: { spend: number; impressions: number; clicks: number; reach: number; conversions: number };
   prev7: { spend: number; impressions: number; clicks: number; reach: number; conversions: number };
   spendTrend: number;
@@ -113,6 +114,24 @@ export async function buildContext(userId: string): Promise<DigestContext> {
   const metaCurRows = metaConnected ? await getSnapshots("meta", current7Start, current7End) : [];
   const metaPrevRows = metaConnected ? await getSnapshots("meta", prev7Start, prev7End) : [];
 
+  // Currency: read directly from integrations table (authoritative source —
+  // updated every time the user reconnects Meta). Fall back to snapshot data,
+  // then USD.
+  const { data: metaIntegration } = metaConnected
+    ? await db
+        .from("integrations")
+        .select("currency")
+        .eq("user_id", userId)
+        .eq("platform", "meta")
+        .single()
+    : { data: null };
+
+  const metaCurrency: string =
+    (metaIntegration?.currency as string | null) ??
+    (([...metaCurRows].reverse().find((r) => (r.data as Record<string, unknown>)?.currency)
+      ?.data as Record<string, unknown> | undefined)?.currency as string) ??
+    "USD";
+
   const metaCurrent7 = {
     spend: sum(pick(metaCurRows, "spend")),
     impressions: sum(pick(metaCurRows, "impressions")),
@@ -144,6 +163,7 @@ export async function buildContext(userId: string): Promise<DigestContext> {
     },
     meta: {
       connected: metaConnected,
+      currency: metaCurrency,
       current7: metaCurrent7,
       prev7: metaPrev7,
       spendTrend: calcTrend(metaCurrent7.spend, metaPrev7.spend),

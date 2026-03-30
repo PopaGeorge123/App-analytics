@@ -60,6 +60,15 @@ async function buildDataContext(userId: string, db: ReturnType<typeof createServ
   const sessions7 = sum(snaps7, "ga4", "sessions");
   const spend7 = sum(snaps7, "meta", "spend");
 
+  // Meta currency — stored in snapshot data.currency
+  const metaCurrency: string =
+    ([...(snapshots ?? [])].reverse()
+      .find((s) => s.provider === "meta" && (s.data as Record<string, unknown>)?.currency)
+      ?.data as Record<string, unknown> | undefined)?.currency as string ?? "USD";
+
+  const fmtMeta = (n: number) =>
+    new Intl.NumberFormat("en-US", { style: "currency", currency: metaCurrency }).format(n);
+
   const pendingTasks = (tasks ?? []).filter((t) => !t.completed);
   const completedTasks = (tasks ?? []).filter((t) => t.completed);
 
@@ -68,10 +77,10 @@ async function buildDataContext(userId: string, db: ReturnType<typeof createServ
 === BUSINESS METRICS (last 30 days) ===
 Revenue: $${(revenue30 / 100).toFixed(2)} | Last 7d: $${(revenue7 / 100).toFixed(2)}
 Sessions: ${sessions30} | Last 7d: ${sessions7}
-Ad Spend: $${(spend30 / 100).toFixed(2)} | Last 7d: $${(spend7 / 100).toFixed(2)}
+Ad Spend (${metaCurrency}): ${fmtMeta(spend30)} | Last 7d: ${fmtMeta(spend7)}
 Conversions: ${conversions30}
 New Customers: ${newCustomers30}
-CAC: ${newCustomers30 > 0 ? `$${((spend30 / 100) / newCustomers30).toFixed(2)}` : "N/A"}
+CAC: ${newCustomers30 > 0 ? `${fmtMeta(spend30 / newCustomers30)}` : "N/A"}
 
 === WEBSITE ===
 URL: ${website?.url ?? "Not set"}

@@ -72,8 +72,9 @@ Conversions:          ${context.ga4.current7.conversions}`
 
   const metaSection = context.meta.connected
     ? `--- META ADS (Advertising) ---
-Ad spend this week:   $${fmt(context.meta.current7.spend)}
-Ad spend last week:   $${fmt(context.meta.prev7.spend)}
+Currency:             ${context.meta.currency}
+Ad spend this week:   ${new Intl.NumberFormat("en-US", { style: "currency", currency: context.meta.currency }).format(context.meta.current7.spend)}
+Ad spend last week:   ${new Intl.NumberFormat("en-US", { style: "currency", currency: context.meta.currency }).format(context.meta.prev7.spend)}
 Spend trend:          ${trend(context.meta.spendTrend)}
 Impressions:          ${fmt(context.meta.current7.impressions)}
 Clicks:               ${fmt(context.meta.current7.clicks)}

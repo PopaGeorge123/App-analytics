@@ -50,7 +50,7 @@ export default function GA4SetupPage() {
         setSaving(false);
         return;
       }
-      router.push("/dashboard?tab=settings&google=connected");
+      router.push("/dashboard?tab=settings&google=connected&syncing=ga4");
     } catch {
       setError("Network error.");
       setSaving(false);

@@ -38,6 +38,19 @@
  *  FILTERS (work with any mode):
  *    --user <uuid>        only this user
  *    --platform stripe    only this platform
+ *
+ * ── HTTP TRIGGER SERVER ──────────────────────────────────────────────────────
+ *  When running in --daemon mode, a lightweight HTTP server starts on
+ *  TRIGGER_PORT (default: 4242).  The Next.js app POSTs to it after every
+ *  OAuth connect so the user sees fresh data immediately.
+ *
+ *  Required .env vars on this server:
+ *    SYNC_SECRET    – shared secret (must match SYNC_SECRET in Next.js .env)
+ *    TRIGGER_PORT   – port to listen on (default: 4242)
+ *
+ *  Example:  POST http://localhost:4242/sync-trigger
+ *            Authorization: Bearer <SYNC_SECRET>
+ *            { "userId": "...", "platform": "meta" }
  */
 
 import { readFileSync } from 'fs';
@@ -902,8 +915,125 @@ async function checkAlerts() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ENTRY POINT
+// TARGETED BACKFILL — single user + single platform
+// Called by the HTTP trigger server when a user connects a platform via OAuth.
 // ─────────────────────────────────────────────────────────────────────────────
+async function runBackfillForUser(userId, platform) {
+  log(`[trigger] Backfill start — user=${userId.slice(0, 8)} platform=${platform}`);
+
+  let rows;
+  try {
+    rows = await SB.select('integrations', 'user_id,platform,access_token,refresh_token,account_id', {
+      user_id:  userId,
+      platform: platform,
+    });
+  } catch (err) {
+    logFail(`[trigger] Cannot fetch integration: ${err.message}`);
+    return;
+  }
+
+  const integration = rows?.[0];
+  if (!integration) {
+    logWarn(`[trigger] No integration found for user=${userId.slice(0, 8)} platform=${platform}`);
+    return;
+  }
+
+  try {
+    if (platform === 'stripe') {
+      await backfillStripe(userId, integration.access_token);
+    } else if (platform === 'ga4') {
+      await backfillGA4(userId, integration);
+    } else if (platform === 'meta') {
+      await backfillMeta(userId, integration);
+    } else {
+      logWarn(`[trigger] Unknown platform: ${platform}`);
+      return;
+    }
+    logOk(`[trigger] Backfill complete — user=${userId.slice(0, 8)} platform=${platform}`);
+  } catch (err) {
+    logFail(`[trigger] Backfill failed — ${err.message}`);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HTTP TRIGGER SERVER
+// Listens for POST /sync-trigger with Bearer SYNC_SECRET.
+// Starts alongside daemon mode so the Next.js app can kick off backfills
+// immediately after a user connects a platform via OAuth.
+//
+// Required env vars (add to .env on the upbid.dev server):
+//   SYNC_SECRET    – shared secret, must match SYNC_SECRET in the Next.js app
+//   TRIGGER_PORT   – port to listen on (default: 4242)
+// ─────────────────────────────────────────────────────────────────────────────
+import { createServer } from 'http';
+
+const SYNC_SECRET   = g('SYNC_SECRET');
+const TRIGGER_PORT  = parseInt(g('TRIGGER_PORT') || '4242', 10);
+
+function startTriggerServer() {
+  if (!SYNC_SECRET) {
+    logWarn('[trigger] SYNC_SECRET not set — HTTP trigger server disabled');
+    return;
+  }
+
+  const server = createServer(async (req, res) => {
+    // Only handle POST /sync-trigger
+    if (req.method !== 'POST' || req.url !== '/sync-trigger') {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Not found' }));
+      return;
+    }
+
+    // Verify secret
+    const auth = req.headers['authorization'] ?? '';
+    if (auth !== `Bearer ${SYNC_SECRET}`) {
+      logWarn(`[trigger] Unauthorized request from ${req.socket.remoteAddress}`);
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Unauthorized' }));
+      return;
+    }
+
+    // Parse body
+    let body = '';
+    try {
+      for await (const chunk of req) body += chunk;
+    } catch {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Bad request' }));
+      return;
+    }
+
+    let userId, platform;
+    try {
+      ({ userId, platform } = JSON.parse(body));
+      if (!userId || !platform) throw new Error('Missing userId or platform');
+    } catch (err) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+      return;
+    }
+
+    log(`[trigger] Received — user=${userId.slice(0, 8)} platform=${platform}`);
+
+    // Respond immediately, run backfill in background
+    res.writeHead(202, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ok: true, message: 'Backfill queued' }));
+
+    runBackfillForUser(userId, platform).catch(e =>
+      logFail(`[trigger] Unhandled error in backfill: ${e.message}`)
+    );
+  });
+
+  server.listen(TRIGGER_PORT, () => {
+    logOk(`[trigger] HTTP server listening on port ${TRIGGER_PORT}`);
+  });
+
+  server.on('error', (err) => {
+    logFail(`[trigger] HTTP server error: ${err.message}`);
+  });
+}
+
+
 if (backfillMode) {
   // Manual one-shot full backfill, then exit
   await runBackfill();
@@ -922,7 +1052,11 @@ if (backfillMode) {
   log(`  • Auto-backfill check: every ${CHECK_INTERVAL_MS / 60000} minutes`);
   log(`  • Daily sync:          02:00 UTC`);
   log(`  • Alert rules check:   after every daily sync`);
+  log(`  • Trigger server:      port ${TRIGGER_PORT}`);
   log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+  // 0. Start the HTTP trigger server (fire-and-forget backfill on OAuth connect)
+  startTriggerServer();
 
   // 1. Immediate first run
   await runAutoBackfill();

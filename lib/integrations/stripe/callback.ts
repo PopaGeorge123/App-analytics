@@ -1,6 +1,7 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import { backfillStripeHistory } from "./backfill";
 import { clearSnapshotsIfAccountChanged } from "@/lib/utils/snapshots";
+import { triggerRemoteBackfill } from "@/lib/utils/triggerBackfill";
 
 export async function handleStripeCallback(
   userId: string,
@@ -43,6 +44,7 @@ export async function handleStripeCallback(
     { onConflict: "user_id,platform" }
   );
 
-  // Always re-backfill after connect/reconnect (handles both first connect and account switch)
+  // Trigger remote backfill on upbid.dev server; fall back to local if remote not configured
+  triggerRemoteBackfill(userId, "stripe");
   backfillStripeHistory(userId).catch(console.error);
 }

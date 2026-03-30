@@ -40,6 +40,8 @@ interface DashboardShellProps {
   connectedPlatforms: string[];
   snapshots: Snapshot[];
   websiteData: WebsiteData;
+  metaCurrency: string;
+  isSyncing?: string | null; // platform name that just connected, e.g. "meta"
 }
 
 const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
@@ -99,7 +101,7 @@ export default function DashboardShell(props: DashboardShellProps) {
   );
 }
 
-function DashboardShellInner({ email, isPremium, connectedPlatforms, snapshots, websiteData }: DashboardShellProps) {
+function DashboardShellInner({ email, isPremium, connectedPlatforms, snapshots, websiteData, metaCurrency, isSyncing }: DashboardShellProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<Tab>("overview");
@@ -239,6 +241,26 @@ function DashboardShellInner({ email, isPremium, connectedPlatforms, snapshots, 
         </div>
 
         <div className="p-6 lg:p-8">
+          {/* Syncing banner — shown right after a platform connects */}
+          {isSyncing && (
+            <div className="mb-6 flex items-center gap-3 rounded-xl border border-[#00d4aa]/30 bg-[#00d4aa]/10 px-4 py-3">
+              <svg
+                className="h-4 w-4 shrink-0 animate-spin text-[#00d4aa]"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              <p className="font-mono text-xs font-medium text-[#00d4aa]">
+                Syncing your{" "}
+                <span className="font-bold uppercase">
+                  {isSyncing === "ga4" ? "GA4" : isSyncing.charAt(0).toUpperCase() + isSyncing.slice(1)}
+                </span>{" "}
+                data now — your dashboard will update shortly.
+              </p>
+            </div>
+          )}
           {activeTab === "overview" && (
             <OverviewTab
               email={email}
@@ -246,6 +268,7 @@ function DashboardShellInner({ email, isPremium, connectedPlatforms, snapshots, 
               connectedPlatforms={connectedPlatforms}
               snapshots={snapshots}
               websiteData={websiteData}
+              metaCurrency={metaCurrency}
               onNavigate={navigate}
             />
           )}

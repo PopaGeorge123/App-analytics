@@ -31,6 +31,7 @@ interface OverviewTabProps {
   connectedPlatforms: string[];
   snapshots: Snapshot[];
   websiteData: WebsiteData;
+  metaCurrency: string;
   onNavigate: (tab: "overview" | "analytics" | "website" | "settings") => void;
 }
 
@@ -71,6 +72,24 @@ function fmt(n: number, type: "currency" | "number" | "percent" = "number"): str
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
   return n.toLocaleString("en-US", { maximumFractionDigits: 0 });
+}
+
+/** Extract the Meta ad account currency from snapshots (stored in data.currency) */
+function getMetaCurrency(snaps: Snapshot[]): string {
+  const found = [...snaps]
+    .reverse()
+    .find((s) => s.provider === "meta" && (s.data as Record<string, unknown>)?.currency);
+  return ((found?.data as Record<string, unknown>)?.currency as string) ?? "USD";
+}
+
+/** Format Meta spend using the real account currency (NOT /100 — Meta stores full units) */
+function fmtMetaSpend(amount: number, currency: string): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
 }
 
 function trendPct(current: number, prev: number): number | null {
@@ -465,6 +484,7 @@ export default function OverviewTab({
   connectedPlatforms,
   snapshots,
   websiteData,
+  metaCurrency: metaCurrencyProp,
   onNavigate,
 }: OverviewTabProps) {
   const router = useRouter();
@@ -510,6 +530,9 @@ export default function OverviewTab({
     const snaps14 = filterDays(effectiveSnapshots, 14);
     const snapsPrev7 = snaps14.filter((s) => !snaps7.find((x) => x.id === s.id));
 
+    // Meta currency — from integrations table (authoritative, passed as prop from server)
+    const metaCurrency = metaCurrencyProp;
+
     const revenue7 = sumField(snaps7, "stripe", "revenue");
     const revenuePrev = sumField(snapsPrev7, "stripe", "revenue");
     const sessions7 = sumField(snaps7, "ga4", "sessions");
@@ -542,7 +565,7 @@ export default function OverviewTab({
     if (stripeConn && revenueYday > 0) narrativeParts.push(`${fmt(revenueYday, "currency")} revenue (${txYday} txns)`);
     if (ga4Conn && sessionsYday > 0) narrativeParts.push(`${fmt(sessionsYday)} sessions`);
     if (stripeConn && newCxYday > 0) narrativeParts.push(`${newCxYday} new customer${newCxYday !== 1 ? "s" : ""}`);
-    if (metaConn && spendYday > 0) narrativeParts.push(`${fmt(spendYday, "currency")} ad spend`);
+    if (metaConn && spendYday > 0) narrativeParts.push(`${fmtMetaSpend(spendYday, metaCurrency)} ad spend`);
 
     const narrative = {
       hasData: hasYesterdayData && narrativeParts.length > 0,
@@ -596,7 +619,7 @@ export default function OverviewTab({
       },
       {
         label: "Ad Spend (7d)",
-        value: metaConn ? fmt(spend7, "currency") : null,
+        value: metaConn ? fmtMetaSpend(spend7, metaCurrency) : null,
         sub: metaConn ? `${fmt(sumField(snaps7, "meta", "clicks"))} clicks` : null,
         trend: metaConn ? { current: spend7, prev: spendPrev } : null,
         icon: "adspend",
@@ -614,7 +637,7 @@ export default function OverviewTab({
       },
       {
         label: "CAC",
-        value: metaConn && stripeConn && cac7 !== null ? fmt(cac7, "currency") : null,
+        value: metaConn && stripeConn && cac7 !== null ? fmtMetaSpend(cac7, metaCurrency) : null,
         sub: metaConn && stripeConn && cac7 !== null ? "ad spend ÷ new customers" : null,
         trend: null,
         icon: "cac",

@@ -1,6 +1,7 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import { google } from "googleapis";
 import { clearSnapshotsIfAccountChanged } from "@/lib/utils/snapshots";
+import { triggerRemoteBackfill } from "@/lib/utils/triggerBackfill";
 
 export async function handleGoogleCallback(
   userId: string,
@@ -92,7 +93,8 @@ export async function selectGA4Property(
     .eq("user_id", userId)
     .eq("platform", "ga4");
 
-  // Start backfill in background
+  // Start backfill in background + trigger remote server
   const { backfillGA4History } = await import("./backfill");
+  triggerRemoteBackfill(userId, "ga4");
   backfillGA4History(userId).catch(console.error);
 }
