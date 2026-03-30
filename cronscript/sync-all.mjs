@@ -427,7 +427,7 @@ async function extendMetaToken(userId, accessToken) {
 }
 
 /** Fetch Meta Ads insights for a single day */
-async function fetchMetaDay(adAccountId, token, date) {
+async function fetchMetaDay(adAccountId, token, date, currency = 'USD') {
   const insRes = await fetchRetry('Meta insights',
     `https://graph.facebook.com/v22.0/${adAccountId}/insights?fields=spend,reach,clicks,actions&time_range=${encodeURIComponent(JSON.stringify({ since: date, until: date }))}&access_token=${encodeURIComponent(token)}`
   );
@@ -441,6 +441,7 @@ async function fetchMetaDay(adAccountId, token, date) {
     conversions: (d.actions ?? [])
       .filter(a => ['purchase', 'offsite_conversion.fb_pixel_purchase'].includes(a.action_type))
       .reduce((s, a) => s + parseInt(a.value ?? '0', 10), 0),
+    currency,   // store the ad account currency so the UI can format spend correctly
   };
 }
 
@@ -449,7 +450,8 @@ async function syncMeta(userId, integration) {
   const freshToken  = await extendMetaToken(userId, integration.access_token);
   const date        = yesterday();
   const adAccountId = integration.account_id;
-  const d           = await fetchMetaDay(adAccountId, freshToken, date);
+  const currency    = integration.currency ?? 'USD';
+  const d           = await fetchMetaDay(adAccountId, freshToken, date, currency);
 
   await SB.upsert('daily_snapshots',
     { user_id: userId, provider: 'meta', date, data: d },
@@ -468,6 +470,7 @@ async function backfillMeta(userId, integration, days = BACKFILL_DAYS.meta) {
   log(`  [meta backfill] ${days} days for user ${userId.slice(0, 8)} (batches of 5)`);
   const freshToken  = await extendMetaToken(userId, integration.access_token);
   const adAccountId = integration.account_id;
+  const currency    = integration.currency ?? 'USD';
   const BATCH = 5;
   let ok = 0, skipped = 0;
 
@@ -478,7 +481,7 @@ async function backfillMeta(userId, integration, days = BACKFILL_DAYS.meta) {
     }
 
     const results = await Promise.allSettled(
-      offsets.map(offset => fetchMetaDay(adAccountId, freshToken, daysAgo(offset)))
+      offsets.map(offset => fetchMetaDay(adAccountId, freshToken, daysAgo(offset), currency))
     );
 
     const rows = [];
@@ -488,7 +491,7 @@ async function backfillMeta(userId, integration, days = BACKFILL_DAYS.meta) {
       if (res.status === 'fulfilled') {
         const d = res.value;
         rows.push({ user_id: userId, provider: 'meta', date, data: d });
-        if (d.spend > 0) logOk(`  meta ${date} — $${d.spend} spend | ${d.clicks} clicks`);
+        if (d.spend > 0) logOk(`  meta ${date} — ${currency} ${d.spend} spend | ${d.clicks} clicks`);
         ok++;
       } else {
         logFail(`  meta ${date} — ${res.reason?.message ?? res.reason}`);
@@ -523,7 +526,7 @@ async function runBackfill() {
 
   let rows;
   try {
-    rows = await SB.select('integrations', 'user_id,platform,access_token,refresh_token,account_id', filters);
+    rows = await SB.select('integrations', 'user_id,platform,access_token,refresh_token,account_id,currency', filters);
   } catch (err) {
     logFail(`Cannot fetch integrations: ${err.message}`);
     return;
@@ -605,7 +608,7 @@ async function runSync() {
 
   let rows;
   try {
-    rows = await SB.select('integrations', 'user_id,platform,access_token,refresh_token,account_id', filters);
+    rows = await SB.select('integrations', 'user_id,platform,access_token,refresh_token,account_id,currency', filters);
   } catch (err) {
     logFail(`Cannot fetch integrations: ${err.message}`);
     return;
@@ -677,7 +680,7 @@ async function runAutoBackfill() {
   // Fetch all integrations
   let rows;
   try {
-    rows = await SB.select('integrations', 'user_id,platform,access_token,refresh_token,account_id');
+    rows = await SB.select('integrations', 'user_id,platform,access_token,refresh_token,account_id,currency');
   } catch (err) {
     logFail(`[auto-backfill] Cannot fetch integrations: ${err.message}`);
     return;
@@ -992,7 +995,7 @@ async function runBackfillForUser(userId, platform, newAccountId = null) {
 
   let rows;
   try {
-    rows = await SB.select('integrations', 'user_id,platform,access_token,refresh_token,account_id', {
+    rows = await SB.select('integrations', 'user_id,platform,access_token,refresh_token,account_id,currency', {
       user_id:  userId,
       platform: platform,
     });

@@ -442,6 +442,7 @@ function DashboardShellInner({ email, isPremium, connectedPlatforms, snapshots, 
               isPremium={isPremium}
               connectedPlatforms={connectedPlatforms}
               snapshots={snapshots}
+              metaCurrency={metaCurrency}
             />
           )}
           {activeTab === "website" && (

@@ -25,6 +25,7 @@ interface Props {
   connectedPlatforms: string[];
   timeRange?: TimeRange;
   granularity?: Granularity;
+  metaCurrency?: string;
 }
 
 type TimeRange = "1d" | "7d" | "30d" | "90d" | "all";
@@ -149,11 +150,13 @@ function getField(snap: Snapshot, field: string): number {
   return d[field] ?? 0;
 }
 
-function fmtCurrency(n: number): string {
-  const d = n / 100;
-  if (d >= 1_000_000) return `$${(d / 1_000_000).toFixed(1)}M`;
-  if (d >= 1_000) return `$${(d / 1_000).toFixed(1)}k`;
-  return `$${d.toFixed(0)}`;
+function fmtCurrency(n: number, currency = "USD"): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(n);
 }
 
 function fmtNum(n: number): string {
@@ -538,7 +541,8 @@ function buildChartData(
 function generateInsights(
   snapshots: Snapshot[],
   report: ReportType,
-  connectedPlatforms: string[]
+  connectedPlatforms: string[],
+  metaCurrency = "USD"
 ): { icon: string; title: string; body: string; accent: string }[] {
   const insights: { icon: string; title: string; body: string; accent: string }[] = [];
 
@@ -589,10 +593,10 @@ function generateInsights(
       title: `ROAS: ${roas.toFixed(2)}x`,
       body:
         roas >= 3
-          ? `Excellent! You're earning $${roas.toFixed(2)} for every $1 spent on ads.`
+          ? `Excellent! You're earning ${fmtCurrency(roas, metaCurrency)} for every ${fmtCurrency(1, metaCurrency)} spent on ads.`
           : roas >= 1
           ? `Profitable but there's room to improve. Target ≥3x ROAS for healthy margins.`
-          : `Ad spend ($${totalSpend.toFixed(2)}) exceeds revenue. Consider pausing underperforming campaigns.`,
+          : `Ad spend (${fmtCurrency(totalSpend, metaCurrency)}) exceeds revenue. Consider pausing underperforming campaigns.`,
       accent: roas >= 3 ? COLORS.profit : roas >= 1 ? COLORS.roas : COLORS.spend,
     });
   }
@@ -603,7 +607,7 @@ function generateInsights(
       title: `Est. Profit: $${profit.toFixed(2)}`,
       body:
         profit >= 0
-          ? `After subtracting $${totalSpend.toFixed(2)} ad spend from $${revenueUSD.toFixed(2)} revenue.`
+          ? `After subtracting ${fmtCurrency(totalSpend, metaCurrency)} ad spend from $${revenueUSD.toFixed(2)} revenue.`
           : `You're spending more on ads than you're earning. Cut spend or improve conversion rate.`,
       accent: profit >= 0 ? COLORS.profit : COLORS.spend,
     });
@@ -640,8 +644,8 @@ function generateInsights(
   if (connectedPlatforms.includes("meta") && cac > 0) {
     insights.push({
       icon: "👤",
-      title: `CAC: $${cac.toFixed(2)} per conversion`,
-      body: `You're spending $${cac.toFixed(2)} in ads to acquire each conversion. CTR is ${ctr.toFixed(2)}%.`,
+      title: `CAC: ${fmtCurrency(cac, metaCurrency)} per conversion`,
+      body: `You're spending ${fmtCurrency(cac, metaCurrency)} in ads to acquire each conversion. CTR is ${ctr.toFixed(2)}%.`,
       accent: COLORS.clicks,
     });
   }
@@ -650,7 +654,7 @@ function generateInsights(
     insights.push({
       icon: "📡",
       title: "Cross-platform health",
-      body: `${connectedPlatforms.length} platforms connected. Tracking ${fmtNum(totalSessions)} sessions, $${revenueUSD.toFixed(0)} revenue, and $${totalSpend.toFixed(0)} ad spend in parallel.`,
+      body: `${connectedPlatforms.length} platforms connected. Tracking ${fmtNum(totalSessions)} sessions, $${revenueUSD.toFixed(0)} revenue, and ${fmtCurrency(totalSpend, metaCurrency)} ad spend in parallel.`,
       accent: COLORS.users,
     });
   }
@@ -660,7 +664,7 @@ function generateInsights(
 
 // ── Main Component ────────────────────────────────────────────────────────
 
-export default function OverviewSection({ snapshots, connectedPlatforms, timeRange: externalTimeRange, granularity = "day" }: Props) {
+export default function OverviewSection({ snapshots, connectedPlatforms, timeRange: externalTimeRange, granularity = "day", metaCurrency = "USD" }: Props) {
   const [internalTimeRange, setInternalTimeRange] = useState<TimeRange>("30d");
   const [report, setReport] = useState<ReportType>("business_growth");
 
@@ -680,8 +684,8 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
   );
 
   const insights = useMemo(
-    () => generateInsights(filtered, report, connectedPlatforms),
-    [filtered, report, connectedPlatforms]
+    () => generateInsights(filtered, report, connectedPlatforms, metaCurrency),
+    [filtered, report, connectedPlatforms, metaCurrency]
   );
 
   // Summary KPIs (always shown regardless of report)
@@ -738,7 +742,7 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
       },
       connectedPlatforms.includes("meta") && {
         label: "Ad Spend",
-        value: `$${totalSpend.toFixed(2)}`,
+        value: fmtCurrency(totalSpend, metaCurrency),
         icon: "",
         color: COLORS.spend,
         change: pctChange(totalSpend, prevSpend),

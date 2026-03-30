@@ -8,6 +8,7 @@ interface AnalyticsTabProps {
   isPremium: boolean;
   connectedPlatforms: string[];
   snapshots: Snapshot[];
+  metaCurrency?: string;
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────
@@ -1085,7 +1086,7 @@ const PLATFORM_LABELS: Record<PlatformTab, string> = {
   meta:     "Meta Ads",
 };
 
-export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots }: AnalyticsTabProps) {
+export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots, metaCurrency = "USD" }: AnalyticsTabProps) {
   const availablePlatforms = (["stripe", "ga4", "meta"] as Exclude<PlatformTab, "overview">[]).filter(
     (p) => connectedPlatforms.includes(p)
   );
@@ -1246,6 +1247,7 @@ export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots 
               connectedPlatforms={connectedPlatforms}
               timeRange="all"
               granularity={granularity}
+              metaCurrency={metaCurrency}
             />
           )}
           {activeSection === "stripe" && connectedPlatforms.includes("stripe") && (
