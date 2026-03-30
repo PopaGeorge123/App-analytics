@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 };
 
 const LAST_UPDATED = "March 21, 2026";
-const CONTACT_EMAIL = "legal@usefold.io";
+const CONTACT_EMAIL = "info@usefold.io";
 
 export default function TermsPage() {
   return (

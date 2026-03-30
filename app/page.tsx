@@ -1126,7 +1126,7 @@ export default function Home() {
           </div>
           <p className="mt-6 text-center font-mono text-xs text-[#8585aa]">
             Still have questions?{" "}
-            <a href="mailto:support@usefold.io" className="text-[#00d4aa] hover:underline">Email us →</a>
+            <a href="mailto:info@usefold.io" className="text-[#00d4aa] hover:underline">Email us →</a>
           </p>
         </div>
       </section>
