@@ -31,9 +31,9 @@
  *    node cronscript/sync-all.mjs --backfill --platform stripe --days 180
  *
  *  Backfill depth (default):
- *    Stripe  → 540 days (~18 months)
- *    GA4     → 90 days
- *    Meta    → 30 days
+ *    Stripe  → 90 days (parallel batches of 10 — override with --days N)
+ *    GA4     → 90 days (single batched API call)
+ *    Meta    → 90 days (parallel batches of 5)
  *
  *  FILTERS (work with any mode):
  *    --user <uuid>        only this user
@@ -114,11 +114,11 @@ const alertsOnly   = args.includes('--alerts');  // one-shot: only run alert che
 const targetUser   = args.includes('--user')     ? args[args.indexOf('--user') + 1]     : null;
 const targetPlat   = args.includes('--platform') ? args[args.indexOf('--platform') + 1] : null;
 
-// How many days to backfill per platform (override Stripe with --days N)
+// How many days to backfill per platform (override with --days N)
 const BACKFILL_DAYS = {
-  stripe: args.includes('--days') ? parseInt(args[args.indexOf('--days') + 1], 10) : 540,
+  stripe: args.includes('--days') ? parseInt(args[args.indexOf('--days') + 1], 10) : 90,
   ga4:    90,
-  meta:   30,
+  meta:   90,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -269,24 +269,37 @@ async function syncStripe(userId, accessToken) {
   return { date, ...r };
 }
 
-/** Full backfill — day by day from N days ago up to yesterday */
+/** Full backfill — parallel batches of 10 days, from N days ago up to yesterday */
 async function backfillStripe(userId, accessToken, days = BACKFILL_DAYS.stripe) {
-  log(`  [stripe backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  log(`  [stripe backfill] ${days} days for user ${userId.slice(0, 8)} (batches of 10)`);
+  const BATCH = 10;
   let ok = 0, skipped = 0;
-  for (let i = days; i >= 1; i--) {
-    const date = daysAgo(i);
-    try {
-      const r = await syncStripeDay(userId, accessToken, date);
-      if (r.txCount > 0) {
-        logOk(`  stripe ${date} — $${(r.revenue / 100).toFixed(2)} | ${r.txCount} tx`);
-      }
-      ok++;
-    } catch (err) {
-      logFail(`  stripe ${date} — ${err.message}`);
-      skipped++;
+
+  // Work from oldest → newest in batches
+  for (let batchStart = days; batchStart >= 1; batchStart -= BATCH) {
+    const offsets = [];
+    for (let k = 0; k < BATCH && (batchStart - k) >= 1; k++) {
+      offsets.push(batchStart - k);
     }
-    // Small delay every 10 days to avoid Stripe rate limits
-    if (i % 10 === 0) await sleep(500);
+
+    const results = await Promise.allSettled(
+      offsets.map(offset => syncStripeDay(userId, accessToken, daysAgo(offset)))
+    );
+
+    for (let j = 0; j < results.length; j++) {
+      const res  = results[j];
+      const date = daysAgo(offsets[j]);
+      if (res.status === 'fulfilled') {
+        if (res.value.txCount > 0) logOk(`  stripe ${date} — $${(res.value.revenue / 100).toFixed(2)} | ${res.value.txCount} tx`);
+        ok++;
+      } else {
+        logFail(`  stripe ${date} — ${res.reason?.message ?? res.reason}`);
+        skipped++;
+      }
+    }
+
+    // Brief pause between batches to stay well under Stripe rate limits
+    if (batchStart - BATCH >= 1) await sleep(1_000);
   }
   log(`  [stripe backfill] done — ${ok} days saved, ${skipped} errors`);
 }
@@ -446,30 +459,50 @@ async function syncMeta(userId, integration) {
 }
 
 /**
- * Full Meta backfill — day by day (Meta Ads Insights API doesn't support
- * dimension breakdowns by date in bulk the same way GA4 does, so we loop).
+ * Full Meta backfill — parallel batches of 5 days.
+ * Meta Ads Insights API supports per-day time_range but not a bulk date-dimension
+ * breakdown the same way GA4 does, so we still call per day — but in parallel.
+ * Batch size 5 is conservative given Meta's ~200 req/hour rate limit.
  */
 async function backfillMeta(userId, integration, days = BACKFILL_DAYS.meta) {
-  log(`  [meta backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  log(`  [meta backfill] ${days} days for user ${userId.slice(0, 8)} (batches of 5)`);
   const freshToken  = await extendMetaToken(userId, integration.access_token);
   const adAccountId = integration.account_id;
+  const BATCH = 5;
   let ok = 0, skipped = 0;
 
-  for (let i = days; i >= 1; i--) {
-    const date = daysAgo(i);
-    try {
-      const d = await fetchMetaDay(adAccountId, freshToken, date);
-      await SB.upsert('daily_snapshots',
-        { user_id: userId, provider: 'meta', date, data: d },
-        'user_id,provider,date');
-      if (d.spend > 0) logOk(`  meta ${date} — $${d.spend} spend | ${d.clicks} clicks`);
-      ok++;
-    } catch (err) {
-      logFail(`  meta ${date} — ${err.message}`);
-      skipped++;
+  for (let batchStart = days; batchStart >= 1; batchStart -= BATCH) {
+    const offsets = [];
+    for (let k = 0; k < BATCH && (batchStart - k) >= 1; k++) {
+      offsets.push(batchStart - k);
     }
-    // Meta rate limit: ~200 req/hour per token — 500ms delay is safe
-    await sleep(500);
+
+    const results = await Promise.allSettled(
+      offsets.map(offset => fetchMetaDay(adAccountId, freshToken, daysAgo(offset)))
+    );
+
+    const rows = [];
+    for (let j = 0; j < results.length; j++) {
+      const res  = results[j];
+      const date = daysAgo(offsets[j]);
+      if (res.status === 'fulfilled') {
+        const d = res.value;
+        rows.push({ user_id: userId, provider: 'meta', date, data: d });
+        if (d.spend > 0) logOk(`  meta ${date} — $${d.spend} spend | ${d.clicks} clicks`);
+        ok++;
+      } else {
+        logFail(`  meta ${date} — ${res.reason?.message ?? res.reason}`);
+        skipped++;
+      }
+    }
+
+    // Upsert the whole batch at once
+    for (const row of rows) {
+      await SB.upsert('daily_snapshots', row, 'user_id,provider,date');
+    }
+
+    // 1s between batches → well under Meta's rate limit
+    if (batchStart - BATCH >= 1) await sleep(1_000);
   }
   log(`  [meta backfill] done — ${ok} days saved, ${skipped} errors`);
 }
