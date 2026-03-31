@@ -6,6 +6,7 @@ import type { Snapshot } from "./DashboardShell";
 import { pushNotification } from "./DashboardShell";
 import { DEMO_SNAPSHOTS, DEMO_CONNECTED_PLATFORMS } from "./demoData";
 import { DEFAULT_ALERTS, type AlertRules } from "./SettingsTab";
+import { LIVE_INTEGRATIONS } from "@/lib/integrations/catalog";
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -504,92 +505,21 @@ function GoalsWidget({
 }
 
 // ── Integration icons ─────────────────────────────────────────────────────
-
-const INTEGRATIONS = [
-  {
-    id: "stripe",
-    name: "Stripe",
-    description: "Revenue & customers",
-    connectUrl: "/api/auth/stripe/url",
-    color: "#635bff",
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.591-7.305z" />
-      </svg>
-    ),
-  },
-  {
-    id: "ga4",
-    name: "Google Analytics",
-    description: "Sessions & conversions",
-    connectUrl: "/api/auth/google/url",
-    color: "#f59e0b",
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1c-4.3 0-7.99 2.47-9.82 6.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-      </svg>
-    ),
-  },
-  {
-    id: "meta",
-    name: "Meta Ads",
-    description: "Ad spend & reach",
-    connectUrl: "/api/auth/meta/url",
-    color: "#1877f2",
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-      </svg>
-    ),
-  },
-];
+// Sourced from the shared catalog — LIVE_INTEGRATIONS contains stripe, ga4, meta
 
 // ── Onboarding Wizard ─────────────────────────────────────────────────────
 
-const SETUP_STEPS = [
-  {
-    id: "stripe",
-    num: 1,
-    title: "Connect Stripe",
-    description: "Track revenue, transactions, and new customers automatically.",
-    connectUrl: "/api/auth/stripe/url",
-    color: "#635bff",
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.591-7.305z" />
-      </svg>
-    ),
-  },
-  {
-    id: "ga4",
-    num: 2,
-    title: "Connect Google Analytics",
-    description: "See sessions, bounce rate, and conversion data alongside revenue.",
-    connectUrl: "/api/auth/google/url",
-    color: "#f59e0b",
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-      </svg>
-    ),
-  },
-  {
-    id: "meta",
-    num: 3,
-    title: "Connect Meta Ads",
-    description: "Monitor ad spend, reach, and cost-per-acquisition in one place.",
-    connectUrl: "/api/auth/meta/url",
-    color: "#1877f2",
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-      </svg>
-    ),
-  },
-];
+const SETUP_STEPS = LIVE_INTEGRATIONS.map((i, idx) => ({
+  id: i.id,
+  num: idx + 1,
+  title: `Connect ${i.name}`,
+  description: i.description,
+  connectUrl: i.connectUrl!,
+  color: i.color,
+  icon: (
+    <svg width="20" height="20" viewBox={i.iconViewBox ?? "0 0 24 24"} dangerouslySetInnerHTML={{ __html: i.icon }} />
+  ),
+}));
 
 function OnboardingWizard({ onNavigate }: { onNavigate: (tab: "overview" | "analytics" | "website" | "settings") => void }) {
   const completedCount = 0; // no platforms yet — this component only renders when count === 0
@@ -877,8 +807,8 @@ export default function OverviewTab({
 
   const pendingTasks = websiteData.tasks.filter((t) => !t.completed);
   const completedTasks = websiteData.tasks.filter((t) => t.completed);
-  const hasAllIntegrations = ["stripe", "ga4", "meta"].every((p) => connectedPlatforms.includes(p));
-  const missingIntegrations = INTEGRATIONS.filter((i) => !connectedPlatforms.includes(i.id));
+  const hasAllIntegrations = LIVE_INTEGRATIONS.every((i) => connectedPlatforms.includes(i.id));
+  const missingIntegrations = LIVE_INTEGRATIONS.filter((i) => !connectedPlatforms.includes(i.id));
 
   // ── Active alerts based on user-configured thresholds ─────────────────
   const activeAlerts: { color: string; message: string }[] = [];
@@ -1509,7 +1439,12 @@ export default function OverviewTab({
                   className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
                   style={{ backgroundColor: `${intg.color}18`, color: intg.color }}
                 >
-                  {intg.icon}
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox={intg.iconViewBox ?? "0 0 24 24"}
+                    dangerouslySetInnerHTML={{ __html: intg.icon }}
+                  />
                 </div>
                 <div className="min-w-0">
                   <p className="font-mono text-[11px] font-semibold text-[#e0e0f0] group-hover:text-[#f8f8fc]">

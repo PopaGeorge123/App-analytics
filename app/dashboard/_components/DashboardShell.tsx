@@ -262,20 +262,28 @@ function NotificationBell() {
 function DashboardShellInner({ email, isPremium, connectedPlatforms, snapshots, websiteData, metaCurrency, isSyncing }: DashboardShellProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  // Always start with "overview" on server/first render to avoid hydration mismatch.
+  // The useEffect below immediately corrects the tab from the URL on the client.
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Sync tab from URL query param
+  // Sync tab from URL — runs after hydration so SSR and client HTML always match.
+  // Only update when the tab value actually changes to avoid fighting user clicks.
   useEffect(() => {
     const tab = searchParams.get("tab") as Tab | null;
-    if (tab && ["overview", "analytics", "website", "ai", "settings"].includes(tab)) {
+    if (tab && ["overview", "analytics", "website", "ai", "settings"].includes(tab) && tab !== activeTab) {
       setActiveTab(tab);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
   function navigate(tab: Tab) {
     setActiveTab(tab);
     setSidebarOpen(false);
+    // Only keep the tab param — drop everything else (OAuth results, syncing, connect, error flags).
+    // This is the only safe approach: extra params like ?shopify=error keep searchParams changing
+    // which re-triggers the useEffect and snaps the tab back.
     router.replace(`/dashboard?tab=${tab}`, { scroll: false });
   }
 

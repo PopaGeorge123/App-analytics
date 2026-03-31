@@ -9,6 +9,7 @@
  *   Stripe   → revenue, transactions, new customers
  *   GA4      → sessions, users, bounce rate, conversions
  *   Meta Ads → spend, reach, clicks, conversions
+ *   PayPal   → revenue, transactions, fees, net revenue
  *
  * ── MODES ────────────────────────────────────────────────────────────────────
  *
@@ -93,8 +94,10 @@ const SUPABASE_URL = g('NEXT_PUBLIC_SUPABASE_URL');
 const SERVICE_KEY  = g('SUPABASE_SERVICE_ROLE_KEY');
 const GOOGLE_ID    = g('GOOGLE_CLIENT_ID');
 const GOOGLE_SEC   = g('GOOGLE_CLIENT_SECRET');
-const META_APP_ID  = g('META_APP_ID');
-const META_APP_SEC = g('META_APP_SECRET');
+const META_APP_ID      = g('META_APP_ID');
+const META_APP_SEC     = g('META_APP_SECRET');
+const PAYPAL_CLIENT_ID = g('PAYPAL_CLIENT_ID');
+const PAYPAL_CLIENT_SEC = g('PAYPAL_CLIENT_SECRET');
 const RESEND_KEY   = g('RESEND_API_KEY');
 const FROM_EMAIL   = 'Fold Alerts <alerts@tryfold.io>';
 
@@ -119,6 +122,8 @@ const BACKFILL_DAYS = {
   stripe: args.includes('--days') ? parseInt(args[args.indexOf('--days') + 1], 10) : 365,
   ga4:    365,
   meta:   365,
+  paypal: 365,
+  paddle: 365,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -612,7 +617,1579 @@ async function backfillMeta(userId, integration, days = BACKFILL_DAYS.meta) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// FULL HISTORICAL BACKFILL
+// ④ PAYPAL  (PayPal Reporting API v1 — no SDK)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Refresh a PayPal access token and persist it to the integrations table */
+async function refreshPayPalToken(userId, refreshToken) {
+  const credentials = Buffer.from(`${PAYPAL_CLIENT_ID}:${PAYPAL_CLIENT_SEC}`).toString('base64');
+  const res = await fetchRetry('PayPal token refresh', 'https://api-m.paypal.com/v1/oauth2/token', {
+    method: 'POST',
+    headers: {
+      Authorization:  `Basic ${credentials}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: refreshToken }).toString(),
+  });
+  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(`PayPal token refresh: ${e?.error_description ?? e?.error ?? res.status}`); }
+  const newToken = (await res.json()).access_token;
+  await SB.patch('integrations', { access_token: newToken }, { user_id: userId, platform: 'paypal' });
+  return newToken;
+}
+
+/** Fetch + upsert one day of PayPal transaction data */
+async function syncPayPalDay(userId, accessToken, refreshToken, date) {
+  const startDate = `${date}T00:00:00-0000`;
+  const endDate   = `${date}T23:59:59-0000`;
+  const params    = new URLSearchParams({ start_date: startDate, end_date: endDate, fields: 'all', page_size: '500' });
+
+  let token = accessToken;
+  let res   = await fetchRetry('PayPal transactions', `https://api-m.paypal.com/v1/reporting/transactions?${params}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  // Attempt one token refresh on 401
+  if (res.status === 401 && refreshToken) {
+    token = await refreshPayPalToken(userId, refreshToken);
+    res   = await fetchRetry('PayPal transactions (retry)', `https://api-m.paypal.com/v1/reporting/transactions?${params}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(`PayPal transactions: ${e?.message ?? res.status}`); }
+
+  const body         = (await res.json());
+  const transactions = body.transaction_details ?? [];
+
+  let revenue = 0, fees = 0, txCount = 0;
+  for (const tx of transactions) {
+    const info   = tx.transaction_info ?? {};
+    if (info.transaction_status !== 'S') continue; // only success
+    const amount = parseFloat(info.transaction_amount?.value ?? '0');
+    const fee    = parseFloat(info.fee_amount?.value ?? '0');
+    if (amount > 0) { revenue += amount; fees += Math.abs(fee); txCount += 1; }
+  }
+  const netRevenue = revenue - fees;
+
+  await SB.upsert('daily_snapshots',
+    { user_id: userId, provider: 'paypal', date, data: { revenue, fees, netRevenue, txCount } },
+    'user_id,provider,date');
+
+  return { revenue, txCount, fees, netRevenue };
+}
+
+/** Daily sync — yesterday only */
+async function syncPayPal(userId, integration) {
+  if (!PAYPAL_CLIENT_ID || !PAYPAL_CLIENT_SEC) throw new Error('PayPal: missing PAYPAL_CLIENT_ID / PAYPAL_CLIENT_SECRET in .env');
+  const date = yesterday();
+  const r = await syncPayPalDay(userId, integration.access_token, integration.refresh_token, date);
+  return { date, ...r };
+}
+
+/** Full backfill — sequential per day (PayPal reporting has strict rate limits) */
+async function backfillPayPal(userId, integration, days = BACKFILL_DAYS.paypal) {
+  if (!PAYPAL_CLIENT_ID || !PAYPAL_CLIENT_SEC) throw new Error('PayPal: missing PAYPAL_CLIENT_ID / PAYPAL_CLIENT_SECRET in .env');
+  log(`  [paypal backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  let ok = 0, skipped = 0;
+
+  for (let offset = days; offset >= 1; offset--) {
+    const date = daysAgo(offset);
+    try {
+      const r = await syncPayPalDay(userId, integration.access_token, integration.refresh_token, date);
+      if (r.txCount > 0) logOk(`  paypal ${date} — $${r.revenue.toFixed(2)} revenue | ${r.txCount} tx`);
+      ok++;
+    } catch (err) {
+      logFail(`  paypal ${date} — ${err.message}`);
+      skipped++;
+    }
+    // 200ms between each day to respect PayPal rate limits
+    await sleep(200);
+  }
+  log(`  [paypal backfill] done — ${ok} days saved, ${skipped} errors`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ⑤ PADDLE  (Paddle Billing API v1 — no SDK, API key per user)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Fetch + upsert one day of Paddle transaction data */
+async function syncPaddleDay(userId, apiKey, date) {
+  const from    = `${date}T00:00:00Z`;
+  const to      = `${date}T23:59:59Z`;
+  const headers = { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' };
+
+  let revenue = 0, fees = 0, txCount = 0;
+  let after   = null;
+
+  while (true) {
+    const params = new URLSearchParams({
+      'billed_at[gte]': from,
+      'billed_at[lte]': to,
+      status:           'completed',
+      per_page:         '200',
+    });
+    if (after) params.set('after', after);
+
+    const res = await fetchRetry('Paddle transactions', `https://api.paddle.com/transactions?${params}`, { headers });
+    if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(`Paddle transactions: ${e?.error?.detail ?? res.status}`); }
+
+    const body  = await res.json();
+    const items = body.data ?? [];
+
+    for (const tx of items) {
+      const totals     = tx.details?.totals ?? {};
+      const grandTotal = parseInt(totals.grand_total ?? '0', 10);
+      const earnings   = parseInt(totals.earnings   ?? '0', 10);
+      if (grandTotal > 0) {
+        revenue  += grandTotal / 100;
+        fees     += (grandTotal - earnings) / 100;
+        txCount  += 1;
+      }
+    }
+
+    const nextUrl = body.meta?.pagination?.next;
+    if (!nextUrl) break;
+    try { after = new URL(nextUrl).searchParams.get('after'); if (!after) break; } catch { break; }
+  }
+
+  const netRevenue = revenue - fees;
+  await SB.upsert('daily_snapshots',
+    { user_id: userId, provider: 'paddle', date, data: { revenue, fees, netRevenue, txCount } },
+    'user_id,provider,date');
+
+  return { revenue, fees, netRevenue, txCount };
+}
+
+/** Daily sync — yesterday only */
+async function syncPaddle(userId, integration) {
+  const date = yesterday();
+  const r = await syncPaddleDay(userId, integration.access_token, date);
+  return { date, ...r };
+}
+
+/** Full backfill — sequential per day */
+async function backfillPaddle(userId, integration, days = BACKFILL_DAYS.paddle) {
+  log(`  [paddle backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  let ok = 0, skipped = 0;
+
+  for (let offset = days; offset >= 1; offset--) {
+    const date = daysAgo(offset);
+    try {
+      const r = await syncPaddleDay(userId, integration.access_token, date);
+      if (r.txCount > 0) logOk(`  paddle ${date} — $${r.revenue.toFixed(2)} revenue | ${r.txCount} tx`);
+      ok++;
+    } catch (err) {
+      logFail(`  paddle ${date} — ${err.message}`);
+      skipped++;
+    }
+    await sleep(100); // Paddle rate limit is generous but let's be polite
+  }
+  log(`  [paddle backfill] done — ${ok} days saved, ${skipped} errors`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ⑥ LEMON SQUEEZY  (Lemon Squeezy API v1 — no SDK, API key per user)
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function syncLemonSqueezyDay(userId, apiKey, storeId, date) {
+  const headers = { Authorization: `Bearer ${apiKey}`, Accept: 'application/vnd.api+json' };
+  const from    = `${date}T00:00:00.000Z`;
+  const to      = `${date}T23:59:59.999Z`;
+
+  let revenue = 0, fees = 0, txCount = 0, page = 1;
+
+  while (true) {
+    const params = new URLSearchParams({
+      'filter[store_id]':       storeId,
+      'filter[status]':         'paid',
+      'filter[created_at_gte]': from,
+      'filter[created_at_lte]': to,
+      'page[size]':             '100',
+      'page[number]':           String(page),
+    });
+
+    const res = await fetchRetry('LemonSqueezy orders', `https://api.lemonsqueezy.com/v1/orders?${params}`, { headers });
+    if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(`LemonSqueezy orders: ${e?.errors?.[0]?.detail ?? res.status}`); }
+
+    const body  = await res.json();
+    const items = body.data ?? [];
+
+    for (const order of items) {
+      const attrs    = order.attributes ?? {};
+      const totalUsd = attrs.total_usd ?? attrs.total ?? 0;
+      if (totalUsd > 0) {
+        revenue  += totalUsd / 100;
+        fees     += Math.round(totalUsd * 0.05 + 50) / 100; // ~5% + $0.50 LS fee
+        txCount  += 1;
+      }
+    }
+
+    const lastPage = body.meta?.page?.lastPage ?? 1;
+    if (page >= lastPage) break;
+    page++;
+  }
+
+  const netRevenue = revenue - fees;
+  await SB.upsert('daily_snapshots',
+    { user_id: userId, provider: 'lemon-squeezy', date, data: { revenue, fees, netRevenue, txCount } },
+    'user_id,provider,date');
+
+  return { revenue, fees, netRevenue, txCount };
+}
+
+async function syncLemonSqueezy(userId, integration) {
+  const date = yesterday();
+  const r = await syncLemonSqueezyDay(userId, integration.access_token, integration.account_id, date);
+  return { date, ...r };
+}
+
+async function backfillLemonSqueezy(userId, integration, days = 365) {
+  log(`  [lemonsqueezy backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  let ok = 0, skipped = 0;
+  for (let offset = days; offset >= 1; offset--) {
+    const date = daysAgo(offset);
+    try {
+      const r = await syncLemonSqueezyDay(userId, integration.access_token, integration.account_id, date);
+      if (r.txCount > 0) logOk(`  lemonsqueezy ${date} — $${r.revenue.toFixed(2)} | ${r.txCount} tx`);
+      ok++;
+    } catch (err) {
+      logFail(`  lemonsqueezy ${date} — ${err.message}`);
+      skipped++;
+    }
+    await sleep(150);
+  }
+  log(`  [lemonsqueezy backfill] done — ${ok} days saved, ${skipped} errors`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ⑦ GUMROAD  (Gumroad API v2 — API key per user)
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function syncGumroadDay(userId, apiKey, date) {
+  const after  = new Date(date); after.setDate(after.getDate() - 1);
+  const before = new Date(date); before.setDate(before.getDate() + 1);
+  const afterStr  = after.toISOString().split('T')[0];
+  const beforeStr = before.toISOString().split('T')[0];
+
+  let revenue = 0, fees = 0, txCount = 0, page = 1;
+
+  while (true) {
+    const params = new URLSearchParams({ after: afterStr, before: beforeStr, page: String(page) });
+    const res = await fetchRetry('Gumroad sales', `https://api.gumroad.com/v2/sales?${params}`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+    if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(`Gumroad sales: ${e?.message ?? res.status}`); }
+
+    const body  = await res.json();
+    const sales = body.sales ?? [];
+
+    for (const sale of sales) {
+      const saleDate = (sale.created_at ?? '').split('T')[0];
+      if (saleDate !== date) continue;
+      const price = typeof sale.price === 'number' ? sale.price : 0;
+      const gFee  = typeof sale.gumroad_fee === 'number' ? sale.gumroad_fee : 0;
+      revenue += price / 100;
+      fees    += gFee  / 100;
+      txCount += 1;
+    }
+
+    if (!body.next_page_url || sales.length === 0) break;
+    page++;
+  }
+
+  const netRevenue = revenue - fees;
+  await SB.upsert('daily_snapshots',
+    { user_id: userId, provider: 'gumroad', date, data: { revenue, fees, netRevenue, txCount } },
+    'user_id,provider,date');
+  return { revenue, fees, netRevenue, txCount };
+}
+
+async function syncGumroad(userId, integration) {
+  const date = yesterday();
+  const r = await syncGumroadDay(userId, integration.access_token, date);
+  return { date, ...r };
+}
+
+async function backfillGumroad(userId, integration, days = 365) {
+  log(`  [gumroad backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  let ok = 0, skipped = 0;
+  for (let offset = days; offset >= 1; offset--) {
+    const date = daysAgo(offset);
+    try {
+      const r = await syncGumroadDay(userId, integration.access_token, date);
+      if (r.txCount > 0) logOk(`  gumroad ${date} — $${r.revenue.toFixed(2)} | ${r.txCount} tx`);
+      ok++;
+    } catch (err) { logFail(`  gumroad ${date} — ${err.message}`); skipped++; }
+    await sleep(200);
+  }
+  log(`  [gumroad backfill] done — ${ok} days saved, ${skipped} errors`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ⑧ PLAUSIBLE  (Plausible Stats API v1 — API key + siteId)
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function syncPlausibleDay(userId, apiKey, siteId, date) {
+  const params = new URLSearchParams({
+    site_id: siteId,
+    period:  'custom',
+    date:    `${date},${date}`,
+    metrics: 'visitors,pageviews,bounce_rate,visit_duration',
+  });
+
+  const res = await fetchRetry('Plausible stats', `https://plausible.io/api/v1/stats/aggregate?${params}`, {
+    headers: { Authorization: `Bearer ${apiKey}` },
+  });
+  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(`Plausible stats: ${e?.error ?? res.status}`); }
+
+  const body          = await res.json();
+  const results       = body.results ?? {};
+  const visitors      = results.visitors?.value      ?? 0;
+  const pageviews     = results.pageviews?.value     ?? 0;
+  const bounceRate    = results.bounce_rate?.value   ?? 0;
+  const visitDuration = results.visit_duration?.value ?? 0;
+
+  await SB.upsert('daily_snapshots',
+    { user_id: userId, provider: 'plausible', date, data: { visitors, pageviews, bounceRate, visitDuration } },
+    'user_id,provider,date');
+  return { visitors, pageviews, bounceRate, visitDuration };
+}
+
+async function syncPlausible(userId, integration) {
+  const date = yesterday();
+  const r = await syncPlausibleDay(userId, integration.access_token, integration.account_id, date);
+  return { date, ...r };
+}
+
+async function backfillPlausible(userId, integration, days = 365) {
+  log(`  [plausible backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  let ok = 0, skipped = 0;
+  for (let offset = days; offset >= 1; offset--) {
+    const date = daysAgo(offset);
+    try {
+      await syncPlausibleDay(userId, integration.access_token, integration.account_id, date);
+      ok++;
+    } catch (err) { logFail(`  plausible ${date} — ${err.message}`); skipped++; }
+    await sleep(300);
+  }
+  log(`  [plausible backfill] done — ${ok} days saved, ${skipped} errors`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ⑨ MIXPANEL  (Mixpanel Segmentation API — service account basic auth)
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function syncMixpanelDay(userId, credentials, projectId, date) {
+  const headers = { Authorization: `Basic ${credentials}` };
+
+  async function fetchSegment(type) {
+    const e = JSON.stringify({ event_type: '_active' });
+    const params = new URLSearchParams({ e, from_date: date, to_date: date, unit: 'day', type, project_id: projectId });
+    const res = await fetchRetry(`Mixpanel ${type}`, `https://mixpanel.com/api/query/segmentation?${params}`, { headers });
+    if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(`Mixpanel ${type}: ${err?.error ?? res.status}`); }
+    const body = await res.json();
+    const values = body.data?.values ?? {};
+    let total = 0;
+    for (const ev of Object.keys(values)) total += values[ev]?.[date] ?? 0;
+    return total;
+  }
+
+  const [events, uniqueUsers] = await Promise.all([
+    fetchSegment('general').catch(() => 0),
+    fetchSegment('unique').catch(() => 0),
+  ]);
+
+  await SB.upsert('daily_snapshots',
+    { user_id: userId, provider: 'mixpanel', date, data: { events, uniqueUsers } },
+    'user_id,provider,date');
+  return { events, uniqueUsers };
+}
+
+async function syncMixpanel(userId, integration) {
+  const date = yesterday();
+  const r = await syncMixpanelDay(userId, integration.access_token, integration.account_id, date);
+  return { date, ...r };
+}
+
+async function backfillMixpanel(userId, integration, days = 365) {
+  log(`  [mixpanel backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  let ok = 0, skipped = 0;
+  for (let offset = days; offset >= 1; offset--) {
+    const date = daysAgo(offset);
+    try {
+      await syncMixpanelDay(userId, integration.access_token, integration.account_id, date);
+      ok++;
+    } catch (err) { logFail(`  mixpanel ${date} — ${err.message}`); skipped++; }
+    await sleep(250);
+  }
+  log(`  [mixpanel backfill] done — ${ok} days saved, ${skipped} errors`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ⑩ AMPLITUDE  (Amplitude Events Segmentation API v2 — basic auth)
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function syncAmplitudeDay(userId, credentials, date) {
+  const headers = { Authorization: `Basic ${credentials}` };
+  const dateStr = date.replace(/-/g, '');
+
+  async function fetchMetric(math) {
+    const e = JSON.stringify({ event_type: '_active' });
+    const params = new URLSearchParams({ e, start: dateStr, end: dateStr, m: math });
+    const res = await fetchRetry(`Amplitude ${math}`, `https://amplitude.com/api/2/events/segmentation?${params}`, { headers });
+    if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(`Amplitude ${math}: ${err?.error ?? res.status}`); }
+    const body = await res.json();
+    return (body.data?.series?.[0] ?? []).reduce((a, b) => a + b, 0);
+  }
+
+  async function fetchNewUsers() {
+    const e = JSON.stringify({ event_type: '_new_user' });
+    const params = new URLSearchParams({ e, start: dateStr, end: dateStr, m: 'uniques' });
+    const res = await fetchRetry('Amplitude newUsers', `https://amplitude.com/api/2/events/segmentation?${params}`, { headers });
+    if (!res.ok) return 0;
+    const body = await res.json();
+    return (body.data?.series?.[0] ?? []).reduce((a, b) => a + b, 0);
+  }
+
+  const [activeUsers, totalEvents, newUsers] = await Promise.all([
+    fetchMetric('uniques').catch(() => 0),
+    fetchMetric('totals').catch(() => 0),
+    fetchNewUsers().catch(() => 0),
+  ]);
+
+  await SB.upsert('daily_snapshots',
+    { user_id: userId, provider: 'amplitude', date, data: { activeUsers, totalEvents, newUsers } },
+    'user_id,provider,date');
+  return { activeUsers, totalEvents, newUsers };
+}
+
+async function syncAmplitude(userId, integration) {
+  const date = yesterday();
+  const r = await syncAmplitudeDay(userId, integration.access_token, date);
+  return { date, ...r };
+}
+
+async function backfillAmplitude(userId, integration, days = 365) {
+  log(`  [amplitude backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  let ok = 0, skipped = 0;
+  for (let offset = days; offset >= 1; offset--) {
+    const date = daysAgo(offset);
+    try {
+      await syncAmplitudeDay(userId, integration.access_token, date);
+      ok++;
+    } catch (err) { logFail(`  amplitude ${date} — ${err.message}`); skipped++; }
+    await sleep(250);
+  }
+  log(`  [amplitude backfill] done — ${ok} days saved, ${skipped} errors`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ⑪ POSTHOG  (PostHog Trends API — personal API key + projectId)
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function syncPostHogDay(userId, apiKey, projectId, date) {
+  const headers = { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' };
+
+  async function fetchTrend(eventName, math) {
+    const res = await fetchRetry(`PostHog ${eventName}`, `https://app.posthog.com/api/projects/${projectId}/insights/trend/`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ events: [{ id: eventName, math }], date_from: date, date_to: date, interval: 'day' }),
+    });
+    if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(`PostHog ${eventName}: ${e?.detail ?? res.status}`); }
+    const body = await res.json();
+    return (body.result?.[0]?.data ?? []).reduce((a, b) => a + b, 0);
+  }
+
+  const [pageviews, uniqueUsers, sessions] = await Promise.all([
+    fetchTrend('$pageview', 'total').catch(() => 0),
+    fetchTrend('$pageview', 'dau').catch(() => 0),
+    fetchTrend('$autocapture', 'total').catch(() => 0),
+  ]);
+
+  await SB.upsert('daily_snapshots',
+    { user_id: userId, provider: 'posthog', date, data: { pageviews, uniqueUsers, sessions } },
+    'user_id,provider,date');
+  return { pageviews, uniqueUsers, sessions };
+}
+
+async function syncPostHog(userId, integration) {
+  const date = yesterday();
+  const r = await syncPostHogDay(userId, integration.access_token, integration.account_id, date);
+  return { date, ...r };
+}
+
+async function backfillPostHog(userId, integration, days = 365) {
+  log(`  [posthog backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  let ok = 0, skipped = 0;
+  for (let offset = days; offset >= 1; offset--) {
+    const date = daysAgo(offset);
+    try {
+      await syncPostHogDay(userId, integration.access_token, integration.account_id, date);
+      ok++;
+    } catch (err) { logFail(`  posthog ${date} — ${err.message}`); skipped++; }
+    await sleep(200);
+  }
+  log(`  [posthog backfill] done — ${ok} days saved, ${skipped} errors`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ⑫ FATHOM  (Fathom Analytics API — apiKey + siteId)
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function syncFathomDay(userId, apiKey, siteId, date) {
+  const params = new URLSearchParams({
+    entity: 'pageview', entity_id: siteId,
+    aggregates: 'pageviews,uniques,visits,bounce_rate,avg_duration',
+    date_grouping: 'day', date_from: date, date_to: date,
+  });
+  const res = await fetchRetry('Fathom', `https://api.usefathom.com/v1/aggregations?${params}`, {
+    headers: { Authorization: `Bearer ${apiKey}` },
+  });
+  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(`Fathom ${res.status}: ${e?.detail ?? res.statusText}`); }
+  const body = await res.json();
+  const row  = Array.isArray(body) ? body[0] : body;
+  const pageviews   = Number(row?.pageviews   ?? 0);
+  const uniques     = Number(row?.uniques      ?? 0);
+  const visits      = Number(row?.visits       ?? 0);
+  const bounceRate  = Number(row?.bounce_rate  ?? 0);
+  const avgDuration = Number(row?.avg_duration ?? 0);
+  await SB.upsert('daily_snapshots',
+    { user_id: userId, provider: 'fathom', date, data: { pageviews, uniques, visits, bounceRate, avgDuration } },
+    'user_id,provider,date');
+  return { pageviews, uniques, visits, bounceRate, avgDuration };
+}
+
+async function syncFathom(userId, integration) {
+  const date = yesterday();
+  const r = await syncFathomDay(userId, integration.access_token, integration.account_id, date);
+  return { date, ...r };
+}
+
+async function backfillFathom(userId, integration, days = 365) {
+  log(`  [fathom backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  let ok = 0, skipped = 0;
+  for (let offset = days; offset >= 1; offset--) {
+    const date = daysAgo(offset);
+    try { await syncFathomDay(userId, integration.access_token, integration.account_id, date); ok++; }
+    catch (err) { logFail(`  fathom ${date} — ${err.message}`); skipped++; }
+    await sleep(200);
+  }
+  log(`  [fathom backfill] done — ${ok} days saved, ${skipped} errors`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ⑬ GOOGLE ADS  (Google Ads API v17 — accessToken + developerToken + customerId)
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function syncGoogleAdsDay(userId, accessToken, developerToken, customerId, date) {
+  const query = `SELECT metrics.cost_micros,metrics.clicks,metrics.impressions,metrics.conversions FROM customer WHERE segments.date = '${date}'`;
+  const res = await fetchRetry('GoogleAds', `https://googleads.googleapis.com/v17/customers/${customerId}/googleAds:search`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}`, 'developer-token': developerToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query }),
+  });
+  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(`Google Ads ${res.status}: ${e?.error?.message ?? res.statusText}`); }
+  const body = await res.json();
+  const rows = body.results ?? [];
+  let costMicros = 0, clicks = 0, impressions = 0, conversions = 0;
+  for (const row of rows) {
+    costMicros  += Number(row.metrics?.cost_micros  ?? 0);
+    clicks      += Number(row.metrics?.clicks       ?? 0);
+    impressions += Number(row.metrics?.impressions  ?? 0);
+    conversions += Number(row.metrics?.conversions  ?? 0);
+  }
+  const spend = costMicros / 1_000_000;
+  const ctr   = impressions > 0 ? (clicks / impressions) * 100 : 0;
+  await SB.upsert('daily_snapshots',
+    { user_id: userId, provider: 'google-ads', date, data: { spend, clicks, impressions, conversions, ctr } },
+    'user_id,provider,date');
+  return { spend, clicks, impressions, conversions, ctr };
+}
+
+async function syncGoogleAds(userId, integration) {
+  const date = yesterday();
+  const r = await syncGoogleAdsDay(userId, integration.access_token, integration.refresh_token, integration.account_id, date);
+  return { date, ...r };
+}
+
+async function backfillGoogleAds(userId, integration, days = 365) {
+  log(`  [google-ads backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  let ok = 0, skipped = 0;
+  for (let offset = days; offset >= 1; offset--) {
+    const date = daysAgo(offset);
+    try { await syncGoogleAdsDay(userId, integration.access_token, integration.refresh_token, integration.account_id, date); ok++; }
+    catch (err) { logFail(`  google-ads ${date} — ${err.message}`); skipped++; }
+    await sleep(300);
+  }
+  log(`  [google-ads backfill] done — ${ok} days saved, ${skipped} errors`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ⑭ TIKTOK ADS  (TikTok Business API v1.3 — accessToken + advertiserId)
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function syncTikTokAdsDay(userId, accessToken, advertiserId, date) {
+  const params = new URLSearchParams({
+    advertiser_id: advertiserId,
+    report_type: 'BASIC',
+    dimensions: JSON.stringify(['stat_time_day']),
+    metrics: JSON.stringify(['spend', 'impressions', 'clicks', 'conversions']),
+    data_level: 'AUCTION_ADVERTISER',
+    start_date: date, end_date: date, page_size: '1',
+  });
+  const res = await fetchRetry('TikTokAds', `https://business-api.tiktok.com/open_api/v1.3/report/integrated/get/?${params}`, {
+    headers: { 'Access-Token': accessToken },
+  });
+  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(`TikTok Ads ${res.status}: ${e?.message ?? res.statusText}`); }
+  const body = await res.json();
+  if (body?.code !== 0) throw new Error(`TikTok Ads: ${body?.message ?? 'unknown'}`);
+  const rows = body?.data?.list ?? [];
+  let spend = 0, impressions = 0, clicks = 0, conversions = 0;
+  for (const row of rows) {
+    spend       += parseFloat(row.metrics?.spend       ?? '0');
+    impressions += parseFloat(row.metrics?.impressions ?? '0');
+    clicks      += parseFloat(row.metrics?.clicks      ?? '0');
+    conversions += parseFloat(row.metrics?.conversions ?? '0');
+  }
+  const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
+  await SB.upsert('daily_snapshots',
+    { user_id: userId, provider: 'tiktok-ads', date, data: { spend, impressions, clicks, conversions, ctr } },
+    'user_id,provider,date');
+  return { spend, impressions, clicks, conversions, ctr };
+}
+
+async function syncTikTokAds(userId, integration) {
+  const date = yesterday();
+  const r = await syncTikTokAdsDay(userId, integration.access_token, integration.account_id, date);
+  return { date, ...r };
+}
+
+async function backfillTikTokAds(userId, integration, days = 365) {
+  log(`  [tiktok-ads backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  let ok = 0, skipped = 0;
+  for (let offset = days; offset >= 1; offset--) {
+    const date = daysAgo(offset);
+    try { await syncTikTokAdsDay(userId, integration.access_token, integration.account_id, date); ok++; }
+    catch (err) { logFail(`  tiktok-ads ${date} — ${err.message}`); skipped++; }
+    await sleep(250);
+  }
+  log(`  [tiktok-ads backfill] done — ${ok} days saved, ${skipped} errors`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ⑮ TWITTER ADS  (Twitter Ads API v12 — bearerToken + accountId)
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function syncTwitterAdsDay(userId, bearerToken, accountId, date) {
+  const startTime = `${date}T00:00:00Z`;
+  const endTime   = `${date}T23:59:59Z`;
+  const params = new URLSearchParams({
+    metric_groups: 'BILLING,ENGAGEMENT', start_time: startTime, end_time: endTime,
+    granularity: 'DAY', placement: 'ALL_ON_TWITTER',
+  });
+  const res = await fetchRetry('TwitterAds', `https://ads-api.twitter.com/12/stats/accounts/${accountId}?${params}`, {
+    headers: { Authorization: `Bearer ${bearerToken}` },
+  });
+  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(`Twitter Ads ${res.status}: ${e?.errors?.[0]?.message ?? res.statusText}`); }
+  const body = await res.json();
+  const metrics = body?.data?.[0]?.id_data?.[0]?.metrics ?? {};
+  const billedMicros = (metrics.billed_charge_local_micro ?? [])[0] ?? 0;
+  const impressions  = (metrics.impressions               ?? [])[0] ?? 0;
+  const clicks       = (metrics.clicks                    ?? [])[0] ?? 0;
+  const conversions  = (metrics.conversion_custom         ?? [])[0] ?? 0;
+  const spend = billedMicros / 1_000_000;
+  await SB.upsert('daily_snapshots',
+    { user_id: userId, provider: 'twitter-ads', date, data: { spend, impressions, clicks, conversions } },
+    'user_id,provider,date');
+  return { spend, impressions, clicks, conversions };
+}
+
+async function syncTwitterAds(userId, integration) {
+  const date = yesterday();
+  const r = await syncTwitterAdsDay(userId, integration.access_token, integration.account_id, date);
+  return { date, ...r };
+}
+
+async function backfillTwitterAds(userId, integration, days = 365) {
+  log(`  [twitter-ads backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  let ok = 0, skipped = 0;
+  for (let offset = days; offset >= 1; offset--) {
+    const date = daysAgo(offset);
+    try { await syncTwitterAdsDay(userId, integration.access_token, integration.account_id, date); ok++; }
+    catch (err) { logFail(`  twitter-ads ${date} — ${err.message}`); skipped++; }
+    await sleep(250);
+  }
+  log(`  [twitter-ads backfill] done — ${ok} days saved, ${skipped} errors`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ⑯ LINKEDIN ADS  (LinkedIn Marketing API v202401 — accessToken + accountId)
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function syncLinkedInAdsDay(userId, accessToken, accountId, date) {
+  const [year, month, day] = date.split('-').map(Number);
+  const params = new URLSearchParams({
+    q: 'analytics', pivot: 'ACCOUNT',
+    dateRange: JSON.stringify({ start: { year, month, day }, end: { year, month, day } }),
+    timeGranularity: 'DAILY',
+    accounts: `urn:li:sponsoredAccount:${accountId}`,
+    fields: 'costInLocalCurrency,impressions,clicks,externalWebsiteConversions',
+  });
+  const res = await fetchRetry('LinkedInAds', `https://api.linkedin.com/rest/adAnalytics?${params}`, {
+    headers: { Authorization: `Bearer ${accessToken}`, 'LinkedIn-Version': '202401', 'X-Restli-Protocol-Version': '2.0.0' },
+  });
+  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(`LinkedIn Ads ${res.status}: ${e?.message ?? res.statusText}`); }
+  const body = await res.json();
+  let spend = 0, impressions = 0, clicks = 0, conversions = 0;
+  for (const el of body?.elements ?? []) {
+    spend       += parseFloat(el.costInLocalCurrency ?? '0');
+    impressions += el.impressions ?? 0;
+    clicks      += el.clicks ?? 0;
+    conversions += el.externalWebsiteConversions ?? 0;
+  }
+  const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
+  await SB.upsert('daily_snapshots',
+    { user_id: userId, provider: 'linkedin-ads', date, data: { spend, impressions, clicks, conversions, ctr } },
+    'user_id,provider,date');
+  return { spend, impressions, clicks, conversions, ctr };
+}
+
+async function syncLinkedInAds(userId, integration) {
+  const date = yesterday();
+  const r = await syncLinkedInAdsDay(userId, integration.access_token, integration.account_id, date);
+  return { date, ...r };
+}
+
+async function backfillLinkedInAds(userId, integration, days = 365) {
+  log(`  [linkedin-ads backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  let ok = 0, skipped = 0;
+  for (let offset = days; offset >= 1; offset--) {
+    const date = daysAgo(offset);
+    try { await syncLinkedInAdsDay(userId, integration.access_token, integration.account_id, date); ok++; }
+    catch (err) { logFail(`  linkedin-ads ${date} — ${err.message}`); skipped++; }
+    await sleep(300);
+  }
+  log(`  [linkedin-ads backfill] done — ${ok} days saved, ${skipped} errors`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ⑰ SNAPCHAT ADS  (Snapchat Ads API v1 — accessToken + accountId)
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function syncSnapchatAdsDay(userId, accessToken, accountId, date) {
+  const params = new URLSearchParams({
+    granularity: 'DAY', fields: 'impressions,swipes,spend,conversions',
+    start_time: `${date}T00:00:00.000-0000`, end_time: `${date}T23:59:59.000-0000`,
+  });
+  const res = await fetchRetry('SnapchatAds', `https://adsapi.snapchat.com/v1/adaccounts/${accountId}/stats?${params}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(`Snapchat Ads ${res.status}: ${e?.request_status ?? res.statusText}`); }
+  const body = await res.json();
+  const timeseries = body?.total_stats?.[0]?.total_stat?.timeseries ?? [];
+  let spend = 0, impressions = 0, swipes = 0, conversions = 0;
+  for (const t of timeseries) {
+    spend       += (t.stats?.spend       ?? 0) / 1_000_000;
+    impressions += t.stats?.impressions ?? 0;
+    swipes      += t.stats?.swipes      ?? 0;
+    conversions += t.stats?.conversions ?? 0;
+  }
+  await SB.upsert('daily_snapshots',
+    { user_id: userId, provider: 'snapchat-ads', date, data: { spend, impressions, swipes, conversions } },
+    'user_id,provider,date');
+  return { spend, impressions, swipes, conversions };
+}
+
+async function syncSnapchatAds(userId, integration) {
+  const date = yesterday();
+  const r = await syncSnapchatAdsDay(userId, integration.access_token, integration.account_id, date);
+  return { date, ...r };
+}
+
+async function backfillSnapchatAds(userId, integration, days = 365) {
+  log(`  [snapchat-ads backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  let ok = 0, skipped = 0;
+  for (let offset = days; offset >= 1; offset--) {
+    const date = daysAgo(offset);
+    try { await syncSnapchatAdsDay(userId, integration.access_token, integration.account_id, date); ok++; }
+    catch (err) { logFail(`  snapchat-ads ${date} — ${err.message}`); skipped++; }
+    await sleep(250);
+  }
+  log(`  [snapchat-ads backfill] done — ${ok} days saved, ${skipped} errors`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ⑱ PINTEREST ADS  (Pinterest Ads API v5 — accessToken + accountId)
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function syncPinterestAdsDay(userId, accessToken, accountId, date) {
+  const params = new URLSearchParams({
+    start_date: date, end_date: date,
+    columns: 'SPEND_IN_DOLLAR,IMPRESSION_1,CLICK_TYPE_URL,TOTAL_CONVERSIONS',
+    granularity: 'DAY',
+  });
+  const res = await fetchRetry('PinterestAds', `https://api.pinterest.com/v5/ad_accounts/${accountId}/analytics?${params}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(`Pinterest Ads ${res.status}: ${e?.message ?? res.statusText}`); }
+  const body = await res.json();
+  const rows = body?.value ?? body ?? [];
+  let spend = 0, impressions = 0, clicks = 0, conversions = 0;
+  for (const row of rows) {
+    spend       += row.metrics?.SPEND_IN_DOLLAR   ?? 0;
+    impressions += row.metrics?.IMPRESSION_1      ?? 0;
+    clicks      += row.metrics?.CLICK_TYPE_URL    ?? 0;
+    conversions += row.metrics?.TOTAL_CONVERSIONS ?? 0;
+  }
+  await SB.upsert('daily_snapshots',
+    { user_id: userId, provider: 'pinterest-ads', date, data: { spend, impressions, clicks, conversions } },
+    'user_id,provider,date');
+  return { spend, impressions, clicks, conversions };
+}
+
+async function syncPinterestAds(userId, integration) {
+  const date = yesterday();
+  const r = await syncPinterestAdsDay(userId, integration.access_token, integration.account_id, date);
+  return { date, ...r };
+}
+
+async function backfillPinterestAds(userId, integration, days = 365) {
+  log(`  [pinterest-ads backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  let ok = 0, skipped = 0;
+  for (let offset = days; offset >= 1; offset--) {
+    const date = daysAgo(offset);
+    try { await syncPinterestAdsDay(userId, integration.access_token, integration.account_id, date); ok++; }
+    catch (err) { logFail(`  pinterest-ads ${date} — ${err.message}`); skipped++; }
+    await sleep(250);
+  }
+  log(`  [pinterest-ads backfill] done — ${ok} days saved, ${skipped} errors`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ⑲ MAILCHIMP  (Mailchimp API v3 — apiKey, dc extracted from key)
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function syncMailchimpDay(userId, apiKey, dc, date) {
+  const base = `https://${dc}.api.mailchimp.com/3.0`;
+  const authHeader = `Basic ${Buffer.from(`anystring:${apiKey}`).toString('base64')}`;
+  const headers = { Authorization: authHeader };
+
+  const dateStart = `${date}T00:00:00+00:00`;
+  const dateEnd   = `${date}T23:59:59+00:00`;
+
+  let emailsSent = 0, opens = 0, clicks = 0;
+  try {
+    const params = new URLSearchParams({
+      count: '200', since_send_time: dateStart, before_send_time: dateEnd,
+      fields: 'reports.emails_sent,reports.opens.opens_total,reports.clicks.clicks_total',
+    });
+    const res = await fetchRetry('Mailchimp', `${base}/reports?${params}`, { headers });
+    if (res.ok) {
+      const body = await res.json();
+      for (const r of body?.reports ?? []) {
+        emailsSent += r.emails_sent          ?? 0;
+        opens      += r.opens?.opens_total   ?? 0;
+        clicks     += r.clicks?.clicks_total ?? 0;
+      }
+    }
+  } catch { /* optional */ }
+
+  let subscribers = 0, unsubscribes = 0;
+  try {
+    const listsRes = await fetchRetry('Mailchimp-lists', `${base}/lists?count=50&fields=lists.id`, { headers });
+    if (listsRes.ok) {
+      const listsBody = await listsRes.json();
+      for (const list of listsBody?.lists ?? []) {
+        const actRes = await fetchRetry('Mailchimp-activity', `${base}/lists/${list.id}/activity?count=1&fields=activity.subs,activity.unsubs,activity.day`, { headers });
+        if (!actRes.ok) continue;
+        const actBody = await actRes.json();
+        for (const day of actBody?.activity ?? []) {
+          if (day.day === date) { subscribers += day.subs ?? 0; unsubscribes += day.unsubs ?? 0; }
+        }
+      }
+    }
+  } catch { /* optional */ }
+
+  await SB.upsert('daily_snapshots',
+    { user_id: userId, provider: 'mailchimp', date, data: { emailsSent, opens, clicks, subscribers, unsubscribes } },
+    'user_id,provider,date');
+  return { emailsSent, opens, clicks, subscribers, unsubscribes };
+}
+
+async function syncMailchimp(userId, integration) {
+  const date = yesterday();
+  const dc = integration.account_id || (integration.access_token.split('-').pop());
+  const r = await syncMailchimpDay(userId, integration.access_token, dc, date);
+  return { date, ...r };
+}
+
+async function backfillMailchimp(userId, integration, days = 365) {
+  log(`  [mailchimp backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  const dc = integration.account_id || (integration.access_token.split('-').pop());
+  let ok = 0, skipped = 0;
+  for (let offset = days; offset >= 1; offset--) {
+    const date = daysAgo(offset);
+    try { await syncMailchimpDay(userId, integration.access_token, dc, date); ok++; }
+    catch (err) { logFail(`  mailchimp ${date} — ${err.message}`); skipped++; }
+    await sleep(300);
+  }
+  log(`  [mailchimp backfill] done — ${ok} days saved, ${skipped} errors`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ⑳ KLAVIYO  (Klaviyo API v2024-02-15 — private API key)
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function syncKlaviyoDay(userId, apiKey, date) {
+  const headers = {
+    Authorization: `Klaviyo-API-Key ${apiKey}`,
+    revision: '2024-02-15',
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+  };
+  const dateStart = `${date}T00:00:00+00:00`;
+  const dateEnd   = `${date}T23:59:59+00:00`;
+
+  async function fetchAggregate(metricName, measurement) {
+    const listRes = await fetchRetry(`Klaviyo-metric-${metricName}`,
+      `https://a.klaviyo.com/api/metrics/?filter=equals(name,"${encodeURIComponent(metricName)}")`,
+      { headers });
+    if (!listRes.ok) return 0;
+    const listBody = await listRes.json();
+    const metricId = listBody?.data?.[0]?.id;
+    if (!metricId) return 0;
+    const aggRes = await fetchRetry(`Klaviyo-agg-${metricName}`, 'https://a.klaviyo.com/api/metric-aggregates/', {
+      method: 'POST', headers,
+      body: JSON.stringify({ data: { type: 'metric-aggregate', attributes: {
+        metric_id: metricId, measurements: [measurement], interval: 'day', page_size: 1,
+        filter: [`greater-or-equal(datetime,${dateStart})`, `less-than(datetime,${dateEnd})`],
+        timezone: 'UTC',
+      }}}),
+    });
+    if (!aggRes.ok) return 0;
+    const aggBody = await aggRes.json();
+    const values = aggBody?.data?.attributes?.values?.[0] ?? [];
+    return values.reduce((a, b) => a + b, 0);
+  }
+
+  const [emailsSent, opens, clicks, revenue] = await Promise.all([
+    fetchAggregate('Received Email', 'count').catch(() => 0),
+    fetchAggregate('Opened Email',   'count').catch(() => 0),
+    fetchAggregate('Clicked Email',  'count').catch(() => 0),
+    fetchAggregate('Placed Order',   'sum_value').catch(() => 0),
+  ]);
+
+  await SB.upsert('daily_snapshots',
+    { user_id: userId, provider: 'klaviyo', date, data: { emailsSent, opens, clicks, revenue, activeProfiles: 0 } },
+    'user_id,provider,date');
+  return { emailsSent, opens, clicks, revenue };
+}
+
+async function syncKlaviyo(userId, integration) {
+  const date = yesterday();
+  const r = await syncKlaviyoDay(userId, integration.access_token, date);
+  return { date, ...r };
+}
+
+async function backfillKlaviyo(userId, integration, days = 365) {
+  log(`  [klaviyo backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  let ok = 0, skipped = 0;
+  for (let offset = days; offset >= 1; offset--) {
+    const date = daysAgo(offset);
+    try { await syncKlaviyoDay(userId, integration.access_token, date); ok++; }
+    catch (err) { logFail(`  klaviyo ${date} — ${err.message}`); skipped++; }
+    await sleep(400); // Klaviyo has stricter rate limits
+  }
+  log(`  [klaviyo backfill] done — ${ok} days saved, ${skipped} errors`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ㉑ CONVERTKIT  (ConvertKit API v3 — API secret key)
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function syncConvertKitDay(userId, apiKey, date) {
+  const base   = 'https://api.convertkit.com/v3';
+  const secret = `api_secret=${encodeURIComponent(apiKey)}`;
+
+  let totalSubscribers = 0;
+  try {
+    const res = await fetchRetry('CK-subscribers', `${base}/subscribers?${secret}&sort_field=created_at`);
+    if (res.ok) { const body = await res.json(); totalSubscribers = body?.total_subscribers ?? 0; }
+  } catch { /* optional */ }
+
+  let newSubscribers = 0;
+  try {
+    const params = new URLSearchParams({ api_secret: apiKey, from: date, to: date, sort_field: 'created_at' });
+    const res = await fetchRetry('CK-new-subs', `${base}/subscribers?${params}`);
+    if (res.ok) { const body = await res.json(); newSubscribers = body?.total_subscribers ?? 0; }
+  } catch { /* optional */ }
+
+  let broadcastsSent = 0;
+  try {
+    const res = await fetchRetry('CK-broadcasts', `${base}/broadcasts?${secret}`);
+    if (res.ok) {
+      const body = await res.json();
+      broadcastsSent = (body?.broadcasts ?? []).filter(b => {
+        const sentDate = (b.published_at ?? b.send_date ?? '').slice(0, 10);
+        return sentDate === date;
+      }).length;
+    }
+  } catch { /* optional */ }
+
+  await SB.upsert('daily_snapshots',
+    { user_id: userId, provider: 'convertkit', date, data: { totalSubscribers, broadcastsSent, newSubscribers } },
+    'user_id,provider,date');
+  return { totalSubscribers, broadcastsSent, newSubscribers };
+}
+
+async function syncConvertKit(userId, integration) {
+  const date = yesterday();
+  const r = await syncConvertKitDay(userId, integration.access_token, date);
+  return { date, ...r };
+}
+
+async function backfillConvertKit(userId, integration, days = 365) {
+  log(`  [convertkit backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  let ok = 0, skipped = 0;
+  for (let offset = days; offset >= 1; offset--) {
+    const date = daysAgo(offset);
+    try { await syncConvertKitDay(userId, integration.access_token, date); ok++; }
+    catch (err) { logFail(`  convertkit ${date} — ${err.message}`); skipped++; }
+    await sleep(250);
+  }
+  log(`  [convertkit backfill] done — ${ok} days saved, ${skipped} errors`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ㉒ ACTIVECAMPAIGN
+// ─────────────────────────────────────────────────────────────────────────────
+async function syncActiveCampaignDay(userId, apiUrl, apiKey, date) {
+  const { syncActiveCampaignDay: fn } = await import('../lib/integrations/activecampaign/sync.js');
+  return fn(userId, apiUrl, apiKey, date);
+}
+async function syncActiveCampaign(userId, integration) {
+  const date = yesterday();
+  const r = await syncActiveCampaignDay(userId, integration.account_id, integration.access_token, date);
+  return { ...r, date };
+}
+async function backfillActiveCampaign(userId, integration, days = 365) {
+  log(`  [activecampaign backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  let ok = 0, skipped = 0;
+  for (let offset = days; offset >= 1; offset--) {
+    const date = daysAgo(offset);
+    try { await syncActiveCampaignDay(userId, integration.account_id, integration.access_token, date); ok++; }
+    catch (err) { logFail(`  activecampaign ${date} — ${err.message}`); skipped++; }
+    await sleep(250);
+  }
+  log(`  [activecampaign backfill] done — ${ok} days saved, ${skipped} errors`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ㉓ BREVO
+// ─────────────────────────────────────────────────────────────────────────────
+async function syncBrevoDay(userId, apiKey, date) {
+  const { syncBrevoDay: fn } = await import('../lib/integrations/brevo/sync.js');
+  return fn(userId, apiKey, date);
+}
+async function syncBrevo(userId, integration) {
+  const date = yesterday();
+  const r = await syncBrevoDay(userId, integration.access_token, date);
+  return { ...r, date };
+}
+async function backfillBrevo(userId, integration, days = 365) {
+  log(`  [brevo backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  let ok = 0, skipped = 0;
+  for (let offset = days; offset >= 1; offset--) {
+    const date = daysAgo(offset);
+    try { await syncBrevoDay(userId, integration.access_token, date); ok++; }
+    catch (err) { logFail(`  brevo ${date} — ${err.message}`); skipped++; }
+    await sleep(250);
+  }
+  log(`  [brevo backfill] done — ${ok} days saved, ${skipped} errors`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ㉔ BEEHIIV
+// ─────────────────────────────────────────────────────────────────────────────
+async function syncBeehiivDay(userId, apiKey, publicationId, date) {
+  const { syncBeehiivDay: fn } = await import('../lib/integrations/beehiiv/sync.js');
+  return fn(userId, apiKey, publicationId, date);
+}
+async function syncBeehiiv(userId, integration) {
+  const date = yesterday();
+  const r = await syncBeehiivDay(userId, integration.access_token, integration.account_id, date);
+  return { ...r, date };
+}
+async function backfillBeehiiv(userId, integration, days = 365) {
+  log(`  [beehiiv backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  let ok = 0, skipped = 0;
+  for (let offset = days; offset >= 1; offset--) {
+    const date = daysAgo(offset);
+    try { await syncBeehiivDay(userId, integration.access_token, integration.account_id, date); ok++; }
+    catch (err) { logFail(`  beehiiv ${date} — ${err.message}`); skipped++; }
+    await sleep(250);
+  }
+  log(`  [beehiiv backfill] done — ${ok} days saved, ${skipped} errors`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ㉕ SHOPIFY
+// ─────────────────────────────────────────────────────────────────────────────
+async function syncShopifyDay(userId, storeDomain, accessToken, date) {
+  const { syncShopifyDay: fn } = await import('../lib/integrations/shopify/sync.js');
+  return fn(userId, storeDomain, accessToken, date);
+}
+async function syncShopify(userId, integration) {
+  const date = yesterday();
+  const r = await syncShopifyDay(userId, integration.account_id, integration.access_token, date);
+  return { ...r, date };
+}
+async function backfillShopify(userId, integration, days = 365) {
+  log(`  [shopify backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  let ok = 0, skipped = 0;
+  for (let offset = days; offset >= 1; offset--) {
+    const date = daysAgo(offset);
+    try { await syncShopifyDay(userId, integration.account_id, integration.access_token, date); ok++; }
+    catch (err) { logFail(`  shopify ${date} — ${err.message}`); skipped++; }
+    await sleep(300);
+  }
+  log(`  [shopify backfill] done — ${ok} days saved, ${skipped} errors`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ㉖ WOOCOMMERCE
+// ─────────────────────────────────────────────────────────────────────────────
+async function syncWooCommerceDay(userId, credentials, siteUrl, date) {
+  const { syncWooCommerceDay: fn } = await import('../lib/integrations/woocommerce/sync.js');
+  return fn(userId, credentials, siteUrl, date);
+}
+async function syncWooCommerce(userId, integration) {
+  const date = yesterday();
+  const r = await syncWooCommerceDay(userId, integration.access_token, integration.account_id, date);
+  return { ...r, date };
+}
+async function backfillWooCommerce(userId, integration, days = 365) {
+  log(`  [woocommerce backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  let ok = 0, skipped = 0;
+  for (let offset = days; offset >= 1; offset--) {
+    const date = daysAgo(offset);
+    try { await syncWooCommerceDay(userId, integration.access_token, integration.account_id, date); ok++; }
+    catch (err) { logFail(`  woocommerce ${date} — ${err.message}`); skipped++; }
+    await sleep(300);
+  }
+  log(`  [woocommerce backfill] done — ${ok} days saved, ${skipped} errors`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ㉗ BIGCOMMERCE
+// ─────────────────────────────────────────────────────────────────────────────
+async function syncBigCommerceDay(userId, storeHash, accessToken, date) {
+  const { syncBigCommerceDay: fn } = await import('../lib/integrations/bigcommerce/sync.js');
+  return fn(userId, storeHash, accessToken, date);
+}
+async function syncBigCommerce(userId, integration) {
+  const date = yesterday();
+  const r = await syncBigCommerceDay(userId, integration.account_id, integration.access_token, date);
+  return { ...r, date };
+}
+async function backfillBigCommerce(userId, integration, days = 365) {
+  log(`  [bigcommerce backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  let ok = 0, skipped = 0;
+  for (let offset = days; offset >= 1; offset--) {
+    const date = daysAgo(offset);
+    try { await syncBigCommerceDay(userId, integration.account_id, integration.access_token, date); ok++; }
+    catch (err) { logFail(`  bigcommerce ${date} — ${err.message}`); skipped++; }
+    await sleep(300);
+  }
+  log(`  [bigcommerce backfill] done — ${ok} days saved, ${skipped} errors`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ㉘ AMAZON SELLER
+// ─────────────────────────────────────────────────────────────────────────────
+async function syncAmazonSellerDay(userId, credentials, refreshToken, sellerId, date) {
+  const { syncAmazonSellerDay: fn } = await import('../lib/integrations/amazon-seller/sync.js');
+  return fn(userId, credentials, refreshToken, sellerId, date);
+}
+async function syncAmazonSeller(userId, integration) {
+  const date = yesterday();
+  const r = await syncAmazonSellerDay(
+    userId,
+    integration.access_token,
+    integration.refresh_token,
+    integration.account_id,
+    date,
+  );
+  return { ...r, date };
+}
+async function backfillAmazonSeller(userId, integration, days = 365) {
+  log(`  [amazon-seller backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  let ok = 0, skipped = 0;
+  for (let offset = days; offset >= 1; offset--) {
+    const date = daysAgo(offset);
+    try {
+      await syncAmazonSellerDay(
+        userId,
+        integration.access_token,
+        integration.refresh_token,
+        integration.account_id,
+        date,
+      );
+      ok++;
+    }
+    catch (err) { logFail(`  amazon-seller ${date} — ${err.message}`); skipped++; }
+    await sleep(500); // SP-API rate limits are strict
+  }
+  log(`  [amazon-seller backfill] done — ${ok} days saved, ${skipped} errors`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ㉙ ETSY
+// ─────────────────────────────────────────────────────────────────────────────
+async function syncEtsyDay(userId, apiKey, shopId, date) {
+  const { syncEtsyDay: fn } = await import('../lib/integrations/etsy/sync.js');
+  return fn(userId, apiKey, shopId, date);
+}
+async function syncEtsy(userId, integration) {
+  const date = yesterday();
+  const r = await syncEtsyDay(userId, integration.access_token, integration.account_id, date);
+  return { ...r, date };
+}
+async function backfillEtsy(userId, integration, days = 365) {
+  log(`  [etsy backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  let ok = 0, skipped = 0;
+  for (let offset = days; offset >= 1; offset--) {
+    const date = daysAgo(offset);
+    try { await syncEtsyDay(userId, integration.access_token, integration.account_id, date); ok++; }
+    catch (err) { logFail(`  etsy ${date} — ${err.message}`); skipped++; }
+    await sleep(250);
+  }
+  log(`  [etsy backfill] done — ${ok} days saved, ${skipped} errors`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ㉚ HUBSPOT
+// ─────────────────────────────────────────────────────────────────────────────
+async function syncHubSpotDay(userId, accessToken, date) {
+  const { syncHubSpotDay: fn } = await import('../lib/integrations/hubspot/sync.js');
+  return fn(userId, accessToken, date);
+}
+async function syncHubSpot(userId, integration) {
+  const date = yesterday();
+  const r = await syncHubSpotDay(userId, integration.access_token, date);
+  return { ...r, date };
+}
+async function backfillHubSpot(userId, integration, days = 365) {
+  log(`  [hubspot backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  let ok = 0, skipped = 0;
+  for (let offset = days; offset >= 1; offset--) {
+    const date = daysAgo(offset);
+    try { await syncHubSpotDay(userId, integration.access_token, date); ok++; }
+    catch (err) { logFail(`  hubspot ${date} — ${err.message}`); skipped++; }
+    await sleep(250);
+  }
+  log(`  [hubspot backfill] done — ${ok} days saved, ${skipped} errors`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ㉛ SALESFORCE
+// ─────────────────────────────────────────────────────────────────────────────
+async function syncSalesforceDay(userId, instanceUrl, accessToken, date) {
+  const { syncSalesforceDay: fn } = await import('../lib/integrations/salesforce/sync.js');
+  return fn(userId, instanceUrl, accessToken, date);
+}
+async function syncSalesforce(userId, integration) {
+  const date = yesterday();
+  const r = await syncSalesforceDay(userId, integration.account_id, integration.access_token, date);
+  return { ...r, date };
+}
+async function backfillSalesforce(userId, integration, days = 365) {
+  log(`  [salesforce backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  let ok = 0, skipped = 0;
+  for (let offset = days; offset >= 1; offset--) {
+    const date = daysAgo(offset);
+    try { await syncSalesforceDay(userId, integration.account_id, integration.access_token, date); ok++; }
+    catch (err) { logFail(`  salesforce ${date} — ${err.message}`); skipped++; }
+    await sleep(300);
+  }
+  log(`  [salesforce backfill] done — ${ok} days saved, ${skipped} errors`);
+}
+
+// ㉜ PIPEDRIVE
+// ─────────────────────────────────────────────────────────────────────────────
+async function syncPipedriveDay(userId, apiToken, date) {
+  const { syncPipedriveDay: fn } = await import('../lib/integrations/pipedrive/sync.js');
+  return fn(userId, apiToken, date);
+}
+async function syncPipedrive(userId, integration) {
+  const date = yesterday();
+  const r = await syncPipedriveDay(userId, integration.access_token, date);
+  return { ...r, date };
+}
+async function backfillPipedrive(userId, integration, days = 365) {
+  log(`  [pipedrive backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  let ok = 0, skipped = 0;
+  for (let offset = days; offset >= 1; offset--) {
+    const date = daysAgo(offset);
+    try { await syncPipedriveDay(userId, integration.access_token, date); ok++; }
+    catch (err) { logFail(`  pipedrive ${date} — ${err.message}`); skipped++; }
+    await sleep(300);
+  }
+  log(`  [pipedrive backfill] done — ${ok} days saved, ${skipped} errors`);
+}
+
+// ㉝ NOTION
+// ─────────────────────────────────────────────────────────────────────────────
+async function syncNotionDay(userId, apiToken, databaseId, date) {
+  const { syncNotionDay: fn } = await import('../lib/integrations/notion/sync.js');
+  return fn(userId, apiToken, databaseId, date);
+}
+async function syncNotion(userId, integration) {
+  const date = yesterday();
+  const r = await syncNotionDay(userId, integration.access_token, integration.account_id, date);
+  return { ...r, date };
+}
+async function backfillNotion(userId, integration, days = 365) {
+  log(`  [notion backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  let ok = 0, skipped = 0;
+  for (let offset = days; offset >= 1; offset--) {
+    const date = daysAgo(offset);
+    try { await syncNotionDay(userId, integration.access_token, integration.account_id, date); ok++; }
+    catch (err) { logFail(`  notion ${date} — ${err.message}`); skipped++; }
+    await sleep(300);
+  }
+  log(`  [notion backfill] done — ${ok} days saved, ${skipped} errors`);
+}
+
+// ㉞ INTERCOM
+// ─────────────────────────────────────────────────────────────────────────────
+async function syncIntercomDay(userId, accessToken, date) {
+  const { syncIntercomDay: fn } = await import('../lib/integrations/intercom/sync.js');
+  return fn(userId, accessToken, date);
+}
+async function syncIntercom(userId, integration) {
+  const date = yesterday();
+  const r = await syncIntercomDay(userId, integration.access_token, date);
+  return { ...r, date };
+}
+async function backfillIntercom(userId, integration, days = 365) {
+  log(`  [intercom backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  let ok = 0, skipped = 0;
+  for (let offset = days; offset >= 1; offset--) {
+    const date = daysAgo(offset);
+    try { await syncIntercomDay(userId, integration.access_token, date); ok++; }
+    catch (err) { logFail(`  intercom ${date} — ${err.message}`); skipped++; }
+    await sleep(300);
+  }
+  log(`  [intercom backfill] done — ${ok} days saved, ${skipped} errors`);
+}
+
+// ㉟ ZENDESK
+// ─────────────────────────────────────────────────────────────────────────────
+async function syncZendeskDay(userId, credentials, subdomain, date) {
+  const { syncZendeskDay: fn } = await import('../lib/integrations/zendesk/sync.js');
+  return fn(userId, credentials, subdomain, date);
+}
+async function syncZendesk(userId, integration) {
+  const date = yesterday();
+  const r = await syncZendeskDay(userId, integration.access_token, integration.account_id, date);
+  return { ...r, date };
+}
+async function backfillZendesk(userId, integration, days = 365) {
+  log(`  [zendesk backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  let ok = 0, skipped = 0;
+  for (let offset = days; offset >= 1; offset--) {
+    const date = daysAgo(offset);
+    try { await syncZendeskDay(userId, integration.access_token, integration.account_id, date); ok++; }
+    catch (err) { logFail(`  zendesk ${date} — ${err.message}`); skipped++; }
+    await sleep(300);
+  }
+  log(`  [zendesk backfill] done — ${ok} days saved, ${skipped} errors`);
+}
+
+// ㊱ FRESHDESK
+// ─────────────────────────────────────────────────────────────────────────────
+async function syncFreshdeskDay(userId, apiKey, subdomain, date) {
+  const { syncFreshdeskDay: fn } = await import('../lib/integrations/freshdesk/sync.js');
+  return fn(userId, apiKey, subdomain, date);
+}
+async function syncFreshdesk(userId, integration) {
+  const date = yesterday();
+  const r = await syncFreshdeskDay(userId, integration.access_token, integration.account_id, date);
+  return { ...r, date };
+}
+async function backfillFreshdesk(userId, integration, days = 365) {
+  log(`  [freshdesk backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  let ok = 0, skipped = 0;
+  for (let offset = days; offset >= 1; offset--) {
+    const date = daysAgo(offset);
+    try { await syncFreshdeskDay(userId, integration.access_token, integration.account_id, date); ok++; }
+    catch (err) { logFail(`  freshdesk ${date} — ${err.message}`); skipped++; }
+    await sleep(300);
+  }
+  log(`  [freshdesk backfill] done — ${ok} days saved, ${skipped} errors`);
+}
+
+// ㊲ SEGMENT
+// ─────────────────────────────────────────────────────────────────────────────
+async function syncSegmentDay(userId, accessToken, workspaceId, date) {
+  const { syncSegmentDay: fn } = await import('../lib/integrations/segment/sync.js');
+  return fn(userId, accessToken, workspaceId, date);
+}
+async function syncSegment(userId, integration) {
+  const date = yesterday();
+  const r = await syncSegmentDay(userId, integration.access_token, integration.account_id, date);
+  return { ...r, date };
+}
+async function backfillSegment(userId, integration, days = 365) {
+  log(`  [segment backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  let ok = 0, skipped = 0;
+  for (let offset = days; offset >= 1; offset--) {
+    const date = daysAgo(offset);
+    try { await syncSegmentDay(userId, integration.access_token, integration.account_id, date); ok++; }
+    catch (err) { logFail(`  segment ${date} — ${err.message}`); skipped++; }
+    await sleep(400);
+  }
+  log(`  [segment backfill] done — ${ok} days saved, ${skipped} errors`);
+}
+
+// ㊳ HEAP
+// ─────────────────────────────────────────────────────────────────────────────
+async function syncHeapDay(userId, credentials, appId, date) {
+  const { syncHeapDay: fn } = await import('../lib/integrations/heap/sync.js');
+  return fn(userId, credentials, appId, date);
+}
+async function syncHeap(userId, integration) {
+  const date = yesterday();
+  const r = await syncHeapDay(userId, integration.access_token, integration.account_id, date);
+  return { ...r, date };
+}
+async function backfillHeap(userId, integration, days = 90) {
+  log(`  [heap backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  let ok = 0, skipped = 0;
+  for (let offset = days; offset >= 1; offset--) {
+    const date = daysAgo(offset);
+    try { await syncHeapDay(userId, integration.access_token, integration.account_id, date); ok++; }
+    catch (err) { logFail(`  heap ${date} — ${err.message}`); skipped++; }
+    await sleep(400);
+  }
+  log(`  [heap backfill] done — ${ok} days saved, ${skipped} errors`);
+}
+
+// ㊴ FULLSTORY
+// ─────────────────────────────────────────────────────────────────────────────
+async function syncFullStoryDay(userId, apiKey, orgId, date) {
+  const { syncFullStoryDay: fn } = await import('../lib/integrations/fullstory/sync.js');
+  return fn(userId, apiKey, orgId, date);
+}
+async function syncFullStory(userId, integration) {
+  const date = yesterday();
+  const r = await syncFullStoryDay(userId, integration.access_token, integration.account_id, date);
+  return { ...r, date };
+}
+async function backfillFullStory(userId, integration, days = 90) {
+  log(`  [fullstory backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  let ok = 0, skipped = 0;
+  for (let offset = days; offset >= 1; offset--) {
+    const date = daysAgo(offset);
+    try { await syncFullStoryDay(userId, integration.access_token, integration.account_id, date); ok++; }
+    catch (err) { logFail(`  fullstory ${date} — ${err.message}`); skipped++; }
+    await sleep(300);
+  }
+  log(`  [fullstory backfill] done — ${ok} days saved, ${skipped} errors`);
+}
+
+// ㊵ HOTJAR
+// ─────────────────────────────────────────────────────────────────────────────
+async function syncHotjarDay(userId, accessToken, siteId, date) {
+  const { syncHotjarDay: fn } = await import('../lib/integrations/hotjar/sync.js');
+  return fn(userId, accessToken, siteId, date);
+}
+async function syncHotjar(userId, integration) {
+  const date = yesterday();
+  const r = await syncHotjarDay(userId, integration.access_token, integration.account_id, date);
+  return { ...r, date };
+}
+async function backfillHotjar(userId, integration, days = 90) {
+  log(`  [hotjar backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  let ok = 0, skipped = 0;
+  for (let offset = days; offset >= 1; offset--) {
+    const date = daysAgo(offset);
+    try { await syncHotjarDay(userId, integration.access_token, integration.account_id, date); ok++; }
+    catch (err) { logFail(`  hotjar ${date} — ${err.message}`); skipped++; }
+    await sleep(300);
+  }
+  log(`  [hotjar backfill] done — ${ok} days saved, ${skipped} errors`);
+}
+
+// ㊶ INSTAGRAM
+// ─────────────────────────────────────────────────────────────────────────────
+async function syncInstagramDay(userId, accessToken, businessAccountId, date) {
+  const { syncInstagramDay: fn } = await import('../lib/integrations/instagram/sync.js');
+  return fn(userId, accessToken, businessAccountId, date);
+}
+async function syncInstagram(userId, integration) {
+  const date = yesterday();
+  const r = await syncInstagramDay(userId, integration.access_token, integration.account_id, date);
+  return { ...r, date };
+}
+async function backfillInstagram(userId, integration, days = 90) {
+  log(`  [instagram backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  let ok = 0, skipped = 0;
+  for (let offset = days; offset >= 1; offset--) {
+    const date = daysAgo(offset);
+    try { await syncInstagramDay(userId, integration.access_token, integration.account_id, date); ok++; }
+    catch (err) { logFail(`  instagram ${date} — ${err.message}`); skipped++; }
+    await sleep(300);
+  }
+  log(`  [instagram backfill] done — ${ok} days saved, ${skipped} errors`);
+}
+// ㊷ YOUTUBE
+// ─────────────────────────────────────────────────────────────────────────────
+async function syncYouTubeDay(userId, accessToken, channelId, date) {
+  const { syncYouTubeDay: fn } = await import('../lib/integrations/youtube/sync.js');
+  return fn(userId, accessToken, channelId, date);
+}
+async function syncYouTube(userId, integration) {
+  const date = yesterday();
+  const r = await syncYouTubeDay(userId, integration.access_token, integration.account_id, date);
+  return { ...r, date };
+}
+async function backfillYouTube(userId, integration, days = 90) {
+  log(`  [youtube backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  let ok = 0, skipped = 0;
+  for (let offset = days; offset >= 1; offset--) {
+    const date = daysAgo(offset);
+    try { await syncYouTubeDay(userId, integration.access_token, integration.account_id, date); ok++; }
+    catch (err) { logFail(`  youtube ${date} — ${err.message}`); skipped++; }
+    await sleep(300);
+  }
+  log(`  [youtube backfill] done — ${ok} days saved, ${skipped} errors`);
+}
+
+// ㊸ TWITTER (organic)
+// ─────────────────────────────────────────────────────────────────────────────
+async function syncTwitterOrganicDay(userId, bearerToken, accountId, date) {
+  const { syncTwitterOrganicDay: fn } = await import('../lib/integrations/twitter-organic/sync.js');
+  return fn(userId, bearerToken, accountId, date);
+}
+async function syncTwitterOrganic(userId, integration) {
+  const date = yesterday();
+  const r = await syncTwitterOrganicDay(userId, integration.access_token, integration.account_id, date);
+  return { ...r, date };
+}
+async function backfillTwitterOrganic(userId, integration, days = 90) {
+  log(`  [twitter-organic backfill] ${days} days for user ${userId.slice(0, 8)}`);
+  let ok = 0, skipped = 0;
+  for (let offset = days; offset >= 1; offset--) {
+    const date = daysAgo(offset);
+    try { await syncTwitterOrganicDay(userId, integration.access_token, integration.account_id, date); ok++; }
+    catch (err) { logFail(`  twitter-organic ${date} — ${err.message}`); skipped++; }
+    await sleep(300);
+  }
+  log(`  [twitter-organic backfill] done — ${ok} days saved, ${skipped} errors`);
+}
 // Run once after connecting a platform. No timeout risk — runs locally.
 // ─────────────────────────────────────────────────────────────────────────────
 async function runBackfill() {
@@ -668,6 +2245,236 @@ async function runBackfill() {
       try {
         await backfillMeta(uid, plats.meta);
       } catch (err) { logFail(`meta backfill: ${err.message}`); }
+      await sleep(2_000);
+    }
+
+    if (plats.paypal) {
+      try {
+        await backfillPayPal(uid, plats.paypal);
+      } catch (err) { logFail(`paypal backfill: ${err.message}`); }
+      await sleep(2_000);
+    }
+
+    if (plats.paddle) {
+      try {
+        await backfillPaddle(uid, plats.paddle);
+      } catch (err) { logFail(`paddle backfill: ${err.message}`); }
+    }
+
+    if (plats['lemon-squeezy']) {
+      try {
+        await backfillLemonSqueezy(uid, plats['lemon-squeezy']);
+      } catch (err) { logFail(`lemonsqueezy backfill: ${err.message}`); }
+    }
+
+    if (plats.gumroad) {
+      try {
+        await backfillGumroad(uid, plats.gumroad);
+      } catch (err) { logFail(`gumroad backfill: ${err.message}`); }
+    }
+
+    if (plats.plausible) {
+      try {
+        await backfillPlausible(uid, plats.plausible);
+      } catch (err) { logFail(`plausible backfill: ${err.message}`); }
+    }
+
+    if (plats.mixpanel) {
+      try {
+        await backfillMixpanel(uid, plats.mixpanel);
+      } catch (err) { logFail(`mixpanel backfill: ${err.message}`); }
+    }
+
+    if (plats.amplitude) {
+      try {
+        await backfillAmplitude(uid, plats.amplitude);
+      } catch (err) { logFail(`amplitude backfill: ${err.message}`); }
+    }
+
+    if (plats.posthog) {
+      try {
+        await backfillPostHog(uid, plats.posthog);
+      } catch (err) { logFail(`posthog backfill: ${err.message}`); }
+    }
+
+    if (plats.fathom) {
+      try {
+        await backfillFathom(uid, plats.fathom);
+      } catch (err) { logFail(`fathom backfill: ${err.message}`); }
+    }
+
+    if (plats['google-ads']) {
+      try {
+        await backfillGoogleAds(uid, plats['google-ads']);
+      } catch (err) { logFail(`google-ads backfill: ${err.message}`); }
+    }
+
+    if (plats['tiktok-ads']) {
+      try {
+        await backfillTikTokAds(uid, plats['tiktok-ads']);
+      } catch (err) { logFail(`tiktok-ads backfill: ${err.message}`); }
+    }
+
+    if (plats['twitter-ads']) {
+      try {
+        await backfillTwitterAds(uid, plats['twitter-ads']);
+      } catch (err) { logFail(`twitter-ads backfill: ${err.message}`); }
+    }
+
+    if (plats['linkedin-ads']) {
+      try {
+        await backfillLinkedInAds(uid, plats['linkedin-ads']);
+      } catch (err) { logFail(`linkedin-ads backfill: ${err.message}`); }
+    }
+
+    if (plats['snapchat-ads']) {
+      try {
+        await backfillSnapchatAds(uid, plats['snapchat-ads']);
+      } catch (err) { logFail(`snapchat-ads backfill: ${err.message}`); }
+    }
+
+    if (plats['pinterest-ads']) {
+      try {
+        await backfillPinterestAds(uid, plats['pinterest-ads']);
+      } catch (err) { logFail(`pinterest-ads backfill: ${err.message}`); }
+    }
+
+    if (plats.mailchimp) {
+      try {
+        await backfillMailchimp(uid, plats.mailchimp);
+      } catch (err) { logFail(`mailchimp backfill: ${err.message}`); }
+    }
+
+    if (plats.klaviyo) {
+      try {
+        await backfillKlaviyo(uid, plats.klaviyo);
+      } catch (err) { logFail(`klaviyo backfill: ${err.message}`); }
+    }
+
+    if (plats.convertkit) {
+      try {
+        await backfillConvertKit(uid, plats.convertkit);
+      } catch (err) { logFail(`convertkit backfill: ${err.message}`); }
+    }
+
+    if (plats.activecampaign) {
+      try {
+        await backfillActiveCampaign(uid, plats.activecampaign);
+      } catch (err) { logFail(`activecampaign backfill: ${err.message}`); }
+    }
+
+    if (plats.brevo) {
+      try {
+        await backfillBrevo(uid, plats.brevo);
+      } catch (err) { logFail(`brevo backfill: ${err.message}`); }
+    }
+
+    if (plats.beehiiv) {
+      try {
+        await backfillBeehiiv(uid, plats.beehiiv);
+      } catch (err) { logFail(`beehiiv backfill: ${err.message}`); }
+    }
+
+    if (plats.shopify) {
+      try {
+        await backfillShopify(uid, plats.shopify);
+      } catch (err) { logFail(`shopify backfill: ${err.message}`); }
+    }
+
+    if (plats.woocommerce) {
+      try {
+        await backfillWooCommerce(uid, plats.woocommerce);
+      } catch (err) { logFail(`woocommerce backfill: ${err.message}`); }
+    }
+
+    if (plats.bigcommerce) {
+      try {
+        await backfillBigCommerce(uid, plats.bigcommerce);
+      } catch (err) { logFail(`bigcommerce backfill: ${err.message}`); }
+    }
+
+    if (plats['amazon-seller']) {
+      try {
+        await backfillAmazonSeller(uid, plats['amazon-seller']);
+      } catch (err) { logFail(`amazon-seller backfill: ${err.message}`); }
+    }
+
+    if (plats.etsy) {
+      try {
+        await backfillEtsy(uid, plats.etsy);
+      } catch (err) { logFail(`etsy backfill: ${err.message}`); }
+    }
+
+    if (plats.hubspot) {
+      try {
+        await backfillHubSpot(uid, plats.hubspot);
+      } catch (err) { logFail(`hubspot backfill: ${err.message}`); }
+    }
+
+    if (plats.salesforce) {
+      try {
+        await backfillSalesforce(uid, plats.salesforce);
+      } catch (err) { logFail(`salesforce backfill: ${err.message}`); }
+    }
+
+    if (plats.pipedrive) {
+      try {
+        await backfillPipedrive(uid, plats.pipedrive);
+      } catch (err) { logFail(`pipedrive backfill: ${err.message}`); }
+    }
+
+    if (plats.notion) {
+      try {
+        await backfillNotion(uid, plats.notion);
+      } catch (err) { logFail(`notion backfill: ${err.message}`); }
+    }
+
+    if (plats.intercom) {
+      try {
+        await backfillIntercom(uid, plats.intercom);
+      } catch (err) { logFail(`intercom backfill: ${err.message}`); }
+    }
+
+    if (plats.zendesk) {
+      try {
+        await backfillZendesk(uid, plats.zendesk);
+      } catch (err) { logFail(`zendesk backfill: ${err.message}`); }
+    }
+
+    if (plats.freshdesk) {
+      try {
+        await backfillFreshdesk(uid, plats.freshdesk);
+      } catch (err) { logFail(`freshdesk backfill: ${err.message}`); }
+    }
+
+    if (plats.segment) {
+      try {
+        await backfillSegment(uid, plats.segment);
+      } catch (err) { logFail(`segment backfill: ${err.message}`); }
+    }
+
+    if (plats.heap) {
+      try {
+        await backfillHeap(uid, plats.heap);
+      } catch (err) { logFail(`heap backfill: ${err.message}`); }
+    }
+
+    if (plats.fullstory) {
+      try {
+        await backfillFullStory(uid, plats.fullstory);
+      } catch (err) { logFail(`fullstory backfill: ${err.message}`); }
+    }
+
+    if (plats.hotjar) {
+      try {
+        await backfillHotjar(uid, plats.hotjar);
+      } catch (err) { logFail(`hotjar backfill: ${err.message}`); }
+    }
+
+    if (plats.instagram) {
+      try {
+        await backfillInstagram(uid, plats.instagram);
+      } catch (err) { logFail(`instagram backfill: ${err.message}`); }
     }
 
     if (i < userIds.length - 1) await sleep(USER_DELAY_MS);
@@ -734,7 +2541,7 @@ async function runSync() {
     const plats = byUser[uid];
     log(`[${i + 1}/${userIds.length}] User ${uid.slice(0, 8)} (${Object.keys(plats).join(', ')})`);
 
-    for (const platform of ['stripe', 'ga4', 'meta']) {
+    for (const platform of ['stripe', 'ga4', 'meta', 'paypal', 'paddle', 'lemon-squeezy', 'gumroad', 'plausible', 'mixpanel', 'amplitude', 'posthog', 'fathom', 'google-ads', 'tiktok-ads', 'twitter-ads', 'linkedin-ads', 'snapchat-ads', 'pinterest-ads', 'mailchimp', 'klaviyo', 'convertkit', 'activecampaign', 'brevo', 'beehiiv', 'shopify', 'woocommerce', 'bigcommerce', 'amazon-seller', 'etsy', 'hubspot', 'salesforce', 'pipedrive', 'notion', 'intercom', 'zendesk', 'freshdesk', 'segment', 'heap', 'fullstory', 'hotjar', 'instagram']) {
       if (!plats[platform]) continue;
       try {
         if (platform === 'stripe') {
@@ -746,6 +2553,126 @@ async function runSync() {
         } else if (platform === 'meta') {
           const r = await syncMeta(uid, plats.meta);
           logOk(`meta   — ${r.date} | $${r.spend} spend | ${r.reach} reach | ${r.clicks} clicks`);
+        } else if (platform === 'paypal') {
+          const r = await syncPayPal(uid, plats.paypal);
+          logOk(`paypal — ${r.date} | $${r.revenue.toFixed(2)} revenue | ${r.txCount} tx`);
+        } else if (platform === 'paddle') {
+          const r = await syncPaddle(uid, plats.paddle);
+          logOk(`paddle — ${r.date} | $${r.revenue.toFixed(2)} revenue | ${r.txCount} tx`);
+        } else if (platform === 'lemon-squeezy') {
+          const r = await syncLemonSqueezy(uid, plats['lemon-squeezy']);
+          logOk(`lemonsqueezy — ${r.date} | $${r.revenue.toFixed(2)} revenue | ${r.txCount} tx`);
+        } else if (platform === 'gumroad') {
+          const r = await syncGumroad(uid, plats.gumroad);
+          logOk(`gumroad — ${r.date} | $${r.revenue.toFixed(2)} revenue | ${r.txCount} tx`);
+        } else if (platform === 'plausible') {
+          const r = await syncPlausible(uid, plats.plausible);
+          logOk(`plausible — ${r.date} | ${r.visitors} visitors | ${r.pageviews} pageviews`);
+        } else if (platform === 'mixpanel') {
+          const r = await syncMixpanel(uid, plats.mixpanel);
+          logOk(`mixpanel — ${r.date} | ${r.events} events | ${r.uniqueUsers} unique users`);
+        } else if (platform === 'amplitude') {
+          const r = await syncAmplitude(uid, plats.amplitude);
+          logOk(`amplitude — ${r.date} | ${r.activeUsers} active users | ${r.totalEvents} events`);
+        } else if (platform === 'posthog') {
+          const r = await syncPostHog(uid, plats.posthog);
+          logOk(`posthog — ${r.date} | ${r.pageviews} pageviews | ${r.uniqueUsers} unique users`);
+        } else if (platform === 'fathom') {
+          const r = await syncFathom(uid, plats.fathom);
+          logOk(`fathom — ${r.date} | ${r.pageviews} pageviews | ${r.uniques} unique visitors`);
+        } else if (platform === 'google-ads') {
+          const r = await syncGoogleAds(uid, plats['google-ads']);
+          logOk(`google-ads — ${r.date} | $${r.spend?.toFixed(2)} spend | ${r.clicks} clicks | ${r.impressions} impressions`);
+        } else if (platform === 'tiktok-ads') {
+          const r = await syncTikTokAds(uid, plats['tiktok-ads']);
+          logOk(`tiktok-ads — ${r.date} | $${r.spend?.toFixed(2)} spend | ${r.clicks} clicks`);
+        } else if (platform === 'twitter-ads') {
+          const r = await syncTwitterAds(uid, plats['twitter-ads']);
+          logOk(`twitter-ads — ${r.date} | $${r.spend?.toFixed(2)} spend | ${r.impressions} impressions`);
+        } else if (platform === 'linkedin-ads') {
+          const r = await syncLinkedInAds(uid, plats['linkedin-ads']);
+          logOk(`linkedin-ads — ${r.date} | $${r.spend?.toFixed(2)} spend | ${r.clicks} clicks`);
+        } else if (platform === 'snapchat-ads') {
+          const r = await syncSnapchatAds(uid, plats['snapchat-ads']);
+          logOk(`snapchat-ads — ${r.date} | $${r.spend?.toFixed(2)} spend | ${r.swipes} swipes`);
+        } else if (platform === 'pinterest-ads') {
+          const r = await syncPinterestAds(uid, plats['pinterest-ads']);
+          logOk(`pinterest-ads — ${r.date} | $${r.spend?.toFixed(2)} spend | ${r.clicks} clicks`);
+        } else if (platform === 'mailchimp') {
+          const r = await syncMailchimp(uid, plats.mailchimp);
+          logOk(`mailchimp — ${r.date} | ${r.emailsSent} sent | ${r.opens} opens | ${r.clicks} clicks`);
+        } else if (platform === 'klaviyo') {
+          const r = await syncKlaviyo(uid, plats.klaviyo);
+          logOk(`klaviyo — ${r.date} | ${r.emailsSent} sent | ${r.opens} opens | $${r.revenue?.toFixed(2)} revenue`);
+        } else if (platform === 'convertkit') {
+          const r = await syncConvertKit(uid, plats.convertkit);
+          logOk(`convertkit — ${r.date} | ${r.totalSubscribers} subscribers | ${r.newSubscribers} new | ${r.broadcastsSent} broadcasts`);
+        } else if (platform === 'activecampaign') {
+          const r = await syncActiveCampaign(uid, plats.activecampaign);
+          logOk(`activecampaign — ${r.date} | ${r.emailsSent} sent | ${r.opens} opens | ${r.newContacts} new contacts`);
+        } else if (platform === 'brevo') {
+          const r = await syncBrevo(uid, plats.brevo);
+          logOk(`brevo — ${r.date} | ${r.emailsSent} sent | ${r.opens} opens | ${r.newContacts} new contacts`);
+        } else if (platform === 'beehiiv') {
+          const r = await syncBeehiiv(uid, plats.beehiiv);
+          logOk(`beehiiv — ${r.date} | ${r.totalSubscribers} subscribers | ${r.newSubscribers} new | ${r.postsPublished} posts`);
+        } else if (platform === 'shopify') {
+          const r = await syncShopify(uid, plats.shopify);
+          logOk(`shopify — ${r.date} | $${r.revenue?.toFixed(2)} revenue | ${r.orders} orders | ${r.newCustomers} new customers`);
+        } else if (platform === 'woocommerce') {
+          const r = await syncWooCommerce(uid, plats.woocommerce);
+          logOk(`woocommerce — ${r.date} | $${r.revenue?.toFixed(2)} revenue | ${r.orders} orders | ${r.newCustomers} new customers`);
+        } else if (platform === 'bigcommerce') {
+          const r = await syncBigCommerce(uid, plats.bigcommerce);
+          logOk(`bigcommerce — ${r.date} | $${r.revenue?.toFixed(2)} revenue | ${r.orders} orders | ${r.newCustomers} new customers`);
+        } else if (platform === 'amazon-seller') {
+          const r = await syncAmazonSeller(uid, plats['amazon-seller']);
+          logOk(`amazon-seller — ${r.date} | $${r.revenue?.toFixed(2)} revenue | ${r.orders} orders | ${r.units} units`);
+        } else if (platform === 'etsy') {
+          const r = await syncEtsy(uid, plats.etsy);
+          logOk(`etsy — ${r.date} | $${r.revenue?.toFixed(2)} revenue | ${r.orders} orders | ${r.views} views`);
+        } else if (platform === 'hubspot') {
+          const r = await syncHubSpot(uid, plats.hubspot);
+          logOk(`hubspot — ${r.date} | ${r.dealsWon} deals won | $${r.closedRevenue?.toFixed(2)} closed | ${r.newContacts} new contacts`);
+        } else if (platform === 'salesforce') {
+          const r = await syncSalesforce(uid, plats.salesforce);
+          logOk(`salesforce — ${r.date} | ${r.dealsWon} deals won | $${r.closedRevenue?.toFixed(2)} closed | ${r.newLeads} new leads`);
+        } else if (platform === 'pipedrive') {
+          const r = await syncPipedrive(uid, plats.pipedrive);
+          logOk(`pipedrive — ${r.date} | ${r.dealsWon} deals won | $${r.closedRevenue?.toFixed(2)} closed | ${r.newContacts} new contacts`);
+        } else if (platform === 'notion') {
+          const r = await syncNotion(uid, plats.notion);
+          logOk(`notion — ${r.date} | ${r.newRows} new rows | ${r.updatedRows} updated | ${r.totalRows} total`);
+        } else if (platform === 'intercom') {
+          const r = await syncIntercom(uid, plats.intercom);
+          logOk(`intercom — ${r.date} | ${r.newConversations} new convos | ${r.resolvedConversations} resolved | ${r.newContacts} new contacts`);
+        } else if (platform === 'zendesk') {
+          const r = await syncZendesk(uid, plats.zendesk);
+          logOk(`zendesk — ${r.date} | ${r.newTickets} new tickets | ${r.solvedTickets} solved | ${r.csatScore?.toFixed(1)}% CSAT`);
+        } else if (platform === 'freshdesk') {
+          const r = await syncFreshdesk(uid, plats.freshdesk);
+          logOk(`freshdesk — ${r.date} | ${r.newTickets} new | ${r.resolvedTickets} resolved | ${r.openTickets} open`);
+        } else if (platform === 'segment') {
+          await syncSegment(uid, plats.segment);
+          logOk(`segment — ${yesterday()} synced`);
+        } else if (platform === 'heap') {
+          await syncHeap(uid, plats.heap);
+          logOk(`heap — ${yesterday()} synced`);
+        } else if (platform === 'fullstory') {
+          await syncFullStory(uid, plats.fullstory);
+          logOk(`fullstory — ${yesterday()} synced`);
+        } else if (platform === 'hotjar') {
+          await syncHotjar(uid, plats.hotjar);
+          logOk(`hotjar — ${yesterday()} synced`);
+        } else if (platform === 'instagram') {
+          const r = await syncInstagram(uid, plats.instagram);
+          logOk(`instagram — ${r.date} | ${r.followers} followers | ${r.reach} reach | ${r.impressions} impressions`);
+        } else if (platform === 'youtube') {
+          await syncYouTube(uid, plats.youtube);
+          logOk(`youtube — ${yesterday()} synced`);
+        } else if (platform === 'twitter-organic') {
+          await syncTwitterOrganic(uid, plats['twitter-organic']);
+          logOk(`twitter-organic — ${yesterday()} synced`);
         }
         ok++;
       } catch (err) {
@@ -851,6 +2778,236 @@ async function runAutoBackfill() {
         await backfillMeta(uid, plats.meta);
         backfilledKeys.add(`${uid}:meta`);
       } catch (err) { logFail(`[auto-backfill] meta: ${err.message}`); }
+      await sleep(2_000);
+    }
+    if (plats.paypal) {
+      try {
+        await backfillPayPal(uid, plats.paypal);
+        backfilledKeys.add(`${uid}:paypal`);
+      } catch (err) { logFail(`[auto-backfill] paypal: ${err.message}`); }
+      await sleep(2_000);
+    }
+    if (plats.paddle) {
+      try {
+        await backfillPaddle(uid, plats.paddle);
+        backfilledKeys.add(`${uid}:paddle`);
+      } catch (err) { logFail(`[auto-backfill] paddle: ${err.message}`); }
+    }
+    if (plats['lemon-squeezy']) {
+      try {
+        await backfillLemonSqueezy(uid, plats['lemon-squeezy']);
+        backfilledKeys.add(`${uid}:lemon-squeezy`);
+      } catch (err) { logFail(`[auto-backfill] lemonsqueezy: ${err.message}`); }
+    }
+    if (plats.gumroad) {
+      try {
+        await backfillGumroad(uid, plats.gumroad);
+        backfilledKeys.add(`${uid}:gumroad`);
+      } catch (err) { logFail(`[auto-backfill] gumroad: ${err.message}`); }
+    }
+    if (plats.plausible) {
+      try {
+        await backfillPlausible(uid, plats.plausible);
+        backfilledKeys.add(`${uid}:plausible`);
+      } catch (err) { logFail(`[auto-backfill] plausible: ${err.message}`); }
+    }
+    if (plats.mixpanel) {
+      try {
+        await backfillMixpanel(uid, plats.mixpanel);
+        backfilledKeys.add(`${uid}:mixpanel`);
+      } catch (err) { logFail(`[auto-backfill] mixpanel: ${err.message}`); }
+    }
+    if (plats.amplitude) {
+      try {
+        await backfillAmplitude(uid, plats.amplitude);
+        backfilledKeys.add(`${uid}:amplitude`);
+      } catch (err) { logFail(`[auto-backfill] amplitude: ${err.message}`); }
+    }
+    if (plats.posthog) {
+      try {
+        await backfillPostHog(uid, plats.posthog);
+        backfilledKeys.add(`${uid}:posthog`);
+      } catch (err) { logFail(`[auto-backfill] posthog: ${err.message}`); }
+    }
+    if (plats.fathom) {
+      try {
+        await backfillFathom(uid, plats.fathom);
+        backfilledKeys.add(`${uid}:fathom`);
+      } catch (err) { logFail(`[auto-backfill] fathom: ${err.message}`); }
+    }
+    if (plats['google-ads']) {
+      try {
+        await backfillGoogleAds(uid, plats['google-ads']);
+        backfilledKeys.add(`${uid}:google-ads`);
+      } catch (err) { logFail(`[auto-backfill] google-ads: ${err.message}`); }
+    }
+    if (plats['tiktok-ads']) {
+      try {
+        await backfillTikTokAds(uid, plats['tiktok-ads']);
+        backfilledKeys.add(`${uid}:tiktok-ads`);
+      } catch (err) { logFail(`[auto-backfill] tiktok-ads: ${err.message}`); }
+    }
+    if (plats['twitter-ads']) {
+      try {
+        await backfillTwitterAds(uid, plats['twitter-ads']);
+        backfilledKeys.add(`${uid}:twitter-ads`);
+      } catch (err) { logFail(`[auto-backfill] twitter-ads: ${err.message}`); }
+    }
+    if (plats['linkedin-ads']) {
+      try {
+        await backfillLinkedInAds(uid, plats['linkedin-ads']);
+        backfilledKeys.add(`${uid}:linkedin-ads`);
+      } catch (err) { logFail(`[auto-backfill] linkedin-ads: ${err.message}`); }
+    }
+    if (plats['snapchat-ads']) {
+      try {
+        await backfillSnapchatAds(uid, plats['snapchat-ads']);
+        backfilledKeys.add(`${uid}:snapchat-ads`);
+      } catch (err) { logFail(`[auto-backfill] snapchat-ads: ${err.message}`); }
+    }
+    if (plats['pinterest-ads']) {
+      try {
+        await backfillPinterestAds(uid, plats['pinterest-ads']);
+        backfilledKeys.add(`${uid}:pinterest-ads`);
+      } catch (err) { logFail(`[auto-backfill] pinterest-ads: ${err.message}`); }
+    }
+    if (plats.mailchimp) {
+      try {
+        await backfillMailchimp(uid, plats.mailchimp);
+        backfilledKeys.add(`${uid}:mailchimp`);
+      } catch (err) { logFail(`[auto-backfill] mailchimp: ${err.message}`); }
+    }
+    if (plats.klaviyo) {
+      try {
+        await backfillKlaviyo(uid, plats.klaviyo);
+        backfilledKeys.add(`${uid}:klaviyo`);
+      } catch (err) { logFail(`[auto-backfill] klaviyo: ${err.message}`); }
+    }
+    if (plats.convertkit) {
+      try {
+        await backfillConvertKit(uid, plats.convertkit);
+        backfilledKeys.add(`${uid}:convertkit`);
+      } catch (err) { logFail(`[auto-backfill] convertkit: ${err.message}`); }
+    }
+    if (plats.activecampaign) {
+      try {
+        await backfillActiveCampaign(uid, plats.activecampaign);
+        backfilledKeys.add(`${uid}:activecampaign`);
+      } catch (err) { logFail(`[auto-backfill] activecampaign: ${err.message}`); }
+    }
+    if (plats.brevo) {
+      try {
+        await backfillBrevo(uid, plats.brevo);
+        backfilledKeys.add(`${uid}:brevo`);
+      } catch (err) { logFail(`[auto-backfill] brevo: ${err.message}`); }
+    }
+    if (plats.beehiiv) {
+      try {
+        await backfillBeehiiv(uid, plats.beehiiv);
+        backfilledKeys.add(`${uid}:beehiiv`);
+      } catch (err) { logFail(`[auto-backfill] beehiiv: ${err.message}`); }
+    }
+    if (plats.shopify) {
+      try {
+        await backfillShopify(uid, plats.shopify);
+        backfilledKeys.add(`${uid}:shopify`);
+      } catch (err) { logFail(`[auto-backfill] shopify: ${err.message}`); }
+    }
+    if (plats.woocommerce) {
+      try {
+        await backfillWooCommerce(uid, plats.woocommerce);
+        backfilledKeys.add(`${uid}:woocommerce`);
+      } catch (err) { logFail(`[auto-backfill] woocommerce: ${err.message}`); }
+    }
+    if (plats.bigcommerce) {
+      try {
+        await backfillBigCommerce(uid, plats.bigcommerce);
+        backfilledKeys.add(`${uid}:bigcommerce`);
+      } catch (err) { logFail(`[auto-backfill] bigcommerce: ${err.message}`); }
+    }
+    if (plats['amazon-seller']) {
+      try {
+        await backfillAmazonSeller(uid, plats['amazon-seller']);
+        backfilledKeys.add(`${uid}:amazon-seller`);
+      } catch (err) { logFail(`[auto-backfill] amazon-seller: ${err.message}`); }
+    }
+    if (plats.etsy) {
+      try {
+        await backfillEtsy(uid, plats.etsy);
+        backfilledKeys.add(`${uid}:etsy`);
+      } catch (err) { logFail(`[auto-backfill] etsy: ${err.message}`); }
+    }
+    if (plats.hubspot) {
+      try {
+        await backfillHubSpot(uid, plats.hubspot);
+        backfilledKeys.add(`${uid}:hubspot`);
+      } catch (err) { logFail(`[auto-backfill] hubspot: ${err.message}`); }
+    }
+    if (plats.salesforce) {
+      try {
+        await backfillSalesforce(uid, plats.salesforce);
+        backfilledKeys.add(`${uid}:salesforce`);
+      } catch (err) { logFail(`[auto-backfill] salesforce: ${err.message}`); }
+    }
+    if (plats.pipedrive) {
+      try {
+        await backfillPipedrive(uid, plats.pipedrive);
+        backfilledKeys.add(`${uid}:pipedrive`);
+      } catch (err) { logFail(`[auto-backfill] pipedrive: ${err.message}`); }
+    }
+    if (plats.notion) {
+      try {
+        await backfillNotion(uid, plats.notion);
+        backfilledKeys.add(`${uid}:notion`);
+      } catch (err) { logFail(`[auto-backfill] notion: ${err.message}`); }
+    }
+    if (plats.intercom) {
+      try {
+        await backfillIntercom(uid, plats.intercom);
+        backfilledKeys.add(`${uid}:intercom`);
+      } catch (err) { logFail(`[auto-backfill] intercom: ${err.message}`); }
+    }
+    if (plats.zendesk) {
+      try {
+        await backfillZendesk(uid, plats.zendesk);
+        backfilledKeys.add(`${uid}:zendesk`);
+      } catch (err) { logFail(`[auto-backfill] zendesk: ${err.message}`); }
+    }
+    if (plats.freshdesk) {
+      try {
+        await backfillFreshdesk(uid, plats.freshdesk);
+        backfilledKeys.add(`${uid}:freshdesk`);
+      } catch (err) { logFail(`[auto-backfill] freshdesk: ${err.message}`); }
+    }
+    if (plats.segment) {
+      try {
+        await backfillSegment(uid, plats.segment);
+        backfilledKeys.add(`${uid}:segment`);
+      } catch (err) { logFail(`[auto-backfill] segment: ${err.message}`); }
+    }
+    if (plats.heap) {
+      try {
+        await backfillHeap(uid, plats.heap);
+        backfilledKeys.add(`${uid}:heap`);
+      } catch (err) { logFail(`[auto-backfill] heap: ${err.message}`); }
+    }
+    if (plats.fullstory) {
+      try {
+        await backfillFullStory(uid, plats.fullstory);
+        backfilledKeys.add(`${uid}:fullstory`);
+      } catch (err) { logFail(`[auto-backfill] fullstory: ${err.message}`); }
+    }
+    if (plats.hotjar) {
+      try {
+        await backfillHotjar(uid, plats.hotjar);
+        backfilledKeys.add(`${uid}:hotjar`);
+      } catch (err) { logFail(`[auto-backfill] hotjar: ${err.message}`); }
+    }
+    if (plats.instagram) {
+      try {
+        await backfillInstagram(uid, plats.instagram);
+        backfilledKeys.add(`${uid}:instagram`);
+      } catch (err) { logFail(`[auto-backfill] instagram: ${err.message}`); }
     }
 
     await sleep(USER_DELAY_MS);
@@ -1124,6 +3281,86 @@ async function runBackfillForUser(userId, platform, newAccountId = null) {
       await backfillGA4(userId, integration);
     } else if (platform === 'meta') {
       await backfillMeta(userId, integration);
+    } else if (platform === 'paypal') {
+      await backfillPayPal(userId, integration);
+    } else if (platform === 'paddle') {
+      await backfillPaddle(userId, integration);
+    } else if (platform === 'lemon-squeezy') {
+      await backfillLemonSqueezy(userId, integration);
+    } else if (platform === 'gumroad') {
+      await backfillGumroad(userId, integration);
+    } else if (platform === 'plausible') {
+      await backfillPlausible(userId, integration);
+    } else if (platform === 'mixpanel') {
+      await backfillMixpanel(userId, integration);
+    } else if (platform === 'amplitude') {
+      await backfillAmplitude(userId, integration);
+    } else if (platform === 'posthog') {
+      await backfillPostHog(userId, integration);
+    } else if (platform === 'fathom') {
+      await backfillFathom(userId, integration);
+    } else if (platform === 'google-ads') {
+      await backfillGoogleAds(userId, integration);
+    } else if (platform === 'tiktok-ads') {
+      await backfillTikTokAds(userId, integration);
+    } else if (platform === 'twitter-ads') {
+      await backfillTwitterAds(userId, integration);
+    } else if (platform === 'linkedin-ads') {
+      await backfillLinkedInAds(userId, integration);
+    } else if (platform === 'snapchat-ads') {
+      await backfillSnapchatAds(userId, integration);
+    } else if (platform === 'pinterest-ads') {
+      await backfillPinterestAds(userId, integration);
+    } else if (platform === 'mailchimp') {
+      await backfillMailchimp(userId, integration);
+    } else if (platform === 'klaviyo') {
+      await backfillKlaviyo(userId, integration);
+    } else if (platform === 'convertkit') {
+      await backfillConvertKit(userId, integration);
+    } else if (platform === 'activecampaign') {
+      await backfillActiveCampaign(userId, integration);
+    } else if (platform === 'brevo') {
+      await backfillBrevo(userId, integration);
+    } else if (platform === 'beehiiv') {
+      await backfillBeehiiv(userId, integration);
+    } else if (platform === 'shopify') {
+      await backfillShopify(userId, integration);
+    } else if (platform === 'woocommerce') {
+      await backfillWooCommerce(userId, integration);
+    } else if (platform === 'bigcommerce') {
+      await backfillBigCommerce(userId, integration);
+    } else if (platform === 'amazon-seller') {
+      await backfillAmazonSeller(userId, integration);
+    } else if (platform === 'etsy') {
+      await backfillEtsy(userId, integration);
+    } else if (platform === 'hubspot') {
+      await backfillHubSpot(userId, integration);
+    } else if (platform === 'salesforce') {
+      await backfillSalesforce(userId, integration);
+    } else if (platform === 'pipedrive') {
+      await backfillPipedrive(userId, integration);
+    } else if (platform === 'notion') {
+      await backfillNotion(userId, integration);
+    } else if (platform === 'intercom') {
+      await backfillIntercom(userId, integration);
+    } else if (platform === 'zendesk') {
+      await backfillZendesk(userId, integration);
+    } else if (platform === 'freshdesk') {
+      await backfillFreshdesk(userId, integration);
+    } else if (platform === 'segment') {
+      await backfillSegment(userId, integration);
+    } else if (platform === 'heap') {
+      await backfillHeap(userId, integration);
+    } else if (platform === 'fullstory') {
+      await backfillFullStory(userId, integration);
+    } else if (platform === 'hotjar') {
+      await backfillHotjar(userId, integration);
+    } else if (platform === 'instagram') {
+      await backfillInstagram(userId, integration);
+    } else if (platform === 'youtube') {
+      await backfillYouTube(userId, integration);
+    } else if (platform === 'twitter-organic') {
+      await backfillTwitterOrganic(userId, integration);
     } else {
       logWarn(`[trigger] Unknown platform: ${platform}`);
       return;

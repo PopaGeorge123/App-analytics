@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import { LIVE_INTEGRATIONS, INTEGRATION_CATEGORIES } from "@/lib/integrations/catalog";
 
 interface SettingsTabProps {
   email: string;
@@ -9,56 +11,63 @@ interface SettingsTabProps {
   connectedPlatforms: string[];
 }
 
-const INTEGRATIONS = [
-  {
-    id: "stripe",
-    name: "Stripe Connect",
-    description: "Revenue, transactions & new customers",
-    connectUrl: "/api/auth/stripe/url",
-    color: "#635bff",
-    icon: (
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.591-7.305z" />
-      </svg>
-    ),
-  },
-  {
-    id: "ga4",
-    name: "Google Analytics 4",
-    description: "Sessions, users, bounce rate & conversions",
-    connectUrl: "/api/auth/google/url",
-    color: "#f59e0b",
-    icon: (
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12.545 10.239v3.821h5.445c-.712 2.315-2.647 3.972-5.445 3.972a6.033 6.033 0 110-12.064c1.498 0 2.866.549 3.921 1.453l2.814-2.814A9.969 9.969 0 0012.545 2C7.021 2 2.543 6.477 2.543 12s4.478 10 10.002 10c8.396 0 10.249-7.85 9.426-11.748l-9.426-.013z" />
-      </svg>
-    ),
-  },
-  {
-    id: "meta",
-    name: "Meta Ads",
-    description: "Ad spend, reach, clicks & conversions",
-    connectUrl: "/api/auth/meta/url",
-    color: "#1877f2",
-    icon: (
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-      </svg>
-    ),
-  },
-];
+const UI_INTEGRATIONS = LIVE_INTEGRATIONS.map((cat) => ({
+  id: cat.id,
+  name: cat.name,
+  description: cat.description,
+  connectUrl: cat.connectUrl || "",
+  color: cat.color,
+  icon: (
+    <svg width="14" height="14" viewBox={cat.iconViewBox || "0 0 24 24"} fill="currentColor" dangerouslySetInnerHTML={{ __html: cat.icon }} />
+  ),
+  category: cat.category,
+}));
+
+// Platforms that need an extra param collected before we can build the OAuth URL.
+// key = platform id, value = { param: query param name, label, placeholder }
+const PARAM_REQUIRED: Record<string, { param: string; label: string; placeholder: string }> = {
+  shopify: { param: "shop", label: "Store domain", placeholder: "yourstore.myshopify.com" },
+  zendesk: { param: "subdomain", label: "Zendesk subdomain", placeholder: "yourcompany (from yourcompany.zendesk.com)" },
+  freshdesk: { param: "subdomain", label: "Freshdesk subdomain", placeholder: "yourcompany (from yourcompany.freshdesk.com)" },
+};
 
 function IntegrationRow({
   integration,
   connected,
 }: {
-  integration: (typeof INTEGRATIONS)[number];
+  integration: (typeof UI_INTEGRATIONS)[number];
   connected: boolean;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState<"disconnect" | null>(null);
   const [error, setError] = useState("");
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
+  const [paramValue, setParamValue] = useState("");
+  const [showParamInput, setShowParamInput] = useState(false);
+
+  const paramConfig = PARAM_REQUIRED[integration.id];
+
+  function handleConnectClick(e: React.MouseEvent<HTMLAnchorElement>) {
+    if (!paramConfig) return; // no extra param needed — let the <a> navigate normally
+    e.preventDefault();
+    setShowParamInput(true);
+    setError("");
+  }
+
+  function handleParamSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const val = paramValue.trim();
+    if (!val) {
+      setError(`Please enter your ${paramConfig.label.toLowerCase()}.`);
+      return;
+    }
+    // For Shopify ensure it ends with .myshopify.com
+    let finalVal = val;
+    if (integration.id === "shopify" && !val.includes(".")) {
+      finalVal = `${val}.myshopify.com`;
+    }
+    window.location.href = `${integration.connectUrl}?${paramConfig.param}=${encodeURIComponent(finalVal)}`;
+  }
 
   async function handleDisconnect() {
     if (!confirmDisconnect) {
@@ -118,6 +127,7 @@ function IntegrationRow({
             {/* Switch account */}
             <a
               href={integration.connectUrl}
+              onClick={handleConnectClick}
               className="rounded-lg border border-[#363650] bg-[#1c1c2a] px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#bcbcd8] transition-all hover:border-[#00d4aa]/30 hover:text-[#00d4aa]"
               title="Connect a different account"
             >
@@ -153,12 +163,41 @@ function IntegrationRow({
         ) : (
           <a
             href={integration.connectUrl}
+            onClick={handleConnectClick}
             className="rounded-xl border border-[#363650] bg-[#1c1c2a] px-4 py-2 font-mono text-[11px] font-semibold uppercase tracking-wider text-[#bcbcd8] transition-all hover:border-[#00d4aa]/30 hover:bg-[#0f1420] hover:text-[#00d4aa]"
           >
             Connect →
           </a>
         )}
       </div>
+
+      {/* Inline param input for platforms that need a shop/subdomain before OAuth */}
+      {showParamInput && paramConfig && (
+        <form onSubmit={handleParamSubmit} className="mt-3 flex items-center gap-2">
+          <input
+            autoFocus
+            type="text"
+            value={paramValue}
+            onChange={(e) => { setParamValue(e.target.value); setError(""); }}
+            placeholder={paramConfig.placeholder}
+            className="flex-1 rounded-lg border border-[#363650] bg-[#1c1c2a] px-3 py-2 font-mono text-xs text-[#f8f8fc] placeholder-[#58588a] outline-none focus:border-[#00d4aa]/50 focus:ring-1 focus:ring-[#00d4aa]/20"
+          />
+          <button
+            type="submit"
+            className="rounded-lg border border-[#00d4aa]/30 bg-[#00d4aa]/10 px-3 py-2 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#00d4aa] transition-all hover:bg-[#00d4aa]/20"
+          >
+            Go →
+          </button>
+          <button
+            type="button"
+            onClick={() => { setShowParamInput(false); setParamValue(""); setError(""); }}
+            className="rounded-lg border border-[#363650] px-3 py-2 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#8585aa] transition-all hover:text-[#bcbcd8]"
+          >
+            Cancel
+          </button>
+        </form>
+      )}
+
       {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
     </div>
   );
@@ -392,10 +431,167 @@ function DigestSection({ email }: { email: string }) {
   );
 }
 
+const DYNAMIC_MODALS: Record<string, { label: string; name: string }[]> = {
+  activecampaign: [{ name: "apiUrl", label: "Api URL" }, { name: "apiKey", label: "API Key" }],
+  "amazon-seller": [{ name: "refreshToken", label: "Refresh Token" }, { name: "clientId", label: "Client ID" }, { name: "clientSecret", label: "Client Secret" }, { name: "sellerId", label: "Seller ID" }],
+  amplitude: [{ name: "apiKey", label: "API Key" }, { name: "secretKey", label: "Secret Key" }],
+  beehiiv: [{ name: "apiKey", label: "API Key" }, { name: "publicationId", label: "Publication ID" }],
+  bigcommerce: [{ name: "storeHash", label: "Store Hash" }, { name: "accessToken", label: "Access Token" }],
+  brevo: [{ name: "apiKey", label: "API Key" }],
+  convertkit: [{ name: "apiKey", label: "API Key" }],
+  etsy: [{ name: "apiKey", label: "API Key" }, { name: "shopId", label: "Shop ID" }],
+  fathom: [{ name: "apiKey", label: "API Key" }, { name: "siteId", label: "Site ID" }],
+  freshdesk: [{ name: "subdomain", label: "Subdomain" }, { name: "apiKey", label: "API Key" }],
+  fullstory: [{ name: "apiKey", label: "API Key" }, { name: "orgId", label: "Organization ID" }],
+  "google-ads": [{ name: "accessToken", label: "Access Token" }, { name: "developerToken", label: "Developer Token" }, { name: "customerId", label: "Customer ID" }],
+  gumroad: [{ name: "apiKey", label: "API Key" }],
+  heap: [{ name: "appId", label: "App ID" }, { name: "apiKey", label: "API Key" }],
+  hotjar: [{ name: "accessToken", label: "Access Token" }, { name: "siteId", label: "Site ID" }],
+  hubspot: [{ name: "accessToken", label: "Access Token" }],
+  instagram: [{ name: "accessToken", label: "Access Token" }, { name: "businessAccountId", label: "Business Account ID" }],
+  intercom: [{ name: "accessToken", label: "Access Token" }],
+  klaviyo: [{ name: "apiKey", label: "API Key" }],
+  "lemon-squeezy": [{ name: "apiKey", label: "API Key" }],
+  "linkedin-ads": [{ name: "accessToken", label: "Access Token" }, { name: "accountId", label: "Account ID" }],
+  mailchimp: [{ name: "apiKey", label: "API Key" }],
+  mixpanel: [{ name: "projectId", label: "Project ID" }, { name: "serviceAccountUser", label: "Service Account User" }, { name: "serviceAccountSecret", label: "Service Account Secret" }],
+  notion: [{ name: "apiToken", label: "API Token" }, { name: "databaseId", label: "Database ID" }],
+  paddle: [{ name: "apiKey", label: "API Key" }],
+  "pinterest-ads": [{ name: "accessToken", label: "Access Token" }, { name: "accountId", label: "Account ID" }],
+  pipedrive: [{ name: "apiToken", label: "API Token" }],
+  plausible: [{ name: "apiKey", label: "API Key" }, { name: "siteId", label: "Site ID" }],
+  posthog: [{ name: "apiKey", label: "API Key" }, { name: "projectId", label: "Project ID" }],
+  salesforce: [{ name: "instanceUrl", label: "Instance URL" }, { name: "accessToken", label: "Access Token" }],
+  segment: [{ name: "accessToken", label: "Access Token" }, { name: "workspaceId", label: "Workspace ID" }],
+  shopify: [{ name: "storeDomain", label: "Store Domain" }, { name: "accessToken", label: "Access Token" }],
+  "snapchat-ads": [{ name: "accessToken", label: "Access Token" }, { name: "accountId", label: "Account ID" }],
+  "tiktok-ads": [{ name: "accessToken", label: "Access Token" }, { name: "advertiserId", label: "Advertiser ID" }],
+  "twitter-ads": [{ name: "bearerToken", label: "Bearer Token" }, { name: "accountId", label: "Account ID" }],
+  "twitter-organic": [{ name: "bearerToken", label: "Bearer Token" }, { name: "accountId", label: "User ID" }],
+  woocommerce: [{ name: "siteUrl", label: "Site URL" }, { name: "consumerKey", label: "Consumer Key" }, { name: "consumerSecret", label: "Consumer Secret" }],
+  youtube: [{ name: "accessToken", label: "Access Token" }, { name: "channelId", label: "Channel ID" }],
+  zendesk: [{ name: "subdomain", label: "Subdomain" }, { name: "email", label: "Email" }, { name: "apiToken", label: "API Token" }],
+};
+
+function ConnectModalShell({
+  title,
+  description,
+  onClose,
+  children,
+}: {
+  title: string;
+  description: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#090911]/75 p-4">
+      <div className="w-full max-w-lg rounded-2xl border border-[#363650] bg-[#13131f] p-6 shadow-2xl">
+        <div className="mb-5 flex items-start justify-between gap-3">
+          <div>
+            <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">{title}</h3>
+            <p className="mt-1 text-xs text-[#8585aa]">{description}</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-lg border border-[#363650] px-2.5 py-1 font-mono text-[10px] text-[#8585aa] transition hover:text-[#e0e0f0]"
+          >
+            Close
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 export default function SettingsTab({ email, isPremium, connectedPlatforms }: SettingsTabProps) {
   const router = useRouter();
   const [portalLoading, setPortalLoading] = useState(false);
   const [portalError, setPortalError] = useState("");
+  const [connectTarget, setConnectTarget] = useState<string | null>(null);
+  const [connectLoading, setConnectLoading] = useState(false);
+  const [connectError, setConnectError] = useState("");
+  const [connectSuccess, setConnectSuccess] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeCategory, setActiveCategory] = useState<string>("Popular");
+
+  const POPULAR_INTEGRATION_IDS = ["stripe", "ga4", "meta", "shopify", "youtube", "mailchimp"];
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const connect = params.get("connect");
+    if (connect && LIVE_INTEGRATIONS.some((i) => i.id === connect)) {
+      setConnectTarget(connect);
+    }
+
+    // Detect OAuth error/result params like ?shopify=error or ?hubspot=connected
+    // and immediately clean them from the URL so they don't interfere with navigation.
+    const knownParams = new Set(["tab", "connect", "syncing"]);
+    const hasJunkParams = Array.from(params.keys()).some((k) => !knownParams.has(k));
+    if (hasJunkParams) {
+      // Show error banner if any platform returned an error
+      const errorPlatform = Array.from(params.entries()).find(
+        ([k, v]) => !knownParams.has(k) && v === "error"
+      );
+      if (errorPlatform) {
+        setConnectError(
+          `Could not connect ${errorPlatform[0].replace(/-/g, " ")} — please try again or check your app credentials.`
+        );
+      }
+      // Clean the URL — only keep tab=settings
+      router.replace("/dashboard?tab=settings");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function closeConnectModal() {
+    setConnectTarget(null);
+    setConnectError("");
+    setConnectSuccess("");
+    // Always produce a clean URL — drops all OAuth result params (?platform=error/connected/missing_shop)
+    router.replace("/dashboard?tab=settings");
+  }
+
+  async function submitConnect(platform: string, payload: Record<string, string>) {
+    setConnectLoading(true);
+    setConnectError("");
+    setConnectSuccess("");
+    try {
+      const supabase = createClient();
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) {
+        setConnectError("Your session expired. Please log in again.");
+        setConnectLoading(false);
+        return;
+      }
+
+      const res = await fetch(`/api/auth/${platform}/connect`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setConnectError(result?.error ?? "Failed to connect integration.");
+        setConnectLoading(false);
+        return;
+      }
+
+      setConnectSuccess("Integration connected successfully.");
+      router.refresh();
+      setTimeout(() => closeConnectModal(), 700);
+    } catch {
+      setConnectError("Network error while connecting integration.");
+    } finally {
+      setConnectLoading(false);
+    }
+  }
 
   async function handlePortal() {
     setPortalLoading(true);
@@ -453,21 +649,94 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms }: Se
 
       {/* ── Integrations ─────────────────────────────────── */}
       <section className="mb-6 rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-6">
-        <h2 className="mb-1 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#8585aa]">
-          Integrations
-        </h2>
-        <p className="mb-5 text-sm text-[#bcbcd8]">
-          Connect your data sources. Data syncs automatically every day — you can also trigger a manual sync anytime from the Overview tab.
-        </p>
-
-        <div className="flex flex-col gap-3">
-          {INTEGRATIONS.map((integration) => (
-            <IntegrationRow
-              key={integration.id}
-              integration={integration}
-              connected={connectedPlatforms.includes(integration.id)}
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="mb-1 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#8585aa]">
+              Integrations
+            </h2>
+            <p className="text-sm text-[#bcbcd8]">
+              Connect your data sources. Data syncs automatically every day — or sync manually from the Overview tab.
+            </p>
+          </div>
+          <div className="relative shrink-0 sm:w-64">
+            <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#58588a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Search platform..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                if (e.target.value && activeCategory === "Popular") {
+                  setActiveCategory("All"); // Switch from popular when typing to show all results
+                }
+              }}
+              className="w-full rounded-xl border border-[#363650] bg-[#222235] py-2 pl-9 pr-3 text-sm text-[#f8f8fc] placeholder:text-[#58588a] focus:border-[#00d4aa]/50 focus:outline-none focus:ring-1 focus:ring-[#00d4aa]/50 transition-all font-mono"
             />
-          ))}
+          </div>
+        </div>
+
+        {/* ── Tabs ─────────────────────────────────── */}
+        {!searchQuery && (
+          <div className="mb-6 flex overflow-x-auto pb-2 gap-2 hide-scrollbar">
+            {["Popular", ...INTEGRATION_CATEGORIES].map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setActiveCategory(cat)}
+                className={`whitespace-nowrap rounded-full px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider transition-all ${
+                  activeCategory === cat
+                    ? "bg-[#00d4aa] text-[#13131f] border border-[#00d4aa]"
+                    : "bg-[#1c1c2a] text-[#8585aa] border border-[#363650] hover:border-[#00d4aa]/30 hover:text-[#e0e0f0]"
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className="flex flex-col gap-8">
+          {UI_INTEGRATIONS.filter((i) => i.name.toLowerCase().includes(searchQuery.toLowerCase()) || i.description.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 ? (
+            <div className="py-8 text-center text-sm text-[#8585aa]">
+              No integrations found matching <span className="text-[#f8f8fc]">"{searchQuery}"</span>
+            </div>
+          ) : activeCategory === "Popular" && !searchQuery ? (
+            <div className="flex flex-col gap-3">
+              {UI_INTEGRATIONS.filter((i) => POPULAR_INTEGRATION_IDS.includes(i.id)).map((integration) => (
+                <IntegrationRow
+                  key={integration.id}
+                  integration={integration}
+                  connected={connectedPlatforms.includes(integration.id)}
+                />
+              ))}
+            </div>
+          ) : (
+            INTEGRATION_CATEGORIES.filter((cat) => !searchQuery ? activeCategory === cat || activeCategory === "All" : true).map((cat) => {
+              const categoryIntegrations = UI_INTEGRATIONS.filter(
+                (i) => i.category === cat && 
+                       (i.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                        i.description.toLowerCase().includes(searchQuery.toLowerCase()))
+              );
+              if (categoryIntegrations.length === 0) return null;
+              return (
+                <div key={cat}>
+                  <h3 className="mb-3 font-mono text-[10px] font-bold uppercase tracking-widest text-[#f8f8fc]">
+                    {cat}
+                  </h3>
+                  <div className="flex flex-col gap-3">
+                    {categoryIntegrations.map((integration) => (
+                      <IntegrationRow
+                        key={integration.id}
+                        integration={integration}
+                        connected={connectedPlatforms.includes(integration.id)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </section>
 
@@ -567,6 +836,42 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms }: Se
           </div>
         )}
       </section>
+
+      {connectTarget && DYNAMIC_MODALS[connectTarget] && (
+        <ConnectModalShell
+          title={`Connect ${UI_INTEGRATIONS.find(i => i.id === connectTarget)?.name || "Integration"}`}
+          description={`Add your credentials to connect ${UI_INTEGRATIONS.find(i => i.id === connectTarget)?.name || "Integration"}.`}
+          onClose={closeConnectModal}
+        >
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const form = e.currentTarget;
+              const payload: Record<string, string> = {};
+              DYNAMIC_MODALS[connectTarget].forEach(field => {
+                payload[field.name] = (new FormData(form).get(field.name) as string) ?? "";
+              });
+              submitConnect(connectTarget, payload);
+            }}
+            className="space-y-3"
+          >
+            {DYNAMIC_MODALS[connectTarget].map((field) => (
+              <input
+                key={field.name}
+                name={field.name}
+                required
+                placeholder={field.label}
+                className="w-full rounded-xl border border-[#363650] bg-[#1c1c2a] px-3 py-2 text-sm text-[#f8f8fc] placeholder:text-[#58588a]"
+              />
+            ))}
+            {connectError && <p className="text-xs text-red-400">{connectError}</p>}
+            {connectSuccess && <p className="text-xs text-[#00d4aa]">{connectSuccess}</p>}
+            <button disabled={connectLoading} className="rounded-xl bg-[#00d4aa] px-4 py-2 font-mono text-xs font-bold text-[#13131f] disabled:opacity-60">
+              {connectLoading ? "Connecting…" : "Connect"}
+            </button>
+          </form>
+        </ConnectModalShell>
+      )}
     </div>
   );
 }

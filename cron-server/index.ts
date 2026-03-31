@@ -1,4 +1,6 @@
-import "dotenv/config";
+// @ts-ignore: dotenv is optional for the cron server runtime; ignore missing types in the repo environment
+import dotenv from "dotenv";
+dotenv.config();
 import cron from "node-cron";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";

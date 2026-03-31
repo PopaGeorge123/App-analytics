@@ -213,6 +213,60 @@ function StatCard({ label, value, sub, values, color }: {
   );
 }
 
+  function YouTubeSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+    const grouped = groupSnapshots(snapshots, granularity, ["subscribers", "totalViews"], []);
+    const subs = grouped.map((r) => r.data.subscribers);
+    const views = grouped.map((r) => r.data.totalViews);
+    const lastSubs = subs.length > 0 ? subs[subs.length - 1] : 0;
+    const tableRows = grouped.map((r) => ({
+      period: fmtPeriod(r.period, granularity),
+      cells: [
+        { label: "Subscribers", value: fmt(r.data.subscribers) },
+        { label: "Total Views", value: fmt(r.data.totalViews) },
+      ],
+    }));
+    return (
+      <div className="space-y-5">
+        <div className="flex items-center gap-3 rounded-xl border border-[#FF0000]/15 bg-[#FF0000]/5 px-4 py-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FF0000]/15 font-mono text-[10px] font-bold text-[#FF0000]">YT</div>
+          <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">YouTube</h3>
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <StatCard label="Subscribers" value={fmt(lastSubs)} values={subs} color="#FF0000" />
+          <StatCard label="Total Views" value={fmt(views.reduce((a,b)=>a+b,0))} values={views} color="#f87171" />
+        </div>
+        <DataTable rows={tableRows} />
+      </div>
+    );
+  }
+
+  function TwitterOrganicSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+    const grouped = groupSnapshots(snapshots, granularity, ["followers", "tweetCount"], []);
+    const followers = grouped.map((r) => r.data.followers);
+    const tweets = grouped.map((r) => r.data.tweetCount);
+    const lastFollowers = followers.length > 0 ? followers[followers.length - 1] : 0;
+    const tableRows = grouped.map((r) => ({
+      period: fmtPeriod(r.period, granularity),
+      cells: [
+        { label: "Followers", value: fmt(r.data.followers) },
+        { label: "Tweets", value: fmt(r.data.tweetCount) },
+      ],
+    }));
+    return (
+      <div className="space-y-5">
+        <div className="flex items-center gap-3 rounded-xl border border-[#1d9bf0]/15 bg-[#1d9bf0]/5 px-4 py-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1d9bf0]/15 font-mono text-[10px] font-bold text-[#1d9bf0]">XA</div>
+          <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">X (Twitter)</h3>
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <StatCard label="Followers" value={fmt(lastFollowers)} values={followers} color="#1d9bf0" />
+          <StatCard label="Tweets" value={fmt(tweets.reduce((a,b)=>a+b,0))} values={tweets} color="#60a5fa" />
+        </div>
+        <DataTable rows={tableRows} />
+      </div>
+    );
+  }
+
 // ── Controls: Time Range + View By + Custom Date Range ───────────────────
 
 function DateRangePicker({
@@ -1132,7 +1186,1318 @@ function MetaSection({ snapshots, granularity }: { snapshots: Snapshot[]; granul
   );
 }
 
-// ── Lock screen ───────────────────────────────────────────────────────────
+function PayPalSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+  const grouped = groupSnapshots(snapshots, granularity,
+    ["revenue", "fees", "netRevenue", "txCount"], []);
+
+  const revenues    = grouped.map((r) => r.data.revenue);
+  const fees        = grouped.map((r) => r.data.fees);
+  const netRevenues = grouped.map((r) => r.data.netRevenue);
+  const txCounts    = grouped.map((r) => r.data.txCount);
+
+  const totalRevenue    = revenues.reduce((a, b) => a + b, 0);
+  const totalFees       = fees.reduce((a, b) => a + b, 0);
+  const totalNet        = netRevenues.reduce((a, b) => a + b, 0);
+  const totalTx         = txCounts.reduce((a, b) => a + b, 0);
+  const avgOrderValue   = totalTx > 0 ? totalRevenue / totalTx : 0;
+
+  const tableRows = grouped.map((r) => ({
+    period: fmtPeriod(r.period, granularity),
+    cells: [
+      { label: "Revenue",     value: fmt(r.data.revenue,    "currency") },
+      { label: "Fees",        value: fmt(r.data.fees,       "currency") },
+      { label: "Net Revenue", value: fmt(r.data.netRevenue, "currency") },
+      { label: "Tx Count",    value: fmt(r.data.txCount) },
+    ],
+  }));
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3 rounded-xl border border-[#003087]/20 bg-[#003087]/5 px-4 py-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#003087]/15 text-[#009cde]">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 2.79A.859.859 0 0 1 5.79 2h7.518c2.58 0 4.383.596 5.36 1.77.948 1.14 1.178 2.622.683 4.395-.038.14-.08.283-.124.428C18.05 11.1 15.98 12.5 13.1 12.5H9.77l-1.067 6.31a.641.641 0 0 1-.627.527z" />
+            <path d="M19.873 7.93c-.04.155-.083.313-.13.474C18.65 12.14 16.2 13.8 12.49 13.8H9.62l-1.2 7.09a.501.501 0 0 0 .494.587h3.47a.75.75 0 0 0 .74-.632l.031-.158.588-3.726.038-.204a.75.75 0 0 1 .74-.633h.465c3.02 0 5.386-1.228 6.077-4.78.29-1.486.14-2.727-.623-3.6a3.3 3.3 0 0 0-.567-.413z" />
+          </svg>
+        </div>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">PayPal</h3>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label="Revenue"     value={fmt(totalRevenue,  "currency")} values={revenues}    color="#009cde" />
+        <StatCard label="Net Revenue" value={fmt(totalNet,      "currency")} values={netRevenues} color="#00d4aa" />
+        <StatCard label="Fees Paid"   value={fmt(totalFees,     "currency")} values={fees}        color="#f87171" />
+        <StatCard label="Avg Order"   value={fmt(avgOrderValue, "currency")} sub={`${fmt(totalTx)} tx`} values={txCounts} color="#f59e0b" />
+      </div>
+      <DataTable rows={tableRows} />
+    </div>
+  );
+}
+
+function PaddleSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+  const grouped = groupSnapshots(snapshots, granularity,
+    ["revenue", "fees", "netRevenue", "txCount"], []);
+
+  const revenues    = grouped.map((r) => r.data.revenue);
+  const fees        = grouped.map((r) => r.data.fees);
+  const netRevenues = grouped.map((r) => r.data.netRevenue);
+  const txCounts    = grouped.map((r) => r.data.txCount);
+
+  const totalRevenue  = revenues.reduce((a, b) => a + b, 0);
+  const totalFees     = fees.reduce((a, b) => a + b, 0);
+  const totalNet      = netRevenues.reduce((a, b) => a + b, 0);
+  const totalTx       = txCounts.reduce((a, b) => a + b, 0);
+  const avgOrderValue = totalTx > 0 ? totalRevenue / totalTx : 0;
+
+  const tableRows = grouped.map((r) => ({
+    period: fmtPeriod(r.period, granularity),
+    cells: [
+      { label: "Revenue",     value: fmt(r.data.revenue,    "currency") },
+      { label: "Fees",        value: fmt(r.data.fees,       "currency") },
+      { label: "Net Revenue", value: fmt(r.data.netRevenue, "currency") },
+      { label: "Tx Count",    value: fmt(r.data.txCount) },
+    ],
+  }));
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3 rounded-xl border border-[#3ddc97]/15 bg-[#3ddc97]/5 px-4 py-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#3ddc97]/15 text-[#3ddc97]">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-1.97 9.133c-.144.668-.52.835-.996.52l-2.75-2.026-1.328 1.277c-.147.147-.27.27-.552.27l.196-2.797 5.086-4.593c.221-.196-.048-.306-.342-.11L6.78 14.748l-2.716-.848c-.59-.184-.6-.59.123-.872l10.605-4.087c.49-.18.92.112.77.307z"/>
+          </svg>
+        </div>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Paddle</h3>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label="Revenue"     value={fmt(totalRevenue,  "currency")} values={revenues}    color="#3ddc97" />
+        <StatCard label="Net Revenue" value={fmt(totalNet,      "currency")} values={netRevenues} color="#00d4aa" />
+        <StatCard label="Fees Paid"   value={fmt(totalFees,     "currency")} values={fees}        color="#f87171" />
+        <StatCard label="Avg Order"   value={fmt(avgOrderValue, "currency")} sub={`${fmt(totalTx)} tx`} values={txCounts} color="#f59e0b" />
+      </div>
+      <DataTable rows={tableRows} />
+    </div>
+  );
+}
+
+function LemonSqueezySection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+  const grouped = groupSnapshots(snapshots, granularity,
+    ["revenue", "fees", "netRevenue", "txCount"], []);
+
+  const revenues    = grouped.map((r) => r.data.revenue);
+  const fees        = grouped.map((r) => r.data.fees);
+  const netRevenues = grouped.map((r) => r.data.netRevenue);
+  const txCounts    = grouped.map((r) => r.data.txCount);
+
+  const totalRevenue  = revenues.reduce((a, b) => a + b, 0);
+  const totalFees     = fees.reduce((a, b) => a + b, 0);
+  const totalNet      = netRevenues.reduce((a, b) => a + b, 0);
+  const totalTx       = txCounts.reduce((a, b) => a + b, 0);
+  const avgOrderValue = totalTx > 0 ? totalRevenue / totalTx : 0;
+
+  const tableRows = grouped.map((r) => ({
+    period: fmtPeriod(r.period, granularity),
+    cells: [
+      { label: "Revenue",     value: fmt(r.data.revenue,    "currency") },
+      { label: "Fees",        value: fmt(r.data.fees,       "currency") },
+      { label: "Net Revenue", value: fmt(r.data.netRevenue, "currency") },
+      { label: "Tx Count",    value: fmt(r.data.txCount) },
+    ],
+  }));
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3 rounded-xl border border-[#FFC233]/15 bg-[#FFC233]/5 px-4 py-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FFC233]/15 text-[#FFC233]">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+          </svg>
+        </div>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Lemon Squeezy</h3>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label="Revenue"     value={fmt(totalRevenue,  "currency")} values={revenues}    color="#FFC233" />
+        <StatCard label="Net Revenue" value={fmt(totalNet,      "currency")} values={netRevenues} color="#f59e0b" />
+        <StatCard label="Fees Paid"   value={fmt(totalFees,     "currency")} values={fees}        color="#f87171" />
+        <StatCard label="Avg Order"   value={fmt(avgOrderValue, "currency")} sub={`${fmt(totalTx)} tx`} values={txCounts} color="#00d4aa" />
+      </div>
+      <DataTable rows={tableRows} />
+    </div>
+  );
+}
+
+function GumroadSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+  const grouped = groupSnapshots(snapshots, granularity, ["revenue", "fees", "netRevenue", "txCount"], []);
+  const revenues    = grouped.map((r) => r.data.revenue);
+  const fees        = grouped.map((r) => r.data.fees);
+  const netRevenues = grouped.map((r) => r.data.netRevenue);
+  const txCounts    = grouped.map((r) => r.data.txCount);
+  const totalRevenue  = revenues.reduce((a, b) => a + b, 0);
+  const totalFees     = fees.reduce((a, b) => a + b, 0);
+  const totalNet      = netRevenues.reduce((a, b) => a + b, 0);
+  const totalTx       = txCounts.reduce((a, b) => a + b, 0);
+  const avgOrderValue = totalTx > 0 ? totalRevenue / totalTx : 0;
+  const tableRows = grouped.map((r) => ({
+    period: fmtPeriod(r.period, granularity),
+    cells: [
+      { label: "Revenue",     value: fmt(r.data.revenue,    "currency") },
+      { label: "Fees",        value: fmt(r.data.fees,       "currency") },
+      { label: "Net Revenue", value: fmt(r.data.netRevenue, "currency") },
+      { label: "Tx Count",    value: fmt(r.data.txCount) },
+    ],
+  }));
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3 rounded-xl border border-[#ff90e8]/15 bg-[#ff90e8]/5 px-4 py-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#ff90e8]/15 font-mono text-sm font-bold text-[#ff90e8]">G</div>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Gumroad</h3>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label="Revenue"     value={fmt(totalRevenue,  "currency")} values={revenues}    color="#ff90e8" />
+        <StatCard label="Net Revenue" value={fmt(totalNet,      "currency")} values={netRevenues} color="#f59e0b" />
+        <StatCard label="Fees Paid"   value={fmt(totalFees,     "currency")} values={fees}        color="#f87171" />
+        <StatCard label="Avg Order"   value={fmt(avgOrderValue, "currency")} sub={`${fmt(totalTx)} tx`} values={txCounts} color="#00d4aa" />
+      </div>
+      <DataTable rows={tableRows} />
+    </div>
+  );
+}
+
+function PlausibleSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+  const grouped = groupSnapshots(snapshots, granularity, ["visitors", "pageviews", "bounceRate", "visitDuration"], []);
+  const visitors     = grouped.map((r) => r.data.visitors);
+  const pageviews    = grouped.map((r) => r.data.pageviews);
+  const bounceRates  = grouped.map((r) => r.data.bounceRate);
+  const durations    = grouped.map((r) => r.data.visitDuration);
+  const totalVisitors  = visitors.reduce((a, b) => a + b, 0);
+  const totalPageviews = pageviews.reduce((a, b) => a + b, 0);
+  const avgBounce      = bounceRates.length > 0 ? bounceRates.reduce((a, b) => a + b, 0) / bounceRates.length : 0;
+  const avgDuration    = durations.length > 0 ? durations.reduce((a, b) => a + b, 0) / durations.length : 0;
+  const tableRows = grouped.map((r) => ({
+    period: fmtPeriod(r.period, granularity),
+    cells: [
+      { label: "Visitors",       value: fmt(r.data.visitors) },
+      { label: "Pageviews",      value: fmt(r.data.pageviews) },
+      { label: "Bounce Rate",    value: `${(r.data.bounceRate ?? 0).toFixed(1)}%` },
+      { label: "Avg Duration",   value: `${Math.round(r.data.visitDuration ?? 0)}s` },
+    ],
+  }));
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3 rounded-xl border border-[#5850ec]/15 bg-[#5850ec]/5 px-4 py-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#5850ec]/15 font-mono text-sm font-bold text-[#5850ec]">P</div>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Plausible</h3>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label="Visitors"    value={fmt(totalVisitors)}                            values={visitors}    color="#5850ec" />
+        <StatCard label="Pageviews"   value={fmt(totalPageviews)}                           values={pageviews}   color="#818cf8" />
+        <StatCard label="Bounce Rate" value={`${avgBounce.toFixed(1)}%`}                   values={bounceRates} color="#f87171" />
+        <StatCard label="Avg Duration" value={`${Math.round(avgDuration)}s`}               values={durations}   color="#f59e0b" />
+      </div>
+      <DataTable rows={tableRows} />
+    </div>
+  );
+}
+
+function MixpanelSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+  const grouped    = groupSnapshots(snapshots, granularity, ["events", "uniqueUsers"], []);
+  const events     = grouped.map((r) => r.data.events);
+  const users      = grouped.map((r) => r.data.uniqueUsers);
+  const totalEvents = events.reduce((a, b) => a + b, 0);
+  const totalUsers  = users.reduce((a, b) => a + b, 0);
+  const tableRows = grouped.map((r) => ({
+    period: fmtPeriod(r.period, granularity),
+    cells: [
+      { label: "Events",       value: fmt(r.data.events) },
+      { label: "Unique Users", value: fmt(r.data.uniqueUsers) },
+    ],
+  }));
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3 rounded-xl border border-[#7856ff]/15 bg-[#7856ff]/5 px-4 py-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#7856ff]/15 font-mono text-[10px] font-bold text-[#7856ff]">MX</div>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Mixpanel</h3>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
+        <StatCard label="Total Events"  value={fmt(totalEvents)} values={events} color="#7856ff" />
+        <StatCard label="Unique Users"  value={fmt(totalUsers)}  values={users}  color="#a78bfa" />
+      </div>
+      <DataTable rows={tableRows} />
+    </div>
+  );
+}
+
+function AmplitudeSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+  const grouped     = groupSnapshots(snapshots, granularity, ["activeUsers", "totalEvents", "newUsers"], []);
+  const activeUsers = grouped.map((r) => r.data.activeUsers);
+  const events      = grouped.map((r) => r.data.totalEvents);
+  const newUsers    = grouped.map((r) => r.data.newUsers);
+  const totalActive = activeUsers.reduce((a, b) => a + b, 0);
+  const totalEvents = events.reduce((a, b) => a + b, 0);
+  const totalNew    = newUsers.reduce((a, b) => a + b, 0);
+  const tableRows = grouped.map((r) => ({
+    period: fmtPeriod(r.period, granularity),
+    cells: [
+      { label: "Active Users",  value: fmt(r.data.activeUsers) },
+      { label: "Total Events",  value: fmt(r.data.totalEvents) },
+      { label: "New Users",     value: fmt(r.data.newUsers) },
+    ],
+  }));
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3 rounded-xl border border-[#1e73be]/15 bg-[#1e73be]/5 px-4 py-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1e73be]/15 font-mono text-sm font-bold text-[#1e73be]">A</div>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Amplitude</h3>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <StatCard label="Active Users" value={fmt(totalActive)} values={activeUsers} color="#1e73be" />
+        <StatCard label="Total Events" value={fmt(totalEvents)} values={events}      color="#3b82f6" />
+        <StatCard label="New Users"    value={fmt(totalNew)}    values={newUsers}    color="#00d4aa" />
+      </div>
+      <DataTable rows={tableRows} />
+    </div>
+  );
+}
+
+function PostHogSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+  const grouped     = groupSnapshots(snapshots, granularity, ["pageviews", "uniqueUsers", "sessions"], []);
+  const pageviews   = grouped.map((r) => r.data.pageviews);
+  const users       = grouped.map((r) => r.data.uniqueUsers);
+  const sessions    = grouped.map((r) => r.data.sessions);
+  const totalPV     = pageviews.reduce((a, b) => a + b, 0);
+  const totalUsers  = users.reduce((a, b) => a + b, 0);
+  const totalSess   = sessions.reduce((a, b) => a + b, 0);
+  const tableRows = grouped.map((r) => ({
+    period: fmtPeriod(r.period, granularity),
+    cells: [
+      { label: "Pageviews",    value: fmt(r.data.pageviews) },
+      { label: "Unique Users", value: fmt(r.data.uniqueUsers) },
+      { label: "Sessions",     value: fmt(r.data.sessions) },
+    ],
+  }));
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3 rounded-xl border border-[#f76300]/15 bg-[#f76300]/5 px-4 py-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f76300]/15 font-mono text-[10px] font-bold text-[#f76300]">PH</div>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">PostHog</h3>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <StatCard label="Pageviews"    value={fmt(totalPV)}    values={pageviews} color="#f76300" />
+        <StatCard label="Unique Users" value={fmt(totalUsers)} values={users}     color="#fb923c" />
+        <StatCard label="Sessions"     value={fmt(totalSess)}  values={sessions}  color="#f59e0b" />
+      </div>
+      <DataTable rows={tableRows} />
+    </div>
+  );
+}
+
+function FathomSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+  const grouped     = groupSnapshots(snapshots, granularity, ["pageviews", "uniques", "visits", "bounceRate", "avgDuration"], []);
+  const pageviews   = grouped.map((r) => r.data.pageviews);
+  const uniques     = grouped.map((r) => r.data.uniques);
+  const bounceRates = grouped.map((r) => r.data.bounceRate);
+  const durations   = grouped.map((r) => r.data.avgDuration);
+  const totalPV     = pageviews.reduce((a, b) => a + b, 0);
+  const totalUniq   = uniques.reduce((a, b) => a + b, 0);
+  const avgBounce   = bounceRates.length > 0 ? bounceRates.reduce((a, b) => a + b, 0) / bounceRates.length : 0;
+  const avgDur      = durations.length > 0 ? durations.reduce((a, b) => a + b, 0) / durations.length : 0;
+  const tableRows = grouped.map((r) => ({
+    period: fmtPeriod(r.period, granularity),
+    cells: [
+      { label: "Pageviews",    value: fmt(r.data.pageviews) },
+      { label: "Uniques",      value: fmt(r.data.uniques) },
+      { label: "Bounce Rate",  value: `${(r.data.bounceRate ?? 0).toFixed(1)}%` },
+      { label: "Avg Duration", value: `${Math.round(r.data.avgDuration ?? 0)}s` },
+    ],
+  }));
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3 rounded-xl border border-[#9333ea]/15 bg-[#9333ea]/5 px-4 py-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#9333ea]/15 font-mono text-[10px] font-bold text-[#9333ea]">FA</div>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Fathom</h3>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label="Pageviews"    value={fmt(totalPV)}            values={pageviews}   color="#9333ea" />
+        <StatCard label="Uniques"      value={fmt(totalUniq)}          values={uniques}     color="#c084fc" />
+        <StatCard label="Bounce Rate"  value={`${avgBounce.toFixed(1)}%`} values={bounceRates} color="#f87171" />
+        <StatCard label="Avg Duration" value={`${Math.round(avgDur)}s`}   values={durations}   color="#f59e0b" />
+      </div>
+      <DataTable rows={tableRows} />
+    </div>
+  );
+}
+
+function GoogleAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+  const grouped     = groupSnapshots(snapshots, granularity, ["spend", "clicks", "impressions", "conversions", "ctr"], []);
+  const spends      = grouped.map((r) => r.data.spend);
+  const clicks      = grouped.map((r) => r.data.clicks);
+  const impressions = grouped.map((r) => r.data.impressions);
+  const conversions = grouped.map((r) => r.data.conversions);
+  const totalSpend  = spends.reduce((a, b) => a + b, 0);
+  const totalClicks = clicks.reduce((a, b) => a + b, 0);
+  const totalImpr   = impressions.reduce((a, b) => a + b, 0);
+  const totalConv   = conversions.reduce((a, b) => a + b, 0);
+  const tableRows = grouped.map((r) => ({
+    period: fmtPeriod(r.period, granularity),
+    cells: [
+      { label: "Spend",        value: `$${(r.data.spend ?? 0).toFixed(2)}` },
+      { label: "Clicks",       value: fmt(r.data.clicks) },
+      { label: "Impressions",  value: fmt(r.data.impressions) },
+      { label: "Conversions",  value: fmt(r.data.conversions) },
+    ],
+  }));
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3 rounded-xl border border-[#4285F4]/15 bg-[#4285F4]/5 px-4 py-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#4285F4]/15 font-mono text-[10px] font-bold text-[#4285F4]">GA</div>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Google Ads</h3>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label="Spend"       value={`$${totalSpend.toFixed(2)}`} values={spends}      color="#4285F4" />
+        <StatCard label="Clicks"      value={fmt(totalClicks)}            values={clicks}      color="#34A853" />
+        <StatCard label="Impressions" value={fmt(totalImpr)}              values={impressions} color="#FBBC05" />
+        <StatCard label="Conversions" value={fmt(totalConv)}              values={conversions} color="#EA4335" />
+      </div>
+      <DataTable rows={tableRows} />
+    </div>
+  );
+}
+
+function TikTokAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+  const grouped     = groupSnapshots(snapshots, granularity, ["spend", "impressions", "clicks", "conversions"], []);
+  const spends      = grouped.map((r) => r.data.spend);
+  const impressions = grouped.map((r) => r.data.impressions);
+  const clicks      = grouped.map((r) => r.data.clicks);
+  const conversions = grouped.map((r) => r.data.conversions);
+  const totalSpend  = spends.reduce((a, b) => a + b, 0);
+  const totalImpr   = impressions.reduce((a, b) => a + b, 0);
+  const totalClicks = clicks.reduce((a, b) => a + b, 0);
+  const totalConv   = conversions.reduce((a, b) => a + b, 0);
+  const tableRows = grouped.map((r) => ({
+    period: fmtPeriod(r.period, granularity),
+    cells: [
+      { label: "Spend",       value: `$${(r.data.spend ?? 0).toFixed(2)}` },
+      { label: "Impressions", value: fmt(r.data.impressions) },
+      { label: "Clicks",      value: fmt(r.data.clicks) },
+      { label: "Conversions", value: fmt(r.data.conversions) },
+    ],
+  }));
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3 rounded-xl border border-[#69C9D0]/15 bg-[#69C9D0]/5 px-4 py-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#69C9D0]/15 font-mono text-[10px] font-bold text-[#69C9D0]">TT</div>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">TikTok Ads</h3>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label="Spend"       value={`$${totalSpend.toFixed(2)}`} values={spends}      color="#69C9D0" />
+        <StatCard label="Impressions" value={fmt(totalImpr)}              values={impressions} color="#ee1d52" />
+        <StatCard label="Clicks"      value={fmt(totalClicks)}            values={clicks}      color="#f59e0b" />
+        <StatCard label="Conversions" value={fmt(totalConv)}              values={conversions} color="#00d4aa" />
+      </div>
+      <DataTable rows={tableRows} />
+    </div>
+  );
+}
+
+function TwitterAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+  const grouped     = groupSnapshots(snapshots, granularity, ["spend", "impressions", "clicks", "conversions"], []);
+  const spends      = grouped.map((r) => r.data.spend);
+  const impressions = grouped.map((r) => r.data.impressions);
+  const clicks      = grouped.map((r) => r.data.clicks);
+  const conversions = grouped.map((r) => r.data.conversions);
+  const totalSpend  = spends.reduce((a, b) => a + b, 0);
+  const totalImpr   = impressions.reduce((a, b) => a + b, 0);
+  const totalClicks = clicks.reduce((a, b) => a + b, 0);
+  const totalConv   = conversions.reduce((a, b) => a + b, 0);
+  const tableRows = grouped.map((r) => ({
+    period: fmtPeriod(r.period, granularity),
+    cells: [
+      { label: "Spend",       value: `$${(r.data.spend ?? 0).toFixed(2)}` },
+      { label: "Impressions", value: fmt(r.data.impressions) },
+      { label: "Clicks",      value: fmt(r.data.clicks) },
+      { label: "Conversions", value: fmt(r.data.conversions) },
+    ],
+  }));
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3 rounded-xl border border-[#1d9bf0]/15 bg-[#1d9bf0]/5 px-4 py-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1d9bf0]/15 font-mono text-[10px] font-bold text-[#1d9bf0]">XA</div>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">X (Twitter) Ads</h3>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label="Spend"       value={`$${totalSpend.toFixed(2)}`} values={spends}      color="#1d9bf0" />
+        <StatCard label="Impressions" value={fmt(totalImpr)}              values={impressions} color="#60a5fa" />
+        <StatCard label="Clicks"      value={fmt(totalClicks)}            values={clicks}      color="#00d4aa" />
+        <StatCard label="Conversions" value={fmt(totalConv)}              values={conversions} color="#f59e0b" />
+      </div>
+      <DataTable rows={tableRows} />
+    </div>
+  );
+}
+
+function LinkedInAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+  const grouped     = groupSnapshots(snapshots, granularity, ["spend", "impressions", "clicks", "conversions"], []);
+  const spends      = grouped.map((r) => r.data.spend);
+  const impressions = grouped.map((r) => r.data.impressions);
+  const clicks      = grouped.map((r) => r.data.clicks);
+  const conversions = grouped.map((r) => r.data.conversions);
+  const totalSpend  = spends.reduce((a, b) => a + b, 0);
+  const totalImpr   = impressions.reduce((a, b) => a + b, 0);
+  const totalClicks = clicks.reduce((a, b) => a + b, 0);
+  const totalConv   = conversions.reduce((a, b) => a + b, 0);
+  const tableRows = grouped.map((r) => ({
+    period: fmtPeriod(r.period, granularity),
+    cells: [
+      { label: "Spend",       value: `$${(r.data.spend ?? 0).toFixed(2)}` },
+      { label: "Impressions", value: fmt(r.data.impressions) },
+      { label: "Clicks",      value: fmt(r.data.clicks) },
+      { label: "Conversions", value: fmt(r.data.conversions) },
+    ],
+  }));
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3 rounded-xl border border-[#0a66c2]/15 bg-[#0a66c2]/5 px-4 py-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0a66c2]/15 font-mono text-[10px] font-bold text-[#0a66c2]">LI</div>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">LinkedIn Ads</h3>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label="Spend"       value={`$${totalSpend.toFixed(2)}`} values={spends}      color="#0a66c2" />
+        <StatCard label="Impressions" value={fmt(totalImpr)}              values={impressions} color="#3b82f6" />
+        <StatCard label="Clicks"      value={fmt(totalClicks)}            values={clicks}      color="#00d4aa" />
+        <StatCard label="Conversions" value={fmt(totalConv)}              values={conversions} color="#f59e0b" />
+      </div>
+      <DataTable rows={tableRows} />
+    </div>
+  );
+}
+
+function SnapchatAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+  const grouped     = groupSnapshots(snapshots, granularity, ["spend", "impressions", "swipes", "conversions"], []);
+  const spends      = grouped.map((r) => r.data.spend);
+  const impressions = grouped.map((r) => r.data.impressions);
+  const swipes      = grouped.map((r) => r.data.swipes);
+  const conversions = grouped.map((r) => r.data.conversions);
+  const totalSpend  = spends.reduce((a, b) => a + b, 0);
+  const totalImpr   = impressions.reduce((a, b) => a + b, 0);
+  const totalSwipes = swipes.reduce((a, b) => a + b, 0);
+  const totalConv   = conversions.reduce((a, b) => a + b, 0);
+  const tableRows = grouped.map((r) => ({
+    period: fmtPeriod(r.period, granularity),
+    cells: [
+      { label: "Spend",       value: `$${(r.data.spend ?? 0).toFixed(2)}` },
+      { label: "Impressions", value: fmt(r.data.impressions) },
+      { label: "Swipes",      value: fmt(r.data.swipes) },
+      { label: "Conversions", value: fmt(r.data.conversions) },
+    ],
+  }));
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3 rounded-xl border border-[#f5c518]/15 bg-[#f5c518]/5 px-4 py-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f5c518]/15 font-mono text-[10px] font-bold text-[#f5c518]">SC</div>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Snapchat Ads</h3>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label="Spend"       value={`$${totalSpend.toFixed(2)}`} values={spends}      color="#f5c518" />
+        <StatCard label="Impressions" value={fmt(totalImpr)}              values={impressions} color="#fbbf24" />
+        <StatCard label="Swipes"      value={fmt(totalSwipes)}            values={swipes}      color="#00d4aa" />
+        <StatCard label="Conversions" value={fmt(totalConv)}              values={conversions} color="#f87171" />
+      </div>
+      <DataTable rows={tableRows} />
+    </div>
+  );
+}
+
+function PinterestAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+  const grouped     = groupSnapshots(snapshots, granularity, ["spend", "impressions", "clicks", "conversions"], []);
+  const spends      = grouped.map((r) => r.data.spend);
+  const impressions = grouped.map((r) => r.data.impressions);
+  const clicks      = grouped.map((r) => r.data.clicks);
+  const conversions = grouped.map((r) => r.data.conversions);
+  const totalSpend  = spends.reduce((a, b) => a + b, 0);
+  const totalImpr   = impressions.reduce((a, b) => a + b, 0);
+  const totalClicks = clicks.reduce((a, b) => a + b, 0);
+  const totalConv   = conversions.reduce((a, b) => a + b, 0);
+  const tableRows = grouped.map((r) => ({
+    period: fmtPeriod(r.period, granularity),
+    cells: [
+      { label: "Spend",       value: `$${(r.data.spend ?? 0).toFixed(2)}` },
+      { label: "Impressions", value: fmt(r.data.impressions) },
+      { label: "Clicks",      value: fmt(r.data.clicks) },
+      { label: "Conversions", value: fmt(r.data.conversions) },
+    ],
+  }));
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3 rounded-xl border border-[#E60023]/15 bg-[#E60023]/5 px-4 py-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#E60023]/15 font-mono text-[10px] font-bold text-[#E60023]">PT</div>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Pinterest Ads</h3>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label="Spend"       value={`$${totalSpend.toFixed(2)}`} values={spends}      color="#E60023" />
+        <StatCard label="Impressions" value={fmt(totalImpr)}              values={impressions} color="#f87171" />
+        <StatCard label="Clicks"      value={fmt(totalClicks)}            values={clicks}      color="#f59e0b" />
+        <StatCard label="Conversions" value={fmt(totalConv)}              values={conversions} color="#00d4aa" />
+      </div>
+      <DataTable rows={tableRows} />
+    </div>
+  );
+}
+
+function MailchimpSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+  const grouped       = groupSnapshots(snapshots, granularity, ["emailsSent", "opens", "clicks", "subscribers", "unsubscribes"], []);
+  const sent          = grouped.map((r) => r.data.emailsSent);
+  const opens         = grouped.map((r) => r.data.opens);
+  const clicks        = grouped.map((r) => r.data.clicks);
+  const subs          = grouped.map((r) => r.data.subscribers);
+  const totalSent     = sent.reduce((a, b) => a + b, 0);
+  const totalOpens    = opens.reduce((a, b) => a + b, 0);
+  const totalClicks   = clicks.reduce((a, b) => a + b, 0);
+  const lastSubs      = subs.length > 0 ? subs[subs.length - 1] : 0;
+  const tableRows = grouped.map((r) => ({
+    period: fmtPeriod(r.period, granularity),
+    cells: [
+      { label: "Sent",         value: fmt(r.data.emailsSent) },
+      { label: "Opens",        value: fmt(r.data.opens) },
+      { label: "Clicks",       value: fmt(r.data.clicks) },
+      { label: "Subscribers",  value: fmt(r.data.subscribers) },
+    ],
+  }));
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3 rounded-xl border border-[#f59e0b]/15 bg-[#f59e0b]/5 px-4 py-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f59e0b]/15 font-mono text-[10px] font-bold text-[#f59e0b]">MC</div>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Mailchimp</h3>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label="Emails Sent" value={fmt(totalSent)}   values={sent}   color="#f59e0b" />
+        <StatCard label="Opens"       value={fmt(totalOpens)}  values={opens}  color="#fbbf24" />
+        <StatCard label="Clicks"      value={fmt(totalClicks)} values={clicks} color="#00d4aa" />
+        <StatCard label="Subscribers" value={fmt(lastSubs)}    values={subs}   color="#a78bfa" />
+      </div>
+      <DataTable rows={tableRows} />
+    </div>
+  );
+}
+
+function KlaviyoSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+  const grouped     = groupSnapshots(snapshots, granularity, ["emailsSent", "opens", "clicks", "revenue"], []);
+  const sent        = grouped.map((r) => r.data.emailsSent);
+  const opens       = grouped.map((r) => r.data.opens);
+  const clicks      = grouped.map((r) => r.data.clicks);
+  const revenues    = grouped.map((r) => r.data.revenue);
+  const totalSent   = sent.reduce((a, b) => a + b, 0);
+  const totalOpens  = opens.reduce((a, b) => a + b, 0);
+  const totalClicks = clicks.reduce((a, b) => a + b, 0);
+  const totalRev    = revenues.reduce((a, b) => a + b, 0);
+  const tableRows = grouped.map((r) => ({
+    period: fmtPeriod(r.period, granularity),
+    cells: [
+      { label: "Sent",    value: fmt(r.data.emailsSent) },
+      { label: "Opens",   value: fmt(r.data.opens) },
+      { label: "Clicks",  value: fmt(r.data.clicks) },
+      { label: "Revenue", value: `$${(r.data.revenue ?? 0).toFixed(2)}` },
+    ],
+  }));
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3 rounded-xl border border-[#6366f1]/15 bg-[#6366f1]/5 px-4 py-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#6366f1]/15 font-mono text-[10px] font-bold text-[#6366f1]">KL</div>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Klaviyo</h3>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label="Emails Sent" value={fmt(totalSent)}           values={sent}     color="#6366f1" />
+        <StatCard label="Opens"       value={fmt(totalOpens)}          values={opens}    color="#818cf8" />
+        <StatCard label="Clicks"      value={fmt(totalClicks)}         values={clicks}   color="#00d4aa" />
+        <StatCard label="Revenue"     value={`$${totalRev.toFixed(2)}`} values={revenues} color="#f59e0b" />
+      </div>
+      <DataTable rows={tableRows} />
+    </div>
+  );
+}
+
+function ConvertKitSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+  const grouped     = groupSnapshots(snapshots, granularity, ["totalSubscribers", "newSubscribers", "broadcastsSent"], []);
+  const totals      = grouped.map((r) => r.data.totalSubscribers);
+  const newSubs     = grouped.map((r) => r.data.newSubscribers);
+  const broadcasts  = grouped.map((r) => r.data.broadcastsSent);
+  const lastTotal   = totals.length > 0 ? totals[totals.length - 1] : 0;
+  const totalNew    = newSubs.reduce((a, b) => a + b, 0);
+  const totalBcast  = broadcasts.reduce((a, b) => a + b, 0);
+  const tableRows = grouped.map((r) => ({
+    period: fmtPeriod(r.period, granularity),
+    cells: [
+      { label: "Subscribers",      value: fmt(r.data.totalSubscribers) },
+      { label: "New Subscribers",  value: fmt(r.data.newSubscribers) },
+      { label: "Broadcasts Sent",  value: fmt(r.data.broadcastsSent) },
+    ],
+  }));
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3 rounded-xl border border-[#FB6970]/15 bg-[#FB6970]/5 px-4 py-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FB6970]/15 font-mono text-[10px] font-bold text-[#FB6970]">CK</div>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">ConvertKit</h3>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <StatCard label="Subscribers"     value={fmt(lastTotal)}  values={totals}     color="#FB6970" />
+        <StatCard label="New Subscribers" value={fmt(totalNew)}   values={newSubs}    color="#f87171" />
+        <StatCard label="Broadcasts Sent" value={fmt(totalBcast)} values={broadcasts} color="#00d4aa" />
+      </div>
+      <DataTable rows={tableRows} />
+    </div>
+  );
+}
+
+// ── ActiveCampaign ────────────────────────────────────────────────────────────
+function ActiveCampaignSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+  const grouped    = groupSnapshots(snapshots, granularity, ["emailsSent", "opens", "clicks", "unsubscribes", "newContacts"], []);
+  const sent       = grouped.map((r) => r.data.emailsSent);
+  const opens      = grouped.map((r) => r.data.opens);
+  const clicks     = grouped.map((r) => r.data.clicks);
+  const newContacts = grouped.map((r) => r.data.newContacts);
+  const tableRows  = grouped.map((r) => ({
+    period: fmtPeriod(r.period, granularity),
+    cells: [
+      { label: "Emails Sent",  value: fmt(r.data.emailsSent) },
+      { label: "Opens",        value: fmt(r.data.opens) },
+      { label: "Clicks",       value: fmt(r.data.clicks) },
+      { label: "New Contacts", value: fmt(r.data.newContacts) },
+    ],
+  }));
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3 rounded-xl border border-[#356AE6]/15 bg-[#356AE6]/5 px-4 py-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#356AE6]/15 font-mono text-[10px] font-bold text-[#356AE6]">AC</div>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">ActiveCampaign</h3>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label="Emails Sent"  value={fmt(sent.reduce((a,b)=>a+b,0))}       values={sent}       color="#356AE6" />
+        <StatCard label="Opens"        value={fmt(opens.reduce((a,b)=>a+b,0))}      values={opens}      color="#60a5fa" />
+        <StatCard label="Clicks"       value={fmt(clicks.reduce((a,b)=>a+b,0))}     values={clicks}     color="#00d4aa" />
+        <StatCard label="New Contacts" value={fmt(newContacts.reduce((a,b)=>a+b,0))} values={newContacts} color="#a78bfa" />
+      </div>
+      <DataTable rows={tableRows} />
+    </div>
+  );
+}
+
+// ── Brevo ─────────────────────────────────────────────────────────────────────
+function BrevoSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+  const grouped    = groupSnapshots(snapshots, granularity, ["emailsSent", "opens", "clicks", "unsubscribes", "newContacts"], []);
+  const sent       = grouped.map((r) => r.data.emailsSent);
+  const opens      = grouped.map((r) => r.data.opens);
+  const clicks     = grouped.map((r) => r.data.clicks);
+  const newContacts = grouped.map((r) => r.data.newContacts);
+  const tableRows  = grouped.map((r) => ({
+    period: fmtPeriod(r.period, granularity),
+    cells: [
+      { label: "Emails Sent",  value: fmt(r.data.emailsSent) },
+      { label: "Opens",        value: fmt(r.data.opens) },
+      { label: "Clicks",       value: fmt(r.data.clicks) },
+      { label: "New Contacts", value: fmt(r.data.newContacts) },
+    ],
+  }));
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3 rounded-xl border border-[#0092FF]/15 bg-[#0092FF]/5 px-4 py-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0092FF]/15 font-mono text-[10px] font-bold text-[#0092FF]">BR</div>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Brevo</h3>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label="Emails Sent"  value={fmt(sent.reduce((a,b)=>a+b,0))}        values={sent}        color="#0092FF" />
+        <StatCard label="Opens"        value={fmt(opens.reduce((a,b)=>a+b,0))}       values={opens}       color="#38bdf8" />
+        <StatCard label="Clicks"       value={fmt(clicks.reduce((a,b)=>a+b,0))}      values={clicks}      color="#00d4aa" />
+        <StatCard label="New Contacts" value={fmt(newContacts.reduce((a,b)=>a+b,0))} values={newContacts} color="#a78bfa" />
+      </div>
+      <DataTable rows={tableRows} />
+    </div>
+  );
+}
+
+// ── Beehiiv ───────────────────────────────────────────────────────────────────
+function BeehiivSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+  const grouped    = groupSnapshots(snapshots, granularity, ["totalSubscribers", "newSubscribers", "postsPublished", "premiumSubscribers"], []);
+  const totals     = grouped.map((r) => r.data.totalSubscribers);
+  const newSubs    = grouped.map((r) => r.data.newSubscribers);
+  const posts      = grouped.map((r) => r.data.postsPublished);
+  const premium    = grouped.map((r) => r.data.premiumSubscribers);
+  const lastTotal  = totals.length > 0 ? totals[totals.length - 1] : 0;
+  const lastPrem   = premium.length > 0 ? premium[premium.length - 1] : 0;
+  const tableRows  = grouped.map((r) => ({
+    period: fmtPeriod(r.period, granularity),
+    cells: [
+      { label: "Subscribers",        value: fmt(r.data.totalSubscribers) },
+      { label: "New Subscribers",    value: fmt(r.data.newSubscribers) },
+      { label: "Posts Published",    value: fmt(r.data.postsPublished) },
+      { label: "Premium Subscribers",value: fmt(r.data.premiumSubscribers) },
+    ],
+  }));
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3 rounded-xl border border-[#FF6B35]/15 bg-[#FF6B35]/5 px-4 py-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FF6B35]/15 font-mono text-[10px] font-bold text-[#FF6B35]">BH</div>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Beehiiv</h3>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label="Subscribers"  value={fmt(lastTotal)}                         values={totals}  color="#FF6B35" />
+        <StatCard label="New Subs"     value={fmt(newSubs.reduce((a,b)=>a+b,0))}     values={newSubs} color="#fb923c" />
+        <StatCard label="Posts"        value={fmt(posts.reduce((a,b)=>a+b,0))}       values={posts}   color="#00d4aa" />
+        <StatCard label="Premium"      value={fmt(lastPrem)}                          values={premium} color="#a78bfa" />
+      </div>
+      <DataTable rows={tableRows} />
+    </div>
+  );
+}
+
+// ── Shopify ───────────────────────────────────────────────────────────────────
+function ShopifySection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+  const grouped   = groupSnapshots(snapshots, granularity, ["revenue", "orders", "refunds", "newCustomers"], []);
+  const revenue   = grouped.map((r) => r.data.revenue);
+  const orders    = grouped.map((r) => r.data.orders);
+  const refunds   = grouped.map((r) => r.data.refunds);
+  const customers = grouped.map((r) => r.data.newCustomers);
+  const tableRows = grouped.map((r) => ({
+    period: fmtPeriod(r.period, granularity),
+    cells: [
+      { label: "Revenue",       value: fmt(r.data.revenue, "currency") },
+      { label: "Orders",        value: fmt(r.data.orders) },
+      { label: "Refunds",       value: fmt(r.data.refunds) },
+      { label: "New Customers", value: fmt(r.data.newCustomers) },
+    ],
+  }));
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3 rounded-xl border border-[#96bf48]/15 bg-[#96bf48]/5 px-4 py-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#96bf48]/15 font-mono text-[10px] font-bold text-[#96bf48]">SH</div>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Shopify</h3>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label="Revenue"       value={fmt(revenue.reduce((a,b)=>a+b,0), "currency")}   values={revenue}   color="#96bf48" />
+        <StatCard label="Orders"        value={fmt(orders.reduce((a,b)=>a+b,0))}          values={orders}    color="#a3e635" />
+        <StatCard label="Refunds"       value={fmt(refunds.reduce((a,b)=>a+b,0))}         values={refunds}   color="#f87171" />
+        <StatCard label="New Customers" value={fmt(customers.reduce((a,b)=>a+b,0))}       values={customers} color="#00d4aa" />
+      </div>
+      <DataTable rows={tableRows} />
+    </div>
+  );
+}
+
+// ── WooCommerce ───────────────────────────────────────────────────────────────
+function WooCommerceSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+  const grouped   = groupSnapshots(snapshots, granularity, ["revenue", "orders", "refunds", "newCustomers"], []);
+  const revenue   = grouped.map((r) => r.data.revenue);
+  const orders    = grouped.map((r) => r.data.orders);
+  const refunds   = grouped.map((r) => r.data.refunds);
+  const customers = grouped.map((r) => r.data.newCustomers);
+  const tableRows = grouped.map((r) => ({
+    period: fmtPeriod(r.period, granularity),
+    cells: [
+      { label: "Revenue",       value: fmt(r.data.revenue, "currency") },
+      { label: "Orders",        value: fmt(r.data.orders) },
+      { label: "Refunds",       value: fmt(r.data.refunds) },
+      { label: "New Customers", value: fmt(r.data.newCustomers) },
+    ],
+  }));
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3 rounded-xl border border-[#7f54b3]/15 bg-[#7f54b3]/5 px-4 py-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#7f54b3]/15 font-mono text-[10px] font-bold text-[#7f54b3]">WC</div>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">WooCommerce</h3>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label="Revenue"       value={fmt(revenue.reduce((a,b)=>a+b,0), "currency")}   values={revenue}   color="#7f54b3" />
+        <StatCard label="Orders"        value={fmt(orders.reduce((a,b)=>a+b,0))}          values={orders}    color="#a78bfa" />
+        <StatCard label="Refunds"       value={fmt(refunds.reduce((a,b)=>a+b,0))}         values={refunds}   color="#f87171" />
+        <StatCard label="New Customers" value={fmt(customers.reduce((a,b)=>a+b,0))}       values={customers} color="#00d4aa" />
+      </div>
+      <DataTable rows={tableRows} />
+    </div>
+  );
+}
+
+// ── BigCommerce ───────────────────────────────────────────────────────────────
+function BigCommerceSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+  const grouped   = groupSnapshots(snapshots, granularity, ["revenue", "orders", "refunds", "newCustomers"], []);
+  const revenue   = grouped.map((r) => r.data.revenue);
+  const orders    = grouped.map((r) => r.data.orders);
+  const refunds   = grouped.map((r) => r.data.refunds);
+  const customers = grouped.map((r) => r.data.newCustomers);
+  const tableRows = grouped.map((r) => ({
+    period: fmtPeriod(r.period, granularity),
+    cells: [
+      { label: "Revenue",       value: fmt(r.data.revenue, "currency") },
+      { label: "Orders",        value: fmt(r.data.orders) },
+      { label: "Refunds",       value: fmt(r.data.refunds) },
+      { label: "New Customers", value: fmt(r.data.newCustomers) },
+    ],
+  }));
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3 rounded-xl border border-[#34313F]/40 bg-[#34313F]/10 px-4 py-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#34313F]/30 font-mono text-[10px] font-bold text-[#bcbcd8]">BC</div>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">BigCommerce</h3>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label="Revenue"       value={fmt(revenue.reduce((a,b)=>a+b,0), "currency")}   values={revenue}   color="#bcbcd8" />
+        <StatCard label="Orders"        value={fmt(orders.reduce((a,b)=>a+b,0))}          values={orders}    color="#a78bfa" />
+        <StatCard label="Refunds"       value={fmt(refunds.reduce((a,b)=>a+b,0))}         values={refunds}   color="#f87171" />
+        <StatCard label="New Customers" value={fmt(customers.reduce((a,b)=>a+b,0))}       values={customers} color="#00d4aa" />
+      </div>
+      <DataTable rows={tableRows} />
+    </div>
+  );
+}
+
+// ── Amazon Seller ─────────────────────────────────────────────────────────────
+function AmazonSellerSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+  const grouped  = groupSnapshots(snapshots, granularity, ["revenue", "orders", "units", "refunds"], []);
+  const revenue  = grouped.map((r) => r.data.revenue);
+  const orders   = grouped.map((r) => r.data.orders);
+  const units    = grouped.map((r) => r.data.units);
+  const refunds  = grouped.map((r) => r.data.refunds);
+  const tableRows = grouped.map((r) => ({
+    period: fmtPeriod(r.period, granularity),
+    cells: [
+      { label: "Revenue", value: fmt(r.data.revenue, "currency") },
+      { label: "Orders",  value: fmt(r.data.orders) },
+      { label: "Units",   value: fmt(r.data.units) },
+      { label: "Refunds", value: fmt(r.data.refunds) },
+    ],
+  }));
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3 rounded-xl border border-[#FF9900]/15 bg-[#FF9900]/5 px-4 py-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FF9900]/15 font-mono text-[10px] font-bold text-[#FF9900]">AMZ</div>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Amazon Seller</h3>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label="Revenue" value={fmt(revenue.reduce((a,b)=>a+b,0), "currency")} values={revenue} color="#FF9900" />
+        <StatCard label="Orders"  value={fmt(orders.reduce((a,b)=>a+b,0))}       values={orders}  color="#fbbf24" />
+        <StatCard label="Units"   value={fmt(units.reduce((a,b)=>a+b,0))}        values={units}   color="#00d4aa" />
+        <StatCard label="Refunds" value={fmt(refunds.reduce((a,b)=>a+b,0))}      values={refunds} color="#f87171" />
+      </div>
+      <DataTable rows={tableRows} />
+    </div>
+  );
+}
+
+// ── Etsy ──────────────────────────────────────────────────────────────────────
+function EtsySection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+  const grouped  = groupSnapshots(snapshots, granularity, ["revenue", "orders", "views", "newCustomers"], []);
+  const revenue  = grouped.map((r) => r.data.revenue);
+  const orders   = grouped.map((r) => r.data.orders);
+  const views    = grouped.map((r) => r.data.views);
+  const customers = grouped.map((r) => r.data.newCustomers);
+  const tableRows = grouped.map((r) => ({
+    period: fmtPeriod(r.period, granularity),
+    cells: [
+      { label: "Revenue",       value: fmt(r.data.revenue, "currency") },
+      { label: "Orders",        value: fmt(r.data.orders) },
+      { label: "Views",         value: fmt(r.data.views) },
+      { label: "New Customers", value: fmt(r.data.newCustomers) },
+    ],
+  }));
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3 rounded-xl border border-[#F56400]/15 bg-[#F56400]/5 px-4 py-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F56400]/15 font-mono text-[10px] font-bold text-[#F56400]">ET</div>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Etsy</h3>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label="Revenue"       value={fmt(revenue.reduce((a,b)=>a+b,0), "currency")}   values={revenue}   color="#F56400" />
+        <StatCard label="Orders"        value={fmt(orders.reduce((a,b)=>a+b,0))}          values={orders}    color="#fb923c" />
+        <StatCard label="Views"         value={fmt(views.reduce((a,b)=>a+b,0))}           values={views}     color="#60a5fa" />
+        <StatCard label="New Customers" value={fmt(customers.reduce((a,b)=>a+b,0))}       values={customers} color="#00d4aa" />
+      </div>
+      <DataTable rows={tableRows} />
+    </div>
+  );
+}
+
+// ── HubSpot ───────────────────────────────────────────────────────────────────
+function HubSpotSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+  const grouped       = groupSnapshots(snapshots, granularity, ["dealsWon", "closedRevenue", "newContacts", "pipelineValue"], []);
+  const dealsWon      = grouped.map((r) => r.data.dealsWon);
+  const closedRev     = grouped.map((r) => r.data.closedRevenue);
+  const newContacts   = grouped.map((r) => r.data.newContacts);
+  const pipeline      = grouped.map((r) => r.data.pipelineValue);
+  const lastPipeline  = pipeline.length > 0 ? pipeline[pipeline.length - 1] : 0;
+  const tableRows     = grouped.map((r) => ({
+    period: fmtPeriod(r.period, granularity),
+    cells: [
+      { label: "Deals Won",       value: fmt(r.data.dealsWon) },
+      { label: "Closed Revenue",  value: fmt(r.data.closedRevenue, "currency") },
+      { label: "New Contacts",    value: fmt(r.data.newContacts) },
+      { label: "Pipeline Value",  value: fmt(r.data.pipelineValue, "currency") },
+    ],
+  }));
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3 rounded-xl border border-[#ff7a59]/15 bg-[#ff7a59]/5 px-4 py-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#ff7a59]/15 font-mono text-[10px] font-bold text-[#ff7a59]">HS</div>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">HubSpot</h3>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label="Deals Won"      value={fmt(dealsWon.reduce((a,b)=>a+b,0))}        values={dealsWon}    color="#ff7a59" />
+        <StatCard label="Closed Revenue" value={fmt(closedRev.reduce((a,b)=>a+b,0), "currency")} values={closedRev}   color="#fb923c" />
+        <StatCard label="New Contacts"   value={fmt(newContacts.reduce((a,b)=>a+b,0))}     values={newContacts} color="#00d4aa" />
+        <StatCard label="Pipeline"       value={fmt(lastPipeline, "currency")}                    values={pipeline}    color="#a78bfa" />
+      </div>
+      <DataTable rows={tableRows} />
+    </div>
+  );
+}
+
+// ── Salesforce ────────────────────────────────────────────────────────────────
+// Duplicate SalesforceSection removed (already defined above)
+
+function SalesforceSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+  const grouped      = groupSnapshots(snapshots, granularity, ["dealsWon", "closedRevenue", "newLeads", "pipelineValue"], []);
+  const dealsWon     = grouped.map((r) => r.data.dealsWon);
+  const closedRev    = grouped.map((r) => r.data.closedRevenue);
+  const newLeads     = grouped.map((r) => r.data.newLeads);
+  const pipeline     = grouped.map((r) => r.data.pipelineValue);
+  const lastPipeline = pipeline.length > 0 ? pipeline[pipeline.length - 1] : 0;
+  const tableRows    = grouped.map((r) => ({
+    period: fmtPeriod(r.period, granularity),
+    cells: [
+      { label: "Deals Won",      value: fmt(r.data.dealsWon) },
+      { label: "Closed Revenue", value: fmt(r.data.closedRevenue, "currency") },
+      { label: "New Leads",      value: fmt(r.data.newLeads) },
+      { label: "Pipeline Value", value: fmt(r.data.pipelineValue, "currency") },
+    ],
+  }));
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3 rounded-xl border border-[#00A1E0]/15 bg-[#00A1E0]/5 px-4 py-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#00A1E0]/15 font-mono text-[10px] font-bold text-[#00A1E0]">SF</div>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Salesforce</h3>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label="Deals Won"      value={fmt(dealsWon.reduce((a,b)=>a+b,0))}        values={dealsWon}  color="#00A1E0" />
+        <StatCard label="Closed Revenue" value={fmt(closedRev.reduce((a,b)=>a+b,0), "currency")} values={closedRev} color="#38bdf8" />
+        <StatCard label="New Leads"      value={fmt(newLeads.reduce((a,b)=>a+b,0))}        values={newLeads}  color="#00d4aa" />
+        <StatCard label="Pipeline"       value={fmt(lastPipeline, "currency")}                    values={pipeline}  color="#a78bfa" />
+      </div>
+      <DataTable rows={tableRows} />
+    </div>
+  );
+}
+
+function PipedriveSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+  const grouped     = groupSnapshots(snapshots, granularity, ["dealsWon", "closedRevenue", "newContacts", "pipelineValue"], []);
+  const dealsWon    = grouped.map((r) => r.data.dealsWon);
+  const closedRev   = grouped.map((r) => r.data.closedRevenue);
+  const newContacts = grouped.map((r) => r.data.newContacts);
+  const pipeline    = grouped.map((r) => r.data.pipelineValue);
+  const lastPipe    = pipeline.length > 0 ? pipeline[pipeline.length - 1] : 0;
+  const tableRows   = grouped.map((r) => ({
+    period: fmtPeriod(r.period, granularity),
+    cells: [
+      { label: "Deals Won",      value: fmt(r.data.dealsWon) },
+      { label: "Closed Revenue", value: fmt(r.data.closedRevenue, "currency") },
+      { label: "New Contacts",   value: fmt(r.data.newContacts) },
+      { label: "Pipeline Value", value: fmt(r.data.pipelineValue, "currency") },
+    ],
+  }));
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3 rounded-xl border border-[#30a04c]/15 bg-[#30a04c]/5 px-4 py-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#30a04c]/15 font-mono text-[10px] font-bold text-[#30a04c]">PD</div>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Pipedrive</h3>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label="Deals Won"      value={fmt(dealsWon.reduce((a,b)=>a+b,0))}             values={dealsWon}    color="#30a04c" />
+        <StatCard label="Closed Revenue" value={fmt(closedRev.reduce((a,b)=>a+b,0), "currency")} values={closedRev}   color="#4ade80" />
+        <StatCard label="New Contacts"   value={fmt(newContacts.reduce((a,b)=>a+b,0))}           values={newContacts} color="#00d4aa" />
+        <StatCard label="Pipeline"       value={fmt(lastPipe, "currency")}                        values={pipeline}    color="#a78bfa" />
+      </div>
+      <DataTable rows={tableRows} />
+    </div>
+  );
+}
+
+function NotionSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+  const grouped    = groupSnapshots(snapshots, granularity, ["newRows", "updatedRows", "totalRows"], []);
+  const newRows    = grouped.map((r) => r.data.newRows);
+  const updated    = grouped.map((r) => r.data.updatedRows);
+  const totalRows  = grouped.map((r) => r.data.totalRows);
+  const lastTotal  = totalRows.length > 0 ? totalRows[totalRows.length - 1] : 0;
+  const tableRows  = grouped.map((r) => ({
+    period: fmtPeriod(r.period, granularity),
+    cells: [
+      { label: "New Rows",     value: fmt(r.data.newRows) },
+      { label: "Updated Rows", value: fmt(r.data.updatedRows) },
+      { label: "Total Rows",   value: fmt(r.data.totalRows) },
+    ],
+  }));
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3 rounded-xl border border-[#555]/20 bg-[#1a1a1a]/60 px-4 py-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 font-mono text-[10px] font-bold text-white">NO</div>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Notion</h3>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <StatCard label="New Rows"     value={fmt(newRows.reduce((a,b)=>a+b,0))}   values={newRows}   color="#e5e5e5" />
+        <StatCard label="Updated Rows" value={fmt(updated.reduce((a,b)=>a+b,0))}   values={updated}   color="#a3a3a3" />
+        <StatCard label="Total Rows"   value={fmt(lastTotal)}                       values={totalRows} color="#737373" />
+      </div>
+      <DataTable rows={tableRows} />
+    </div>
+  );
+}
+
+function IntercomSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+  const grouped   = groupSnapshots(snapshots, granularity, ["newConversations", "resolvedConversations", "newContacts", "csatScore"], []);
+  const newConvos = grouped.map((r) => r.data.newConversations);
+  const resolved  = grouped.map((r) => r.data.resolvedConversations);
+  const contacts  = grouped.map((r) => r.data.newContacts);
+  const csat      = grouped.map((r) => r.data.csatScore);
+  const lastCsat  = csat.length > 0 ? csat[csat.length - 1] : 0;
+  const tableRows = grouped.map((r) => ({
+    period: fmtPeriod(r.period, granularity),
+    cells: [
+      { label: "New Conversations",      value: fmt(r.data.newConversations) },
+      { label: "Resolved Conversations", value: fmt(r.data.resolvedConversations) },
+      { label: "New Contacts",           value: fmt(r.data.newContacts) },
+      { label: "CSAT",                   value: `${(r.data.csatScore ?? 0).toFixed(1)}%` },
+    ],
+  }));
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3 rounded-xl border border-[#1f8ded]/15 bg-[#1f8ded]/5 px-4 py-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1f8ded]/15 font-mono text-[10px] font-bold text-[#1f8ded]">IC</div>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Intercom</h3>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label="New Convos"   value={fmt(newConvos.reduce((a,b)=>a+b,0))} values={newConvos} color="#1f8ded" />
+        <StatCard label="Resolved"     value={fmt(resolved.reduce((a,b)=>a+b,0))}  values={resolved}  color="#38bdf8" />
+        <StatCard label="New Contacts" value={fmt(contacts.reduce((a,b)=>a+b,0))}  values={contacts}  color="#00d4aa" />
+        <StatCard label="CSAT"         value={`${lastCsat.toFixed(1)}%`}            values={csat}      color="#a78bfa" />
+      </div>
+      <DataTable rows={tableRows} />
+    </div>
+  );
+}
+
+function ZendeskSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+  const grouped    = groupSnapshots(snapshots, granularity, ["newTickets", "solvedTickets", "reopenedTickets", "csatScore"], []);
+  const newT       = grouped.map((r) => r.data.newTickets);
+  const solved     = grouped.map((r) => r.data.solvedTickets);
+  const csat       = grouped.map((r) => r.data.csatScore);
+  const lastCsat   = csat.length > 0 ? csat[csat.length - 1] : 0;
+  const tableRows  = grouped.map((r) => ({
+    period: fmtPeriod(r.period, granularity),
+    cells: [
+      { label: "New Tickets",    value: fmt(r.data.newTickets) },
+      { label: "Solved Tickets", value: fmt(r.data.solvedTickets) },
+      { label: "CSAT",           value: `${(r.data.csatScore ?? 0).toFixed(1)}%` },
+    ],
+  }));
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3 rounded-xl border border-[#03363D]/40 bg-[#03363D]/10 px-4 py-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#03363D]/40 font-mono text-[10px] font-bold text-[#2ECC71]">ZD</div>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Zendesk</h3>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <StatCard label="New Tickets"    value={fmt(newT.reduce((a,b)=>a+b,0))}    values={newT}   color="#2ECC71" />
+        <StatCard label="Solved Tickets" value={fmt(solved.reduce((a,b)=>a+b,0))}  values={solved} color="#00d4aa" />
+        <StatCard label="CSAT"           value={`${lastCsat.toFixed(1)}%`}          values={csat}   color="#a78bfa" />
+      </div>
+      <DataTable rows={tableRows} />
+    </div>
+  );
+}
+
+function FreshdeskSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+  const grouped   = groupSnapshots(snapshots, granularity, ["newTickets", "resolvedTickets", "openTickets", "csatScore"], []);
+  const newT      = grouped.map((r) => r.data.newTickets);
+  const resolved  = grouped.map((r) => r.data.resolvedTickets);
+  const open      = grouped.map((r) => r.data.openTickets);
+  const csat      = grouped.map((r) => r.data.csatScore);
+  const lastCsat  = csat.length > 0 ? csat[csat.length - 1] : 0;
+  const tableRows = grouped.map((r) => ({
+    period: fmtPeriod(r.period, granularity),
+    cells: [
+      { label: "New Tickets",      value: fmt(r.data.newTickets) },
+      { label: "Resolved Tickets", value: fmt(r.data.resolvedTickets) },
+      { label: "Open Tickets",     value: fmt(r.data.openTickets) },
+      { label: "CSAT",             value: `${(r.data.csatScore ?? 0).toFixed(1)}%` },
+    ],
+  }));
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3 rounded-xl border border-[#25C16F]/15 bg-[#25C16F]/5 px-4 py-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#25C16F]/15 font-mono text-[10px] font-bold text-[#25C16F]">FD</div>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Freshdesk</h3>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label="New Tickets"  value={fmt(newT.reduce((a,b)=>a+b,0))}     values={newT}     color="#25C16F" />
+        <StatCard label="Resolved"     value={fmt(resolved.reduce((a,b)=>a+b,0))} values={resolved} color="#4ade80" />
+        <StatCard label="Open"         value={fmt(open.reduce((a,b)=>a+b,0))}     values={open}     color="#fbbf24" />
+        <StatCard label="CSAT"         value={`${lastCsat.toFixed(1)}%`}           values={csat}     color="#a78bfa" />
+      </div>
+      <DataTable rows={tableRows} />
+    </div>
+  );
+}
+
+function SegmentSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+  const grouped    = groupSnapshots(snapshots, granularity, ["eventsDelivered", "eventsFailed", "sourceCount"], []);
+  const delivered  = grouped.map((r) => r.data.eventsDelivered);
+  const failed     = grouped.map((r) => r.data.eventsFailed);
+  const sources    = grouped.map((r) => r.data.sourceCount);
+  const tableRows  = grouped.map((r) => ({
+    period: fmtPeriod(r.period, granularity),
+    cells: [
+      { label: "Delivered",    value: fmt(r.data.eventsDelivered) },
+      { label: "Failed",       value: fmt(r.data.eventsFailed) },
+      { label: "Sources",      value: fmt(r.data.sourceCount) },
+    ],
+  }));
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3 rounded-xl border border-[#52BD94]/15 bg-[#52BD94]/5 px-4 py-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#52BD94]/15 font-mono text-[10px] font-bold text-[#52BD94]">SG</div>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Segment</h3>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <StatCard label="Delivered" value={fmt(delivered.reduce((a,b)=>a+b,0))} values={delivered} color="#52BD94" />
+        <StatCard label="Failed"    value={fmt(failed.reduce((a,b)=>a+b,0))}    values={failed}    color="#f87171" />
+        <StatCard label="Sources"   value={fmt(sources.length > 0 ? sources[sources.length - 1] : 0)} values={sources} color="#a78bfa" />
+      </div>
+      <DataTable rows={tableRows} />
+    </div>
+  );
+}
+
+function HeapSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+  const grouped   = groupSnapshots(snapshots, granularity, ["sessions", "uniqueUsers", "pageViews", "events"], []);
+  const sessions  = grouped.map((r) => r.data.sessions);
+  const users     = grouped.map((r) => r.data.uniqueUsers);
+  const pv        = grouped.map((r) => r.data.pageViews);
+  const events    = grouped.map((r) => r.data.events);
+  const tableRows = grouped.map((r) => ({
+    period: fmtPeriod(r.period, granularity),
+    cells: [
+      { label: "Sessions",      value: fmt(r.data.sessions) },
+      { label: "Unique Users",  value: fmt(r.data.uniqueUsers) },
+      { label: "Page Views",    value: fmt(r.data.pageViews) },
+      { label: "Events",        value: fmt(r.data.events) },
+    ],
+  }));
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3 rounded-xl border border-[#FF5B5B]/15 bg-[#FF5B5B]/5 px-4 py-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FF5B5B]/15 font-mono text-[10px] font-bold text-[#FF5B5B]">HP</div>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Heap</h3>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label="Sessions"     value={fmt(sessions.reduce((a,b)=>a+b,0))} values={sessions} color="#FF5B5B" />
+        <StatCard label="Unique Users" value={fmt(users.reduce((a,b)=>a+b,0))}    values={users}    color="#fb923c" />
+        <StatCard label="Page Views"   value={fmt(pv.reduce((a,b)=>a+b,0))}       values={pv}       color="#00d4aa" />
+        <StatCard label="Events"       value={fmt(events.reduce((a,b)=>a+b,0))}   values={events}   color="#a78bfa" />
+      </div>
+      <DataTable rows={tableRows} />
+    </div>
+  );
+}
+
+function FullStorySection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+  const grouped    = groupSnapshots(snapshots, granularity, ["sessions", "pageViews", "frustrationSignals", "errorClicks"], []);
+  const sessions   = grouped.map((r) => r.data.sessions);
+  const pv         = grouped.map((r) => r.data.pageViews);
+  const frust      = grouped.map((r) => r.data.frustrationSignals);
+  const errors     = grouped.map((r) => r.data.errorClicks);
+  const tableRows  = grouped.map((r) => ({
+    period: fmtPeriod(r.period, granularity),
+    cells: [
+      { label: "Sessions",              value: fmt(r.data.sessions) },
+      { label: "Page Views",            value: fmt(r.data.pageViews) },
+      { label: "Frustration Signals",   value: fmt(r.data.frustrationSignals) },
+      { label: "Error Clicks",          value: fmt(r.data.errorClicks) },
+    ],
+  }));
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3 rounded-xl border border-[#3B1D8E]/30 bg-[#3B1D8E]/10 px-4 py-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#3B1D8E]/30 font-mono text-[10px] font-bold text-[#a78bfa]">FS</div>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">FullStory</h3>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label="Sessions"    value={fmt(sessions.reduce((a,b)=>a+b,0))} values={sessions} color="#7c3aed" />
+        <StatCard label="Page Views"  value={fmt(pv.reduce((a,b)=>a+b,0))}       values={pv}       color="#a78bfa" />
+        <StatCard label="Frustration" value={fmt(frust.reduce((a,b)=>a+b,0))}    values={frust}    color="#f87171" />
+        <StatCard label="Error Clicks" value={fmt(errors.reduce((a,b)=>a+b,0))}  values={errors}   color="#fb923c" />
+      </div>
+      <DataTable rows={tableRows} />
+    </div>
+  );
+}
+
+function HotjarSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+  const grouped    = groupSnapshots(snapshots, granularity, ["sessions", "recordings", "heatmapViews", "feedbackResponses"], []);
+  const sessions   = grouped.map((r) => r.data.sessions);
+  const recs       = grouped.map((r) => r.data.recordings);
+  const heatmaps   = grouped.map((r) => r.data.heatmapViews);
+  const feedback   = grouped.map((r) => r.data.feedbackResponses);
+  const tableRows  = grouped.map((r) => ({
+    period: fmtPeriod(r.period, granularity),
+    cells: [
+      { label: "Sessions",           value: fmt(r.data.sessions) },
+      { label: "Recordings",         value: fmt(r.data.recordings) },
+      { label: "Heatmap Views",      value: fmt(r.data.heatmapViews) },
+      { label: "Feedback Responses", value: fmt(r.data.feedbackResponses) },
+    ],
+  }));
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3 rounded-xl border border-[#FD3A5C]/15 bg-[#FD3A5C]/5 px-4 py-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FD3A5C]/15 font-mono text-[10px] font-bold text-[#FD3A5C]">HJ</div>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Hotjar</h3>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label="Sessions"   value={fmt(sessions.reduce((a,b)=>a+b,0))} values={sessions} color="#FD3A5C" />
+        <StatCard label="Recordings" value={fmt(recs.reduce((a,b)=>a+b,0))}     values={recs}     color="#f87171" />
+        <StatCard label="Heatmaps"   value={fmt(heatmaps.reduce((a,b)=>a+b,0))} values={heatmaps} color="#fbbf24" />
+        <StatCard label="Feedback"   value={fmt(feedback.reduce((a,b)=>a+b,0))} values={feedback} color="#a78bfa" />
+      </div>
+      <DataTable rows={tableRows} />
+    </div>
+  );
+}
+
+function InstagramSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+  const grouped     = groupSnapshots(snapshots, granularity, ["followers", "reach", "impressions", "profileVisits"], []);
+  const followers   = grouped.map((r) => r.data.followers);
+  const reach       = grouped.map((r) => r.data.reach);
+  const impressions = grouped.map((r) => r.data.impressions);
+  const visits      = grouped.map((r) => r.data.profileVisits);
+  const lastFollows = followers.length > 0 ? followers[followers.length - 1] : 0;
+  const tableRows   = grouped.map((r) => ({
+    period: fmtPeriod(r.period, granularity),
+    cells: [
+      { label: "Followers",      value: fmt(r.data.followers) },
+      { label: "Reach",          value: fmt(r.data.reach) },
+      { label: "Impressions",    value: fmt(r.data.impressions) },
+      { label: "Profile Visits", value: fmt(r.data.profileVisits) },
+    ],
+  }));
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3 rounded-xl border border-[#E1306C]/15 bg-[#E1306C]/5 px-4 py-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#E1306C]/15 font-mono text-[10px] font-bold text-[#E1306C]">IG</div>
+        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Instagram</h3>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label="Followers"      value={fmt(lastFollows)}                          values={followers}   color="#E1306C" />
+        <StatCard label="Reach"          value={fmt(reach.reduce((a,b)=>a+b,0))}           values={reach}       color="#f472b6" />
+        <StatCard label="Impressions"    value={fmt(impressions.reduce((a,b)=>a+b,0))}     values={impressions} color="#fb923c" />
+        <StatCard label="Profile Visits" value={fmt(visits.reduce((a,b)=>a+b,0))}          values={visits}      color="#a78bfa" />
+      </div>
+      <DataTable rows={tableRows} />
+    </div>
+  );
+}
 
 function LockScreen() {
   return (
@@ -1167,17 +2532,57 @@ function EmptySection({ platform }: { platform: string }) {
 
 // ── Main component ────────────────────────────────────────────────────────
 
-type PlatformTab = "overview" | "stripe" | "ga4" | "meta";
+type PlatformTab = "overview" | "stripe" | "ga4" | "meta" | "paypal" | "paddle" | "lemon-squeezy" | "gumroad" | "plausible" | "mixpanel" | "amplitude" | "posthog" | "fathom" | "google-ads" | "tiktok-ads" | "twitter-ads" | "linkedin-ads" | "snapchat-ads" | "pinterest-ads" | "mailchimp" | "klaviyo" | "convertkit" | "activecampaign" | "brevo" | "beehiiv" | "shopify" | "woocommerce" | "bigcommerce" | "amazon-seller" | "etsy" | "hubspot" | "salesforce" | "pipedrive" | "notion" | "intercom" | "zendesk" | "freshdesk" | "segment" | "heap" | "fullstory" | "hotjar" | "instagram" | "youtube" | "twitter-organic";
 
 const PLATFORM_LABELS: Record<PlatformTab, string> = {
-  overview: "Overview",
-  stripe:   "Stripe",
-  ga4:      "Google Analytics",
-  meta:     "Meta Ads",
+  overview:          "Overview",
+  stripe:            "Stripe",
+  ga4:               "Google Analytics",
+  meta:              "Meta Ads",
+  paypal:            "PayPal",
+  paddle:            "Paddle",
+  "lemon-squeezy":   "Lemon Squeezy",
+  gumroad:           "Gumroad",
+  plausible:         "Plausible",
+  mixpanel:          "Mixpanel",
+  amplitude:         "Amplitude",
+  posthog:           "PostHog",
+  fathom:            "Fathom",
+  "google-ads":      "Google Ads",
+  "tiktok-ads":      "TikTok Ads",
+  "twitter-ads":     "X Ads",
+  "linkedin-ads":    "LinkedIn Ads",
+  "snapchat-ads":    "Snapchat Ads",
+  "pinterest-ads":   "Pinterest Ads",
+  mailchimp:         "Mailchimp",
+  klaviyo:           "Klaviyo",
+  convertkit:        "ConvertKit",
+  activecampaign:    "ActiveCampaign",
+  brevo:             "Brevo",
+  beehiiv:           "Beehiiv",
+  shopify:           "Shopify",
+  woocommerce:       "WooCommerce",
+  bigcommerce:       "BigCommerce",
+  "amazon-seller":   "Amazon Seller",
+  etsy:              "Etsy",
+  hubspot:           "HubSpot",
+  salesforce:        "Salesforce",
+  pipedrive:         "Pipedrive",
+  notion:            "Notion",
+  intercom:          "Intercom",
+  zendesk:           "Zendesk",
+  freshdesk:         "Freshdesk",
+  segment:           "Segment",
+  heap:              "Heap",
+  fullstory:         "FullStory",
+  hotjar:            "Hotjar",
+  instagram:         "Instagram",
+  youtube:           "YouTube",
+  "twitter-organic": "X (Twitter)",
 };
 
 export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots, metaCurrency = "USD" }: AnalyticsTabProps) {
-  const availablePlatforms = (["stripe", "ga4", "meta"] as Exclude<PlatformTab, "overview">[]).filter(
+  const availablePlatforms = (["stripe", "ga4", "meta", "paypal", "paddle", "lemon-squeezy", "gumroad", "plausible", "mixpanel", "amplitude", "posthog", "fathom", "google-ads", "tiktok-ads", "twitter-ads", "linkedin-ads", "snapchat-ads", "pinterest-ads", "mailchimp", "klaviyo", "convertkit", "activecampaign", "brevo", "beehiiv", "shopify", "woocommerce", "bigcommerce", "amazon-seller", "etsy", "hubspot", "salesforce", "pipedrive", "notion", "intercom", "zendesk", "freshdesk", "segment", "heap", "fullstory", "hotjar", "instagram", "youtube", "twitter-organic"] as Exclude<PlatformTab, "overview">[]).filter(
     (p) => connectedPlatforms.includes(p)
   );
 
@@ -1234,7 +2639,7 @@ export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots,
   );
 
   const snapshotsByPlatform = useMemo(() => {
-    const map: Record<string, Snapshot[]> = { stripe: [], ga4: [], meta: [] };
+    const map: Record<string, Snapshot[]> = { stripe: [], ga4: [], meta: [], paypal: [], paddle: [], "lemon-squeezy": [], gumroad: [], plausible: [], mixpanel: [], amplitude: [], posthog: [], fathom: [], "google-ads": [], "tiktok-ads": [], "twitter-ads": [], "linkedin-ads": [], "snapchat-ads": [], "pinterest-ads": [], mailchimp: [], klaviyo: [], convertkit: [], activecampaign: [], brevo: [], beehiiv: [], shopify: [], woocommerce: [], bigcommerce: [], "amazon-seller": [], etsy: [], hubspot: [], salesforce: [], pipedrive: [], notion: [], intercom: [], zendesk: [], freshdesk: [], segment: [], heap: [], fullstory: [], hotjar: [], instagram: [], youtube: [], "twitter-organic": [] };
     for (const s of filteredSnapshots) {
       if (map[s.provider]) map[s.provider].push(s);
     }
@@ -1360,6 +2765,206 @@ export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots,
             snapshotsByPlatform.meta.length > 0
               ? <MetaSection snapshots={snapshotsByPlatform.meta} granularity={granularity} />
               : <EmptySection platform="Meta Ads" />
+          )}
+          {activeSection === "paypal" && connectedPlatforms.includes("paypal") && (
+            snapshotsByPlatform.paypal.length > 0
+              ? <PayPalSection snapshots={snapshotsByPlatform.paypal} granularity={granularity} />
+              : <EmptySection platform="PayPal" />
+          )}
+          {activeSection === "paddle" && connectedPlatforms.includes("paddle") && (
+            snapshotsByPlatform.paddle.length > 0
+              ? <PaddleSection snapshots={snapshotsByPlatform.paddle} granularity={granularity} />
+              : <EmptySection platform="Paddle" />
+          )}
+          {activeSection === "lemon-squeezy" && connectedPlatforms.includes("lemon-squeezy") && (
+            snapshotsByPlatform["lemon-squeezy"].length > 0
+              ? <LemonSqueezySection snapshots={snapshotsByPlatform["lemon-squeezy"]} granularity={granularity} />
+              : <EmptySection platform="Lemon Squeezy" />
+          )}
+          {activeSection === "gumroad" && connectedPlatforms.includes("gumroad") && (
+            snapshotsByPlatform.gumroad.length > 0
+              ? <GumroadSection snapshots={snapshotsByPlatform.gumroad} granularity={granularity} />
+              : <EmptySection platform="Gumroad" />
+          )}
+          {activeSection === "plausible" && connectedPlatforms.includes("plausible") && (
+            snapshotsByPlatform.plausible.length > 0
+              ? <PlausibleSection snapshots={snapshotsByPlatform.plausible} granularity={granularity} />
+              : <EmptySection platform="Plausible" />
+          )}
+          {activeSection === "mixpanel" && connectedPlatforms.includes("mixpanel") && (
+            snapshotsByPlatform.mixpanel.length > 0
+              ? <MixpanelSection snapshots={snapshotsByPlatform.mixpanel} granularity={granularity} />
+              : <EmptySection platform="Mixpanel" />
+          )}
+          {activeSection === "amplitude" && connectedPlatforms.includes("amplitude") && (
+            snapshotsByPlatform.amplitude.length > 0
+              ? <AmplitudeSection snapshots={snapshotsByPlatform.amplitude} granularity={granularity} />
+              : <EmptySection platform="Amplitude" />
+          )}
+          {activeSection === "posthog" && connectedPlatforms.includes("posthog") && (
+            snapshotsByPlatform.posthog.length > 0
+              ? <PostHogSection snapshots={snapshotsByPlatform.posthog} granularity={granularity} />
+              : <EmptySection platform="PostHog" />
+          )}
+          {activeSection === "fathom" && connectedPlatforms.includes("fathom") && (
+            snapshotsByPlatform.fathom.length > 0
+              ? <FathomSection snapshots={snapshotsByPlatform.fathom} granularity={granularity} />
+              : <EmptySection platform="Fathom" />
+          )}
+          {activeSection === "google-ads" && connectedPlatforms.includes("google-ads") && (
+            snapshotsByPlatform["google-ads"].length > 0
+              ? <GoogleAdsSection snapshots={snapshotsByPlatform["google-ads"]} granularity={granularity} />
+              : <EmptySection platform="Google Ads" />
+          )}
+          {activeSection === "tiktok-ads" && connectedPlatforms.includes("tiktok-ads") && (
+            snapshotsByPlatform["tiktok-ads"].length > 0
+              ? <TikTokAdsSection snapshots={snapshotsByPlatform["tiktok-ads"]} granularity={granularity} />
+              : <EmptySection platform="TikTok Ads" />
+          )}
+          {activeSection === "twitter-ads" && connectedPlatforms.includes("twitter-ads") && (
+            snapshotsByPlatform["twitter-ads"].length > 0
+              ? <TwitterAdsSection snapshots={snapshotsByPlatform["twitter-ads"]} granularity={granularity} />
+              : <EmptySection platform="X (Twitter) Ads" />
+          )}
+          {activeSection === "linkedin-ads" && connectedPlatforms.includes("linkedin-ads") && (
+            snapshotsByPlatform["linkedin-ads"].length > 0
+              ? <LinkedInAdsSection snapshots={snapshotsByPlatform["linkedin-ads"]} granularity={granularity} />
+              : <EmptySection platform="LinkedIn Ads" />
+          )}
+          {activeSection === "snapchat-ads" && connectedPlatforms.includes("snapchat-ads") && (
+            snapshotsByPlatform["snapchat-ads"].length > 0
+              ? <SnapchatAdsSection snapshots={snapshotsByPlatform["snapchat-ads"]} granularity={granularity} />
+              : <EmptySection platform="Snapchat Ads" />
+          )}
+          {activeSection === "pinterest-ads" && connectedPlatforms.includes("pinterest-ads") && (
+            snapshotsByPlatform["pinterest-ads"].length > 0
+              ? <PinterestAdsSection snapshots={snapshotsByPlatform["pinterest-ads"]} granularity={granularity} />
+              : <EmptySection platform="Pinterest Ads" />
+          )}
+          {activeSection === "mailchimp" && connectedPlatforms.includes("mailchimp") && (
+            snapshotsByPlatform.mailchimp.length > 0
+              ? <MailchimpSection snapshots={snapshotsByPlatform.mailchimp} granularity={granularity} />
+              : <EmptySection platform="Mailchimp" />
+          )}
+          {activeSection === "klaviyo" && connectedPlatforms.includes("klaviyo") && (
+            snapshotsByPlatform.klaviyo.length > 0
+              ? <KlaviyoSection snapshots={snapshotsByPlatform.klaviyo} granularity={granularity} />
+              : <EmptySection platform="Klaviyo" />
+          )}
+          {activeSection === "convertkit" && connectedPlatforms.includes("convertkit") && (
+            snapshotsByPlatform.convertkit.length > 0
+              ? <ConvertKitSection snapshots={snapshotsByPlatform.convertkit} granularity={granularity} />
+              : <EmptySection platform="ConvertKit" />
+          )}
+          {activeSection === "activecampaign" && connectedPlatforms.includes("activecampaign") && (
+            snapshotsByPlatform.activecampaign.length > 0
+              ? <ActiveCampaignSection snapshots={snapshotsByPlatform.activecampaign} granularity={granularity} />
+              : <EmptySection platform="ActiveCampaign" />
+          )}
+          {activeSection === "brevo" && connectedPlatforms.includes("brevo") && (
+            snapshotsByPlatform.brevo.length > 0
+              ? <BrevoSection snapshots={snapshotsByPlatform.brevo} granularity={granularity} />
+              : <EmptySection platform="Brevo" />
+          )}
+          {activeSection === "beehiiv" && connectedPlatforms.includes("beehiiv") && (
+            snapshotsByPlatform.beehiiv.length > 0
+              ? <BeehiivSection snapshots={snapshotsByPlatform.beehiiv} granularity={granularity} />
+              : <EmptySection platform="Beehiiv" />
+          )}
+          {activeSection === "shopify" && connectedPlatforms.includes("shopify") && (
+            snapshotsByPlatform.shopify.length > 0
+              ? <ShopifySection snapshots={snapshotsByPlatform.shopify} granularity={granularity} />
+              : <EmptySection platform="Shopify" />
+          )}
+          {activeSection === "woocommerce" && connectedPlatforms.includes("woocommerce") && (
+            snapshotsByPlatform.woocommerce.length > 0
+              ? <WooCommerceSection snapshots={snapshotsByPlatform.woocommerce} granularity={granularity} />
+              : <EmptySection platform="WooCommerce" />
+          )}
+          {activeSection === "bigcommerce" && connectedPlatforms.includes("bigcommerce") && (
+            snapshotsByPlatform.bigcommerce.length > 0
+              ? <BigCommerceSection snapshots={snapshotsByPlatform.bigcommerce} granularity={granularity} />
+              : <EmptySection platform="BigCommerce" />
+          )}
+          {activeSection === "amazon-seller" && connectedPlatforms.includes("amazon-seller") && (
+            snapshotsByPlatform["amazon-seller"].length > 0
+              ? <AmazonSellerSection snapshots={snapshotsByPlatform["amazon-seller"]} granularity={granularity} />
+              : <EmptySection platform="Amazon Seller" />
+          )}
+          {activeSection === "etsy" && connectedPlatforms.includes("etsy") && (
+            snapshotsByPlatform.etsy.length > 0
+              ? <EtsySection snapshots={snapshotsByPlatform.etsy} granularity={granularity} />
+              : <EmptySection platform="Etsy" />
+          )}
+          {activeSection === "hubspot" && connectedPlatforms.includes("hubspot") && (
+            snapshotsByPlatform.hubspot.length > 0
+              ? <HubSpotSection snapshots={snapshotsByPlatform.hubspot} granularity={granularity} />
+              : <EmptySection platform="HubSpot" />
+          )}
+          {activeSection === "salesforce" && connectedPlatforms.includes("salesforce") && (
+            snapshotsByPlatform.salesforce.length > 0
+              ? <SalesforceSection snapshots={snapshotsByPlatform.salesforce} granularity={granularity} />
+              : <EmptySection platform="Salesforce" />
+          )}
+          {activeSection === "pipedrive" && connectedPlatforms.includes("pipedrive") && (
+            snapshotsByPlatform.pipedrive.length > 0
+              ? <PipedriveSection snapshots={snapshotsByPlatform.pipedrive} granularity={granularity} />
+              : <EmptySection platform="Pipedrive" />
+          )}
+          {activeSection === "notion" && connectedPlatforms.includes("notion") && (
+            snapshotsByPlatform.notion.length > 0
+              ? <NotionSection snapshots={snapshotsByPlatform.notion} granularity={granularity} />
+              : <EmptySection platform="Notion" />
+          )}
+          {activeSection === "intercom" && connectedPlatforms.includes("intercom") && (
+            snapshotsByPlatform.intercom.length > 0
+              ? <IntercomSection snapshots={snapshotsByPlatform.intercom} granularity={granularity} />
+              : <EmptySection platform="Intercom" />
+          )}
+          {activeSection === "zendesk" && connectedPlatforms.includes("zendesk") && (
+            snapshotsByPlatform.zendesk.length > 0
+              ? <ZendeskSection snapshots={snapshotsByPlatform.zendesk} granularity={granularity} />
+              : <EmptySection platform="Zendesk" />
+          )}
+          {activeSection === "freshdesk" && connectedPlatforms.includes("freshdesk") && (
+            snapshotsByPlatform.freshdesk.length > 0
+              ? <FreshdeskSection snapshots={snapshotsByPlatform.freshdesk} granularity={granularity} />
+              : <EmptySection platform="Freshdesk" />
+          )}
+          {activeSection === "segment" && connectedPlatforms.includes("segment") && (
+            snapshotsByPlatform.segment.length > 0
+              ? <SegmentSection snapshots={snapshotsByPlatform.segment} granularity={granularity} />
+              : <EmptySection platform="Segment" />
+          )}
+          {activeSection === "heap" && connectedPlatforms.includes("heap") && (
+            snapshotsByPlatform.heap.length > 0
+              ? <HeapSection snapshots={snapshotsByPlatform.heap} granularity={granularity} />
+              : <EmptySection platform="Heap" />
+          )}
+          {activeSection === "fullstory" && connectedPlatforms.includes("fullstory") && (
+            snapshotsByPlatform.fullstory.length > 0
+              ? <FullStorySection snapshots={snapshotsByPlatform.fullstory} granularity={granularity} />
+              : <EmptySection platform="FullStory" />
+          )}
+          {activeSection === "hotjar" && connectedPlatforms.includes("hotjar") && (
+            snapshotsByPlatform.hotjar.length > 0
+              ? <HotjarSection snapshots={snapshotsByPlatform.hotjar} granularity={granularity} />
+              : <EmptySection platform="Hotjar" />
+          )}
+          {activeSection === "instagram" && connectedPlatforms.includes("instagram") && (
+            snapshotsByPlatform.instagram.length > 0
+              ? <InstagramSection snapshots={snapshotsByPlatform.instagram} granularity={granularity} />
+              : <EmptySection platform="Instagram" />
+          )}
+          {activeSection === "youtube" && connectedPlatforms.includes("youtube") && (
+            snapshotsByPlatform.youtube.length > 0
+              ? <YouTubeSection snapshots={snapshotsByPlatform.youtube} granularity={granularity} />
+              : <EmptySection platform="YouTube" />
+          )}
+          {activeSection === "twitter-organic" && connectedPlatforms.includes("twitter-organic") && (
+            snapshotsByPlatform["twitter-organic"].length > 0
+              ? <TwitterOrganicSection snapshots={snapshotsByPlatform["twitter-organic"]} granularity={granularity} />
+              : <EmptySection platform="X (Twitter)" />
           )}
         </>
       )}
