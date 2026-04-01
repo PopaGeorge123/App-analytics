@@ -1,4 +1,21 @@
 /**
+ * Amazon Selling Partner API (SP-API) — OAuth2 via Login with Amazon (LWA).
+ * Docs: https://developer-docs.amazon.com/sp-api/docs/authorizing-seller-central-applications
+ * App registration: https://sellercentral.amazon.com/apps/develop/applications
+ *
+ * Flow: redirect to Seller Central → user authorizes → SP-API returns
+ *       selling_partner_id + spapi_oauth_code → exchange for LWA tokens.
+ */
+export function getAmazonSellerAuthUrl(userId: string): string {
+  const params = new URLSearchParams({
+    application_id: process.env.AMAZON_SELLER_APP_ID!,
+    state: userId,
+    version: "beta",
+  });
+  return `https://sellercentral.amazon.com/apps/authorize/consent?${params.toString()}`;
+}
+
+/**
  * Amazon Selling Partner API (SP-API) — validate via getMarketplaceParticipations.
  * This uses LWA (Login with Amazon) OAuth.
  * refreshToken: LWA refresh token

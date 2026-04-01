@@ -1,3 +1,19 @@
+/**
+ * Fathom OAuth2
+ * Docs: https://usefathom.com/docs/api/authenticate
+ * App registration: https://app.usefathom.com/account/settings/apps/new
+ */
+export function getFathomAuthUrl(userId: string): string {
+  const params = new URLSearchParams({
+    client_id: process.env.FATHOM_CLIENT_ID!,
+    redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/fathom/callback`,
+    response_type: "code",
+    scope: "site:read,account:read",
+    state: userId,
+  });
+  return `https://app.usefathom.com/oauth/authorize?${params.toString()}`;
+}
+
 export async function validateFathomApiKey(
   apiKey: string,
   siteId: string,

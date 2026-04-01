@@ -1,4 +1,22 @@
 /**
+ * WooCommerce OAuth2 via WordPress.com (Jetpack)
+ * Docs: https://developer.wordpress.com/docs/oauth2/
+ * App registration: https://developer.wordpress.com/apps/new/
+ * The store must have Jetpack connected to WordPress.com.
+ * Scope: "auth" grants full API access to the connected WooCommerce store.
+ */
+export function getWooCommerceAuthUrl(userId: string): string {
+  const params = new URLSearchParams({
+    client_id: process.env.WOOCOMMERCE_CLIENT_ID!,
+    redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/woocommerce/callback`,
+    response_type: "code",
+    scope: "auth",
+    state: userId,
+  });
+  return `https://public-api.wordpress.com/oauth2/authorize?${params.toString()}`;
+}
+
+/**
  * WooCommerce REST API v3 — validate via system status endpoint.
  * siteUrl: e.g. "https://mystore.com"
  * consumerKey + consumerSecret: WooCommerce REST API credentials

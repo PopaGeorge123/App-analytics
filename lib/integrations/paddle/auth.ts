@@ -1,4 +1,20 @@
 /**
+ * Paddle Billing OAuth2
+ * Docs: https://developer.paddle.com/api-reference/authentication/oauth
+ * App registration: https://vendors.paddle.com/developers/apps
+ */
+export function getPaddleAuthUrl(userId: string): string {
+  const params = new URLSearchParams({
+    client_id: process.env.PADDLE_CLIENT_ID!,
+    redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/paddle/callback`,
+    response_type: "code",
+    scope: "read",
+    state: userId,
+  });
+  return `https://vendors.paddle.com/oauth2/authorize?${params.toString()}`;
+}
+
+/**
  * Paddle uses API keys, not OAuth.
  * This module validates a Paddle API key by making a test request.
  */
