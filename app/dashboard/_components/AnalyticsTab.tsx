@@ -2648,7 +2648,7 @@ export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots,
 
   if (!isPremium) {
     return (
-      <div className="max-w-4xl">
+      <div className="w-full">
         <div className="mb-8">
           <h1 className="font-mono text-2xl font-bold text-[#f8f8fc]">Analytics</h1>
           <p className="mt-1 text-sm text-[#bcbcd8]">Deep-dive into your business metrics.</p>
@@ -2659,7 +2659,7 @@ export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots,
   }
 
   return (
-    <div className="max-w-4xl">
+    <div className="w-full">
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <h1 className="font-mono text-2xl font-bold text-[#f8f8fc]">Analytics</h1>
@@ -2711,20 +2711,25 @@ export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots,
       ) : (
         <>
           {/* ── Platform tabs ─────────────────────────────────── */}
-          <div className="mb-4 flex gap-2 border-b border-[#363650]">
-            {(["overview", ...availablePlatforms] as PlatformTab[]).map((p) => (
-              <button
-                key={p}
-                onClick={() => setActiveSection(p)}
-                className={`pb-3 px-1 font-mono text-xs font-semibold uppercase tracking-widest transition-colors border-b-2 -mb-px ${
-                  activeSection === p
-                    ? "border-[#00d4aa] text-[#00d4aa]"
-                    : "border-transparent text-[#8585aa] hover:text-[#bcbcd8]"
-                }`}
-              >
-                {PLATFORM_LABELS[p]}
-              </button>
-            ))}
+          {/* Full-bleed: negative margin cancels the parent p-6/p-8, then we re-add px so tabs stay inset */}
+          <div className="relative mb-4 -mx-6 lg:-mx-8">
+            {/* Scroll fade — right edge hint */}
+            <div className="pointer-events-none absolute right-0 top-0 z-10 h-full w-16 bg-gradient-to-l from-[#13131f] to-transparent" />
+            <div className="flex gap-2 border-b border-[#363650] overflow-x-auto scrollbar-none px-6 lg:px-8">
+              {(["overview", ...availablePlatforms] as PlatformTab[]).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setActiveSection(p)}
+                  className={`shrink-0 whitespace-nowrap pb-3 px-1 font-mono text-xs font-semibold uppercase tracking-widest transition-colors border-b-2 -mb-px ${
+                    activeSection === p
+                      ? "border-[#00d4aa] text-[#00d4aa]"
+                      : "border-transparent text-[#8585aa] hover:text-[#bcbcd8]"
+                  }`}
+                >
+                  {PLATFORM_LABELS[p]}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* ── Controls (time range + view by) ──────────────── */}

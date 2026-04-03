@@ -14,7 +14,8 @@ export async function POST(request: NextRequest) {
 
   const { platform } = await request.json() as { platform: string };
 
-  if (!["stripe", "ga4", "meta"].includes(platform)) {
+  // Validate that platform is a non-empty string (no allowlist — catalog grows over time)
+  if (!platform || typeof platform !== "string" || platform.trim().length === 0) {
     return NextResponse.json({ error: "Invalid platform" }, { status: 400 });
   }
 
@@ -34,3 +35,4 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ success: true });
 }
+

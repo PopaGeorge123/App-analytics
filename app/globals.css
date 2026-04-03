@@ -81,3 +81,11 @@ body {
   background: rgba(0, 212, 170, 0.2);
   color: #f4f4f8;
 }
+
+/* Hide scrollbar on horizontal platform tab bar */
+.scrollbar-none {
+  scrollbar-width: none; /* Firefox */
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none; /* Chrome / Safari / Edge */
+}

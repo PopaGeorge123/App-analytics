@@ -341,6 +341,8 @@ export default function WebsiteTab({
 
   const inputRef = useRef<HTMLInputElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Monotonically-increasing counter — lets us discard stale refresh responses
+  const refreshGenRef = useRef(0);
 
   const isDirty = url.trim() !== savedUrl.trim();
   const normalized = normalizeUrl(url);
@@ -349,19 +351,30 @@ export default function WebsiteTab({
   const status = profile.analysis_status;
 
   // ── Fetch fresh data ────────────────────────────────────────
-  const refresh = useCallback(async () => {
+  // Returns the fetched status so callers can decide whether to stop polling.
+  // The `gen` argument is compared against refreshGenRef to discard results
+  // that arrived out-of-order (prevents a slow earlier call from overwriting
+  // a faster later one).
+  const refresh = useCallback(async (gen?: number): Promise<AnalysisStatus | null> => {
     const [profileRes, tasksRes] = await Promise.all([
       fetch("/api/website"),
       fetch("/api/website/tasks"),
     ]);
+    // If a newer refresh has been issued since we started, discard this result
+    if (gen !== undefined && gen < refreshGenRef.current) return null;
+    let newStatus: AnalysisStatus | null = null;
     if (profileRes.ok) {
       const d = await profileRes.json();
-      if (d.profile) setProfile(d.profile);
+      if (d.profile) {
+        setProfile(d.profile);
+        newStatus = d.profile.analysis_status as AnalysisStatus;
+      }
     }
     if (tasksRes.ok) {
       const d = await tasksRes.json();
       if (d.tasks) setTasks(d.tasks);
     }
+    return newStatus;
   }, []);
 
   // ── Poll while analyzing ────────────────────────────────────
@@ -375,28 +388,15 @@ export default function WebsiteTab({
     }
 
     // Poll immediately on mount (catches mid-analysis page loads)
-    refresh();
+    const gen = ++refreshGenRef.current;
+    refresh(gen);
 
     // Then poll every 4s
     pollRef.current = setInterval(async () => {
-      const [profileRes, tasksRes] = await Promise.all([
-        fetch("/api/website"),
-        fetch("/api/website/tasks"),
-      ]);
-      let newStatus: AnalysisStatus = "analyzing";
-      if (profileRes.ok) {
-        const d = await profileRes.json();
-        if (d.profile) {
-          setProfile(d.profile);
-          newStatus = d.profile.analysis_status;
-        }
-      }
-      if (tasksRes.ok) {
-        const d = await tasksRes.json();
-        if (d.tasks) setTasks(d.tasks);
-      }
+      const pollGen = ++refreshGenRef.current;
+      const newStatus = await refresh(pollGen);
       // Stop polling once finished
-      if (newStatus !== "analyzing") {
+      if (newStatus !== null && newStatus !== "analyzing") {
         if (pollRef.current) {
           clearInterval(pollRef.current);
           pollRef.current = null;
@@ -451,6 +451,11 @@ export default function WebsiteTab({
     setReAnalyzeMsg(null);
     setScreenshotUsed(false);
 
+    // Bump the generation NOW so any in-flight refresh from the polling
+    // useEffect (which fires immediately when status → "analyzing") will be
+    // treated as stale once our own refresh arrives below.
+    const analyzeGen = ++refreshGenRef.current;
+
     // Try to use the direct response when Claude finishes within the timeout window.
     // If the request takes longer than the browser/server allows, the polling
     // interval (set up by the useEffect above) will detect completion from the DB.
@@ -459,15 +464,16 @@ export default function WebsiteTab({
         if (res.ok) {
           const data = await res.json();
           if (data.screenshotUsed) setScreenshotUsed(true);
-          // Analysis finished — refresh once to get latest profile + tasks
-          await refresh();
-        } else {
-          // Server returned an error — refresh to get the error status from DB
-          await refresh();
         }
+        // Whether success or error — do one authoritative refresh after the API settles.
+        // Bump gen again so this is the freshest result.
+        const finalGen = ++refreshGenRef.current;
+        await refresh(finalGen);
       })
       .catch(() => {
-        // Network/timeout — polling will handle it
+        // Network/timeout — polling will handle it; mark this gen as consumed
+        // so subsequent poll cycles (which bump their own gen) win correctly.
+        void analyzeGen;
       });
   }
 
@@ -519,7 +525,7 @@ export default function WebsiteTab({
 
   if (!isPremium) {
     return (
-      <div className="max-w-5xl">
+      <div className="w-full">
         <div className="mb-8">
           <h1 className="font-mono text-2xl font-bold text-[#f8f8fc]">Website Optimizer</h1>
           <p className="mt-1 text-sm text-[#bcbcd8]">Analyze your website and get an improvement roadmap.</p>
@@ -565,7 +571,7 @@ export default function WebsiteTab({
   }
 
   return (
-    <div className="max-w-5xl space-y-8">
+    <div className="w-full space-y-8">
 
       {/* ── Header ──────────────────────────────────────────── */}
       <div>

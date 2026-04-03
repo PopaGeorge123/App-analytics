@@ -407,7 +407,7 @@ export default function AiTab({ isPremium }: AiTabProps) {
   // ── Render ─────────────────────────────────────────────────────────────
   if (!isPremium) {
     return (
-      <div className="max-w-4xl">
+      <div className="w-full">
         <div className="mb-8">
           <h1 className="font-mono text-2xl font-bold text-[#f8f8fc]">AI Advisor</h1>
           <p className="mt-1 text-sm text-[#bcbcd8]">Analyzes your Stripe, GA4, Meta &amp; website data in real time.</p>
@@ -453,7 +453,7 @@ export default function AiTab({ isPremium }: AiTabProps) {
   }
 
   return (
-    <div className="flex flex-col gap-6 max-w-6xl mx-auto">
+    <div className="flex flex-col gap-6 w-full">
 
       {/* ── Page header ─────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">

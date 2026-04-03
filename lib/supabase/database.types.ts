@@ -14,24 +14,58 @@ export interface Database {
         Row: {
           id: string;
           email: string;
+          full_name: string | null;
+          avatar_url: string | null;
+          company_name: string | null;
+          plan: string;
+          onboarded: boolean;
           is_premium: boolean;
           stripe_customer_id: string | null;
           stripe_subscription_id: string | null;
+          trial_used: boolean;
+          alert_rules: Json | null;
+          goals: Json | null;
+          goals_notified_month: Json | null;
+          digest_subscribed: boolean;
+          digest_day: number;
           created_at: string;
+          updated_at: string;
         };
         Insert: {
           id: string;
           email: string;
+          full_name?: string | null;
+          avatar_url?: string | null;
+          company_name?: string | null;
+          plan?: string;
+          onboarded?: boolean;
           is_premium?: boolean;
           stripe_customer_id?: string | null;
           stripe_subscription_id?: string | null;
+          trial_used?: boolean;
+          alert_rules?: Json | null;
+          goals?: Json | null;
+          goals_notified_month?: Json | null;
+          digest_subscribed?: boolean;
+          digest_day?: number;
         };
         Update: {
           id?: string;
           email?: string;
+          full_name?: string | null;
+          avatar_url?: string | null;
+          company_name?: string | null;
+          plan?: string;
+          onboarded?: boolean;
           is_premium?: boolean;
           stripe_customer_id?: string | null;
           stripe_subscription_id?: string | null;
+          trial_used?: boolean;
+          alert_rules?: Json | null;
+          goals?: Json | null;
+          goals_notified_month?: Json | null;
+          digest_subscribed?: boolean;
+          digest_day?: number;
         };
       };
       integrations: {
@@ -45,6 +79,7 @@ export interface Database {
           property_id: string | null;
           scope: string | null;
           expires_at: string | null;
+          currency: string | null;
           connected_at: string;
           created_at: string;
           updated_at: string;
@@ -59,6 +94,7 @@ export interface Database {
           property_id?: string | null;
           scope?: string | null;
           expires_at?: string | null;
+          currency?: string | null;
           connected_at?: string;
         };
         Update: {
@@ -70,6 +106,7 @@ export interface Database {
           property_id?: string | null;
           scope?: string | null;
           expires_at?: string | null;
+          currency?: string | null;
           connected_at?: string;
         };
       };
@@ -161,6 +198,152 @@ export interface Database {
         Update: {
           view_count?: number;
           expires_at?: string;
+        };
+      };
+      website_profiles: {
+        Row: {
+          id: string;
+          user_id: string;
+          url: string;
+          title: string | null;
+          description: string | null;
+          score: number;
+          report: Json | null;
+          analysis_status: string;
+          analysis_error: string | null;
+          last_scanned_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          url: string;
+          title?: string | null;
+          description?: string | null;
+          score?: number;
+          report?: Json | null;
+          analysis_status?: string;
+          analysis_error?: string | null;
+          last_scanned_at?: string | null;
+        };
+        Update: {
+          url?: string;
+          title?: string | null;
+          description?: string | null;
+          score?: number;
+          report?: Json | null;
+          analysis_status?: string;
+          analysis_error?: string | null;
+          last_scanned_at?: string | null;
+        };
+      };
+      website_tasks: {
+        Row: {
+          id: string;
+          user_id: string;
+          title: string;
+          description: string;
+          category: string;
+          impact_score: number;
+          completed: boolean;
+          completed_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          title: string;
+          description: string;
+          category: string;
+          impact_score?: number;
+          completed?: boolean;
+          completed_at?: string | null;
+        };
+        Update: {
+          title?: string;
+          description?: string;
+          category?: string;
+          impact_score?: number;
+          completed?: boolean;
+          completed_at?: string | null;
+        };
+      };
+      ai_conversations: {
+        Row: {
+          id: string;
+          user_id: string;
+          title: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          title?: string;
+        };
+        Update: {
+          title?: string;
+          updated_at?: string;
+        };
+      };
+      ai_messages: {
+        Row: {
+          id: string;
+          user_id: string;
+          conversation_id: string | null;
+          role: string;
+          content: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          conversation_id?: string | null;
+          role: string;
+          content: string;
+        };
+        Update: {
+          content?: string;
+        };
+      };
+      ai_insights: {
+        Row: {
+          id: string;
+          user_id: string;
+          content: string;
+          date: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          content: string;
+          date?: string;
+        };
+        Update: {
+          content?: string;
+        };
+      };
+      waitlist_entries: {
+        Row: {
+          id: string;
+          email: string;
+          status: string;
+          confirmation_token: string;
+          created_at: string;
+          confirmed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          email: string;
+          status?: string;
+          confirmation_token: string;
+          confirmed_at?: string | null;
+        };
+        Update: {
+          status?: string;
+          confirmed_at?: string | null;
         };
       };
     };

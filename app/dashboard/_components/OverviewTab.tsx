@@ -959,7 +959,7 @@ export default function OverviewTab({
   const capitalFirst = firstName.charAt(0).toUpperCase() + firstName.slice(1);
 
   return (
-    <div className="max-w-5xl space-y-8">
+    <div className="w-full space-y-8">
 
       {/* ── Greeting ─────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">

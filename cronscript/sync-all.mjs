@@ -98,8 +98,10 @@ const META_APP_ID      = g('META_APP_ID');
 const META_APP_SEC     = g('META_APP_SECRET');
 const PAYPAL_CLIENT_ID = g('PAYPAL_CLIENT_ID');
 const PAYPAL_CLIENT_SEC = g('PAYPAL_CLIENT_SECRET');
-const RESEND_KEY   = g('RESEND_API_KEY');
+const RESEND_KEY       = g('RESEND_API_KEY');
+const ANTHROPIC_KEY    = g('ANTHROPIC_API_KEY');
 const FROM_EMAIL   = 'Fold Alerts <alerts@tryfold.io>';
+const FROM_DIGEST  = 'Fold Digest <info@tryfold.io>';
 
 if (!SUPABASE_URL || !SERVICE_KEY) {
   console.error('✗ NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required in .env');
@@ -114,6 +116,7 @@ const daemonMode   = args.includes('--daemon');  // ← recommended: loop foreve
 const loopMode     = args.includes('--loop');    // legacy alias for --daemon
 const backfillMode = args.includes('--backfill');
 const alertsOnly   = args.includes('--alerts');  // one-shot: only run alert check
+const digestOnly   = args.includes('--digest');  // one-shot: only run digest send
 const targetUser   = args.includes('--user')     ? args[args.indexOf('--user') + 1]     : null;
 const targetPlat   = args.includes('--platform') ? args[args.indexOf('--platform') + 1] : null;
 
@@ -3255,6 +3258,525 @@ async function checkAlerts() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// DAILY DIGEST SENDER
+// Runs once per day.  For each premium user where digest_subscribed=true and
+// today is their digest_day (0=Sun…6=Sat), this function:
+//   1. Fetches the last 14 days of daily_snapshots
+//   2. Builds a metrics context string
+//   3. Calls the Anthropic API (claude-opus-4-5) to generate a structured digest
+//   4. Upserts the result into the `digests` table
+//   5. Sends the HTML email via Resend
+//
+// DB columns used (see migration 009_goals_and_alert_rules.sql):
+//   users.digest_subscribed  boolean  — opt-in flag
+//   users.digest_day         smallint — 0=Sun … 6=Sat
+//
+// Required .env vars:
+//   ANTHROPIC_API_KEY
+//   RESEND_API_KEY
+// ─────────────────────────────────────────────────────────────────────────────
+
+function buildDigestEmailHtml(digest, appUrl) {
+  const highlights = digest.highlights ?? [];
+  const anomalies  = digest.anomalies  ?? [];
+  const action     = digest.action     ?? null;
+
+  const trendEmoji = (t) => t === 'up' ? '📈' : t === 'down' ? '📉' : '➡️';
+  const sevEmoji   = (s) => s === 'high' ? '🔴' : s === 'medium' ? '🟡' : '🟢';
+  const sevColor   = (s) => s === 'high' ? '#ef4444' : s === 'medium' ? '#f59e0b' : '#22c55e';
+
+  const highlightsHtml = highlights.map(h => `
+    <tr>
+      <td style="padding:8px 12px;border-bottom:1px solid #1e2030;">${trendEmoji(h.trend)} <strong>${h.metric}</strong></td>
+      <td style="padding:8px 12px;border-bottom:1px solid #1e2030;color:#00d4aa;">${h.value}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #1e2030;color:#888;">${h.change}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #1e2030;color:#ccc;">${h.context}</td>
+    </tr>`).join('');
+
+  const anomaliesHtml = anomalies.map(a => `
+    <div style="margin-bottom:16px;padding:12px 16px;background:#13141f;border-left:3px solid ${sevColor(a.severity)};border-radius:4px;">
+      <strong>${sevEmoji(a.severity)} ${a.title}</strong>
+      <p style="margin:6px 0 0;color:#aaa;">${a.description}</p>
+      <p style="margin:4px 0 0;color:#666;font-size:13px;">Source: ${a.dataSource}</p>
+    </div>`).join('');
+
+  const actionHtml = action ? `
+    <div style="background:#0d2e2a;border:1px solid #00d4aa33;border-radius:8px;padding:16px 20px;">
+      <strong style="color:#00d4aa;">⚡ ${action.title}</strong>
+      <p style="margin:8px 0 0;color:#ccc;">${action.description}</p>
+      <p style="margin:6px 0 0;color:#666;font-size:13px;">Priority: ${action.priority} · Effort: ${action.effort}</p>
+    </div>` : '';
+
+  return `<!DOCTYPE html>
+<html><head><meta charset="utf-8"/></head>
+<body style="margin:0;padding:0;background:#0a0a0f;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#e5e5e5;">
+  <div style="max-width:680px;margin:0 auto;padding:40px 24px;">
+    <div style="margin-bottom:32px;">
+      <h1 style="margin:0;font-size:22px;color:#fff;"><span style="color:#00d4aa;">Fold</span> Daily Digest</h1>
+      <p style="margin:6px 0 0;color:#666;font-size:14px;">${digest.date}</p>
+    </div>
+    <div style="background:#13141f;border-radius:8px;padding:20px 24px;margin-bottom:28px;">
+      <h2 style="margin:0 0 10px;font-size:14px;text-transform:uppercase;letter-spacing:.08em;color:#666;">Summary</h2>
+      <p style="margin:0;line-height:1.6;color:#ddd;">${digest.summary}</p>
+    </div>
+    ${highlights.length > 0 ? `
+    <div style="margin-bottom:28px;">
+      <h2 style="margin:0 0 14px;font-size:14px;text-transform:uppercase;letter-spacing:.08em;color:#666;">Highlights</h2>
+      <table style="width:100%;border-collapse:collapse;background:#13141f;border-radius:8px;overflow:hidden;">
+        <thead><tr style="background:#1a1b2e;">
+          <th style="padding:8px 12px;text-align:left;color:#666;font-size:12px;">Metric</th>
+          <th style="padding:8px 12px;text-align:left;color:#666;font-size:12px;">Value</th>
+          <th style="padding:8px 12px;text-align:left;color:#666;font-size:12px;">vs last week</th>
+          <th style="padding:8px 12px;text-align:left;color:#666;font-size:12px;">Context</th>
+        </tr></thead>
+        <tbody>${highlightsHtml}</tbody>
+      </table>
+    </div>` : ''}
+    ${anomalies.length > 0 ? `
+    <div style="margin-bottom:28px;">
+      <h2 style="margin:0 0 14px;font-size:14px;text-transform:uppercase;letter-spacing:.08em;color:#666;">Anomalies</h2>
+      ${anomaliesHtml}
+    </div>` : ''}
+    ${digest.cross_insight ? `
+    <div style="background:#13141f;border-radius:8px;padding:20px 24px;margin-bottom:28px;">
+      <h2 style="margin:0 0 10px;font-size:14px;text-transform:uppercase;letter-spacing:.08em;color:#666;">Cross-Platform Insight</h2>
+      <p style="margin:0;line-height:1.6;color:#ddd;">${digest.cross_insight}</p>
+    </div>` : ''}
+    ${actionHtml}
+    <div style="margin-top:40px;padding-top:20px;border-top:1px solid #1e2030;text-align:center;color:#444;font-size:12px;">
+      <p style="margin:0;">You're receiving this because you opted into Fold digest emails.</p>
+      <p style="margin:6px 0 0;"><a href="${appUrl}/dashboard" style="color:#00d4aa;text-decoration:none;">Open Dashboard</a></p>
+    </div>
+  </div>
+</body></html>`;
+}
+
+async function sendDailyDigests() {
+  if (!ANTHROPIC_KEY) {
+    logWarn('[digest] ANTHROPIC_API_KEY not set — skipping digest send');
+    return;
+  }
+  if (!RESEND_KEY) {
+    logWarn('[digest] RESEND_API_KEY not set — skipping digest send');
+    return;
+  }
+
+  const today     = new Date().toISOString().slice(0, 10);   // YYYY-MM-DD
+  const todayDow  = new Date().getUTCDay();                   // 0=Sun…6=Sat
+  const appUrl    = g('NEXT_PUBLIC_APP_URL') || 'https://usefold.io';
+
+  log(`[digest] Running digest send — today=${today} dow=${todayDow}`);
+
+  // 1. Fetch all premium users who have opted in and today is their chosen day
+  let users;
+  try {
+    users = await SB.selectWhere('users', 'id,email', {
+      is_premium:         'eq.true',
+      digest_subscribed:  'eq.true',
+      digest_day:         `eq.${todayDow}`,
+    });
+  } catch (err) {
+    logFail(`[digest] Cannot fetch users: ${err.message}`);
+    return;
+  }
+
+  if (!users?.length) {
+    log(`[digest] No users scheduled for digest today (dow=${todayDow}).`);
+    return;
+  }
+
+  log(`[digest] ${users.length} user(s) due for digest today.`);
+  let sent = 0;
+
+  for (const user of users) {
+    const uid   = user.id;
+    const email = user.email;
+    log(`[digest] Processing user ${uid.slice(0, 8)}…`);
+
+    // 2. Fetch last 14 days of snapshots
+    let snaps;
+    try {
+      const cutoff14 = daysAgo(14);
+      const p = new URLSearchParams({
+        select:  'provider,date,data',
+        user_id: `eq.${uid}`,
+        date:    `gte.${cutoff14}`,
+        order:   'date.desc',
+      });
+      const getHeaders = { apikey: SB.headers.apikey, Authorization: SB.headers.Authorization };
+      const r = await fetchRetry(`SB SELECT daily_snapshots[digest]`, `${SUPABASE_URL}/rest/v1/daily_snapshots?${p}`, { headers: getHeaders });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      snaps = await r.json();
+    } catch (err) {
+      logWarn(`[digest] Cannot fetch snapshots for ${uid.slice(0, 8)}: ${err.message}`);
+      continue;
+    }
+
+    if (!snaps?.length) {
+      logWarn(`[digest] No snapshots found for ${uid.slice(0, 8)} — skipping`);
+      continue;
+    }
+
+    // 3. Compute 7d vs prev-7d metrics (mirrors the API route logic exactly)
+    const cutoff7Str = daysAgo(7);
+    const snaps7     = snaps.filter(s => s.date >= cutoff7Str);
+    const snapsPrev7 = snaps.filter(s => s.date <  cutoff7Str);
+
+    const sumField = (arr, provider, field) =>
+      arr.filter(s => s.provider === provider)
+         .reduce((acc, s) => acc + ((s.data?.[field]) ?? 0), 0);
+    const avgField = (arr, provider, field) => {
+      const rows = arr.filter(s => s.provider === provider);
+      return rows.length ? rows.reduce((acc, s) => acc + ((s.data?.[field]) ?? 0), 0) / rows.length : 0;
+    };
+
+    const revenue7     = sumField(snaps7,     'stripe', 'revenue');
+    const revenuePrev  = sumField(snapsPrev7,  'stripe', 'revenue');
+    const sessions7    = sumField(snaps7,     'ga4',    'sessions');
+    const sessionsPrev = sumField(snapsPrev7,  'ga4',    'sessions');
+    const spend7       = sumField(snaps7,     'meta',   'spend');
+    const bounceRate7  = avgField(snaps7,     'ga4',    'bounceRate');
+    const newCustomers7 = sumField(snaps7,    'stripe', 'newCustomers');
+
+    const revChange  = revenuePrev  > 0 ? ((revenue7  - revenuePrev)  / revenuePrev)  * 100 : 0;
+    const sessChange = sessionsPrev > 0 ? ((sessions7 - sessionsPrev) / sessionsPrev) * 100 : 0;
+
+    // 4. Fetch website profile for context
+    let website = null;
+    try {
+      const wp = await SB.selectWhere('website_profiles', 'url,score', { user_id: `eq.${uid}` });
+      website = wp?.[0] ?? null;
+    } catch (_) { /* optional */ }
+
+    const contextBlock = `DATE: ${today}
+Revenue (7d): $${(revenue7 / 100).toFixed(2)} (${revChange >= 0 ? '+' : ''}${revChange.toFixed(1)}% vs prev week)
+Sessions (7d): ${sessions7} (${sessChange >= 0 ? '+' : ''}${sessChange.toFixed(1)}% vs prev week)
+Ad Spend (7d): $${(spend7 / 100).toFixed(2)}
+New Customers (7d): ${newCustomers7}
+Bounce Rate (7d): ${bounceRate7.toFixed(1)}%
+CAC: ${newCustomers7 > 0 ? `$${((spend7 / 100) / newCustomers7).toFixed(2)}` : 'N/A'}
+Website: ${website?.url ?? 'Not set'} — Score ${website?.score ?? 0}/100`.trim();
+
+    // 5. Call Anthropic claude-opus-4-5 to generate digest JSON
+    let digestContent;
+    try {
+      const aiRes = await fetchRetry(
+        `Anthropic digest[${uid.slice(0, 8)}]`,
+        'https://api.anthropic.com/v1/messages',
+        {
+          method: 'POST',
+          headers: {
+            'x-api-key':         ANTHROPIC_KEY,
+            'anthropic-version': '2023-06-01',
+            'content-type':      'application/json',
+          },
+          body: JSON.stringify({
+            model:      'claude-opus-4-5',
+            max_tokens: 900,
+            system: `You are a concise business intelligence assistant. Generate a weekly digest JSON object based on the provided metrics. Return ONLY valid JSON, no markdown.
+
+Schema:
+{
+  "summary": "2-3 sentence plain English overview",
+  "highlights": [
+    { "metric": "Revenue", "value": "$X.XX", "trend": "up|down|flat", "change": "+X%", "context": "brief note" }
+  ],
+  "anomalies": [
+    { "title": "short title", "description": "what happened", "severity": "high|medium|low", "dataSource": "Stripe|GA4|Meta" }
+  ],
+  "cross_insight": "One sentence connecting two data sources",
+  "action": { "title": "Top action", "description": "what to do", "priority": "High|Medium|Low", "effort": "Low|Medium|High" }
+}`,
+            messages: [
+              { role: 'user', content: `Generate a weekly digest for this business:\n\n${contextBlock}` },
+            ],
+          }),
+        },
+      );
+
+      if (!aiRes.ok) {
+        const errBody = await aiRes.text().catch(() => '');
+        throw new Error(`Anthropic ${aiRes.status}: ${errBody.slice(0, 200)}`);
+      }
+
+      const aiJson = await aiRes.json();
+      let raw = (aiJson.content?.[0]?.text ?? '').trim();
+      // Strip markdown fences if present
+      raw = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+      const jsonMatch = raw.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error('No JSON object in Anthropic response');
+      digestContent = JSON.parse(jsonMatch[0]);
+    } catch (err) {
+      logFail(`[digest] Anthropic error for ${uid.slice(0, 8)}: ${err.message}`);
+      continue;
+    }
+
+    // 6. Upsert digest into `digests` table
+    try {
+      await SB.upsert(
+        'digests',
+        {
+          user_id:       uid,
+          date:          today,
+          summary:       digestContent.summary        ?? '',
+          highlights:    digestContent.highlights     ?? [],
+          anomalies:     digestContent.anomalies      ?? [],
+          cross_insight: digestContent.cross_insight  ?? '',
+          action:        digestContent.action         ?? {},
+          raw_context:   { contextBlock },
+        },
+        'user_id,date',
+      );
+    } catch (err) {
+      logWarn(`[digest] DB upsert failed for ${uid.slice(0, 8)}: ${err.message}`);
+      // Still attempt email — don't hard-fail
+    }
+
+    // 7. Send email via Resend REST API
+    try {
+      const emailHtml = buildDigestEmailHtml({ ...digestContent, date: today }, appUrl);
+      const res = await fetchRetry(
+        `Resend digest[${uid.slice(0, 8)}]`,
+        'https://api.resend.com/emails',
+        {
+          method: 'POST',
+          headers: {
+            Authorization:  `Bearer ${RESEND_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from:    FROM_DIGEST,
+            to:      email,
+            subject: `Your Fold Daily Digest — ${today}`,
+            html:    emailHtml,
+          }),
+        },
+      );
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        logWarn(`[digest] Resend failed for ${uid.slice(0, 8)}: ${e?.message ?? res.status}`);
+      } else {
+        logOk(`[digest] Sent to ${email}`);
+        sent++;
+      }
+    } catch (err) {
+      logWarn(`[digest] Email error for ${uid.slice(0, 8)}: ${err.message}`);
+    }
+
+    await sleep(USER_DELAY_MS);
+  }
+
+  log(`[digest] Done — ${sent}/${users.length} digest(s) sent`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GOALS & KPIs CHECK
+// Run after every daily sync (same cadence as checkAlerts).
+// Reads the `goals` JSONB column on `users` (set by the user in Settings),
+// aggregates month-to-date snapshots, and sends a one-time congratulatory email
+// when a monthly target is first reached.
+//
+// DB columns used (all on public.users — see migration 009_goals_and_alert_rules.sql):
+//   goals                 – { revenueTarget (cents), sessionsTarget, subscribersTarget, adSpendBudget (cents) }
+//   goals_notified_month  – { revenueTarget: "YYYY-MM", ... } — dedup tracker, written here only
+//
+// goals shape (matches SettingsTab GoalsSection):
+//   revenueTarget      – cents (Stripe MtD revenue goal)
+//   sessionsTarget     – integer (GA4 MtD sessions goal)
+//   subscribersTarget  – integer (Mailchimp/Beehiiv/Klaviyo MtD new-subscribers goal)
+//   adSpendBudget      – cents (Meta MtD ad-spend budget cap — fires when OVER budget)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function buildGoalsEmailHtml(hits, email) {
+  const rows = hits.map(h => `
+    <tr>
+      <td style="padding:12px 16px;border-bottom:1px solid #1e1e2e;">
+        <span style="font-size:18px;margin-right:8px;">${h.icon}</span>
+        <strong style="color:#f0f0f5;">${h.title}</strong><br>
+        <span style="color:#8888aa;font-size:13px;">${h.detail}</span>
+      </td>
+    </tr>`).join('');
+
+  return `<!DOCTYPE html>
+<html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#0a0a0f;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <div style="max-width:560px;margin:40px auto;background:#0d0d16;border:1px solid #1e1e2e;border-radius:16px;overflow:hidden;">
+    <div style="background:linear-gradient(135deg,#00d4aa,#635bff);padding:24px 28px;">
+      <p style="margin:0;font-family:monospace;font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.7);">Fold — Goals & KPIs</p>
+      <h1 style="margin:6px 0 0;font-size:22px;color:#fff;">🎯 You hit your goal!</h1>
+    </div>
+    <div style="padding:24px 28px;">
+      <p style="margin:0 0 16px;color:#8888aa;font-size:14px;">The following KPI targets were reached this month:</p>
+      <table style="width:100%;border-collapse:collapse;background:#12121a;border-radius:12px;overflow:hidden;">
+        ${rows}
+      </table>
+      <div style="margin-top:24px;text-align:center;">
+        <a href="${g('NEXT_PUBLIC_APP_URL') || 'https://usefold.io'}/dashboard"
+           style="display:inline-block;background:#00d4aa;color:#0a0a0f;font-weight:700;font-family:monospace;font-size:12px;text-transform:uppercase;letter-spacing:.08em;padding:12px 28px;border-radius:10px;text-decoration:none;">
+          Open Dashboard →
+        </a>
+      </div>
+    </div>
+    <div style="padding:16px 28px;border-top:1px solid #1e1e2e;text-align:center;color:#444;font-size:11px;">
+      You're receiving this because you have Goals & KPIs set in Fold.<br>
+      Manage goals in <a href="${g('NEXT_PUBLIC_APP_URL') || 'https://usefold.io'}/dashboard" style="color:#00d4aa;text-decoration:none;">Settings → Goals & KPIs</a>.
+    </div>
+  </div>
+</body></html>`;
+}
+
+async function checkGoals() {
+  log('[goals] Checking Goals & KPIs for all users…');
+
+  // Current month string e.g. "2026-04"
+  const now = new Date();
+  const currentMonth = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
+  const monthStart   = `${currentMonth}-01`; // first day of this month (ISO date)
+
+  // 1. Fetch all users that have goals configured
+  //    Also pull goals_notified_month so we can skip already-notified goals
+  let users;
+  try {
+    users = await SB.selectWhere('users', 'id,email,goals,goals_notified_month', {
+      goals: 'not.is.null',
+    });
+  } catch (err) {
+    logFail(`[goals] Cannot fetch users: ${err.message}`);
+    return;
+  }
+
+  if (!users?.length) { log('[goals] No users with goals found.'); return; }
+
+  let notified = 0;
+
+  for (const user of users) {
+    const goals = user.goals;
+    if (!goals) continue;
+
+    // Check if any non-zero target exists
+    const hasRevenue     = (goals.revenueTarget     ?? 0) > 0;
+    const hasSessions    = (goals.sessionsTarget     ?? 0) > 0;
+    const hasSubscribers = (goals.subscribersTarget  ?? 0) > 0;
+    const hasAdBudget    = (goals.adSpendBudget      ?? 0) > 0;
+
+    if (!hasRevenue && !hasSessions && !hasSubscribers && !hasAdBudget) continue;
+
+    // goals_notified_month is a separate DB column — never touches the user's goals JSON
+    const notifiedMap = user.goals_notified_month ?? {};
+
+    // 2. Fetch month-to-date snapshots for this user
+    let snaps;
+    try {
+      const p = new URLSearchParams({
+        select:  'provider,date,data',
+        user_id: `eq.${user.id}`,
+        date:    `gte.${monthStart}`,
+      });
+      const getHeaders = { apikey: SB.headers.apikey, Authorization: SB.headers.Authorization };
+      const r = await fetchRetry(
+        `SB SELECT daily_snapshots[goals/${user.id.slice(0, 8)}]`,
+        `${SUPABASE_URL}/rest/v1/daily_snapshots?${p}`,
+        { headers: getHeaders },
+      );
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      snaps = await r.json();
+    } catch (err) {
+      logWarn(`[goals] Cannot fetch snapshots for ${user.id.slice(0, 8)}: ${err.message}`);
+      continue;
+    }
+
+    if (!snaps?.length) continue;
+
+    // 3. Aggregate month-to-date values from snapshots
+    const sumField = (provider, field) =>
+      snaps.filter(s => s.provider === provider)
+           .reduce((acc, s) => acc + ((s.data?.[field]) ?? 0), 0);
+
+    const mtdRevenue      = sumField('stripe', 'revenue');          // cents
+    const mtdSessions     = sumField('ga4',    'sessions');         // integer
+    // new subscribers: aggregate across all connected email platforms
+    const mtdSubscribers  = sumField('mailchimp', 'newSubscribers')
+                          + sumField('klaviyo',   'newSubscribers')
+                          + sumField('beehiiv',   'newSubscribers');
+    // Meta ad spend is stored in dollars → convert to cents for comparison
+    const mtdAdSpendCents = Math.round(sumField('meta', 'spend') * 100);
+
+    // 4. Determine which goals were hit and not yet notified this month
+    const hits = [];
+
+    if (hasRevenue && mtdRevenue >= goals.revenueTarget && notifiedMap.revenueTarget !== currentMonth) {
+      hits.push({
+        key:    'revenueTarget',
+        icon:   '💰',
+        title:  `Revenue target hit: $${(mtdRevenue / 100).toFixed(2)}`,
+        detail: `You hit your $${(goals.revenueTarget / 100).toFixed(2)} monthly revenue target. Keep going!`,
+      });
+    }
+
+    if (hasSessions && mtdSessions >= goals.sessionsTarget && notifiedMap.sessionsTarget !== currentMonth) {
+      hits.push({
+        key:    'sessionsTarget',
+        icon:   '📈',
+        title:  `Sessions target hit: ${mtdSessions.toLocaleString('en-US')}`,
+        detail: `You reached your ${goals.sessionsTarget.toLocaleString('en-US')} monthly sessions target.`,
+      });
+    }
+
+    if (hasSubscribers && mtdSubscribers >= goals.subscribersTarget && notifiedMap.subscribersTarget !== currentMonth) {
+      hits.push({
+        key:    'subscribersTarget',
+        icon:   '📬',
+        title:  `Subscribers target hit: ${mtdSubscribers.toLocaleString('en-US')} new`,
+        detail: `You gained ${mtdSubscribers.toLocaleString('en-US')} new subscribers this month, hitting your target of ${goals.subscribersTarget.toLocaleString('en-US')}.`,
+      });
+    }
+
+    // adSpendBudget is a monthly budget CAP — notify when crossed
+    if (hasAdBudget && mtdAdSpendCents >= goals.adSpendBudget && notifiedMap.adSpendBudget !== currentMonth) {
+      hits.push({
+        key:    'adSpendBudget',
+        icon:   '💸',
+        title:  `Ad spend budget reached: $${(mtdAdSpendCents / 100).toFixed(2)}`,
+        detail: `Your Meta Ads spend this month has reached your $${(goals.adSpendBudget / 100).toFixed(2)} monthly budget cap.`,
+      });
+    }
+
+    if (!hits.length) {
+      logOk(`[goals] User ${user.id.slice(0, 8)} — no new goals hit`);
+      continue;
+    }
+
+    log(`[goals] User ${user.id.slice(0, 8)} — ${hits.length} goal(s) reached`);
+    hits.forEach(h => log(`  → ${h.icon} ${h.title}`));
+
+    // 5. Send congratulatory email
+    const subject = hits.length === 1
+      ? `Fold: ${hits[0].title}`
+      : `Fold: You hit ${hits.length} KPI targets this month!`;
+
+    await sendAlertEmail(user.email, subject, buildGoalsEmailHtml(hits, user.email));
+    notified++;
+
+    // 6. Persist updated goals_notified_month to the SEPARATE column
+    //    (never mutates the user's goals JSON — clean separation of concerns)
+    const updatedNotifiedMap = { ...notifiedMap };
+    for (const h of hits) updatedNotifiedMap[h.key] = currentMonth;
+
+    try {
+      await SB.patch(
+        'users',
+        { goals_notified_month: updatedNotifiedMap },
+        { id: user.id },
+      );
+    } catch (err) {
+      logWarn(`[goals] Could not persist goals_notified_month for ${user.id.slice(0, 8)}: ${err.message}`);
+    }
+  }
+
+  log(`[goals] Done — ${notified} user(s) notified`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // STALE DATA CLEANUP
 // Called when a user reconnects a platform with a DIFFERENT account.
 // Deletes snapshots for that provider + all digests + all share_tokens.
@@ -3501,8 +4023,13 @@ if (backfillMode) {
   await runBackfill();
 
 } else if (alertsOnly) {
-  // Manual one-shot alert check only, then exit
+  // Manual one-shot: alert check + goals check only, then exit
   await checkAlerts();
+  await checkGoals();
+
+} else if (digestOnly) {
+  // Manual one-shot: digest send only, then exit
+  await sendDailyDigests();
 
 } else if (daemonMode || loopMode) {
   // ── DAEMON MODE ─────────────────────────────────────────────────────────
@@ -3514,6 +4041,8 @@ if (backfillMode) {
   log(`  • Auto-backfill check: every ${CHECK_INTERVAL_MS / 60000} minutes`);
   log(`  • Daily sync:          02:00 UTC`);
   log(`  • Alert rules check:   after every daily sync`);
+  log(`  • Goals & KPIs check:  after every daily sync`);
+  log(`  • Digest send:         after every daily sync (sent to users on their chosen day)`);
   log(`  • Trigger server:      port ${TRIGGER_PORT}`);
   log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
@@ -3524,20 +4053,26 @@ if (backfillMode) {
   await runAutoBackfill();
   await runSync();
   await checkAlerts();
+  await checkGoals();
+  await sendDailyDigests();
 
   // 2. Auto-backfill loop — every 30 minutes
   setInterval(async () => {
     try { await runAutoBackfill(); } catch (e) { logFail(`[auto-backfill loop] ${e.message}`); }
   }, CHECK_INTERVAL_MS);
 
-  // 3. Daily sync + alert check at 02:00 UTC
+  // 3. Daily sync + alerts + goals + digest at 02:00 UTC
   scheduleDailyAt(DAILY_UTC_HOUR, async () => {
     await runSync();
     await checkAlerts();
-  }, 'daily-sync+alerts');
+    await checkGoals();
+    await sendDailyDigests();
+  }, 'daily-sync+alerts+digest');
 
 } else {
-  // One-shot: sync yesterday + check alerts, then exit
+  // One-shot: sync yesterday + check alerts + check goals + send digests, then exit
   await runSync();
   await checkAlerts();
+  await checkGoals();
+  await sendDailyDigests();
 }

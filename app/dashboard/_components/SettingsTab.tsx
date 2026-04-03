@@ -473,6 +473,306 @@ const DYNAMIC_MODALS: Record<string, { label: string; name: string; optional?: b
   zendesk: [{ name: "subdomain", label: "Subdomain" }, { name: "email", label: "Email" }, { name: "apiToken", label: "API Token" }],
 };
 
+// ── Goals & KPIs Section ─────────────────────────────────────────────────
+
+interface Goals {
+  revenueTarget: number;   // cents per month
+  sessionsTarget: number;  // sessions per month
+  subscribersTarget: number; // email subscribers per month
+  adSpendBudget: number;   // cents per month (ad budget cap)
+}
+
+const DEFAULT_GOALS: Goals = {
+  revenueTarget: 0,
+  sessionsTarget: 0,
+  subscribersTarget: 0,
+  adSpendBudget: 0,
+};
+
+function GoalsSection() {
+  const [goals, setGoals] = useState<Goals>(DEFAULT_GOALS);
+  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/user/settings")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.goals) setGoals({ ...DEFAULT_GOALS, ...d.goals });
+        setLoaded(true);
+      })
+      .catch(() => setLoaded(true));
+  }, []);
+
+  async function saveGoals() {
+    setSaving(true);
+    try {
+      await fetch("/api/user/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ goals }),
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2200);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function clearGoals() {
+    setGoals(DEFAULT_GOALS);
+    fetch("/api/user/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ goals: DEFAULT_GOALS }),
+    }).catch(() => {});
+  }
+
+  const hasAny =
+    goals.revenueTarget > 0 ||
+    goals.sessionsTarget > 0 ||
+    goals.subscribersTarget > 0 ||
+    goals.adSpendBudget > 0;
+
+  const KPI_ROWS: {
+    key: keyof Goals;
+    label: string;
+    sublabel: string;
+    unit: string;
+    unitPos: "left" | "right";
+    placeholder: string;
+    color: string;
+    icon: React.ReactNode;
+    toDisplay: (v: number) => string;
+    toStorage: (s: string) => number;
+  }[] = [
+    {
+      key: "revenueTarget",
+      label: "Monthly revenue target",
+      sublabel: "Shown as goal line on Overview & AI advisor",
+      unit: "$",
+      unitPos: "left",
+      placeholder: "e.g. 10000",
+      color: "#635bff",
+      icon: (
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+        </svg>
+      ),
+      toDisplay: (v) => (v ? (v / 100).toFixed(0) : ""),
+      toStorage: (s) => (s ? Math.round(parseFloat(s) * 100) : 0),
+    },
+    {
+      key: "sessionsTarget",
+      label: "Monthly sessions target",
+      sublabel: "Web traffic goal from GA4 / Plausible / PostHog",
+      unit: "sessions",
+      unitPos: "right",
+      placeholder: "e.g. 20000",
+      color: "#4285F4",
+      icon: (
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
+        </svg>
+      ),
+      toDisplay: (v) => (v ? String(v) : ""),
+      toStorage: (s) => (s ? parseInt(s) || 0 : 0),
+    },
+    {
+      key: "subscribersTarget",
+      label: "Monthly subscribers target",
+      sublabel: "Email list growth goal from Mailchimp / Beehiiv / Klaviyo",
+      unit: "subs",
+      unitPos: "right",
+      placeholder: "e.g. 500",
+      color: "#FF6B35",
+      icon: (
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        </svg>
+      ),
+      toDisplay: (v) => (v ? String(v) : ""),
+      toStorage: (s) => (s ? parseInt(s) || 0 : 0),
+    },
+    {
+      key: "adSpendBudget",
+      label: "Monthly ad spend budget",
+      sublabel: "Max budget cap across Meta / Google Ads / TikTok Ads",
+      unit: "$",
+      unitPos: "left",
+      placeholder: "e.g. 2000",
+      color: "#f59e0b",
+      icon: (
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+          <rect x="2" y="3" width="20" height="14" rx="2" /><path d="M8 21h8M12 17v4" />
+        </svg>
+      ),
+      toDisplay: (v) => (v ? (v / 100).toFixed(0) : ""),
+      toStorage: (s) => (s ? Math.round(parseFloat(s) * 100) : 0),
+    },
+  ];
+
+  if (!loaded) {
+    return (
+      <div className="flex items-center gap-2 py-2 text-[#58588a]">
+        <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+        </svg>
+        <span className="font-mono text-[10px]">Loading…</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-[#bcbcd8]">
+        Set your monthly KPI targets. These power the forecast bars on your Overview, the AI advisor&apos;s analysis, and your email digest.
+      </p>
+
+      <div className="space-y-3">
+        {KPI_ROWS.map((row) => (
+          <div
+            key={row.key}
+            className="flex items-center gap-3 rounded-xl border border-[#363650] bg-[#222235] px-4 py-3"
+          >
+            {/* Icon */}
+            <div
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+              style={{ backgroundColor: `${row.color}15`, color: row.color }}
+            >
+              {row.icon}
+            </div>
+
+            {/* Labels */}
+            <div className="flex-1 min-w-0">
+              <p className="font-mono text-[11px] font-semibold text-[#e0e0f0]">{row.label}</p>
+              <p className="font-mono text-[9px] text-[#8585aa]">{row.sublabel}</p>
+            </div>
+
+            {/* Input */}
+            <div className="flex shrink-0 items-center gap-1.5">
+              {row.unitPos === "left" && (
+                <span className="font-mono text-[10px] text-[#8585aa]">{row.unit}</span>
+              )}
+              <input
+                type="number"
+                min={0}
+                placeholder={row.placeholder.replace("e.g. ", "")}
+                value={row.toDisplay(goals[row.key])}
+                onChange={(e) =>
+                  setGoals((g) => ({ ...g, [row.key]: row.toStorage(e.target.value) }))
+                }
+                className="w-24 rounded-lg border border-[#363650] bg-[#1c1c2a] px-2 py-1.5 font-mono text-xs text-[#f8f8fc] text-right placeholder:text-[#58588a] focus:outline-none focus:border-[#00d4aa]/30 transition-colors"
+              />
+              {row.unitPos === "right" && (
+                <span className="font-mono text-[10px] text-[#8585aa]">{row.unit}</span>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={saveGoals}
+          disabled={saving}
+          className="rounded-xl bg-[#00d4aa] px-5 py-2 font-mono text-xs font-bold text-[#13131f] hover:bg-[#00bfa0] transition disabled:opacity-60"
+        >
+          {saving ? "Saving…" : "Save goals"}
+        </button>
+        {saved && (
+          <span className="flex items-center gap-1 font-mono text-[10px] text-[#00d4aa]">
+            <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+            Saved
+          </span>
+        )}
+        {hasAny && (
+          <button
+            onClick={clearGoals}
+            className="font-mono text-[10px] text-[#8585aa] hover:text-red-400 transition"
+          >
+            Clear all
+          </button>
+        )}
+      </div>
+      <p className="font-mono text-[9px] text-[#58588a]">
+        Goals are used for forecast projections and AI-powered recommendations — they are never shared.
+      </p>
+    </div>
+  );
+}
+
+// ── Email Digest Inline (used inside the Settings grid section) ─────────────
+
+function DigestSectionInline({ email }: { email: string }) {
+  const [sending, setSending] = useState(false);
+  const [status, setStatus] = useState<"idle" | "sent" | "error">("idle");
+  const [errorMsg, setErrorMsg] = useState("");
+
+  async function sendDigest() {
+    setSending(true);
+    setStatus("idle");
+    setErrorMsg("");
+    try {
+      const res = await fetch("/api/digest/send", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        setErrorMsg(data.error ?? "Failed to send digest.");
+        setStatus("error");
+      } else {
+        setStatus("sent");
+      }
+    } catch {
+      setErrorMsg("Network error.");
+      setStatus("error");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-sm text-[#bcbcd8]">
+        Send an AI-powered weekly summary to{" "}
+        <span className="font-medium text-[#e0e0f0]">{email}</span>.
+        Includes revenue highlights, anomalies, cross-platform insights and a top action.
+      </p>
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          onClick={sendDigest}
+          disabled={sending}
+          className="flex items-center gap-2 rounded-xl border border-[#00d4aa]/20 bg-[#00d4aa]/5 px-4 py-2 font-mono text-xs font-semibold text-[#00d4aa] hover:bg-[#00d4aa]/10 disabled:opacity-50 disabled:cursor-not-allowed transition"
+        >
+          {sending ? (
+            <>
+              <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+              </svg>
+              Generating &amp; Sending…
+            </>
+          ) : (
+            <>
+              <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              Send digest now
+            </>
+          )}
+        </button>
+        {status === "sent" && <span className="font-mono text-[11px] text-[#00d4aa]">✓ Sent to {email}</span>}
+        {status === "error" && <span className="font-mono text-[11px] text-red-400">{errorMsg}</span>}
+      </div>
+      <p className="font-mono text-[9px] text-[#58588a]">Tip: automate weekly sends via your cron script.</p>
+    </div>
+  );
+}
+
 function ConnectModalShell({
   title,
   description,
@@ -613,54 +913,134 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms }: Se
   }
 
   return (
-    <div className="max-w-2xl">
-      <div className="mb-8">
-        <h1 className="font-mono text-2xl font-bold text-[#f8f8fc]">Settings</h1>
-        <p className="mt-1 text-sm text-[#bcbcd8]">Manage your account, integrations and subscription.</p>
+    <div className="w-full space-y-6">
+
+      {/* ── Page header ───────────────────────────────────── */}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="font-mono text-2xl font-bold text-[#f8f8fc]">Settings</h1>
+          <p className="mt-1 text-sm text-[#8585aa]">Manage your account, integrations and subscription.</p>
+        </div>
+        {/* Plan badge in header — quick at-a-glance */}
+        <div className={`mt-1 shrink-0 rounded-full px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-widest ${
+          isPremium
+            ? "border border-[#00d4aa]/30 bg-[#00d4aa]/10 text-[#00d4aa]"
+            : "border border-[#363650] bg-[#222235] text-[#8585aa]"
+        }`}>
+          {isPremium ? "✦ Premium" : "Free plan"}
+        </div>
       </div>
 
-      {/* ── Account info ─────────────────────────────────── */}
-      <section className="mb-6 rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-6">
-        <h2 className="mb-4 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#8585aa]">
-          Account
-        </h2>
-        <div className="flex items-center justify-between gap-4">
+      {/* ═══════════════════════════════════════════════════
+          Row 1: Account + Subscription side-by-side on md+
+      ═══════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+
+        {/* ── Account ─────────────────────────────────────── */}
+        <section className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-5">
+          <p className="mb-4 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#8585aa]">Account</p>
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#00d4aa]/15 text-[#00d4aa] font-mono text-sm font-bold uppercase select-none">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#00d4aa]/15 font-mono text-base font-bold uppercase text-[#00d4aa] select-none">
               {email.charAt(0)}
             </div>
-            <div>
-              <p className="text-sm font-medium text-[#f8f8fc]">{email}</p>
-              <p className="mt-0.5 font-mono text-[10px] uppercase tracking-wider text-[#8585aa]">
-                Email address
-              </p>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-[#f8f8fc]">{email}</p>
+              <p className="mt-0.5 font-mono text-[10px] text-[#8585aa]">Signed-in email</p>
             </div>
           </div>
-          <div
-            className={`shrink-0 rounded-full px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-widest ${
-              isPremium
-                ? "border border-[#00d4aa]/30 bg-[#00d4aa]/10 text-[#00d4aa]"
-                : "border border-[#363650] bg-[#222235] text-[#8585aa]"
-            }`}
-          >
-            {isPremium ? "✦ Premium" : "Free"}
-          </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ── Integrations ─────────────────────────────────── */}
-      <section className="mb-6 rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-6">
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        {/* ── Subscription ────────────────────────────────── */}
+        <section className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-5">
+          <p className="mb-4 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#8585aa]">Subscription</p>
+
+          {isPremium ? (
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#00d4aa]/20 bg-[#00d4aa]/10">
+                  <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#00d4aa" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-[#f8f8fc]">Premium — Active</p>
+                  <p className="text-xs text-[#8585aa]">Manage billing or cancel via Stripe.</p>
+                </div>
+              </div>
+              {portalError && <p className="text-xs text-red-400">{portalError}</p>}
+              <button
+                onClick={handlePortal}
+                disabled={portalLoading}
+                className="flex items-center gap-2 self-start rounded-xl border border-[#363650] bg-[#222235] px-4 py-2 text-sm font-semibold text-[#f8f8fc] transition-all hover:border-[#00d4aa]/30 hover:text-[#00d4aa] disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {portalLoading ? (
+                  <>
+                    <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                    </svg>
+                    Opening…
+                  </>
+                ) : (
+                  <>
+                    <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                    </svg>
+                    Manage Subscription
+                  </>
+                )}
+              </button>
+              <p className="font-mono text-[9px] text-[#58588a]">Redirects to Stripe&apos;s secure billing portal.</p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              <div className="rounded-xl border border-[#a78bfa]/15 bg-[#a78bfa]/5 p-3">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#a78bfa]/10 text-[#a78bfa]">
+                    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-[#f8f8fc]">Upgrade to Premium</p>
+                    <p className="mt-0.5 text-xs text-[#bcbcd8]">Analytics, AI advisor, website optimizer & all integrations.</p>
+                    <p className="mt-1 font-mono text-xs font-bold text-[#f8f8fc]">
+                      $29<span className="font-normal text-[#8585aa]">/month</span>
+                      <span className="ml-2 rounded-full bg-[#00d4aa]/10 px-2 py-0.5 font-mono text-[9px] font-semibold text-[#00d4aa]">3-day free trial</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <a
+                href="/api/stripe/checkout"
+                className="inline-flex items-center gap-2 self-start rounded-xl bg-[#00d4aa] px-5 py-2 font-mono text-sm font-bold text-[#13131f] hover:bg-[#00bfa0] transition"
+              >
+                Start free trial →
+              </a>
+              <p className="font-mono text-[9px] text-[#58588a]">No card required during trial · Cancel anytime</p>
+            </div>
+          )}
+        </section>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════
+          Row 2: Integrations + Goals & KPIs side-by-side
+          3fr / 2fr split — integrations gets more room
+      ═══════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
+
+        {/* ── Integrations ──────────────────────────────── */}
+        <section className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-6">
+        {/* Section header + search */}
+        <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 className="mb-1 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#8585aa]">
-              Integrations
-            </h2>
+            <p className="mb-1 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#8585aa]">Integrations</p>
             <p className="text-sm text-[#bcbcd8]">
-              Connect your data sources. Data syncs automatically every day — or sync manually from the Overview tab.
+              Connect your data sources. Syncs automatically every day.
             </p>
           </div>
-          <div className="relative shrink-0 sm:w-64">
-            <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#58588a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <div className="relative shrink-0 sm:w-52">
+            <svg className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#58588a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <input
@@ -669,26 +1049,24 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms }: Se
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
-                if (e.target.value && activeCategory === "Popular") {
-                  setActiveCategory("All"); // Switch from popular when typing to show all results
-                }
+                if (e.target.value && activeCategory === "Popular") setActiveCategory("All");
               }}
-              className="w-full rounded-xl border border-[#363650] bg-[#222235] py-2 pl-9 pr-3 text-sm text-[#f8f8fc] placeholder:text-[#58588a] focus:border-[#00d4aa]/50 focus:outline-none focus:ring-1 focus:ring-[#00d4aa]/50 transition-all font-mono"
+              className="w-full rounded-xl border border-[#363650] bg-[#222235] py-2 pl-9 pr-3 font-mono text-xs text-[#f8f8fc] placeholder:text-[#58588a] focus:border-[#00d4aa]/50 focus:outline-none focus:ring-1 focus:ring-[#00d4aa]/20 transition-all"
             />
           </div>
         </div>
 
-        {/* ── Tabs ─────────────────────────────────── */}
+        {/* Category pills */}
         {!searchQuery && (
-          <div className="mb-6 flex overflow-x-auto pb-2 gap-2 hide-scrollbar">
+          <div className="mb-5 flex gap-2 overflow-x-auto pb-1 scrollbar-none">
             {["Popular", ...INTEGRATION_CATEGORIES].map((cat) => (
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
-                className={`whitespace-nowrap rounded-full px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider transition-all ${
+                className={`shrink-0 whitespace-nowrap rounded-full px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider transition-all ${
                   activeCategory === cat
                     ? "bg-[#00d4aa] text-[#13131f] border border-[#00d4aa]"
-                    : "bg-[#1c1c2a] text-[#8585aa] border border-[#363650] hover:border-[#00d4aa]/30 hover:text-[#e0e0f0]"
+                    : "border border-[#363650] bg-[#222235] text-[#8585aa] hover:border-[#00d4aa]/30 hover:text-[#e0e0f0]"
                 }`}
               >
                 {cat}
@@ -697,10 +1075,15 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms }: Se
           </div>
         )}
 
+        {/* Integration list */}
         <div className="flex flex-col gap-8">
-          {UI_INTEGRATIONS.filter((i) => i.name.toLowerCase().includes(searchQuery.toLowerCase()) || i.description.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 ? (
-            <div className="py-8 text-center text-sm text-[#8585aa]">
-              No integrations found matching <span className="text-[#f8f8fc]">"{searchQuery}"</span>
+          {UI_INTEGRATIONS.filter(
+            (i) =>
+              i.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              i.description.toLowerCase().includes(searchQuery.toLowerCase())
+          ).length === 0 ? (
+            <div className="py-10 text-center">
+              <p className="text-sm text-[#8585aa]">No integrations match <span className="text-[#f8f8fc]">&ldquo;{searchQuery}&rdquo;</span></p>
             </div>
           ) : activeCategory === "Popular" && !searchQuery ? (
             <div className="flex flex-col gap-3">
@@ -713,18 +1096,22 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms }: Se
               ))}
             </div>
           ) : (
-            INTEGRATION_CATEGORIES.filter((cat) => !searchQuery ? activeCategory === cat || activeCategory === "All" : true).map((cat) => {
+            INTEGRATION_CATEGORIES.filter((cat) =>
+              !searchQuery ? activeCategory === cat || activeCategory === "All" : true
+            ).map((cat) => {
               const categoryIntegrations = UI_INTEGRATIONS.filter(
-                (i) => i.category === cat && 
-                       (i.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                        i.description.toLowerCase().includes(searchQuery.toLowerCase()))
+                (i) =>
+                  i.category === cat &&
+                  (i.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    i.description.toLowerCase().includes(searchQuery.toLowerCase()))
               );
               if (categoryIntegrations.length === 0) return null;
               return (
                 <div key={cat}>
-                  <h3 className="mb-3 font-mono text-[10px] font-bold uppercase tracking-widest text-[#f8f8fc]">
-                    {cat}
-                  </h3>
+                  <div className="mb-3 flex items-center gap-3">
+                    <h3 className="font-mono text-[10px] font-bold uppercase tracking-widest text-[#f8f8fc]">{cat}</h3>
+                    <div className="h-px flex-1 bg-[#363650]" />
+                  </div>
                   <div className="flex flex-col gap-3">
                     {categoryIntegrations.map((integration) => (
                       <IntegrationRow
@@ -741,102 +1128,55 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms }: Se
         </div>
       </section>
 
-      {/* ── Alert rules ──────────────────────────────────── */}
-      {isPremium && (
-        <section className="mb-6 rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-6">
-          <h2 className="mb-1 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#8585aa]">
-            Alert Rules
-          </h2>
-          <AlertsSection />
+        {/* ── Goals & KPIs ──────────────────────────────── */}
+        <section className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-6">
+          <div className="mb-5 flex items-center gap-2">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#635bff]/10 text-[#635bff]">
+              <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 3v18h18" /><path d="M18 17V9M13 17V5M8 17v-3" />
+              </svg>
+            </div>
+            <p className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#8585aa]">Goals &amp; KPIs</p>
+          </div>
+          <GoalsSection />
         </section>
-      )}
 
-      {/* ── Email digest ─────────────────────────────────── */}
-      {isPremium && <DigestSection email={email} />}
+      </div>{/* end Row 2 grid */}
 
-      {/* ── Subscription ─────────────────────────────────── */}
-      <section className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-6">
-        <h2 className="mb-4 font-mono text-xs font-semibold uppercase tracking-widest text-[#8585aa]">
-          Subscription
-        </h2>
-
-        {isPremium ? (
-          <div>
-            <div className="mb-5 flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#00d4aa]/20 bg-[#00d4aa]/10">
-                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#00d4aa" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      {/* ═══════════════════════════════════════════════════
+          Row 3: Alert Rules + Email Digest (premium only)
+          Side-by-side on lg+, stacked on smaller
+      ═══════════════════════════════════════════════════ */}
+      {isPremium && (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {/* Alert Rules */}
+          <section className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-6">
+            <div className="mb-4 flex items-center gap-2">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#f87171]/10 text-[#f87171]">
+                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0" />
                 </svg>
               </div>
-              <div>
-                <p className="text-sm font-semibold text-[#f8f8fc]">Premium Plan — Active</p>
-                <p className="text-xs text-[#bcbcd8]">
-                  Manage billing, change plan, or cancel via the Stripe portal.
-                </p>
-              </div>
+              <p className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#8585aa]">Alert Rules</p>
             </div>
+            <AlertsSection />
+          </section>
 
-            {portalError && (
-              <p className="mb-3 text-xs text-red-400">{portalError}</p>
-            )}
-
-            <button
-              onClick={handlePortal}
-              disabled={portalLoading}
-              className="flex items-center gap-2 rounded-xl border border-[#363650] bg-[#222235] px-5 py-3 text-sm font-semibold text-[#f8f8fc] transition-all hover:border-[#00d4aa]/30 hover:text-[#00d4aa] disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {portalLoading ? (
-                <>
-                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                  </svg>
-                  Opening portal…
-                </>
-              ) : (
-                <>
-                  <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-                  </svg>
-                  Manage Subscription
-                </>
-              )}
-            </button>
-            <p className="mt-2 text-xs text-[#8585aa]">
-              You&apos;ll be redirected to Stripe&apos;s secure billing portal.
-            </p>
-          </div>
-        ) : (
-          <div>
-            <div className="rounded-xl border border-[#a78bfa]/15 bg-[#a78bfa]/5 p-4 mb-4">
-              <div className="flex items-start gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#a78bfa]/10 text-[#a78bfa]">
-                  <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-[#f8f8fc]">Upgrade to Premium</p>
-                  <p className="mt-1 text-xs text-[#bcbcd8]">
-                    Unlock analytics, AI advisor, website optimizer and all integrations.
-                  </p>
-                  <p className="mt-1 font-mono text-xs font-bold text-[#f8f8fc]">
-                    $29<span className="font-normal text-[#8585aa]">/month</span>
-                    <span className="ml-2 font-mono text-[9px] font-semibold text-[#00d4aa] bg-[#00d4aa]/10 px-2 py-0.5 rounded-full">3-day free trial</span>
-                  </p>
-                </div>
+          {/* Email Digest */}
+          <section className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-6">
+            <div className="mb-4 flex items-center gap-2">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#00d4aa]/10 text-[#00d4aa]">
+                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
               </div>
+              <p className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#8585aa]">Email Digest</p>
             </div>
-            <a
-              href="/api/stripe/checkout"
-              className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-5 py-2.5 font-mono text-sm font-bold text-[#13131f] hover:bg-[#00bfa0] transition"
-            >
-              Start free trial →
-            </a>
-            <p className="mt-2 font-mono text-[10px] text-[#8585aa]">No card required during trial · Cancel anytime</p>
-          </div>
-        )}
-      </section>
+            {/* Inline digest content (replaces the separate DigestSection wrapper) */}
+            <DigestSectionInline email={email} />
+          </section>
+        </div>
+      )}
 
       {connectTarget && DYNAMIC_MODALS[connectTarget] && (
         <ConnectModalShell
