@@ -136,7 +136,7 @@ export const INTEGRATIONS_CATALOG: Integration[] = [
     description: "Cookie-free, GDPR-compliant analytics",
     category: "Web Analytics",
     color: "#9333ea",
-    status: "live",  // Very popular in indie hacker / bootstrapper circles
+    status: "soon",  // Very popular in indie hacker / bootstrapper circles
     connectUrl: "/api/auth/fathom/url",
     iconViewBox: "0 0 24 24",
     icon: `<circle cx="12" cy="12" r="10" fill="#9333ea"/><text x="12" y="16" text-anchor="middle" fill="#fff" font-size="11" font-weight="bold" font-family="sans-serif">F</text>`,

@@ -1,6 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import { triggerRemoteBackfill } from "@/lib/utils/triggerBackfill";
-import { validateGoogleAdsCredentials } from "@/lib/integrations/google-ads/auth";
+import { validateGoogleAdsToken } from "@/lib/integrations/google-ads/auth";
 
 export async function handleGoogleAdsOAuthCallback(
   userId: string,
@@ -37,6 +37,10 @@ export async function handleGoogleAdsOAuthCallback(
   const resourceName: string = customerData?.resourceNames?.[0] ?? "";
   const customerId = resourceName.replace("customers/", "").replace(/-/g, "");
 
+  if (!customerId) {
+    throw new Error("No Google Ads accounts found for this Google account. Please ensure you have at least one active Ads account.");
+  }
+
   const supabase = createServiceClient();
   await supabase.from("integrations").upsert(
     {
@@ -44,29 +48,29 @@ export async function handleGoogleAdsOAuthCallback(
       platform: "google-ads",
       access_token: tokenData.access_token,
       refresh_token: tokenData.refresh_token ?? null,
-      account_id: customerId || null,
+      account_id: customerId,
       connected_at: new Date().toISOString(),
     },
     { onConflict: "user_id,platform" },
   );
-  triggerRemoteBackfill(userId, "google-ads");
+  await triggerRemoteBackfill(userId, "google-ads");
 }
 
 /**
- * Stores Google Ads credentials.
- * access_token  = OAuth access token (long-lived refresh token preferred via OAuth flow;
- *                 for manual entry we store the token provided)
- * refresh_token = developer token (reuse the refresh_token column as storage)
+ * Stores Google Ads credentials entered manually.
+ * access_token  = OAuth access token
+ * refresh_token = OAuth refresh token (null for manual entry — token won't auto-refresh)
  * account_id    = Google Ads customer ID (digits only, no dashes)
+ *
+ * Developer token is a server-side app credential from GOOGLE_ADS_DEVELOPER_TOKEN env var.
  */
 export async function handleGoogleAdsConnect(
   userId: string,
   accessToken: string,
-  developerToken: string,
   customerId: string,
 ): Promise<void> {
   const cid = customerId.replace(/-/g, "");
-  const { valid, error } = await validateGoogleAdsCredentials(accessToken, developerToken, cid);
+  const { valid, error } = await validateGoogleAdsToken(accessToken, cid);
   if (!valid) throw new Error(error ?? "Invalid Google Ads credentials");
 
   const supabase = createServiceClient();
@@ -75,7 +79,7 @@ export async function handleGoogleAdsConnect(
       user_id:       userId,
       platform:      "google-ads",
       access_token:  accessToken,
-      refresh_token: developerToken,
+      refresh_token: null,   // no refresh token on manual entry; use OAuth flow for long-lived access
       account_id:    cid,
       connected_at:  new Date().toISOString(),
     },

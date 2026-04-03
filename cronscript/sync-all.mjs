@@ -177,13 +177,15 @@ const SB = {
     apikey:          SERVICE_KEY,
     Authorization:   `Bearer ${SERVICE_KEY}`,
     'Content-Type':  'application/json',
-    Prefer:          'return=minimal',
+    Prefer:          'return=minimal', // used by upsert/patch only — select methods override this
   },
 
   async select(table, cols = '*', filters = {}) {
     const p = new URLSearchParams({ select: cols });
     for (const [k, v] of Object.entries(filters)) p.append(k, `eq.${v}`);
-    const r = await fetchRetry(`SB SELECT ${table}`, `${SUPABASE_URL}/rest/v1/${table}?${p}`, { headers: SB.headers });
+    // Note: do NOT send 'Prefer: return=minimal' on GET — PostgREST would return an empty body.
+    const getHeaders = { apikey: SB.headers.apikey, Authorization: SB.headers.Authorization };
+    const r = await fetchRetry(`SB SELECT ${table}`, `${SUPABASE_URL}/rest/v1/${table}?${p}`, { headers: getHeaders });
     if (!r.ok) throw new Error(`SB SELECT ${table}: ${r.status}`);
     return r.json();
   },
@@ -191,7 +193,8 @@ const SB = {
   // Like select but filter can include not=null checks
   async selectWhere(table, cols, qs) {
     const p = new URLSearchParams({ select: cols, ...qs });
-    const r = await fetchRetry(`SB SELECT ${table}`, `${SUPABASE_URL}/rest/v1/${table}?${p}`, { headers: SB.headers });
+    const getHeaders = { apikey: SB.headers.apikey, Authorization: SB.headers.Authorization };
+    const r = await fetchRetry(`SB SELECT ${table}`, `${SUPABASE_URL}/rest/v1/${table}?${p}`, { headers: getHeaders });
     if (!r.ok) throw new Error(`SB SELECT ${table}: ${r.status}`);
     return r.json();
   },
@@ -223,7 +226,8 @@ const SB = {
       user_id: `eq.${userId}`,
       date: `gte.${dateCutoff}`,
     });
-    const r = await fetchRetry(`SB SELECT ${table}`, `${SUPABASE_URL}/rest/v1/${table}?${p}`, { headers: SB.headers });
+    const getHeaders = { apikey: SB.headers.apikey, Authorization: SB.headers.Authorization };
+    const r = await fetchRetry(`SB SELECT ${table}`, `${SUPABASE_URL}/rest/v1/${table}?${p}`, { headers: getHeaders });
     if (!r.ok) throw new Error(`SB SELECT ${table}: ${r.status}`);
     return r.json();
   },
@@ -1185,16 +1189,52 @@ async function backfillFathom(userId, integration, days = 365) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ⑬ GOOGLE ADS  (Google Ads API v17 — accessToken + developerToken + customerId)
+// ⑬ GOOGLE ADS  (Google Ads API v17 — OAuth access token + refresh token)
+// developer-token is a server-side app credential from GOOGLE_ADS_DEVELOPER_TOKEN env var
 // ─────────────────────────────────────────────────────────────────────────────
 
-async function syncGoogleAdsDay(userId, accessToken, developerToken, customerId, date) {
-  const query = `SELECT metrics.cost_micros,metrics.clicks,metrics.impressions,metrics.conversions FROM customer WHERE segments.date = '${date}'`;
-  const res = await fetchRetry('GoogleAds', `https://googleads.googleapis.com/v17/customers/${customerId}/googleAds:search`, {
+/** Refresh an expired Google OAuth access token and persist the new one */
+async function refreshGoogleAdsToken(userId, refreshToken) {
+  if (!refreshToken) throw new Error('No refresh token stored — user must reconnect via OAuth.');
+  const res = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${accessToken}`, 'developer-token': developerToken, 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type:    'refresh_token',
+      client_id:     process.env.GOOGLE_CLIENT_ID,
+      client_secret: process.env.GOOGLE_CLIENT_SECRET,
+      refresh_token: refreshToken,
+    }),
+  });
+  const data = await res.json();
+  if (!data.access_token) throw new Error(`Google token refresh failed: ${data.error_description ?? data.error ?? res.status}`);
+  await SB.patch('integrations', { access_token: data.access_token }, { user_id: userId, platform: 'google-ads' });
+  return data.access_token;
+}
+
+async function syncGoogleAdsDay(userId, accessToken, refreshToken, customerId, date) {
+  const devToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN;
+  const query = `SELECT metrics.cost_micros,metrics.clicks,metrics.impressions,metrics.conversions FROM customer WHERE segments.date = '${date}'`;
+
+  const doRequest = (token) => fetchRetry('GoogleAds', `https://googleads.googleapis.com/v17/customers/${customerId}/googleAds:search`, {
+    method: 'POST',
+    headers: {
+      Authorization:       `Bearer ${token}`,
+      'developer-token':   devToken,
+      'login-customer-id': customerId,
+      'Content-Type':      'application/json',
+    },
     body: JSON.stringify({ query }),
   });
+
+  let res = await doRequest(accessToken);
+
+  // Auto-refresh on 401
+  if (res.status === 401 && refreshToken) {
+    const newToken = await refreshGoogleAdsToken(userId, refreshToken);
+    res = await doRequest(newToken);
+  }
+
   if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(`Google Ads ${res.status}: ${e?.error?.message ?? res.statusText}`); }
   const body = await res.json();
   const rows = body.results ?? [];
@@ -2732,10 +2772,10 @@ async function runAutoBackfill() {
     if (targetPlat && row.platform !== targetPlat) continue;
 
     try {
-      const existing = await SB.select(
+      const existing = await SB.selectWhere(
         'daily_snapshots',
         'id',
-        { user_id: row.user_id, provider: row.platform }
+        { user_id: `eq.${row.user_id}`, provider: `eq.${row.platform}`, limit: '1' }
       );
       if (!existing?.length) {
         toBackfill.push(row);

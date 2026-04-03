@@ -443,7 +443,7 @@ const DYNAMIC_MODALS: Record<string, { label: string; name: string; optional?: b
   fathom: [{ name: "apiKey", label: "API Key" }, { name: "siteId", label: "Site ID" }],
   freshdesk: [{ name: "subdomain", label: "Subdomain" }, { name: "apiKey", label: "API Key" }],
   fullstory: [{ name: "apiKey", label: "API Key" }, { name: "orgId", label: "Organization ID" }],
-  "google-ads": [{ name: "accessToken", label: "Access Token" }, { name: "developerToken", label: "Developer Token" }, { name: "customerId", label: "Customer ID" }],
+  "google-ads": [{ name: "accessToken", label: "Access Token" }, { name: "customerId", label: "Customer ID (e.g. 123-456-7890)" }],
   gumroad: [{ name: "apiKey", label: "API Key" }],
   heap: [{ name: "appId", label: "App ID" }, { name: "apiKey", label: "API Key" }],
   hotjar: [{ name: "accessToken", label: "Access Token" }, { name: "siteId", label: "Site ID" }],
