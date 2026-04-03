@@ -1085,13 +1085,19 @@ async function backfillAmplitude(userId, integration, days = 365) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ⑪ POSTHOG  (PostHog Trends API — personal API key + projectId)
+// account_id format: "eu:<projectId>" for EU cloud, "<projectId>" for US cloud
 // ─────────────────────────────────────────────────────────────────────────────
 
-async function syncPostHogDay(userId, apiKey, projectId, date) {
+async function syncPostHogDay(userId, apiKey, rawAccountId, date) {
+  // Parse host + project ID from the stored account_id
+  const isEU = rawAccountId.startsWith('eu:');
+  const host = isEU ? 'https://eu.posthog.com' : 'https://app.posthog.com';
+  const projectId = isEU ? rawAccountId.slice(3) : rawAccountId;
+
   const headers = { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' };
 
   async function fetchTrend(eventName, math) {
-    const res = await fetchRetry(`PostHog ${eventName}`, `https://app.posthog.com/api/projects/${projectId}/insights/trend/`, {
+    const res = await fetchRetry(`PostHog ${eventName}`, `${host}/api/projects/${projectId}/insights/trend/`, {
       method: 'POST',
       headers,
       body: JSON.stringify({ events: [{ id: eventName, math }], date_from: date, date_to: date, interval: 'day' }),

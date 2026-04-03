@@ -1,26 +1,12 @@
 /**
- * Paddle Billing OAuth2
- * Docs: https://developer.paddle.com/api-reference/authentication/oauth
- * App registration: https://vendors.paddle.com/developers/apps
- */
-export function getPaddleAuthUrl(userId: string): string {
-  const params = new URLSearchParams({
-    client_id: process.env.PADDLE_CLIENT_ID!,
-    redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/paddle/callback`,
-    response_type: "code",
-    scope: "read",
-    state: userId,
-  });
-  return `https://vendors.paddle.com/oauth2/authorize?${params.toString()}`;
-}
-
-/**
- * Paddle uses API keys, not OAuth.
- * This module validates a Paddle API key by making a test request.
+ * Validates a Paddle Billing API key by calling the /event-types endpoint.
+ * This endpoint always returns data without requiring any special permissions,
+ * making it the ideal auth test per Paddle docs.
+ * Docs: https://developer.paddle.com/api-reference/about/authentication
  */
 export async function validatePaddleApiKey(apiKey: string): Promise<{ valid: boolean; error?: string }> {
   try {
-    const res = await fetch("https://api.paddle.com/products?per_page=1", {
+    const res = await fetch("https://api.paddle.com/event-types", {
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
@@ -30,8 +16,11 @@ export async function validatePaddleApiKey(apiKey: string): Promise<{ valid: boo
     if (res.ok) return { valid: true };
 
     const body = await res.json().catch(() => ({}));
-    if (res.status === 401 || res.status === 403) {
-      return { valid: false, error: "Invalid API key — check your Paddle dashboard" };
+    if (res.status === 401) {
+      return { valid: false, error: "Invalid API key — check your Paddle dashboard under Developer Tools > Authentication" };
+    }
+    if (res.status === 403) {
+      return { valid: false, error: "API key lacks required permissions — ensure it has read access" };
     }
     return { valid: false, error: `Paddle API error: ${body?.error?.detail ?? res.status}` };
   } catch (err) {

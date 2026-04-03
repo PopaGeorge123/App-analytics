@@ -431,7 +431,7 @@ function DigestSection({ email }: { email: string }) {
   );
 }
 
-const DYNAMIC_MODALS: Record<string, { label: string; name: string }[]> = {
+const DYNAMIC_MODALS: Record<string, { label: string; name: string; optional?: boolean }[]> = {
   activecampaign: [{ name: "apiUrl", label: "Api URL" }, { name: "apiKey", label: "API Key" }],
   "amazon-seller": [{ name: "refreshToken", label: "Refresh Token" }, { name: "clientId", label: "Client ID" }, { name: "clientSecret", label: "Client Secret" }, { name: "sellerId", label: "Seller ID" }],
   amplitude: [{ name: "apiKey", label: "API Key" }, { name: "secretKey", label: "Secret Key" }],
@@ -459,8 +459,8 @@ const DYNAMIC_MODALS: Record<string, { label: string; name: string }[]> = {
   paddle: [{ name: "apiKey", label: "API Key" }],
   "pinterest-ads": [{ name: "accessToken", label: "Access Token" }, { name: "accountId", label: "Account ID" }],
   pipedrive: [{ name: "apiToken", label: "API Token" }],
-  plausible: [{ name: "apiKey", label: "API Key" }, { name: "siteId", label: "Site ID" }],
-  posthog: [{ name: "apiKey", label: "API Key" }, { name: "projectId", label: "Project ID" }],
+  plausible: [{ name: "apiKey", label: "API Key" }, { name: "siteId", label: "Site Hostname (e.g. yourdomain.com)" }],
+  posthog: [{ name: "apiKey", label: "API Key (phx_…)" }, { name: "projectId", label: "Project ID (optional — auto-detected if blank)", optional: true }],
   salesforce: [{ name: "instanceUrl", label: "Instance URL" }, { name: "accessToken", label: "Access Token" }],
   segment: [{ name: "accessToken", label: "Access Token" }, { name: "workspaceId", label: "Workspace ID" }],
   shopify: [{ name: "storeDomain", label: "Store Domain" }, { name: "accessToken", label: "Access Token" }],
@@ -569,6 +569,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms }: Se
 
       const res = await fetch(`/api/auth/${platform}/connect`, {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -856,13 +857,17 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms }: Se
             className="space-y-3"
           >
             {DYNAMIC_MODALS[connectTarget].map((field) => (
-              <input
-                key={field.name}
-                name={field.name}
-                required
-                placeholder={field.label}
-                className="w-full rounded-xl border border-[#363650] bg-[#1c1c2a] px-3 py-2 text-sm text-[#f8f8fc] placeholder:text-[#58588a]"
-              />
+              <div key={field.name}>
+                <input
+                  name={field.name}
+                  required={!field.optional}
+                  placeholder={field.optional ? `${field.label}` : field.label}
+                  className="w-full rounded-xl border border-[#363650] bg-[#1c1c2a] px-3 py-2 text-sm text-[#f8f8fc] placeholder:text-[#58588a]"
+                />
+                {field.optional && (
+                  <p className="mt-1 font-mono text-[9px] text-[#58588a]">Optional</p>
+                )}
+              </div>
             ))}
             {connectError && <p className="text-xs text-red-400">{connectError}</p>}
             {connectSuccess && <p className="text-xs text-[#00d4aa]">{connectSuccess}</p>}

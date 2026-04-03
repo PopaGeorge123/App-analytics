@@ -2,15 +2,28 @@ import { createServiceClient } from "@/lib/supabase/service";
 
 /**
  * PostHog Query API — Trends endpoint
- * POST https://app.posthog.com/api/projects/{projectId}/insights/trend/
- * Bearer auth with personal API key.
+ * POST https://{host}/api/projects/{projectId}/insights/trend/
+ * Auth: Authorization: Bearer <personal_api_key>
+ *
+ * account_id format: "eu:<projectId>" for EU cloud, "<projectId>" for US cloud
  */
 export async function syncPostHogDay(
   userId: string,
   apiKey: string,
-  projectId: string,
+  rawAccountId: string,
   date: string,
 ): Promise<{ pageviews: number; uniqueUsers: number; sessions: number }> {
+  // Parse host + project ID from the stored account_id
+  let host: string;
+  let projectId: string;
+  if (rawAccountId.startsWith("eu:")) {
+    host = "https://eu.posthog.com";
+    projectId = rawAccountId.slice(3);
+  } else {
+    host = "https://app.posthog.com";
+    projectId = rawAccountId;
+  }
+
   const headers = {
     Authorization: `Bearer ${apiKey}`,
     "Content-Type": "application/json",
@@ -18,7 +31,7 @@ export async function syncPostHogDay(
 
   async function fetchTrend(eventName: string, math: string): Promise<number> {
     const res = await fetch(
-      `https://app.posthog.com/api/projects/${projectId}/insights/trend/`,
+      `${host}/api/projects/${projectId}/insights/trend/`,
       {
         method: "POST",
         headers,

@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServiceClient } from "@/lib/supabase/service";
+import { createClient } from "@/lib/supabase/server";
 import { handleSegmentConnect } from "@/lib/integrations/segment/callback";
 
 export async function POST(req: NextRequest) {
-  try {
-    const supabase = createServiceClient();
-    const { data: { user } } = await supabase.auth.getUser(
-      req.headers.get("authorization")?.replace("Bearer ", "") ?? "",
-    );
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { accessToken, workspaceId } = await req.json();
+  try {
+    const body = await req.json();
+    const accessToken = (body.accessToken as string)?.trim();
+    const workspaceId = (body.workspaceId as string)?.trim();
     if (!accessToken || !workspaceId) {
       return NextResponse.json({ error: "accessToken and workspaceId are required" }, { status: 400 });
     }

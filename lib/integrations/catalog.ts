@@ -99,7 +99,7 @@ export const INTEGRATIONS_CATALOG: Integration[] = [
     category: "Payments & Revenue",
     color: "#3ddc97",
     status: "live",  // Very common for indie SaaS founders — MoR model popular with small teams
-    connectUrl: "/api/auth/paddle/url",
+    connectUrl: "/dashboard?tab=settings&connect=paddle",
     iconViewBox: "0 0 24 24",
     icon: `<path fill="#3ddc97" d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-1.97 9.133c-.144.668-.52.835-.996.52l-2.75-2.026-1.328 1.277c-.147.147-.27.27-.552.27l.196-2.797 5.086-4.593c.221-.196-.048-.306-.342-.11L6.78 14.748l-2.716-.848c-.59-.184-.6-.59.123-.872l10.605-4.087c.49-.18.92.112.77.307z"/>`,
   },

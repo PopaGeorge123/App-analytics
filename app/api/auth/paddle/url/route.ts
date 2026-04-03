@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { getPaddleAuthUrl } from "@/lib/integrations/paddle/auth";
 
+/**
+ * Paddle Billing v2 uses API keys, not OAuth.
+ * This endpoint is no longer used — connection is handled via the settings modal.
+ */
 export async function GET() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.redirect(new URL("/login", process.env.NEXT_PUBLIC_APP_URL));
-  return NextResponse.redirect(getPaddleAuthUrl(user.id));
+  return NextResponse.json(
+    { error: "Paddle uses API key authentication. Connect via the settings panel." },
+    { status: 410 },
+  );
 }

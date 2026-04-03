@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServiceClient } from "@/lib/supabase/service";
+import { createClient } from "@/lib/supabase/server";
 import { handleAmazonSellerConnect } from "@/lib/integrations/amazon-seller/callback";
 
 export async function POST(req: NextRequest) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   try {
-    const supabase = createServiceClient();
-    const { data: { user } } = await supabase.auth.getUser(
-      req.headers.get("authorization")?.replace("Bearer ", "") ?? ""
-    );
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { refreshToken, clientId, clientSecret, sellerId } = await req.json();
     if (!refreshToken || !clientId || !clientSecret || !sellerId) {

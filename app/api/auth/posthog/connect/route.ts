@@ -10,9 +10,9 @@ export async function POST(request: NextRequest) {
   let apiKey: string, projectId: string;
   try {
     const body = await request.json();
-    apiKey    = (body.apiKey as string)?.trim();
-    projectId = (body.projectId as string)?.trim();
-    if (!apiKey || !projectId) throw new Error("Missing apiKey or projectId");
+    apiKey    = (body.apiKey    as string)?.trim() ?? "";
+    projectId = (body.projectId as string)?.trim() ?? "";
+    if (!apiKey) throw new Error("Missing apiKey");
   } catch {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
