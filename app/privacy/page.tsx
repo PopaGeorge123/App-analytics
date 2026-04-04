@@ -47,11 +47,14 @@ export default function PrivacyPolicyPage() {
 
           <Section title="1. Introduction">
             <p>
-              Welcome to Fold (&quot;we&quot;, &quot;us&quot;, or &quot;our&quot;). We operate the website{" "}
+              This Privacy Policy is provided by{" "}
+              <strong>POPA V.-I. GEORGE PERSOANĂ FIZICĂ AUTORIZATĂ</strong>, located in Romania
+              (trading as <strong>Fold Analytics</strong>, hereinafter &quot;we&quot;,
+              &quot;us&quot;, or &quot;our&quot;). We operate the website{" "}
               <a href="https://usefold.io" className="text-[#00d4aa] hover:underline">
                 usefold.io
               </a>{" "}
-              and the Fold platform (collectively, the &quot;Service&quot;).
+              and the Fold Analytics platform (collectively, the &quot;Service&quot;).
             </p>
             <p>
               This Privacy Policy explains how we collect, use, disclose, and safeguard your
@@ -77,8 +80,9 @@ export default function PrivacyPolicyPage() {
 
             <Subheading>2.2 Third-party integration data</Subheading>
             <p>
-              When you connect third-party platforms (such as Stripe, Mailchimp, PostHog, Meta Ads,
-              or Google Ads), we access data from those platforms on your behalf to power the Fold
+              When you connect third-party platforms (such as Stripe, Google Analytics 4, Meta
+              Ads, Shopify, Mailchimp, HubSpot, Klaviyo, Beehiiv, and 50+ other supported
+              integrations), we access data from those platforms on your behalf to power the Fold
               dashboard. We access only the data necessary to provide the Service and do not sell or
               share it with any other party.
             </p>
@@ -256,7 +260,9 @@ export default function PrivacyPolicyPage() {
               please contact us:
             </p>
             <div className="rounded-xl border border-[#363650] bg-[#1c1c2a]/60 p-5 mt-4">
-              <p className="font-mono text-sm text-[#f8f8fc]">Fold</p>
+              <p className="font-mono text-sm text-[#f8f8fc]">POPA V.-I. GEORGE PERSOANĂ FIZICĂ AUTORIZATĂ</p>
+              <p className="text-sm text-[#bcbcd8] mt-0.5">Trading as: <span className="text-[#c8c8e0]">Fold Analytics</span></p>
+              <p className="text-sm text-[#bcbcd8]">Country: <span className="text-[#c8c8e0]">Romania</span></p>
               <p className="text-sm text-[#bcbcd8] mt-1">
                 Email:{" "}
                 <a href={`mailto:${CONTACT_EMAIL}`} className="text-[#00d4aa] hover:underline">
@@ -279,7 +285,7 @@ export default function PrivacyPolicyPage() {
       <footer className="border-t border-[#363650] px-6 py-8 mt-16">
         <div className="mx-auto max-w-4xl flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="font-mono text-[11px] text-[#8585aa]">
-            © 2026 Fold. All rights reserved.
+            © 2026 POPA V.-I. GEORGE PFA — Fold Analytics. All rights reserved.
           </p>
           <nav className="flex items-center gap-6">
             <Link href="/privacy" className="text-xs text-[#00d4aa]">

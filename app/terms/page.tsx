@@ -45,10 +45,19 @@ export default function TermsPage() {
 
           <Section title="1. Acceptance of Terms">
             <p>
-              By accessing or using the Fold platform at{" "}
-              <a href="https://usefold.io">usefold.io</a> (the &quot;Service&quot;), you agree to
-              be bound by these Terms of Service (&quot;Terms&quot;). If you do not agree to these
-              Terms, do not use the Service.
+              These Terms of Service (&quot;Terms&quot;) constitute a legally binding agreement
+              between you (&quot;User&quot;, &quot;you&quot;, &quot;your&quot;) and{" "}
+              <strong>POPA V.-I. GEORGE PERSOANĂ FIZICĂ AUTORIZATĂ</strong>, located in Romania
+              (hereinafter referred to as &quot;we&quot;, &quot;us&quot;, &quot;our&quot;, or
+              &quot;the Company&quot;), governing your access to and use of the website{" "}
+              <strong>Fold Analytics</strong> (
+              <a href="https://usefold.io">https://usefold.io</a>) and all related services,
+              features, content, and applications (collectively, the &quot;Service&quot;).
+            </p>
+            <p>
+              By accessing or using the Service, you acknowledge that you have read, understood,
+              and agree to be bound by these Terms. If you do not agree with any part of these
+              Terms, you must not access or use the Service.
             </p>
             <p>
               These Terms apply to all visitors, waitlist members, registered users, and any other
@@ -59,8 +68,9 @@ export default function TermsPage() {
 
           <Section title="2. Description of Service">
             <p>
-              Fold is an AI-powered business intelligence platform that connects to third-party
-              services (such as Stripe, Mailchimp, PostHog, Meta Ads, and Google Ads) to aggregate
+              Fold Analytics is an AI-powered business intelligence platform that connects to
+              third-party services (including but not limited to Stripe, Google Analytics 4, Meta
+              Ads, Shopify, Mailchimp, HubSpot, Klaviyo, and 50+ more platforms) to aggregate
               your business data, surface insights, detect anomalies, and provide AI-generated
               recommendations. The Service is intended for use by business founders and operators.
             </p>
@@ -226,10 +236,10 @@ export default function TermsPage() {
 
           <Section title="13. Governing Law">
             <p>
-              These Terms shall be governed by and construed in accordance with the laws of the
-              European Union and the applicable national laws, without regard to conflict of law
-              principles. Any disputes arising from these Terms shall be subject to the exclusive
-              jurisdiction of the competent courts.
+              These Terms shall be governed by and construed in accordance with the laws of
+              Romania and, where applicable, the laws of the European Union, without regard to
+              conflict of law principles. Any disputes arising from these Terms shall be subject to
+              the exclusive jurisdiction of the competent courts of Romania.
             </p>
           </Section>
 
@@ -248,7 +258,9 @@ export default function TermsPage() {
               If you have any questions about these Terms, please contact us:
             </p>
             <div className="rounded-xl border border-[#363650] bg-[#1c1c2a]/60 p-5 mt-4">
-              <p className="font-mono text-sm text-[#f8f8fc]">Fold</p>
+              <p className="font-mono text-sm text-[#f8f8fc]">POPA V.-I. GEORGE PERSOANĂ FIZICĂ AUTORIZATĂ</p>
+              <p className="text-sm text-[#bcbcd8] mt-1">Trading as: <span className="text-[#c8c8e0]">Fold Analytics</span></p>
+              <p className="text-sm text-[#bcbcd8]">Country: <span className="text-[#c8c8e0]">Romania</span></p>
               <p className="text-sm text-[#bcbcd8] mt-1">
                 Email:{" "}
                 <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
@@ -267,7 +279,7 @@ export default function TermsPage() {
       <footer className="border-t border-[#363650] px-6 py-8 mt-16">
         <div className="mx-auto max-w-4xl flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="font-mono text-[11px] text-[#8585aa]">
-            © 2026 Fold. All rights reserved.
+            © 2026 POPA V.-I. GEORGE PFA — Fold Analytics. All rights reserved.
           </p>
           <nav className="flex items-center gap-6">
             <Link href="/privacy" className="text-xs text-[#8585aa] hover:text-[#bcbcd8] transition-colors">
