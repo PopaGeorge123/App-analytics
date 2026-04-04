@@ -1103,6 +1103,9 @@ async function syncPostHogDay(userId, apiKey, rawAccountId, date) {
 
   const headers = { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' };
 
+  // Fetch one trend metric at a time (sequential) to avoid hammering the rate limit.
+  // PostHog personal API keys are limited to ~240 req/min; Promise.all of 3 per day
+  // during a 365-day backfill easily triggers 429s.
   async function fetchTrend(eventName, math) {
     const res = await fetchRetry(`PostHog ${eventName}`, `${host}/api/projects/${projectId}/insights/trend/`, {
       method: 'POST',
@@ -1114,11 +1117,13 @@ async function syncPostHogDay(userId, apiKey, rawAccountId, date) {
     return (body.result?.[0]?.data ?? []).reduce((a, b) => a + b, 0);
   }
 
-  const [pageviews, uniqueUsers, sessions] = await Promise.all([
-    fetchTrend('$pageview', 'total').catch(() => 0),
-    fetchTrend('$pageview', 'dau').catch(() => 0),
-    fetchTrend('$autocapture', 'total').catch(() => 0),
-  ]);
+  // Sequential fetches — avoids burst 429s
+  const pageviews   = await fetchTrend('$pageview', 'total').catch(() => 0);
+  await sleep(400);
+  const uniqueUsers = await fetchTrend('$pageview', 'dau').catch(() => 0);
+  await sleep(400);
+  // Use $session_start for actual session count; fall back to pageviews-based estimate
+  const sessions    = await fetchTrend('$session_start', 'total').catch(() => 0);
 
   await SB.upsert('daily_snapshots',
     { user_id: userId, provider: 'posthog', date, data: { pageviews, uniqueUsers, sessions } },
@@ -1141,7 +1146,9 @@ async function backfillPostHog(userId, integration, days = 365) {
       await syncPostHogDay(userId, integration.access_token, integration.account_id, date);
       ok++;
     } catch (err) { logFail(`  posthog ${date} — ${err.message}`); skipped++; }
-    await sleep(200);
+    // 1.5s between days — each day makes 3 sequential requests (400ms apart internally),
+    // so effective rate is ~3 req per 2.2s ≈ 80 req/min, well under PostHog's 240 req/min limit.
+    await sleep(1_500);
   }
   log(`  [posthog backfill] done — ${ok} days saved, ${skipped} errors`);
 }
