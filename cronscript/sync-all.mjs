@@ -800,6 +800,7 @@ async function syncPaddleDay(userId, apiKey, date) {
 
   let revenue = 0, fees = 0, txCount = 0;
   let after   = null;
+  const customerMap = new Map(); // provider_id → { email, name, total_spent (cents), order_count, first_seen, last_seen, subscribed }
 
   while (true) {
     const params = new URLSearchParams({
@@ -807,6 +808,7 @@ async function syncPaddleDay(userId, apiKey, date) {
       'billed_at[lte]': to,
       status:           'completed',
       per_page:         '200',
+      include:          'customer',  // embed customer object in each transaction
     });
     if (after) params.set('after', after);
 
@@ -825,6 +827,30 @@ async function syncPaddleDay(userId, apiKey, date) {
         fees     += (grandTotal - earnings) / 100;
         txCount  += 1;
       }
+
+      // ── Customer accumulation ──────────────────────────────────────────────
+      const cusId = tx.customer_id;
+      if (cusId) {
+        const existing = customerMap.get(cusId);
+        const billedAt = (tx.billed_at ?? date).split('T')[0];
+        if (existing) {
+          existing.total_spent  += grandTotal;
+          existing.order_count  += 1;
+          if (billedAt < existing.first_seen) existing.first_seen = billedAt;
+          if (billedAt > existing.last_seen)  existing.last_seen  = billedAt;
+          if (tx.subscription_id) existing.subscribed = true;
+        } else {
+          customerMap.set(cusId, {
+            email:       tx.customer?.email ?? null,
+            name:        tx.customer?.name  ?? null,
+            total_spent: grandTotal,
+            order_count: 1,
+            first_seen:  billedAt,
+            last_seen:   billedAt,
+            subscribed:  !!tx.subscription_id,
+          });
+        }
+      }
     }
 
     const nextUrl = body.meta?.pagination?.next;
@@ -836,6 +862,28 @@ async function syncPaddleDay(userId, apiKey, date) {
   await SB.upsert('daily_snapshots',
     { user_id: userId, provider: 'paddle', date, data: { revenue, fees, netRevenue, txCount } },
     'user_id,provider,date');
+
+  // ── Upsert customer records (non-fatal) ────────────────────────────────────
+  if (customerMap.size > 0) {
+    try {
+      const records = [...customerMap.entries()].map(([provider_id, c]) => ({
+        user_id:     userId,
+        provider:    'paddle',
+        provider_id,
+        email:       c.email,
+        name:        c.name,
+        total_spent: c.total_spent,
+        order_count: c.order_count,
+        first_seen:  c.first_seen,
+        last_seen:   c.last_seen,
+        subscribed:  c.subscribed,
+        churned:     false,
+      }));
+      await SB.upsert('customers', records, 'user_id,provider,provider_id');
+    } catch (err) {
+      logWarn(`paddle customer upsert: ${err.message}`);
+    }
+  }
 
   return { revenue, fees, netRevenue, txCount };
 }
@@ -877,6 +925,7 @@ async function syncLemonSqueezyDay(userId, apiKey, storeId, date) {
   const to      = `${date}T23:59:59.999Z`;
 
   let revenue = 0, fees = 0, txCount = 0, page = 1;
+  const customerMap = new Map(); // provider_id → { email, name, total_spent (cents), order_count, first_seen, last_seen }
 
   while (true) {
     const params = new URLSearchParams({
@@ -902,6 +951,28 @@ async function syncLemonSqueezyDay(userId, apiKey, storeId, date) {
         fees     += Math.round(totalUsd * 0.05 + 50) / 100; // ~5% + $0.50 LS fee
         txCount  += 1;
       }
+
+      // ── Customer accumulation ──────────────────────────────────────────────
+      const providerId = String(attrs.customer_id ?? attrs.user_email ?? '');
+      if (providerId) {
+        const orderDate = (attrs.created_at ?? date).split('T')[0];
+        const existing  = customerMap.get(providerId);
+        if (existing) {
+          existing.total_spent += totalUsd;
+          existing.order_count += 1;
+          if (orderDate < existing.first_seen) existing.first_seen = orderDate;
+          if (orderDate > existing.last_seen)  existing.last_seen  = orderDate;
+        } else {
+          customerMap.set(providerId, {
+            email:       attrs.user_email ?? null,
+            name:        attrs.user_name  ?? null,
+            total_spent: totalUsd,
+            order_count: 1,
+            first_seen:  orderDate,
+            last_seen:   orderDate,
+          });
+        }
+      }
     }
 
     const lastPage = body.meta?.page?.lastPage ?? 1;
@@ -913,6 +984,28 @@ async function syncLemonSqueezyDay(userId, apiKey, storeId, date) {
   await SB.upsert('daily_snapshots',
     { user_id: userId, provider: 'lemon-squeezy', date, data: { revenue, fees, netRevenue, txCount } },
     'user_id,provider,date');
+
+  // ── Upsert customer records (non-fatal) ────────────────────────────────────
+  if (customerMap.size > 0) {
+    try {
+      const records = [...customerMap.entries()].map(([provider_id, c]) => ({
+        user_id:     userId,
+        provider:    'lemon-squeezy',
+        provider_id,
+        email:       c.email,
+        name:        c.name,
+        total_spent: c.total_spent,
+        order_count: c.order_count,
+        first_seen:  c.first_seen,
+        last_seen:   c.last_seen,
+        subscribed:  false,
+        churned:     false,
+      }));
+      await SB.upsert('customers', records, 'user_id,provider,provider_id');
+    } catch (err) {
+      logWarn(`lemon-squeezy customer upsert: ${err.message}`);
+    }
+  }
 
   return { revenue, fees, netRevenue, txCount };
 }
@@ -952,6 +1045,7 @@ async function syncGumroadDay(userId, apiKey, date) {
   const beforeStr = before.toISOString().split('T')[0];
 
   let revenue = 0, fees = 0, txCount = 0, page = 1;
+  const customerMap = new Map(); // provider_id → { email, name, total_spent (cents), order_count, first_seen, last_seen }
 
   while (true) {
     const params = new URLSearchParams({ after: afterStr, before: beforeStr, page: String(page) });
@@ -971,6 +1065,27 @@ async function syncGumroadDay(userId, apiKey, date) {
       revenue += price / 100;
       fees    += gFee  / 100;
       txCount += 1;
+
+      // ── Customer accumulation ──────────────────────────────────────────────
+      const providerId = String(sale.purchaser_id ?? sale.email ?? '');
+      if (providerId) {
+        const existing = customerMap.get(providerId);
+        if (existing) {
+          existing.total_spent += price;
+          existing.order_count += 1;
+          if (saleDate < existing.first_seen) existing.first_seen = saleDate;
+          if (saleDate > existing.last_seen)  existing.last_seen  = saleDate;
+        } else {
+          customerMap.set(providerId, {
+            email:       sale.email     ?? null,
+            name:        sale.full_name ?? null,
+            total_spent: price,
+            order_count: 1,
+            first_seen:  saleDate,
+            last_seen:   saleDate,
+          });
+        }
+      }
     }
 
     if (!body.next_page_url || sales.length === 0) break;
@@ -981,6 +1096,29 @@ async function syncGumroadDay(userId, apiKey, date) {
   await SB.upsert('daily_snapshots',
     { user_id: userId, provider: 'gumroad', date, data: { revenue, fees, netRevenue, txCount } },
     'user_id,provider,date');
+
+  // ── Upsert customer records (non-fatal) ────────────────────────────────────
+  if (customerMap.size > 0) {
+    try {
+      const records = [...customerMap.entries()].map(([provider_id, c]) => ({
+        user_id:     userId,
+        provider:    'gumroad',
+        provider_id,
+        email:       c.email,
+        name:        c.name,
+        total_spent: c.total_spent,
+        order_count: c.order_count,
+        first_seen:  c.first_seen,
+        last_seen:   c.last_seen,
+        subscribed:  false,
+        churned:     false,
+      }));
+      await SB.upsert('customers', records, 'user_id,provider,provider_id');
+    } catch (err) {
+      logWarn(`gumroad customer upsert: ${err.message}`);
+    }
+  }
+
   return { revenue, fees, netRevenue, txCount };
 }
 
