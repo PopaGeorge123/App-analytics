@@ -180,7 +180,46 @@ function NotificationBell() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  const reload = useCallback(() => setNotifications(loadNotifications()), []);
+  // Merge DB notifications with localStorage ones, DB takes precedence for dedup
+  const reload = useCallback(async () => {
+    // Always load localStorage first (instant, works offline)
+    const local = loadNotifications();
+
+    // Fetch DB notifications (alerts fired by the sync daemon)
+    try {
+      const res = await fetch("/api/notifications");
+      if (res.ok) {
+        const { notifications: dbRows } = await res.json() as {
+          notifications: Array<{
+            id: string;
+            message: string;
+            detail: string | null;
+            color: string;
+            icon: string | null;
+            read: boolean;
+            created_at: string;
+          }>;
+        };
+        const dbNotifs: AppNotification[] = (dbRows ?? []).map((r) => ({
+          id:        `db-${r.id}`,
+          message:   r.message,
+          color:     r.color,
+          timestamp: new Date(r.created_at).getTime(),
+          read:      r.read,
+        }));
+
+        // Merge: DB rows by their db- prefixed id, then local-only rows (no db- prefix)
+        const dbIds = new Set(dbNotifs.map((n) => n.id));
+        const localOnly = local.filter((n) => !n.id.startsWith("db-") && !dbIds.has(n.id));
+        const merged = [...dbNotifs, ...localOnly].sort((a, b) => b.timestamp - a.timestamp);
+        setNotifications(merged);
+        return;
+      }
+    } catch {
+      // Network error — fall back to localStorage only
+    }
+    setNotifications(local);
+  }, []);
 
   useEffect(() => {
     reload();
@@ -199,16 +238,20 @@ function NotificationBell() {
 
   const unread = notifications.filter((n) => !n.read).length;
 
-  function markAllRead() {
+  async function markAllRead() {
     const updated = notifications.map((n) => ({ ...n, read: true }));
     setNotifications(updated);
-    saveNotifications(updated);
+    saveNotifications(updated.filter((n) => !n.id.startsWith("db-")));
+    // Mark DB rows read
+    fetch("/api/notifications", { method: "PATCH" }).catch(() => {});
   }
 
-  function clearAll() {
+  async function clearAll() {
     setNotifications([]);
     saveNotifications([]);
     setOpen(false);
+    // Delete DB rows
+    fetch("/api/notifications", { method: "DELETE" }).catch(() => {});
   }
 
   return (

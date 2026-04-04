@@ -222,6 +222,15 @@ const SB = {
     if (!r.ok) { const b = await r.text().catch(() => ''); throw new Error(`SB PATCH ${table}: ${r.status} ${b}`); }
   },
 
+  async insert(table, row) {
+    const r = await fetchRetry(`SB INSERT ${table}`, `${SUPABASE_URL}/rest/v1/${table}`, {
+      method: 'POST',
+      headers: { ...SB.headers, Prefer: 'return=minimal' },
+      body: JSON.stringify(row),
+    });
+    if (!r.ok) { const b = await r.text().catch(() => ''); throw new Error(`SB INSERT ${table}: ${r.status} ${b}`); }
+  },
+
   // Fetch rows with user_id=userId AND date >= cutoff
   async selectByUserSince(table, cols, userId, dateCutoff) {
     const p = new URLSearchParams({
@@ -3469,6 +3478,23 @@ async function checkAlerts() {
       subject,
       buildAlertEmailHtml(triggered, user.email)
     );
+
+    // ── Persist to notifications table so the in-app bell shows them ──────────
+    try {
+      const colorMap = { '🚨': '#f87171', '⚠': '#f59e0b', '💸': '#fb923c' };
+      const records = triggered.map(t => ({
+        user_id:    user.id,
+        message:    `${t.icon} ${t.title}`,
+        detail:     t.detail ?? null,
+        color:      colorMap[t.icon] ?? '#f59e0b',
+        icon:       t.icon,
+        read:       false,
+      }));
+      await SB.insert('notifications', records);
+    } catch (err) {
+      logWarn(`[alerts] Could not persist notifications to DB: ${err.message}`);
+    }
+
     notified++;
   }
 
