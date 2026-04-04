@@ -141,13 +141,13 @@ export const INTEGRATIONS_CATALOG: Integration[] = [
     iconViewBox: "0 0 24 24",
     icon: `<circle cx="12" cy="12" r="10" fill="#9333ea"/><text x="12" y="16" text-anchor="middle" fill="#fff" font-size="11" font-weight="bold" font-family="sans-serif">F</text>`,
   },
-  {
+  { //not correct data
     id: "posthog",
     name: "PostHog",
     description: "Open-source product analytics & feature flags",
     category: "Web Analytics",
     color: "#f76300",
-    status: "live",  // Go-to for product-led SaaS founders; free tier drives wide adoption
+    status: "soon",  // Go-to for product-led SaaS founders; free tier drives wide adoption
     connectUrl: "/dashboard?tab=settings&connect=posthog",
     iconViewBox: "0 0 24 24",
     icon: `<circle cx="12" cy="12" r="10" fill="#f76300"/><text x="12" y="16" text-anchor="middle" fill="#fff" font-size="10" font-weight="bold" font-family="sans-serif">PH</text>`,
@@ -186,7 +186,7 @@ export const INTEGRATIONS_CATALOG: Integration[] = [
     description: "Search, display & Shopping campaign spend",
     category: "Advertising",
     color: "#4285F4",
-    status: "live",  // Second most common paid channel after Meta for small founders
+    status: "soon",  // Second most common paid channel after Meta for small founders
     connectUrl: "/api/auth/google-ads/url",
     iconViewBox: "0 0 24 24",
     icon: `<path fill="#4285F4" d="M2.215 14.518a5.152 5.152 0 001.892 7.034 5.152 5.152 0 007.034-1.892l4.79-8.297-4.47-2.58-9.246 5.735zm18.38-11.2a5.152 5.152 0 00-7.034 1.892L8.77 13.508l4.47 2.58 4.79-8.297a5.152 5.152 0 001.566-4.473zM7.587 17.972a2.576 2.576 0 11-4.46-2.576 2.576 2.576 0 014.46 2.576z"/>`,
@@ -197,7 +197,7 @@ export const INTEGRATIONS_CATALOG: Integration[] = [
     description: "TikTok campaign spend, reach & conversions",
     category: "Advertising",
     color: "#010101",
-    status: "live",  // Mainstream for DTC & creator-economy founders
+    status: "soon",  // Mainstream for DTC & creator-economy founders
     connectUrl: "/api/auth/tiktok-ads/url",
     iconViewBox: "0 0 24 24",
     icon: `<path fill="#010101" d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34v-7a8.27 8.27 0 004.84 1.55V6.41a4.85 4.85 0 01-1.07-.28v.56z"/>`,
@@ -354,7 +354,7 @@ export const INTEGRATIONS_CATALOG: Integration[] = [
     description: "Handmade shop orders, views & conversion rate",
     category: "E-commerce",
     color: "#F56400",
-    status: "live",  // Relevant for creator/maker founders — a distinct Fold ICP segment
+    status: "soon",  // Relevant for creator/maker founders — a distinct Fold ICP segment
     connectUrl: "/api/auth/etsy/url",
     iconViewBox: "0 0 24 24",
     icon: `<path fill="#F56400" d="M9.16 0v.23c0 1.25-.44 2.9-2.62 2.9H5.63V5.4h2.64v8.98c0 3.42 1.7 5.1 5.03 5.1 1.3 0 2.82-.37 3.8-.83l-.56-2.25c-.6.23-1.2.4-1.86.4-1.46 0-2.06-.9-2.06-2.8V5.4h4.1l.38-2.27h-4.48V0z"/>`,
@@ -404,7 +404,7 @@ export const INTEGRATIONS_CATALOG: Integration[] = [
     description: "CRM deals, pipeline value & close rates",
     category: "CRM & Sales",
     color: "#ff7a59",
-    status: "live",  // Free CRM tier drives wide adoption; common among early-stage B2B founders
+    status: "soon",  // Free CRM tier drives wide adoption; common among early-stage B2B founders
     connectUrl: "/api/auth/hubspot/url",
     iconViewBox: "0 0 24 24",
     icon: `<path fill="#ff7a59" d="M18.164 7.93V5.084a2.198 2.198 0 10-2.196 0V7.93a6.248 6.248 0 00-2.965 1.645L6.895 5.71a2.464 2.464 0 10-.717.996l6.034 3.83A6.238 6.238 0 0011.7 12.9c0 3.454 2.8 6.254 6.254 6.254 3.455 0 6.254-2.8 6.254-6.254a6.253 6.253 0 00-6.044-6.97zm0 9.78a3.516 3.516 0 110-7.032 3.516 3.516 0 010 7.033z"/>`,
@@ -480,7 +480,7 @@ export const INTEGRATIONS_CATALOG: Integration[] = [
     description: "Heatmaps, session recordings & feedback surveys",
     category: "Product Analytics",
     color: "#FD3A5C",
-    status: "live",  // Widely used by solo founders; free tier drives massive adoption
+    status: "soon",  // Widely used by solo founders; free tier drives massive adoption
     connectUrl: "/dashboard?tab=settings&connect=hotjar",
     iconViewBox: "0 0 24 24",
     icon: `<path fill="#FD3A5C" d="M12 0C5.375 0 0 5.375 0 12s5.375 12 12 12 12-5.375 12-12S18.625 0 12 0zm2.438 17.438c-.126.062-.563.25-1.063.25-.75 0-1.25-.437-1.25-1.312v-4.5H9.938V10h2.187V7.875l1.813-.5V10h2.187v1.875h-2.187v4.25c0 .375.062.563.375.563.187 0 .437-.063.5-.063l.625 1.313z"/>`,
@@ -529,7 +529,7 @@ export const INTEGRATIONS_CATALOG: Integration[] = [
     description: "Followers, reach, impressions & profile visits",
     category: "Social Media",
     color: "#E1306C",
-    status: "live",  // Primary organic social channel for DTC & creator founders
+    status: "soon",  // Primary organic social channel for DTC & creator founders
     connectUrl: "/api/auth/instagram/url",
     iconViewBox: "0 0 24 24",
     icon: `<path fill="#E1306C" d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>`,
@@ -540,7 +540,7 @@ export const INTEGRATIONS_CATALOG: Integration[] = [
     description: "Organic impressions, profile clicks & followers",
     category: "Social Media",
     color: "#000000",
-    status: "live",  // X/Twitter is the primary founder community platform — high ICP usage
+    status: "soon",  // X/Twitter is the primary founder community platform — high ICP usage
     connectUrl: "/api/auth/twitter-organic/url",
     iconViewBox: "0 0 24 24",
     icon: `<path fill="#000" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>`,
