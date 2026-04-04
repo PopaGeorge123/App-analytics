@@ -565,3 +565,22 @@ export const LIVE_INTEGRATIONS = INTEGRATIONS_CATALOG.filter((i) => i.status ===
 export const INTEGRATION_CATEGORIES = Array.from(
   new Set(INTEGRATIONS_CATALOG.map((i) => i.category))
 ) as IntegrationCategory[];
+
+// ── Provider groups by metric role ───────────────────────────────────────────
+// Used for multi-provider aggregation in the dashboard.
+// Revenue providers → SUM revenue across all (additive; you earned $X from each).
+// Analytics providers → use PRIMARY source (page views can't be summed across tools
+//   without double-counting the same visitor).
+// Ads providers → SUM spend across all (genuinely additive; you spent $X on each).
+
+export const REVENUE_PROVIDERS: string[] = INTEGRATIONS_CATALOG
+  .filter((i) => i.category === "Payments & Revenue" || i.category === "E-commerce")
+  .map((i) => i.id);
+
+export const ANALYTICS_PROVIDERS: string[] = INTEGRATIONS_CATALOG
+  .filter((i) => i.category === "Web Analytics" || i.category === "Product Analytics")
+  .map((i) => i.id);
+
+export const ADS_PROVIDERS: string[] = INTEGRATIONS_CATALOG
+  .filter((i) => i.category === "Advertising")
+  .map((i) => i.id);

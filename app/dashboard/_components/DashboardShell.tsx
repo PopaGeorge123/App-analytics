@@ -7,8 +7,11 @@ import AnalyticsTab from "./AnalyticsTab";
 import SettingsTab from "./SettingsTab";
 import WebsiteTab from "./WebsiteTab";
 import AiTab from "./AiTab";
+import GrowthTab from "./GrowthTab";
+import CustomersTab from "./CustomersTab";
+import type { CustomerRow } from "../page";
 
-export type Tab = "overview" | "analytics" | "website" | "ai" | "settings";
+export type Tab = "overview" | "analytics" | "growth" | "customers" | "website" | "ai" | "settings";
 
 export interface Snapshot {
   id: string;
@@ -42,6 +45,7 @@ interface DashboardShellProps {
   websiteData: WebsiteData;
   metaCurrency: string;
   isSyncing?: string | null; // platform name that just connected, e.g. "meta"
+  customers?: CustomerRow[];  // real customer records from the customers table
 }
 
 const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
@@ -60,6 +64,24 @@ const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
     icon: (
       <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z" />
+      </svg>
+    ),
+  },
+  {
+    id: "growth" as Tab,
+    label: "Growth",
+    icon: (
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
+      </svg>
+    ),
+  },
+  {
+    id: "customers" as Tab,
+    label: "Customers",
+    icon: (
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
       </svg>
     ),
   },
@@ -259,7 +281,7 @@ function NotificationBell() {
   );
 }
 
-function DashboardShellInner({ email, isPremium, connectedPlatforms, snapshots, websiteData, metaCurrency, isSyncing }: DashboardShellProps) {
+function DashboardShellInner({ email, isPremium, connectedPlatforms, snapshots, websiteData, metaCurrency, isSyncing, customers = [] }: DashboardShellProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -272,7 +294,7 @@ function DashboardShellInner({ email, isPremium, connectedPlatforms, snapshots, 
   // Only update when the tab value actually changes to avoid fighting user clicks.
   useEffect(() => {
     const tab = searchParams.get("tab") as Tab | null;
-    if (tab && ["overview", "analytics", "website", "ai", "settings"].includes(tab) && tab !== activeTab) {
+    if (tab && ["overview", "analytics", "growth", "customers", "website", "ai", "settings"].includes(tab) && tab !== activeTab) {
       setActiveTab(tab);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -350,7 +372,7 @@ function DashboardShellInner({ email, isPremium, connectedPlatforms, snapshots, 
               </span>
               {tab.label}
               {/* Premium lock badge for non-premium tabs */}
-              {!isPremium && (tab.id === "analytics" || tab.id === "website" || tab.id === "ai") && (
+              {!isPremium && (tab.id === "analytics" || tab.id === "growth" || tab.id === "customers" || tab.id === "website" || tab.id === "ai") && (
                 <span className="ml-auto">
                   <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className="text-[#8585aa]">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
@@ -451,6 +473,23 @@ function DashboardShellInner({ email, isPremium, connectedPlatforms, snapshots, 
               connectedPlatforms={connectedPlatforms}
               snapshots={snapshots}
               metaCurrency={metaCurrency}
+            />
+          )}
+          {activeTab === "growth" && (
+            <GrowthTab
+              isPremium={isPremium}
+              connectedPlatforms={connectedPlatforms}
+              snapshots={snapshots}
+              metaCurrency={metaCurrency}
+            />
+          )}
+          {activeTab === "customers" && (
+            <CustomersTab
+              isPremium={isPremium}
+              connectedPlatforms={connectedPlatforms}
+              snapshots={snapshots}
+              metaCurrency={metaCurrency}
+              customers={customers}
             />
           )}
           {activeTab === "website" && (

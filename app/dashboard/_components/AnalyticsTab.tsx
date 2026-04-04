@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Snapshot } from "./DashboardShell";
 import OverviewSection from "./OverviewSection";
+import { REVENUE_PROVIDERS, ANALYTICS_PROVIDERS, ADS_PROVIDERS } from "@/lib/integrations/catalog";
 
 interface AnalyticsTabProps {
   isPremium: boolean;
@@ -545,18 +546,41 @@ function DataTable({ rows }: { rows: { period: string; cells: { label: string; v
 // ── Cross-platform Funnel Waterfall ──────────────────────────────────────
 
 export function FunnelSection({ snapshots, connectedPlatforms, metaCurrency = "USD" }: { snapshots: Snapshot[]; connectedPlatforms: string[]; metaCurrency?: string }) {
-  const hasStripe = connectedPlatforms.includes("stripe");
-  const hasGA4    = connectedPlatforms.includes("ga4");
-  const hasMeta   = connectedPlatforms.includes("meta");
+  // ── Multi-provider aggregation ───────────────────────────────────────
+  const connRevenue  = connectedPlatforms.filter((p) => REVENUE_PROVIDERS.includes(p));
+  const connAnalytics = connectedPlatforms.filter((p) => ANALYTICS_PROVIDERS.includes(p));
+  const connAds      = connectedPlatforms.filter((p) => ADS_PROVIDERS.includes(p));
 
-  if (!hasStripe && !hasGA4 && !hasMeta) return null;
+  const hasRevenue  = connRevenue.length > 0;
+  const hasAnalytics = connAnalytics.length > 0;
+  const hasAds      = connAds.length > 0;
+
+  if (!hasRevenue && !hasAnalytics && !hasAds) return null;
   if (connectedPlatforms.length < 2) return null; // need at least 2 sources to show a funnel
 
-  const adSpend     = snapshots.filter((s) => s.provider === "meta").reduce((a, s)    => a + ((s.data as Record<string, number>).spend ?? 0), 0);
-  const adClicks    = snapshots.filter((s) => s.provider === "meta").reduce((a, s)    => a + ((s.data as Record<string, number>).clicks ?? 0), 0);
-  const sessions    = snapshots.filter((s) => s.provider === "ga4").reduce((a, s)     => a + ((s.data as Record<string, number>).sessions ?? 0), 0);
-  const conversions = snapshots.filter((s) => s.provider === "ga4").reduce((a, s)     => a + ((s.data as Record<string, number>).conversions ?? 0), 0);
-  const revenue     = snapshots.filter((s) => s.provider === "stripe").reduce((a, s)  => a + ((s.data as Record<string, number>).revenue ?? 0), 0);
+  // Primary analytics provider for sessions/conversions (avoid double-counting)
+  const primaryAnalytics = (() => {
+    const counts: Record<string, number> = {};
+    for (const s of snapshots) {
+      if (!connAnalytics.includes(s.provider)) continue;
+      const hasData = Object.values(s.data as Record<string, number>).some((v) => v > 0);
+      if (hasData) counts[s.provider] = (counts[s.provider] ?? 0) + 1;
+    }
+    const sorted = Object.keys(counts).sort((a, b) => (counts[b] ?? 0) - (counts[a] ?? 0));
+    return sorted[0] ?? connAnalytics[0] ?? null;
+  })();
+
+  // Ad spend — SUM across all connected ad platforms
+  const adSpend  = snapshots.filter((s) => connAds.includes(s.provider)).reduce((a, s) => a + ((s.data as Record<string, number>).spend ?? 0), 0);
+  // Clicks — Meta only (no standard field across ad platforms)
+  const adClicks = snapshots.filter((s) => s.provider === "meta").reduce((a, s) => a + ((s.data as Record<string, number>).clicks ?? 0), 0);
+
+  // Sessions / conversions — primary analytics only
+  const sessions    = primaryAnalytics ? snapshots.filter((s) => s.provider === primaryAnalytics).reduce((a, s) => a + ((s.data as Record<string, number>).sessions ?? 0), 0) : 0;
+  const conversions = primaryAnalytics ? snapshots.filter((s) => s.provider === primaryAnalytics).reduce((a, s) => a + ((s.data as Record<string, number>).conversions ?? 0), 0) : 0;
+
+  // Revenue — SUM across all connected revenue providers
+  const revenue = snapshots.filter((s) => connRevenue.includes(s.provider)).reduce((a, s) => a + ((s.data as Record<string, number>).revenue ?? 0), 0);
 
   type FunnelStage = {
     label: string;
@@ -567,60 +591,72 @@ export function FunnelSection({ snapshots, connectedPlatforms, metaCurrency = "U
     available: boolean;
   };
 
-  // Build currency for meta spend
+  // Build currency for ad spend display
   const currency: string =
     ([...snapshots].reverse().find((s) => s.provider === "meta" && (s.data as Record<string, unknown>)?.currency) as { data: Record<string, unknown> } | undefined)
       ?.data.currency as string ?? "USD";
   const fmtSpend = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
 
+  // Multi-source labels
+  const adSpendSub = connAds.length > 1
+    ? `${connAds.join(" + ")}${adSpend > 0 && adClicks > 0 ? " · " + fmtSpend(adSpend / adClicks) + " CPC" : ""}`
+    : adSpend > 0 && adClicks > 0 ? fmtSpend(adSpend / adClicks) + " CPC" : connAds[0] ?? "Ads";
+
+  const revenueSub = connRevenue.length > 1
+    ? connRevenue.join(" + ")
+    : conversions > 0 && revenue > 0 ? fmt(revenue / conversions, "currency") + " per conv" : connRevenue[0] ?? "Revenue";
+
   const stages: FunnelStage[] = [
     {
       label: "Ad Spend",
       value: adSpend,
-      displayValue: hasMeta ? fmtSpend(adSpend) : "—",
+      displayValue: hasAds ? fmtSpend(adSpend) : "—",
       color: "#1877f2",
-      sub: "Meta Ads",
-      available: hasMeta,
+      sub: adSpendSub,
+      available: hasAds,
     },
     {
       label: "Ad Clicks",
       value: adClicks,
-      displayValue: hasMeta ? fmt(adClicks) : "—",
+      displayValue: hasAds && adClicks > 0 ? fmt(adClicks) : hasAds ? "—" : "—",
       color: "#1877f2",
-      sub: `${adSpend > 0 && adClicks > 0 ? fmtSpend(adSpend / adClicks) + " CPC" : "Meta Ads"}`,
-      available: hasMeta,
+      sub: adClicks > 0 && adSpend > 0 ? fmtSpend(adSpend / adClicks) + " CPC" : "Meta Ads",
+      available: hasAds && adClicks > 0,
     },
     {
       label: "Sessions",
       value: sessions,
-      displayValue: hasGA4 ? fmt(sessions) : "—",
+      displayValue: hasAnalytics ? fmt(sessions) : "—",
       color: "#f59e0b",
-      sub: `${adClicks > 0 && sessions > 0 ? ((sessions / adClicks) * 100).toFixed(1) + "% click-to-session" : "Google Analytics"}`,
-      available: hasGA4,
+      sub: `${adClicks > 0 && sessions > 0 ? ((sessions / adClicks) * 100).toFixed(1) + "% click-to-session" : primaryAnalytics ?? "Analytics"}`,
+      available: hasAnalytics,
     },
     {
       label: "Conversions",
       value: conversions,
-      displayValue: hasGA4 ? fmt(conversions) : "—",
+      displayValue: hasAnalytics ? fmt(conversions) : "—",
       color: "#00d4aa",
-      sub: `${sessions > 0 ? ((conversions / sessions) * 100).toFixed(2) + "% conv rate" : "Google Analytics"}`,
-      available: hasGA4,
+      sub: `${sessions > 0 ? ((conversions / sessions) * 100).toFixed(2) + "% conv rate" : primaryAnalytics ?? "Analytics"}`,
+      available: hasAnalytics,
     },
     {
       label: "Revenue",
       value: revenue,
-      displayValue: hasStripe ? fmt(revenue, "currency") : "—",
+      displayValue: hasRevenue ? fmt(revenue, "currency") : "—",
       color: "#635bff",
-      sub: `${conversions > 0 && revenue > 0 ? fmt(revenue / conversions, "currency") + " per conv" : "Stripe"}`,
-      available: hasStripe,
+      sub: revenueSub,
+      available: hasRevenue,
     },
   ].filter((s) => s.available);
 
   if (stages.length < 2) return null;
 
-  // Compute drop-off between consecutive stages (only meaningful for same-unit stages)
-  // We show the percentage drop between consecutive absolute values where both are > 0
   const maxVal = Math.max(...stages.map((s) => s.value), 1);
+
+  // For ROAS: only show when both ad + revenue providers are connected in same currency
+  const hasMeta    = connectedPlatforms.includes("meta");
+  const hasStripe  = connectedPlatforms.includes("stripe");
+  const showROAS   = hasAds && hasRevenue && adSpend > 0 && revenue > 0 && metaCurrency === "USD";
 
   return (
     <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-5 space-y-4">
@@ -631,24 +667,40 @@ export function FunnelSection({ snapshots, connectedPlatforms, metaCurrency = "U
           </svg>
         </div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Full Funnel</h3>
+        {/* Multi-source badge */}
+        {(connRevenue.length > 1 || connAds.length > 1 || connAnalytics.length > 1) && (
+          <span className="font-mono text-[8px] rounded-full border border-[#00d4aa]/30 bg-[#00d4aa]/8 px-2 py-0.5 text-[#00d4aa]">
+            multi-source
+          </span>
+        )}
         <span className="ml-auto font-mono text-[9px] text-[#8585aa]">Spend → Revenue</span>
       </div>
+
+      {/* Analytics primary source note (when multiple analytics connected) */}
+      {connAnalytics.length > 1 && primaryAnalytics && (
+        <div className="flex items-center gap-2 rounded-lg border border-[#363650] bg-[#1c1c2a] px-3 py-2">
+          <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="#8585aa" strokeWidth={2}>
+            <circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/>
+          </svg>
+          <p className="font-mono text-[10px] text-[#8585aa]">
+            Sessions & conversions from <strong className="text-[#bcbcd8]">{primaryAnalytics}</strong> (most data) · summing multiple analytics tools would double-count visitors
+          </p>
+        </div>
+      )}
 
       {/* Waterfall bars */}
       <div className="space-y-1.5">
         {stages.map((stage, i) => {
           const barPct = stage.value > 0 ? (stage.value / maxVal) * 100 : 0;
           const prevStage = i > 0 ? stages[i - 1] : null;
-          // Drop-off only when both are plain counts (not currency) — skip for spend/revenue
           const showDropoff = prevStage && prevStage.value > 0 && stage.value > 0
-            && prevStage.color === stage.color; // same data source
+            && prevStage.color === stage.color;
           const dropoffPct = showDropoff
             ? Math.round(((prevStage!.value - stage.value) / prevStage!.value) * 100)
             : null;
 
           return (
             <div key={stage.label}>
-              {/* Drop-off connector */}
               {dropoffPct !== null && dropoffPct > 0 && (
                 <div className="flex items-center gap-2 py-0.5 pl-4">
                   <div className="w-px h-3 bg-[#363650]" />
@@ -677,11 +729,10 @@ export function FunnelSection({ snapshots, connectedPlatforms, metaCurrency = "U
       </div>
 
       {/* ROAS / efficiency summary */}
-      {hasMeta && hasStripe && adSpend > 0 && revenue > 0 && metaCurrency === "USD" && (
+      {showROAS && (
         <div className="flex items-center gap-6 rounded-xl border border-[#363650] bg-[#222235] px-4 py-3">
           <div>
             <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">ROAS</p>
-            {/* revenue is Stripe cents → /100 to get USD; adSpend is Meta full units in USD */}
             <p className="font-mono text-base font-bold text-[#f8f8fc]">{((revenue / 100) / adSpend).toFixed(2)}×</p>
           </div>
           {adClicks > 0 && (
@@ -714,7 +765,9 @@ export function FunnelSection({ snapshots, connectedPlatforms, metaCurrency = "U
       )}
 
       <p className="font-mono text-[9px] text-[#58588a]">
-        Connects Meta Ads → Google Analytics → Stripe across the selected time range. This is your unique full-funnel view.
+        {connAds.length > 1 ? `Ad spend summed across ${connAds.join(", ")}. ` : ""}
+        {connRevenue.length > 1 ? `Revenue summed across ${connRevenue.join(", ")}. ` : ""}
+        Full-funnel view across the selected time range.
       </p>
     </div>
   );

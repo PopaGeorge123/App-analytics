@@ -364,6 +364,79 @@ async function syncStripeDay(userId, accessToken, date) {
     },
     'user_id,provider,date');
 
+  // ── 6. Upsert individual customer records ───────────────────────────────
+  // Collect all unique customer IDs that appear in today's succeeded intents.
+  // Then fetch their full profiles from Stripe and upsert into the customers table.
+  // We also pull their total lifetime charges so the LTV stays accurate.
+  try {
+    const customerIds = [...new Set(
+      succeeded.filter(pi => pi.customer).map(pi => String(pi.customer))
+    )];
+
+    for (const cusId of customerIds) {
+      try {
+        // Fetch customer profile
+        const cusRes = await fetchRetry(`Stripe customer ${cusId}`,
+          `https://api.stripe.com/v1/customers/${cusId}`, { headers: stripeHeaders });
+        if (!cusRes.ok) continue;
+        const cus = await cusRes.json();
+
+        // Compute LTV: sum all succeeded charges for this customer (up to 100)
+        let totalSpent = 0;
+        let orderCount = 0;
+        let firstSeenTs = null;
+        let lastSeenTs  = null;
+
+        const chargesRes = await fetchRetry(`Stripe charges ${cusId}`,
+          `https://api.stripe.com/v1/charges?customer=${cusId}&limit=100&status=succeeded`,
+          { headers: stripeHeaders });
+        if (chargesRes.ok) {
+          const chargesBody = await chargesRes.json();
+          for (const ch of (chargesBody.data ?? [])) {
+            totalSpent += ch.amount_captured ?? ch.amount ?? 0;
+            orderCount += 1;
+            if (!firstSeenTs || ch.created < firstSeenTs) firstSeenTs = ch.created;
+            if (!lastSeenTs  || ch.created > lastSeenTs)  lastSeenTs  = ch.created;
+          }
+        }
+
+        // Check if customer has an active subscription
+        const subsRes = await fetchRetry(`Stripe subs ${cusId}`,
+          `https://api.stripe.com/v1/subscriptions?customer=${cusId}&limit=10`,
+          { headers: stripeHeaders });
+        let subscribed = false;
+        let churned    = false;
+        if (subsRes.ok) {
+          const subsBody = await subsRes.json();
+          const subs = subsBody.data ?? [];
+          subscribed = subs.some(s => s.status === 'active' || s.status === 'trialing');
+          churned    = !subscribed && subs.some(s => s.status === 'canceled');
+        }
+
+        const firstSeen = firstSeenTs
+          ? new Date(firstSeenTs * 1000).toISOString().slice(0, 10)
+          : date;
+        const lastSeen  = lastSeenTs
+          ? new Date(lastSeenTs  * 1000).toISOString().slice(0, 10)
+          : date;
+
+        await SB.upsert('customers', {
+          user_id:    userId,
+          provider:   'stripe',
+          provider_id: cusId,
+          email:      cus.email   ?? null,
+          name:       cus.name    ?? null,
+          total_spent: totalSpent,
+          order_count: orderCount,
+          first_seen:  firstSeen,
+          last_seen:   lastSeen,
+          subscribed,
+          churned,
+        }, 'user_id,provider,provider_id');
+      } catch (_) { /* individual customer errors are non-fatal */ }
+    }
+  } catch (_) { /* customer upsert block is non-fatal */ }
+
   return { revenue, txCount, newCustomers, mrr, activeSubscriptions, churnedToday };
 }
 

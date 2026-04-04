@@ -2,35 +2,62 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import Anthropic from "@anthropic-ai/sdk";
+import { REVENUE_PROVIDERS, ANALYTICS_PROVIDERS, ADS_PROVIDERS } from "@/lib/integrations/catalog";
 
 export const maxDuration = 60;
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-function sum(
-  snaps: Array<{ provider: string; date: string; data: unknown }> | null,
-  provider: string,
-  field: string
-): number {
+type Snap = { provider: string; date: string; data: unknown };
+
+function sumSnaps(snaps: Snap[] | null, provider: string, field: string): number {
   return (snaps ?? [])
     .filter((s) => s.provider === provider)
-    .reduce((acc, s) => {
-      const d = s.data as Record<string, number>;
-      return acc + (d[field] ?? 0);
-    }, 0);
+    .reduce((acc, s) => acc + ((s.data as Record<string, number>)[field] ?? 0), 0);
+}
+
+/** Sum a field across multiple providers */
+function sumProviders(snaps: Snap[] | null, providers: string[], field: string): number {
+  return (snaps ?? [])
+    .filter((s) => providers.includes(s.provider))
+    .reduce((acc, s) => acc + ((s.data as Record<string, number>)[field] ?? 0), 0);
+}
+
+/** Latest point-in-time value (snaps ordered desc — most recent first) */
+function latest(snaps: Snap[] | null, provider: string, field: string): number {
+  const rows = (snaps ?? []).filter(
+    (s) => s.provider === provider && (s.data as Record<string, number>)[field] != null
+  );
+  if (!rows.length) return 0;
+  return (rows[0].data as Record<string, number>)[field] ?? 0;
+}
+
+/** Pick primary analytics provider (most days with data) */
+function primaryAnalytics(snaps: Snap[] | null, connectedAnalytics: string[]): string | null {
+  const counts: Record<string, number> = {};
+  for (const s of snaps ?? []) {
+    if (!connectedAnalytics.includes(s.provider)) continue;
+    const hasData = Object.values(s.data as Record<string, number>).some((v) => v > 0);
+    if (hasData) counts[s.provider] = (counts[s.provider] ?? 0) + 1;
+  }
+  const sorted = Object.keys(counts).sort((a, b) => (counts[b] ?? 0) - (counts[a] ?? 0));
+  return sorted[0] ?? null;
 }
 
 async function buildDataContext(userId: string, db: ReturnType<typeof createServiceClient>): Promise<string> {
   const today = new Date().toISOString().slice(0, 10);
 
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - 30);
+  // Fetch 90 days so the AI can answer any custom date range question
+  const cutoff90 = new Date();
+  cutoff90.setDate(cutoff90.getDate() - 90);
   const { data: snapshots } = await db
     .from("daily_snapshots")
     .select("provider, date, data")
     .eq("user_id", userId)
-    .gte("date", cutoff.toISOString().slice(0, 10))
-    .order("date", { ascending: false });
+    .gte("date", cutoff90.toISOString().slice(0, 10))
+    .order("date", { ascending: true }); // asc so daily table reads chronologically
+
+  const snapsDesc = [...(snapshots ?? [])].reverse(); // for "latest" lookups
 
   const { data: website } = await db
     .from("website_profiles")
@@ -45,86 +72,161 @@ async function buildDataContext(userId: string, db: ReturnType<typeof createServ
     .order("impact_score", { ascending: false })
     .limit(10);
 
-  // ── Helper: latest point-in-time value for a field (e.g. MRR, active subs) ──
-  function latest(
-    snaps: Array<{ provider: string; date: string; data: unknown }> | null,
-    provider: string,
-    field: string
-  ): number {
-    const rows = (snaps ?? []).filter(
-      (s) => s.provider === provider && (s.data as Record<string, number>)[field] != null
-    );
-    if (rows.length === 0) return 0;
-    // rows are ordered desc (most recent first)
-    return (rows[0].data as Record<string, number>)[field] ?? 0;
-  }
+  const { data: integrations } = await db
+    .from("integrations")
+    .select("platform, connected_at, currency")
+    .eq("user_id", userId);
 
-  const revenue30 = sum(snapshots, "stripe", "revenue");
-  const refunds30 = sum(snapshots, "stripe", "refunds");
-  const sessions30 = sum(snapshots, "ga4", "sessions");
-  const spend30 = sum(snapshots, "meta", "spend");
-  const conversions30 = sum(snapshots, "ga4", "conversions");
-  const newCustomers30 = sum(snapshots, "stripe", "newCustomers");
-  const churned30 = sum(snapshots, "stripe", "churnedToday");
-  // Point-in-time (latest snapshot value)
-  const currentMRR = latest(snapshots, "stripe", "mrr");
-  const activeSubscriptions = latest(snapshots, "stripe", "activeSubscriptions");
-  const trialingSubscriptions = latest(snapshots, "stripe", "trialingSubscriptions");
-  const arpu = latest(snapshots, "stripe", "arpu");
+  const connectedPlatforms = (integrations ?? []).map((i) => i.platform);
+  const connRevenue   = connectedPlatforms.filter((p) => REVENUE_PROVIDERS.includes(p));
+  const connAnalytics = connectedPlatforms.filter((p) => ANALYTICS_PROVIDERS.includes(p));
+  const connAds       = connectedPlatforms.filter((p) => ADS_PROVIDERS.includes(p));
+  const primaryAn     = primaryAnalytics(snapshots, connAnalytics);
 
-  const cutoff7 = new Date();
-  cutoff7.setDate(cutoff7.getDate() - 7);
-  const cutoffStr7 = cutoff7.toISOString().slice(0, 10);
-  const snaps7 = (snapshots ?? []).filter((s) => s.date >= cutoffStr7);
-
-  const revenue7 = sum(snaps7, "stripe", "revenue");
-  const sessions7 = sum(snaps7, "ga4", "sessions");
-  const spend7 = sum(snaps7, "meta", "spend");
-  const newCustomers7 = sum(snaps7, "stripe", "newCustomers");
-  const churned7 = sum(snaps7, "stripe", "churnedToday");
-  // MRR 30 days ago for comparison
-  const cutoff30 = new Date();
-  cutoff30.setDate(cutoff30.getDate() - 30);
-  const cutoffStr30 = cutoff30.toISOString().slice(0, 10);
-  const snaps30End = (snapshots ?? []).filter((s) => s.date <= cutoffStr30 && s.provider === "stripe" && (s.data as Record<string, number>).mrr != null);
-  const mrrPrev = snaps30End.length > 0 ? (snaps30End[0].data as Record<string, number>).mrr ?? 0 : 0;
-  const mrrGrowth = mrrPrev > 0 ? (((currentMRR - mrrPrev) / mrrPrev) * 100).toFixed(1) : "N/A";
-  const churnRate = activeSubscriptions > 0 ? ((churned30 / activeSubscriptions) * 100).toFixed(2) : "N/A";
-
-  // Meta currency — stored in snapshot data.currency
+  // Meta currency
   const metaCurrency: string =
-    ([...(snapshots ?? [])].reverse()
-      .find((s) => s.provider === "meta" && (s.data as Record<string, unknown>)?.currency)
+    (snapsDesc.find((s) => s.provider === "meta" && (s.data as Record<string, unknown>)?.currency)
       ?.data as Record<string, unknown> | undefined)?.currency as string ?? "USD";
 
-  const fmtMeta = (n: number) =>
-    new Intl.NumberFormat("en-US", { style: "currency", currency: metaCurrency }).format(n);
+  const fmtUSD = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+  const fmtCur = (n: number, cur: string) =>
+    new Intl.NumberFormat("en-US", { style: "currency", currency: cur, minimumFractionDigits: 2 }).format(n);
 
-  const pendingTasks = (tasks ?? []).filter((t) => !t.completed);
+  // ── Rolling windows ─────────────────────────────────────────────────────
+  function snapsInRange(from: string, to: string) {
+    return (snapshots ?? []).filter((s) => s.date >= from && s.date <= to);
+  }
+
+  const d7from  = new Date(); d7from.setDate(d7from.getDate() - 7);
+  const d30from = new Date(); d30from.setDate(d30from.getDate() - 30);
+  const d90from = cutoff90;
+
+  const snaps7  = snapsInRange(d7from.toISOString().slice(0, 10), today);
+  const snaps30 = snapsInRange(d30from.toISOString().slice(0, 10), today);
+  const snaps90 = snapshots ?? [];
+
+  // Revenue (sum all revenue providers)
+  const rev7  = sumProviders(snaps7,  connRevenue, "revenue");
+  const rev30 = sumProviders(snaps30, connRevenue, "revenue");
+  const rev90 = sumProviders(snaps90, connRevenue, "revenue");
+
+  // Sessions (primary analytics only)
+  const sess7  = primaryAn ? sumSnaps(snaps7,  primaryAn, "sessions") : 0;
+  const sess30 = primaryAn ? sumSnaps(snaps30, primaryAn, "sessions") : 0;
+  const sess90 = primaryAn ? sumSnaps(snaps90, primaryAn, "sessions") : 0;
+
+  // Ad spend (sum all ad providers)
+  const spend7  = sumProviders(snaps7,  connAds, "spend");
+  const spend30 = sumProviders(snaps30, connAds, "spend");
+  const spend90 = sumProviders(snaps90, connAds, "spend");
+
+  const newCx7  = sumProviders(snaps7,  connRevenue, "newCustomers");
+  const newCx30 = sumProviders(snaps30, connRevenue, "newCustomers");
+  const churned30 = sumProviders(snaps30, connRevenue, "churnedToday");
+  const refunds30 = sumProviders(snaps30, connRevenue, "refunds");
+
+  const currentMRR  = latest(snapsDesc, "stripe", "mrr");
+  const activeSubs  = latest(snapsDesc, "stripe", "activeSubscriptions");
+  const trialSubs   = latest(snapsDesc, "stripe", "trialingSubscriptions");
+  const arpu        = latest(snapsDesc, "stripe", "arpu");
+  const convs30     = primaryAn ? sumSnaps(snaps30, primaryAn, "conversions") : 0;
+  const bounce30    = primaryAn
+    ? (() => {
+        const rows = snaps30.filter((s) => s.provider === primaryAn && (s.data as Record<string, number>).bounceRate > 0);
+        return rows.length ? rows.reduce((a, s) => a + ((s.data as Record<string, number>).bounceRate ?? 0), 0) / rows.length : 0;
+      })()
+    : 0;
+
+  const churnRate = activeSubs > 0 ? ((churned30 / activeSubs) * 100).toFixed(2) : "N/A";
+  const cac30     = newCx30 > 0 && spend30 > 0 ? fmtCur(spend30 / newCx30, metaCurrency) : "N/A";
+
+  // ── Daily breakdown table (last 90 days) ───────────────────────────────
+  // Build a compact day → {revenue, sessions, adSpend, newCustomers} table.
+  // This lets the AI answer ANY custom date range question (e.g. "Apr 1–4").
+  type DayRow = { rev: number; sess: number; spend: number; newCx: number };
+  const dayMap: Record<string, DayRow> = {};
+
+  for (const s of snapshots ?? []) {
+    if (!dayMap[s.date]) dayMap[s.date] = { rev: 0, sess: 0, spend: 0, newCx: 0 };
+    const d = s.data as Record<string, number>;
+    if (connRevenue.includes(s.provider)) {
+      dayMap[s.date].rev   += d.revenue ?? 0;
+      dayMap[s.date].newCx += d.newCustomers ?? 0;
+    }
+    if (s.provider === primaryAn) {
+      dayMap[s.date].sess  += d.sessions ?? 0;
+    }
+    if (connAds.includes(s.provider)) {
+      dayMap[s.date].spend += d.spend ?? 0;
+    }
+  }
+
+  const sortedDays = Object.keys(dayMap).sort();
+
+  // Format the table — revenue in $, sessions as count, ad spend in currency
+  const dailyLines = sortedDays.map((date) => {
+    const r = dayMap[date];
+    const parts: string[] = [`${date}:`];
+    if (connRevenue.length > 0) parts.push(`rev=${fmtUSD(r.rev)}`);
+    if (primaryAn)              parts.push(`sessions=${r.sess}`);
+    if (connAds.length > 0)     parts.push(`adSpend=${fmtCur(r.spend, metaCurrency)}`);
+    if (r.newCx > 0)            parts.push(`newCx=${r.newCx}`);
+    return parts.join(" ");
+  });
+
+  // ── Per-platform section for non-Stripe revenue providers ───────────────
+  const extraRevLines: string[] = [];
+  for (const p of connRevenue.filter((p) => p !== "stripe")) {
+    const r = sumSnaps(snaps30, p, "revenue");
+    const nc = sumSnaps(snaps30, p, "newCustomers");
+    if (r > 0) extraRevLines.push(`${p}: ${fmtUSD(r)} revenue, ${nc} new customers (30d)`);
+  }
+
+  // ── Extra analytics providers ────────────────────────────────────────────
+  const extraAnLines: string[] = [];
+  for (const p of connAnalytics.filter((p) => p !== primaryAn)) {
+    const v = primaryAn ? sumSnaps(snaps30, p, "sessions") : 0;
+    if (v > 0) extraAnLines.push(`${p}: ${v} sessions (30d) — NOT used for totals to avoid double-counting`);
+  }
+
+  // ── Extra ads providers ──────────────────────────────────────────────────
+  const extraAdsLines: string[] = [];
+  for (const p of connAds) {
+    const sp = sumSnaps(snaps30, p, "spend");
+    const cl = sumSnaps(snaps30, p, "clicks");
+    if (sp > 0) extraAdsLines.push(`${p}: ${fmtCur(sp, metaCurrency)} spend, ${cl} clicks (30d)`);
+  }
+
+  const pendingTasks   = (tasks ?? []).filter((t) => !t.completed);
   const completedTasks = (tasks ?? []).filter((t) => t.completed);
 
   return `TODAY: ${today}
+CONNECTED PLATFORMS: ${connectedPlatforms.join(", ") || "none"}
+PRIMARY ANALYTICS SOURCE: ${primaryAn ?? "none"} (used for sessions — summing multiple analytics tools would double-count)
+REVENUE PLATFORMS: ${connRevenue.join(", ") || "none"} (revenue is summed across all)
+ADS PLATFORMS: ${connAds.join(", ") || "none"} (spend is summed across all)
 
-=== STRIPE — REVENUE & SUBSCRIPTIONS ===
-Revenue (30d):              $${(revenue30 / 100).toFixed(2)} | Last 7d: $${(revenue7 / 100).toFixed(2)}
-Refunds (30d):              $${(refunds30 / 100).toFixed(2)}
-Transactions (30d):         ${sum(snapshots, "stripe", "txCount")}
-New Customers (30d):        ${newCustomers30} | Last 7d: ${newCustomers7}
-MRR (current):              $${(currentMRR / 100).toFixed(2)}/month
-MRR growth (vs 30d ago):    ${mrrGrowth}%
-Active Subscriptions:       ${activeSubscriptions}
-Trialing Subscriptions:     ${trialingSubscriptions}
-ARPU:                       $${(arpu / 100).toFixed(2)}/month
-Cancellations (30d):        ${churned30} | Last 7d: ${churned7}
-Monthly Churn Rate:         ${churnRate}%
-CAC (30d):                  ${newCustomers30 > 0 ? `${fmtMeta(spend30 / newCustomers30)}` : "N/A"}
+=== REVENUE & SUBSCRIPTIONS (all revenue platforms combined) ===
+Revenue — Last 7d: ${fmtUSD(rev7)} | Last 30d: ${fmtUSD(rev30)} | Last 90d: ${fmtUSD(rev90)}
+Refunds (30d): ${fmtUSD(refunds30)}
+New Customers — Last 7d: ${newCx7} | Last 30d: ${newCx30}
+Cancellations (30d): ${churned30}
+Monthly Churn Rate: ${churnRate}%
+MRR (current): ${fmtUSD(currentMRR)}/month
+Active Subscriptions: ${activeSubs} (${trialSubs} trialing)
+ARPU: ${fmtUSD(arpu)}/month
+CAC (30d): ${cac30}
+${extraRevLines.length ? "\nPer-platform revenue (30d):\n" + extraRevLines.join("\n") : ""}
 
-=== GOOGLE ANALYTICS — TRAFFIC ===
-Sessions (30d): ${sessions30} | Last 7d: ${sessions7}
-Conversions (30d): ${conversions30}
+=== TRAFFIC (via ${primaryAn ?? "no analytics connected"}) ===
+Sessions — Last 7d: ${sess7} | Last 30d: ${sess30} | Last 90d: ${sess90}
+Conversions (30d): ${convs30}
+Avg Bounce Rate (30d): ${bounce30 > 0 ? bounce30.toFixed(1) + "%" : "N/A"}
+${extraAnLines.length ? "\nOther analytics (not used for totals):\n" + extraAnLines.join("\n") : ""}
 
-=== META ADS — ADVERTISING ===
-Ad Spend (${metaCurrency}, 30d): ${fmtMeta(spend30)} | Last 7d: ${fmtMeta(spend7)}
+=== ADVERTISING (all ad platforms combined) ===
+Ad Spend (${metaCurrency}) — Last 7d: ${fmtCur(spend7, metaCurrency)} | Last 30d: ${fmtCur(spend30, metaCurrency)} | Last 90d: ${fmtCur(spend90, metaCurrency)}
+${extraAdsLines.length ? "\nPer-platform ad spend (30d):\n" + extraAdsLines.join("\n") : ""}
 
 === WEBSITE ===
 URL: ${website?.url ?? "Not set"}
@@ -133,9 +235,11 @@ Summary: ${website?.description ?? "Not analyzed yet"}
 Last Analyzed: ${website?.last_scanned_at ? new Date(website.last_scanned_at).toLocaleDateString() : "Never"}
 
 === WEBSITE TASKS ===
-Pending (${pendingTasks.length}):
-${pendingTasks.slice(0, 5).map((t) => `- [${t.category}] ${t.title} (+${t.impact_score} pts)`).join("\n") || "None"}
-Completed (${completedTasks.length} total)`.trim();
+Pending (${pendingTasks.length}): ${pendingTasks.slice(0, 5).map((t) => `[${t.category}] ${t.title} (+${t.impact_score}pts)`).join(" | ") || "None"}
+Completed: ${completedTasks.length} tasks done
+
+=== DAILY DATA (last 90 days — use this to answer any custom date range question) ===
+${dailyLines.join("\n") || "No daily data available yet"}`.trim();
 }
 
 export async function POST(req: Request) {
@@ -190,7 +294,7 @@ export async function POST(req: Request) {
   // Build data context
   const dataContext = await buildDataContext(user.id, db);
 
-  const systemPrompt = `You are an expert AI business advisor with full access to this founder's real-time business data. You analyze their metrics across Stripe (revenue), Google Analytics 4 (traffic), Meta Ads (advertising), and their website health score.
+  const systemPrompt = `You are an expert AI business advisor with full access to this founder's real-time business data. You have access to data from all their connected platforms (Stripe, Paddle, Shopify, Google Analytics, Plausible, Meta Ads, Google Ads, and more).
 
 Here is their current business data:
 
@@ -198,11 +302,15 @@ ${dataContext}
 
 Instructions:
 - Answer questions about their data with specific numbers and context
+- You have a DAILY DATA section with up to 90 days of daily rows — use it to answer any custom date range question (e.g. "from April 1 to today", "last month", "this week"). Simply sum the relevant rows.
+- Revenue figures in the data are in CENTS — divide by 100 for display (e.g. rev=$4000 → $40.00). The fmtUSD function has already done this for the aggregated totals, but for the daily rows you must divide by 100 yourself.
+- Ad spend is already in the platform's native currency (shown in ADS PLATFORMS section).
 - Give direct, actionable advice — no fluff or generic platitudes
 - Reference exact metrics when relevant
-- When spotting issues or opportunities, be specific about what the data shows
-- If asked about something not in the data, say so clearly
+- When asked about a specific date range, look up the daily rows in the DAILY DATA section and sum them — do NOT say you don't have access to that data.
+- If asked about something genuinely not in the data, say so clearly
 - Keep responses concise but complete
+- Format numbers nicely — use the user's local currency if stated, otherwise use the currency shown in the data
 - Format lists and sections with markdown for readability`;
 
   // Build messages array for Claude

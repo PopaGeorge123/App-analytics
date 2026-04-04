@@ -4,9 +4,10 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import type { Snapshot } from "./DashboardShell";
 import { pushNotification } from "./DashboardShell";
+import type { Tab } from "./DashboardShell";
 import { DEMO_SNAPSHOTS, DEMO_CONNECTED_PLATFORMS } from "./demoData";
 import { DEFAULT_ALERTS, type AlertRules } from "./SettingsTab";
-import { LIVE_INTEGRATIONS } from "@/lib/integrations/catalog";
+import { LIVE_INTEGRATIONS, REVENUE_PROVIDERS, ANALYTICS_PROVIDERS, ADS_PROVIDERS } from "@/lib/integrations/catalog";
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -34,7 +35,7 @@ interface OverviewTabProps {
   snapshots: Snapshot[];
   websiteData: WebsiteData;
   metaCurrency: string;
-  onNavigate: (tab: "overview" | "analytics" | "website" | "settings") => void;
+  onNavigate: (tab: Tab) => void;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────
@@ -97,6 +98,69 @@ function fmtMetaSpend(amount: number, currency: string): string {
 function trendPct(current: number, prev: number): number | null {
   if (!prev || prev === 0) return null;
   return ((current - prev) / prev) * 100;
+}
+
+// ── Multi-provider aggregation helpers ──────────────────────────────────────
+
+/**
+ * SUM a field across MULTIPLE providers.
+ * Use for revenue (Stripe + Paddle + Shopify = total revenue) and
+ * ad spend (Meta + Google Ads + TikTok = total spend). These are additive.
+ */
+function sumProviders(snaps: Snapshot[], providers: string[], field: string): number {
+  return snaps
+    .filter((s) => providers.includes(s.provider))
+    .reduce((acc, s) => {
+      const d = s.data as Record<string, number>;
+      return acc + (d[field] ?? 0);
+    }, 0);
+}
+
+/**
+ * AVG a field across MULTIPLE providers (picks the provider with most data points,
+ * then averages within it — avoids double-averaging the same day across two tools).
+ */
+function avgProviders(snaps: Snapshot[], providers: string[], field: string): number {
+  const primary = pickPrimaryAnalyticsProvider(snaps, providers);
+  if (!primary) return 0;
+  const rows = snaps.filter((s) => s.provider === primary);
+  if (!rows.length) return 0;
+  const total = rows.reduce((acc, s) => {
+    const d = s.data as Record<string, number>;
+    return acc + (d[field] ?? 0);
+  }, 0);
+  return total / rows.length;
+}
+
+/**
+ * Returns the analytics provider with the most non-zero data points.
+ * Tie-break: prefer the order in ANALYTICS_PROVIDERS (GA4 first).
+ * Used to pick a single authoritative source for traffic metrics to avoid
+ * double-counting the same visitor across GA4 + Plausible + PostHog.
+ */
+function pickPrimaryAnalyticsProvider(snaps: Snapshot[], providers: string[]): string | null {
+  // Map provider → count of days with any data
+  const counts: Record<string, number> = {};
+  for (const s of snaps) {
+    if (!providers.includes(s.provider)) continue;
+    const d = s.data as Record<string, number>;
+    const hasData = Object.values(d).some((v) => typeof v === "number" && v > 0);
+    if (hasData) counts[s.provider] = (counts[s.provider] ?? 0) + 1;
+  }
+  // Sort by count desc, tie-break by position in the providers list
+  const sorted = Object.keys(counts).sort((a, b) => {
+    const diff = (counts[b] ?? 0) - (counts[a] ?? 0);
+    if (diff !== 0) return diff;
+    return providers.indexOf(a) - providers.indexOf(b);
+  });
+  return sorted[0] ?? null;
+}
+
+/**
+ * Collect all connected providers that belong to a given group.
+ */
+function connectedIn(connected: string[], group: string[]): string[] {
+  return connected.filter((p) => group.includes(p));
 }
 
 function timeAgo(iso: string): string {
@@ -521,7 +585,7 @@ const SETUP_STEPS = LIVE_INTEGRATIONS.map((i, idx) => ({
   ),
 }));
 
-function OnboardingWizard({ onNavigate }: { onNavigate: (tab: "overview" | "analytics" | "website" | "settings") => void }) {
+function OnboardingWizard({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
   const completedCount = 0; // no platforms yet — this component only renders when count === 0
 
   return (
@@ -653,51 +717,90 @@ export default function OverviewTab({
     // Meta currency — from integrations table (authoritative, passed as prop from server)
     const metaCurrency = metaCurrencyProp;
 
-    const revenue7 = sumField(snaps7, "stripe", "revenue");
-    const revenuePrev = sumField(snapsPrev7, "stripe", "revenue");
-    const sessions7 = sumField(snaps7, "ga4", "sessions");
-    const sessionsPrev = sumField(snapsPrev7, "ga4", "sessions");
-    const spend7 = sumField(snaps7, "meta", "spend");
-    const spendPrev = sumField(snapsPrev7, "meta", "spend");
-    const newCustomers7 = sumField(snaps7, "stripe", "newCustomers");
-    const newCustomersPrev = sumField(snapsPrev7, "stripe", "newCustomers");
-    const conversions7 = sumField(snaps7, "ga4", "conversions");
-    const bounceRate7 = avgField(snaps7, "ga4", "bounceRate");
+    // ── Multi-provider groups ───────────────────────────────────────────
+    const connRevenue  = connectedIn(effectivePlatforms, REVENUE_PROVIDERS);
+    const connAnalytics = connectedIn(effectivePlatforms, ANALYTICS_PROVIDERS);
+    const connAds      = connectedIn(effectivePlatforms, ADS_PROVIDERS);
 
-    const stripeConn = effectivePlatforms.includes("stripe");
-    const ga4Conn = effectivePlatforms.includes("ga4");
-    const metaConn = effectivePlatforms.includes("meta");
-    const cac7 = newCustomers7 > 0 ? spend7 / newCustomers7 : null;
+    const primaryAnalytics = pickPrimaryAnalyticsProvider(snaps7, connAnalytics)
+      ?? pickPrimaryAnalyticsProvider(effectiveSnapshots, connAnalytics);
+
+    // Revenue — SUM across all connected revenue providers
+    const revenue7     = sumProviders(snaps7, connRevenue, "revenue");
+    const revenuePrev  = sumProviders(snapsPrev7, connRevenue, "revenue");
+
+    // New customers — SUM across revenue providers (each platform owns its own customer)
+    const newCustomers7    = sumProviders(snaps7, connRevenue, "newCustomers");
+    const newCustomersPrev = sumProviders(snapsPrev7, connRevenue, "newCustomers");
+
+    // Transactions from Stripe (for narrative detail)
+
+    const sessions7    = primaryAnalytics ? sumField(snaps7, primaryAnalytics, "sessions") : 0;
+    const sessionsPrev = primaryAnalytics ? sumField(snapsPrev7, primaryAnalytics, "sessions") : 0;
+
+    // Conversions from primary analytics
+    const conversions7 = primaryAnalytics ? sumField(snaps7, primaryAnalytics, "conversions") : 0;
+
+    // Bounce rate from primary analytics
+    const bounceRate7  = primaryAnalytics ? avgField(snaps7, primaryAnalytics, "bounceRate") : 0;
+
+    // Ad spend — SUM across all connected ad platforms
+    const spend7    = sumProviders(snaps7, connAds, "spend");
+    const spendPrev = sumProviders(snapsPrev7, connAds, "spend");
+
+    // Clicks from Meta specifically (for display in Meta-related cards)
+    const metaClicks7 = sumField(snaps7, "meta", "clicks");
+
+    const hasRevenue  = connRevenue.length > 0;
+    const hasAnalytics = connAnalytics.length > 0;
+    const hasAds      = connAds.length > 0;
+    const metaConn    = effectivePlatforms.includes("meta");
+
+    // CAC: total ad spend ÷ total new customers
+    const cac7 = newCustomers7 > 0 && spend7 > 0 ? spend7 / newCustomers7 : null;
+
+    // Multi-source labels
+    const revSourceLabel = connRevenue.length > 1
+      ? `${connRevenue.length} platforms · ${newCustomers7} new customers`
+      : connRevenue.length === 1 ? `${newCustomers7} new customers` : null;
+
+    const analyticsSourceLabel = connAnalytics.length > 1 && primaryAnalytics
+      ? `${fmt(conversions7)} conv · via ${primaryAnalytics}`
+      : connAnalytics.length === 1 ? `${fmt(conversions7)} conversions` : null;
+
+    const adsSourceLabel = connAds.length > 1
+      ? `${connAds.length} platforms · ${fmt(metaClicks7)} Meta clicks`
+      : connAds.length === 1 ? `${fmt(metaClicks7)} clicks` : null;
 
     // ── Yesterday's metrics for daily narrative ─────────────────────────
     const yesterdayStr = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
     const snapsYesterday = effectiveSnapshots.filter((s) => s.date === yesterdayStr);
-    const revenueYday = sumField(snapsYesterday, "stripe", "revenue");
-    const sessionsYday = sumField(snapsYesterday, "ga4", "sessions");
-    const txYday = sumField(snapsYesterday, "stripe", "transactions");
-    const newCxYday = sumField(snapsYesterday, "stripe", "newCustomers");
-    const spendYday = sumField(snapsYesterday, "meta", "spend");
-    const bounceYday = avgField(snapsYesterday, "ga4", "bounceRate");
+    const revenueYday    = sumProviders(snapsYesterday, connRevenue, "revenue");
+    const sessionsYday   = primaryAnalytics ? sumField(snapsYesterday, primaryAnalytics, "sessions") : 0;
+    const txYday         = sumField(snapsYesterday, "stripe", "transactions");
+    const newCxYday      = sumProviders(snapsYesterday, connRevenue, "newCustomers");
+    const spendYday      = sumProviders(snapsYesterday, connAds, "spend");
+    const bounceYday     = primaryAnalytics ? avgField(snapsYesterday, primaryAnalytics, "bounceRate") : 0;
     const hasYesterdayData = snapsYesterday.length > 0;
 
     // Build narrative sentence
     const narrativeParts: string[] = [];
-    if (stripeConn && revenueYday > 0) narrativeParts.push(`${fmt(revenueYday, "currency")} revenue (${txYday} txns)`);
-    if (ga4Conn && sessionsYday > 0) narrativeParts.push(`${fmt(sessionsYday)} sessions`);
-    if (stripeConn && newCxYday > 0) narrativeParts.push(`${newCxYday} new customer${newCxYday !== 1 ? "s" : ""}`);
-    if (metaConn && spendYday > 0) narrativeParts.push(`${fmtMetaSpend(spendYday, metaCurrency)} ad spend`);
+    if (hasRevenue && revenueYday > 0) narrativeParts.push(`${fmt(revenueYday, "currency")} revenue${txYday > 0 ? ` (${txYday} txns)` : ""}`);
+    if (hasAnalytics && sessionsYday > 0) narrativeParts.push(`${fmt(sessionsYday)} sessions`);
+    if (hasRevenue && newCxYday > 0) narrativeParts.push(`${newCxYday} new customer${newCxYday !== 1 ? "s" : ""}`);
+    if (hasAds && spendYday > 0) narrativeParts.push(`${fmtMetaSpend(spendYday, metaCurrency)} ad spend`);
 
     const narrative = {
       hasData: hasYesterdayData && narrativeParts.length > 0,
       text: narrativeParts.join(" · "),
-      bounceAlert: ga4Conn && bounceYday > 65,
+      bounceAlert: hasAnalytics && bounceYday > 65,
       bounceRate: bounceYday,
       date: yesterdayStr,
     };
 
     // ── Cross-insight: website + analytics ──────────────────────────────
     const crossInsights: { icon: string; color: string; message: string; action: string }[] = [];
-    if (ga4Conn && bounceRate7 > 65 && websiteData.score > 0 && websiteData.score < 60) {
+    if (hasAnalytics && bounceRate7 > 65 && websiteData.score > 0 && websiteData.score < 60) {
       crossInsights.push({
         icon: "⚠",
         color: "#f59e0b",
@@ -705,7 +808,7 @@ export default function OverviewTab({
         action: "Fix website →",
       });
     }
-    if (ga4Conn && bounceRate7 > 65 && websiteData.score >= 60) {
+    if (hasAnalytics && bounceRate7 > 65 && websiteData.score >= 60) {
       crossInsights.push({
         icon: "↑",
         color: "#f87171",
@@ -713,7 +816,7 @@ export default function OverviewTab({
         action: "View website →",
       });
     }
-    if (stripeConn && metaConn && newCustomers7 > 0 && spend7 > 0 && websiteData.score > 0 && websiteData.score < 55) {
+    if (hasRevenue && hasAds && newCustomers7 > 0 && spend7 > 0 && websiteData.score > 0 && websiteData.score < 55) {
       crossInsights.push({
         icon: "💡",
         color: "#a78bfa",
@@ -725,42 +828,40 @@ export default function OverviewTab({
     const kpis = [
       {
         label: "Revenue (7d)",
-        value: stripeConn ? fmt(revenue7, "currency") : null,
-        sub: stripeConn ? `${newCustomers7} new customers` : null,
-        trend: stripeConn ? { current: revenue7, prev: revenuePrev } : null,
+        value: hasRevenue ? fmt(revenue7, "currency") : null,
+        sub: hasRevenue ? revSourceLabel : null,
+        trend: hasRevenue ? { current: revenue7, prev: revenuePrev } : null,
         icon: "revenue",
       },
       {
         label: "Sessions (7d)",
-        value: ga4Conn ? fmt(sessions7) : null,
-        sub: ga4Conn ? `${fmt(conversions7)} conversions` : null,
-        trend: ga4Conn ? { current: sessions7, prev: sessionsPrev } : null,
+        value: hasAnalytics ? fmt(sessions7) : null,
+        sub: hasAnalytics ? analyticsSourceLabel : null,
+        trend: hasAnalytics ? { current: sessions7, prev: sessionsPrev } : null,
         icon: "sessions",
       },
       {
         label: "Ad Spend (7d)",
-        value: metaConn ? fmtMetaSpend(spend7, metaCurrency) : null,
-        sub: metaConn ? `${fmt(sumField(snaps7, "meta", "clicks"))} clicks` : null,
-        trend: metaConn ? { current: spend7, prev: spendPrev } : null,
+        value: hasAds ? fmtMetaSpend(spend7, metaCurrency) : null,
+        sub: hasAds ? adsSourceLabel : null,
+        trend: hasAds ? { current: spend7, prev: spendPrev } : null,
         icon: "adspend",
       },
       {
         label: "New Customers (7d)",
-        value: stripeConn ? fmt(newCustomers7) : null,
-        sub: stripeConn
-          ? bounceRate7 > 0 && ga4Conn
+        value: hasRevenue ? fmt(newCustomers7) : null,
+        sub: hasRevenue
+          ? bounceRate7 > 0 && hasAnalytics
             ? `Bounce rate ${fmt(bounceRate7, "percent")}`
-            : "from Stripe"
+            : connRevenue.length > 1 ? `across ${connRevenue.length} platforms` : "from revenue"
           : null,
-        trend: stripeConn ? { current: newCustomers7, prev: newCustomersPrev } : null,
+        trend: hasRevenue ? { current: newCustomers7, prev: newCustomersPrev } : null,
         icon: "customers",
       },
       {
         label: "CAC",
-        // CAC = ad spend ÷ new customers. Only shown when both platforms are connected.
-        // When currencies differ, we still show the spend-per-customer figure but label it clearly.
-        value: metaConn && stripeConn && cac7 !== null ? fmtMetaSpend(cac7, metaCurrency) : null,
-        sub: metaConn && stripeConn && cac7 !== null
+        value: hasAds && hasRevenue && cac7 !== null ? fmtMetaSpend(cac7, metaCurrency) : null,
+        sub: hasAds && hasRevenue && cac7 !== null
           ? metaCurrency !== "USD"
             ? `${metaCurrency} spend ÷ new customers`
             : "ad spend ÷ new customers"
@@ -770,8 +871,12 @@ export default function OverviewTab({
       },
       {
         label: "Bounce Rate (7d)",
-        value: ga4Conn ? fmt(bounceRate7, "percent") : null,
-        sub: ga4Conn ? "avg across 7 days" : null,
+        value: hasAnalytics ? fmt(bounceRate7, "percent") : null,
+        sub: hasAnalytics
+          ? connAnalytics.length > 1 && primaryAnalytics
+            ? `via ${primaryAnalytics} (primary)`
+            : "avg across 7 days"
+          : null,
         trend: null,
         icon: "bounce",
       },
@@ -802,8 +907,20 @@ export default function OverviewTab({
       });
     }
 
-    return { kpis, activity: activityItems.slice(0, 5), narrative, crossInsights, metrics7: { revenue7, sessions7: sessions7, bounceRate7, spend7, revenuePrev }, revenueMonth: sumField(filterDays(effectiveSnapshots, new Date().getDate()), "stripe", "revenue"), sessionsMonth: sumField(filterDays(effectiveSnapshots, new Date().getDate()), "ga4", "sessions") };
-  }, [effectiveSnapshots, effectivePlatforms, websiteData]);
+    const today = new Date();
+    const snapsThisMonth = filterDays(effectiveSnapshots, today.getDate());
+
+    return {
+      kpis,
+      activity: activityItems.slice(0, 5),
+      narrative,
+      crossInsights,
+      metrics7: { revenue7, sessions7, bounceRate7, spend7, revenuePrev },
+      revenueMonth: sumProviders(snapsThisMonth, connRevenue, "revenue"),
+      sessionsMonth: primaryAnalytics ? sumField(snapsThisMonth, primaryAnalytics, "sessions") : 0,
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectiveSnapshots, effectivePlatforms, websiteData, metaCurrencyProp]);
 
   const pendingTasks = websiteData.tasks.filter((t) => !t.completed);
   const completedTasks = websiteData.tasks.filter((t) => t.completed);
@@ -833,7 +950,6 @@ export default function OverviewTab({
     const results: { color: string; message: string }[] = [];
     if (!isPremium || effectiveSnapshots.length < 14) return results;
 
-    const todayStr = new Date().toISOString().slice(0, 10);
     const yesterdayStr = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
     const dayOfWeek = new Date().toLocaleDateString("en-US", { weekday: "long" });
 
@@ -862,14 +978,25 @@ export default function OverviewTab({
       return snap ? ((snap.data as Record<string, number>)[field] ?? 0) : 0;
     }
 
-    const stripeConn = effectivePlatforms.includes("stripe");
-    const ga4Conn    = effectivePlatforms.includes("ga4");
-    const metaConn   = effectivePlatforms.includes("meta");
+    const connRevAnom   = connectedIn(effectivePlatforms, REVENUE_PROVIDERS);
+    const connAnAnom    = connectedIn(effectivePlatforms, ANALYTICS_PROVIDERS);
+    const connAdsAnom   = connectedIn(effectivePlatforms, ADS_PROVIDERS);
+    const primaryAnAnom = pickPrimaryAnalyticsProvider(effectiveSnapshots, connAnAnom);
 
-    // Revenue anomaly
-    if (stripeConn) {
-      const revValues = dailyValues("stripe", "revenue");
-      const revYday   = yesterday("stripe", "revenue");
+    // Revenue anomaly — sum all revenue providers
+    if (connRevAnom.length > 0) {
+      // Build daily revenue series by summing across all revenue providers per day
+      const dayRevMap: Record<string, number> = {};
+      for (const s of effectiveSnapshots) {
+        if (!connRevAnom.includes(s.provider) || s.date >= yesterdayStr) continue;
+        const v = (s.data as Record<string, number>).revenue ?? 0;
+        dayRevMap[s.date] = (dayRevMap[s.date] ?? 0) + v;
+      }
+      const revValues = Object.values(dayRevMap).filter((v) => v > 0).slice(-30);
+      const revYday = connRevAnom.reduce((sum, p) => {
+        const snap = effectiveSnapshots.find((s) => s.provider === p && s.date === yesterdayStr);
+        return sum + ((snap?.data as Record<string, number>)?.revenue ?? 0);
+      }, 0);
       const { mean, std } = stats(revValues);
       if (mean > 0 && std > 0 && revYday > 0) {
         const zScore = (revYday - mean) / std;
@@ -889,10 +1016,10 @@ export default function OverviewTab({
       }
     }
 
-    // Sessions anomaly
-    if (ga4Conn) {
-      const sessValues = dailyValues("ga4", "sessions");
-      const sessYday   = yesterday("ga4", "sessions");
+    // Sessions anomaly — primary analytics provider only
+    if (primaryAnAnom) {
+      const sessValues = dailyValues(primaryAnAnom, "sessions");
+      const sessYday   = yesterday(primaryAnAnom, "sessions");
       const { mean, std } = stats(sessValues);
       if (mean > 0 && std > 0 && sessYday > 0) {
         const zScore = (sessYday - mean) / std;
@@ -906,10 +1033,10 @@ export default function OverviewTab({
       }
     }
 
-    // Bounce rate spike
-    if (ga4Conn) {
-      const bounceValues = dailyValues("ga4", "bounceRate");
-      const bounceYday   = yesterday("ga4", "bounceRate");
+    // Bounce rate spike — primary analytics provider only
+    if (primaryAnAnom) {
+      const bounceValues = dailyValues(primaryAnAnom, "bounceRate");
+      const bounceYday   = yesterday(primaryAnAnom, "bounceRate");
       const { mean, std } = stats(bounceValues);
       if (mean > 0 && std > 0 && bounceYday > 0) {
         const zScore = (bounceYday - mean) / std;
@@ -922,18 +1049,28 @@ export default function OverviewTab({
       }
     }
 
-    // Ad spend anomaly
-    if (metaConn) {
-      const spendValues = dailyValues("meta", "spend");
-      const spendYday   = yesterday("meta", "spend");
+    // Ad spend anomaly — sum across all ad platforms
+    if (connAdsAnom.length > 0) {
+      const daySpendMap: Record<string, number> = {};
+      for (const s of effectiveSnapshots) {
+        if (!connAdsAnom.includes(s.provider) || s.date >= yesterdayStr) continue;
+        const v = (s.data as Record<string, number>).spend ?? 0;
+        daySpendMap[s.date] = (daySpendMap[s.date] ?? 0) + v;
+      }
+      const spendValues = Object.values(daySpendMap).filter((v) => v > 0).slice(-30);
+      const spendYday = connAdsAnom.reduce((sum, p) => {
+        const snap = effectiveSnapshots.find((s) => s.provider === p && s.date === yesterdayStr);
+        return sum + ((snap?.data as Record<string, number>)?.spend ?? 0);
+      }, 0);
       const { mean, std } = stats(spendValues);
       if (mean > 0 && std > 0 && spendYday > 0) {
         const zScore = (spendYday - mean) / std;
         if (zScore > 2) {
           const pct = Math.round(((spendYday - mean) / mean) * 100);
+          const platformNote = connAdsAnom.length > 1 ? `across ${connAdsAnom.join(" + ")}` : `on ${connAdsAnom[0]}`;
           results.push({
             color: "#1877f2",
-            message: `💸 Ad spend was ${pct}% above average yesterday. Check your Meta campaigns for runaway spend.`,
+            message: `💸 Ad spend was ${pct}% above average yesterday (${platformNote}). Check your campaigns for runaway spend.`,
           });
         }
       }
@@ -1305,8 +1442,8 @@ export default function OverviewTab({
               <GoalsWidget
                 revenueMonth={revenueMonth}
                 sessionsMonth={sessionsMonth}
-                stripeConn={effectivePlatforms.includes("stripe")}
-                ga4Conn={effectivePlatforms.includes("ga4")}
+                stripeConn={connectedIn(effectivePlatforms, REVENUE_PROVIDERS).length > 0}
+                ga4Conn={connectedIn(effectivePlatforms, ANALYTICS_PROVIDERS).length > 0}
               />
               <button
                 onClick={() => onNavigate("website")}

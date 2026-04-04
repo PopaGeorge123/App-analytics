@@ -4,6 +4,21 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { daysAgo } from "@/lib/utils/dates";
 import DashboardShell from "./_components/DashboardShell";
 
+/** Customer record shape returned from the customers table */
+export interface CustomerRow {
+  id:          string;
+  provider:    string;
+  provider_id: string;
+  email:       string | null;
+  name:        string | null;
+  total_spent: number;   // cents (bigint → number via supabase-js)
+  order_count: number;
+  first_seen:  string | null;  // YYYY-MM-DD
+  last_seen:   string | null;  // YYYY-MM-DD
+  subscribed:  boolean;
+  churned:     boolean;
+}
+
 export default async function DashboardPage({
   searchParams,
 }: {
@@ -81,6 +96,30 @@ export default async function DashboardPage({
     tasks: websiteTasks ?? [],
   };
 
+  // Fetch customer records — all providers for this user, sorted by LTV desc
+  // Multiple revenue platforms (Stripe + WooCommerce + Gumroad etc.) each write their
+  // own rows; the Customers tab aggregates across all of them automatically.
+  const { data: rawCustomers } = await db
+    .from("customers")
+    .select("id, provider, provider_id, email, name, total_spent, order_count, first_seen, last_seen, subscribed, churned")
+    .eq("user_id", user.id)
+    .order("total_spent", { ascending: false })
+    .limit(500);
+
+  const customers: CustomerRow[] = (rawCustomers ?? []).map((c) => ({
+    id:          c.id,
+    provider:    c.provider,
+    provider_id: c.provider_id,
+    email:       c.email       ?? null,
+    name:        c.name        ?? null,
+    total_spent: Number(c.total_spent ?? 0),
+    order_count: Number(c.order_count ?? 0),
+    first_seen:  c.first_seen  ?? null,
+    last_seen:   c.last_seen   ?? null,
+    subscribed:  Boolean(c.subscribed),
+    churned:     Boolean(c.churned),
+  }));
+
   async function signOut() {
     "use server";
     const supabase = await createClient();
@@ -136,6 +175,7 @@ export default async function DashboardPage({
         websiteData={websiteData}
         metaCurrency={metaCurrency}
         isSyncing={isSyncing}
+        customers={customers}
       />
     </div>
   );
