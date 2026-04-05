@@ -2,6 +2,9 @@
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+} from "recharts";
 import type { Snapshot } from "./DashboardShell";
 import { pushNotification } from "./DashboardShell";
 import type { Tab } from "./DashboardShell";
@@ -563,6 +566,169 @@ function GoalsWidget({
             <span className="font-mono text-[9px] text-[#58588a]">{Math.round((sessionsMonth / goals.sessionsTarget) * 100)}%</span>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+// ── Revenue Over Time Chart ───────────────────────────────────────────────
+
+type RevRange = "7d" | "30d" | "90d";
+const REV_RANGES: { id: RevRange; label: string; days: number }[] = [
+  { id: "7d",  label: "7D",  days: 7  },
+  { id: "30d", label: "30D", days: 30 },
+  { id: "90d", label: "90D", days: 90 },
+];
+
+interface RevenueChartTooltipProps {
+  active?: boolean;
+  payload?: { value: number }[];
+  label?: string;
+}
+
+function RevenueChartTooltip({ active, payload, label }: RevenueChartTooltipProps) {
+  if (!active || !payload?.length) return null;
+  const dollars = (payload[0].value / 100).toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+  });
+  return (
+    <div className="rounded-xl border border-[#363650] bg-[#13131f] px-3 py-2 shadow-2xl">
+      <p className="font-mono text-[9px] text-[#8585aa] mb-0.5">{label}</p>
+      <p className="font-mono text-sm font-bold text-[#635bff]">{dollars}</p>
+    </div>
+  );
+}
+
+function RevenueOverTimeChart({
+  snapshots,
+  connectedRevenueProviders,
+  onNavigate,
+}: {
+  snapshots: Snapshot[];
+  connectedRevenueProviders: string[];
+  onNavigate: (tab: Tab) => void;
+}) {
+  const [range, setRange] = useState<RevRange>("30d");
+
+  const chartData = useMemo(() => {
+    const days = REV_RANGES.find((r) => r.id === range)!.days;
+    const cutoff = new Date();
+    cutoff.setUTCDate(cutoff.getUTCDate() - days);
+    const cutoffStr = cutoff.toISOString().slice(0, 10);
+
+    // Sum revenue across all revenue providers per day
+    const dayMap: Record<string, number> = {};
+    for (const snap of snapshots) {
+      if (!connectedRevenueProviders.includes(snap.provider)) continue;
+      if (snap.date < cutoffStr) continue;
+      const rev = ((snap.data as Record<string, number>).revenue ?? 0);
+      dayMap[snap.date] = (dayMap[snap.date] ?? 0) + rev;
+    }
+
+    // Fill every day in the range (zero for missing days)
+    const result: { date: string; label: string; revenue: number }[] = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date();
+      d.setUTCDate(d.getUTCDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      const label = d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+      result.push({ date: key, label, revenue: dayMap[key] ?? 0 });
+    }
+    return result;
+  }, [snapshots, connectedRevenueProviders, range]);
+
+  const totalRevenue = chartData.reduce((a, d) => a + d.revenue, 0);
+  const maxRevenue = Math.max(...chartData.map((d) => d.revenue), 1);
+  const hasData = chartData.some((d) => d.revenue > 0);
+
+  // X-axis tick: show every N-th label depending on range
+  const tickInterval = range === "7d" ? 0 : range === "30d" ? 4 : 13;
+
+  return (
+    <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/70 p-5">
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Revenue over time</p>
+          <p className="mt-0.5 font-mono text-xl font-bold text-[#f8f8fc]">
+            {(totalRevenue / 100).toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 })}
+            <span className="ml-2 font-mono text-[10px] font-normal text-[#8585aa]">
+              {REV_RANGES.find((r) => r.id === range)!.label} total
+            </span>
+          </p>
+        </div>
+        <div className="flex items-center gap-1">
+          {/* Range toggle */}
+          <div className="flex items-center gap-1 rounded-xl border border-[#363650] bg-[#13131f] p-1">
+            {REV_RANGES.map((r) => (
+              <button
+                key={r.id}
+                onClick={() => setRange(r.id)}
+                className={`rounded-lg px-2.5 py-1 font-mono text-[10px] font-semibold transition-all ${
+                  range === r.id
+                    ? "bg-[#363650] text-[#f8f8fc]"
+                    : "text-[#8585aa] hover:text-[#bcbcd8]"
+                }`}
+              >
+                {r.label}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => onNavigate("analytics")}
+            className="ml-2 font-mono text-[10px] text-[#8585aa] hover:text-[#00d4aa] transition"
+          >
+            Details →
+          </button>
+        </div>
+      </div>
+
+      {!hasData ? (
+        <div className="flex items-center justify-center h-36 rounded-xl border border-dashed border-[#363650]">
+          <p className="font-mono text-[11px] text-[#58588a]">No revenue data in this range</p>
+        </div>
+      ) : (
+        <ResponsiveContainer width="100%" height={160}>
+          <AreaChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+            <defs>
+              <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#635bff" stopOpacity={0.35} />
+                <stop offset="100%" stopColor="#635bff" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid vertical={false} stroke="#363650" strokeOpacity={0.6} />
+            <XAxis
+              dataKey="label"
+              tick={{ fill: "#58588a", fontFamily: "monospace", fontSize: 9 }}
+              axisLine={false}
+              tickLine={false}
+              interval={tickInterval}
+            />
+            <YAxis
+              tickFormatter={(v: number) => {
+                const d = v / 100;
+                if (d >= 1000) return `$${(d / 1000).toFixed(0)}k`;
+                return `$${d.toFixed(0)}`;
+              }}
+              tick={{ fill: "#58588a", fontFamily: "monospace", fontSize: 9 }}
+              axisLine={false}
+              tickLine={false}
+              width={44}
+              domain={[0, maxRevenue * 1.15]}
+            />
+            <Tooltip content={<RevenueChartTooltip />} cursor={{ stroke: "#635bff40", strokeWidth: 1 }} />
+            <Area
+              type="monotone"
+              dataKey="revenue"
+              stroke="#635bff"
+              strokeWidth={2}
+              fill="url(#revenueGrad)"
+              dot={false}
+              activeDot={{ r: 4, fill: "#635bff", strokeWidth: 0 }}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
       )}
     </div>
   );
@@ -1314,6 +1480,15 @@ export default function OverviewTab({
           ))}
         </div>
       </section>
+
+      {/* ── Revenue Over Time Chart ───────────────────────────── */}
+      {connectedIn(effectivePlatforms, REVENUE_PROVIDERS).length > 0 && (
+        <RevenueOverTimeChart
+          snapshots={effectiveSnapshots}
+          connectedRevenueProviders={connectedIn(effectivePlatforms, REVENUE_PROVIDERS)}
+          onNavigate={onNavigate}
+        />
+      )}
 
       {/* ── Bottom grid: Website score + Quick Actions + Activity ─ */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">

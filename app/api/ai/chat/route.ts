@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import Anthropic from "@anthropic-ai/sdk";
 import { REVENUE_PROVIDERS, ANALYTICS_PROVIDERS, ADS_PROVIDERS } from "@/lib/integrations/catalog";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 export const maxDuration = 60;
 
@@ -246,6 +247,15 @@ export async function POST(req: Request) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  // 20 AI messages per minute per user
+  const rl = checkRateLimit(`ai-chat:${user.id}`, 20, 60_000);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Too many requests. Please wait before sending another message." },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } }
+    );
+  }
 
   const body = await req.json();
   const userMessage: string = (body.message ?? "").trim();

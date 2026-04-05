@@ -710,43 +710,142 @@ function GoalsSection() {
 // ── Email Digest Inline (used inside the Settings grid section) ─────────────
 
 function DigestSectionInline({ email }: { email: string }) {
-  const [sending, setSending] = useState(false);
-  const [status, setStatus] = useState<"idle" | "sent" | "error">("idle");
-  const [errorMsg, setErrorMsg] = useState("");
+  const [subscribed, setSubscribed] = useState(false);
+  const [digestDay, setDigestDay]   = useState(1); // 0=Sun … 6=Sat
+  const [loading, setLoading]       = useState(true);
+  const [saving, setSaving]         = useState(false);
+  const [sending, setSending]       = useState(false);
+  const [sendStatus, setSendStatus] = useState<"idle" | "sent" | "error">("idle");
+  const [sendError, setSendError]   = useState("");
+
+  const DOW_LABELS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+  // Load current prefs on mount
+  useEffect(() => {
+    fetch("/api/user/settings")
+      .then((r) => r.json())
+      .then((d) => {
+        if (typeof d.digestSubscribed === "boolean") setSubscribed(d.digestSubscribed);
+        if (typeof d.digestDay === "number") setDigestDay(d.digestDay);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function savePrefs(nextSubscribed: boolean, nextDay: number) {
+    setSaving(true);
+    try {
+      await fetch("/api/user/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ digestSubscribed: nextSubscribed, digestDay: nextDay }),
+      });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function handleToggle() {
+    const next = !subscribed;
+    setSubscribed(next);
+    savePrefs(next, digestDay);
+  }
+
+  function handleDayChange(day: number) {
+    setDigestDay(day);
+    savePrefs(subscribed, day);
+  }
 
   async function sendDigest() {
     setSending(true);
-    setStatus("idle");
-    setErrorMsg("");
+    setSendStatus("idle");
+    setSendError("");
     try {
       const res = await fetch("/api/digest/send", { method: "POST" });
       const data = await res.json();
       if (!res.ok) {
-        setErrorMsg(data.error ?? "Failed to send digest.");
-        setStatus("error");
+        setSendError(data.error ?? "Failed to send digest.");
+        setSendStatus("error");
       } else {
-        setStatus("sent");
+        setSendStatus("sent");
       }
     } catch {
-      setErrorMsg("Network error.");
-      setStatus("error");
+      setSendError("Network error.");
+      setSendStatus("error");
     } finally {
       setSending(false);
     }
   }
 
+  if (loading) {
+    return <div className="h-20 animate-pulse rounded-xl bg-[#222235]" />;
+  }
+
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       <p className="text-sm text-[#bcbcd8]">
-        Send an AI-powered weekly summary to{" "}
-        <span className="font-medium text-[#e0e0f0]">{email}</span>.
-        Includes revenue highlights, anomalies, cross-platform insights and a top action.
+        Get an AI-powered summary delivered to{" "}
+        <span className="font-medium text-[#e0e0f0]">{email}</span> every week.
+        Includes revenue highlights, anomalies, cross-platform insights, and a top action.
       </p>
+
+      {/* ── Enable toggle ── */}
+      <div className="flex items-center justify-between rounded-xl border border-[#363650] bg-[#222235] px-4 py-3">
+        <div>
+          <p className="font-mono text-xs font-semibold text-[#f8f8fc]">Weekly email digest</p>
+          <p className="mt-0.5 font-mono text-[10px] text-[#8585aa]">
+            {subscribed ? "Enabled — digest sent automatically" : "Disabled — no automatic emails"}
+          </p>
+        </div>
+        <button
+          onClick={handleToggle}
+          disabled={saving}
+          aria-pressed={subscribed}
+          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none disabled:opacity-50 ${
+            subscribed ? "bg-[#00d4aa]" : "bg-[#363650]"
+          }`}
+        >
+          <span
+            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${
+              subscribed ? "translate-x-5" : "translate-x-0"
+            }`}
+          />
+        </button>
+      </div>
+
+      {/* ── Day of week picker — only visible when enabled ── */}
+      {subscribed && (
+        <div className="rounded-xl border border-[#363650] bg-[#222235] px-4 py-3 space-y-2">
+          <p className="font-mono text-[10px] uppercase tracking-widest text-[#8585aa]">Send every</p>
+          <div className="flex flex-wrap gap-1.5">
+            {DOW_LABELS.map((label, i) => (
+              <button
+                key={i}
+                onClick={() => handleDayChange(i)}
+                disabled={saving}
+                className={`rounded-lg px-3 py-1.5 font-mono text-[11px] font-semibold transition-all disabled:opacity-50 ${
+                  digestDay === i
+                    ? "bg-[#00d4aa]/15 border border-[#00d4aa]/30 text-[#00d4aa]"
+                    : "border border-[#363650] text-[#8585aa] hover:text-[#bcbcd8] hover:border-[#454560]"
+                }`}
+              >
+                {label.slice(0, 3)}
+              </button>
+            ))}
+          </div>
+          <p className="font-mono text-[9px] text-[#58588a]">
+            Next digest: <span className="text-[#bcbcd8]">{DOW_LABELS[digestDay]}</span>
+            {saving && <span className="ml-2 text-[#00d4aa]">Saving…</span>}
+          </p>
+        </div>
+      )}
+
+      {/* ── Send now ── */}
       <div className="flex flex-wrap items-center gap-3">
         <button
           onClick={sendDigest}
           disabled={sending}
-          className="flex items-center gap-2 rounded-xl border border-[#00d4aa]/20 bg-[#00d4aa]/5 px-4 py-2 font-mono text-xs font-semibold text-[#00d4aa] hover:bg-[#00d4aa]/10 disabled:opacity-50 disabled:cursor-not-allowed transition"
+          className="flex items-center gap-2 rounded-xl border border-[#363650] px-4 py-2 font-mono text-xs text-[#8585aa] hover:text-[#bcbcd8] hover:border-[#454560] disabled:opacity-50 disabled:cursor-not-allowed transition"
         >
           {sending ? (
             <>
@@ -765,10 +864,9 @@ function DigestSectionInline({ email }: { email: string }) {
             </>
           )}
         </button>
-        {status === "sent" && <span className="font-mono text-[11px] text-[#00d4aa]">✓ Sent to {email}</span>}
-        {status === "error" && <span className="font-mono text-[11px] text-red-400">{errorMsg}</span>}
+        {sendStatus === "sent"  && <span className="font-mono text-[11px] text-[#00d4aa]">✓ Sent to {email}</span>}
+        {sendStatus === "error" && <span className="font-mono text-[11px] text-red-400">{sendError}</span>}
       </div>
-      <p className="font-mono text-[9px] text-[#58588a]">Tip: automate weekly sends via your cron script.</p>
     </div>
   );
 }

@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  AreaChart, Area, Tooltip, ResponsiveContainer,
+} from "recharts";
 import type { Snapshot } from "./DashboardShell";
 import OverviewSection from "./OverviewSection";
 import { REVENUE_PROVIDERS, ANALYTICS_PROVIDERS, ADS_PROVIDERS } from "@/lib/integrations/catalog";
@@ -157,40 +160,66 @@ function groupSnapshots(
     }));
 }
 
-// ── Sparkline SVG ─────────────────────────────────────────────────────────
+// ── Sparkline (Recharts) ──────────────────────────────────────────────────
 
-function Sparkline({ values, color = "#00d4aa" }: { values: number[]; color?: string }) {
-  if (values.length < 2) return <div className="h-10 w-full" />;
-  const max = Math.max(...values);
-  const min = Math.min(...values);
-  const range = max - min || 1;
-  const W = 160; const H = 40;
-  const pts = values.map((v, i) => {
-    const x = (i / (values.length - 1)) * W;
-    const y = H - ((v - min) / range) * H;
-    return `${x},${y}`;
-  });
-  const d = `M ${pts.join(" L ")}`;
-  const fill = `M ${pts[0]} L ${pts.join(" L ")} L ${W},${H} L 0,${H} Z`;
-  const gid = `grad-${color.replace("#", "")}-${values.length}`;
+interface SparkTooltipProps {
+  active?: boolean;
+  payload?: { value: number }[];
+  formatter?: (v: number) => string;
+}
+
+function SparkTooltip({ active, payload, formatter }: SparkTooltipProps) {
+  if (!active || !payload?.length) return null;
+  const val = payload[0].value;
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="h-10 w-full" preserveAspectRatio="none">
-      <defs>
-        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.25" />
-          <stop offset="100%" stopColor={color} stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <path d={fill} fill={`url(#${gid})`} />
-      <path d={d} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <div className="rounded-lg border border-[#363650] bg-[#13131f] px-2.5 py-1.5 shadow-2xl">
+      <p className="font-mono text-[11px] font-bold text-[#f8f8fc]">
+        {formatter ? formatter(val) : val.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+      </p>
+    </div>
+  );
+}
+
+function Sparkline({ values, color = "#00d4aa", formatter }: {
+  values: number[];
+  color?: string;
+  formatter?: (v: number) => string;
+}) {
+  if (values.length < 2) return <div className="h-10 w-full" />;
+  const data = values.map((v, i) => ({ i, v }));
+  const gradId = `spark-${color.replace(/[^a-z0-9]/gi, "")}-${values.length}`;
+  return (
+    <ResponsiveContainer width="100%" height={40}>
+      <AreaChart data={data} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
+        <defs>
+          <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity={0.25} />
+            <stop offset="100%" stopColor={color} stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <Tooltip
+          content={<SparkTooltip formatter={formatter} />}
+          cursor={{ stroke: color + "50", strokeWidth: 1 }}
+        />
+        <Area
+          type="monotone"
+          dataKey="v"
+          stroke={color}
+          strokeWidth={1.5}
+          fill={`url(#${gradId})`}
+          dot={false}
+          activeDot={{ r: 3, fill: color, strokeWidth: 0 }}
+          isAnimationActive={false}
+        />
+      </AreaChart>
+    </ResponsiveContainer>
   );
 }
 
 // ── Stat card ─────────────────────────────────────────────────────────────
 
-function StatCard({ label, value, sub, values, color }: {
-  label: string; value: string; sub?: string; values: number[]; color?: string;
+function StatCard({ label, value, sub, values, color, sparkFormatter }: {
+  label: string; value: string; sub?: string; values: number[]; color?: string; sparkFormatter?: (v: number) => string;
 }) {
   const t = trend(values);
   const accent = color ?? "#00d4aa";
@@ -209,11 +238,10 @@ function StatCard({ label, value, sub, values, color }: {
         <p className="font-mono text-2xl font-bold text-[#f8f8fc]">{value}</p>
         {sub && <p className="mt-0.5 font-mono text-[10px] text-[#8585aa]">{sub}</p>}
       </div>
-      <Sparkline values={values} color={accent} />
+      <Sparkline values={values} color={accent} formatter={sparkFormatter} />
     </div>
   );
 }
-
   function YouTubeSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
     const grouped = groupSnapshots(snapshots, granularity, ["subscribers", "totalViews"], []);
     const subs = grouped.map((r) => r.data.subscribers);
@@ -833,10 +861,10 @@ function StripeSection({ snapshots, granularity }: { snapshots: Snapshot[]; gran
 
       {/* ── Revenue row ── */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard label="Total Revenue"   value={fmt(totalRevenue, "currency")} values={revenue}      color="#635bff" />
+        <StatCard label="Total Revenue"   value={fmt(totalRevenue, "currency")} values={revenue}      color="#635bff" sparkFormatter={(v) => fmt(v, "currency")} />
         <StatCard label="Transactions"    value={fmt(totalTx)}                  values={txCount}      color="#635bff" />
         <StatCard label="New Customers"   value={fmt(totalNew)}                 values={newCustomers} color="#00d4aa" />
-        <StatCard label="Avg Order Val"   value={fmt(avgOrderVal, "currency")}  sub={`${fmt(totalRefunds, "currency")} refunds`} values={revenue.length ? [avgOrderVal] : []} color="#f59e0b" />
+        <StatCard label="Avg Order Val"   value={fmt(avgOrderVal, "currency")}  sub={`${fmt(totalRefunds, "currency")} refunds`} values={revenue.length ? [avgOrderVal] : []} color="#f59e0b" sparkFormatter={(v) => fmt(v, "currency")} />
       </div>
 
       {/* ── Subscription health row (only when subscription data exists) ── */}
@@ -854,6 +882,7 @@ function StripeSection({ snapshots, granularity }: { snapshots: Snapshot[]; gran
               sub="monthly recurring"
               values={mrrSeries}
               color="#a78bfa"
+              sparkFormatter={(v) => fmt(v, "currency")}
             />
             <StatCard
               label="Active Subs"
@@ -868,6 +897,7 @@ function StripeSection({ snapshots, granularity }: { snapshots: Snapshot[]; gran
               sub="avg per subscriber/mo"
               values={grouped.map((r) => r.data.arpu)}
               color="#635bff"
+              sparkFormatter={(v) => fmt(v, "currency")}
             />
             <StatCard
               label="Churn"
@@ -2640,9 +2670,42 @@ export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots,
   );
 
   const [activeSection, setActiveSection] = useState<PlatformTab>("overview");
-  const [timeRange, setTimeRange]         = useState<TimeRange>("30d");
-  const [granularity, setGranularity]     = useState<Granularity>("day");
-  const [customRange, setCustomRange]     = useState<CustomRange | null>(null);
+
+  // ── Persisted filter state (survives tab switches) ──────────────────────
+  const [timeRange, setTimeRange] = useState<TimeRange>(() => {
+    if (typeof window === "undefined") return "30d";
+    const saved = localStorage.getItem("analytics_timeRange");
+    return (saved as TimeRange | null) ?? "30d";
+  });
+  const [granularity, setGranularity] = useState<Granularity>(() => {
+    if (typeof window === "undefined") return "day";
+    const saved = localStorage.getItem("analytics_granularity");
+    return (saved as Granularity | null) ?? "day";
+  });
+  const [customRange, setCustomRange] = useState<CustomRange | null>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const saved = localStorage.getItem("analytics_customRange");
+      return saved ? (JSON.parse(saved) as CustomRange) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  // Persist whenever any filter changes
+  useEffect(() => {
+    localStorage.setItem("analytics_timeRange", timeRange);
+  }, [timeRange]);
+  useEffect(() => {
+    localStorage.setItem("analytics_granularity", granularity);
+  }, [granularity]);
+  useEffect(() => {
+    if (customRange) {
+      localStorage.setItem("analytics_customRange", JSON.stringify(customRange));
+    } else {
+      localStorage.removeItem("analytics_customRange");
+    }
+  }, [customRange]);
 
   // Share report state
   const [shareState, setShareState] = useState<"idle" | "loading" | "copied" | "error">("idle");

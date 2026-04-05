@@ -4197,6 +4197,25 @@ import { createServer } from 'http';
 
 const SYNC_SECRET   = g('SYNC_SECRET');
 const TRIGGER_PORT  = parseInt(g('TRIGGER_PORT') || '4242', 10);
+const HEARTBEAT_URL = g('HEARTBEAT_URL') || '';
+
+/**
+ * Ping an uptime heartbeat URL (e.g. BetterStack / UptimeRobot) after every
+ * successful daily sync so you know the daemon is alive and healthy.
+ * Set HEARTBEAT_URL in .env — leave blank to disable.
+ */
+async function pingHeartbeat() {
+  if (!HEARTBEAT_URL) return;
+  try {
+    await fetch(HEARTBEAT_URL, {
+      method: 'GET',
+      signal: AbortSignal.timeout(5_000),
+    });
+    logOk('[heartbeat] ping sent');
+  } catch (e) {
+    logFail(`[heartbeat] ping failed: ${e.message}`);
+  }
+}
 
 function startTriggerServer() {
   if (!SYNC_SECRET) {
@@ -4299,6 +4318,7 @@ if (backfillMode) {
   await checkAlerts();
   await checkGoals();
   await sendDailyDigests();
+  await pingHeartbeat();
 
   // 2. Auto-backfill loop — every 30 minutes
   setInterval(async () => {
@@ -4311,6 +4331,7 @@ if (backfillMode) {
     await checkAlerts();
     await checkGoals();
     await sendDailyDigests();
+    await pingHeartbeat();
   }, 'daily-sync+alerts+digest');
 
 } else {

@@ -13,15 +13,17 @@ export async function GET() {
   const db = createServiceClient();
   const { data, error } = await db
     .from("users")
-    .select("alert_rules, goals")
+    .select("alert_rules, goals, digest_subscribed, digest_day")
     .eq("id", user.id)
     .maybeSingle();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   return NextResponse.json({
-    alertRules: data?.alert_rules ?? null,
-    goals: data?.goals ?? null,
+    alertRules:        data?.alert_rules        ?? null,
+    goals:             data?.goals              ?? null,
+    digestSubscribed:  data?.digest_subscribed  ?? false,
+    digestDay:         data?.digest_day         ?? 1, // Monday default
   });
 }
 
@@ -43,6 +45,8 @@ export async function PATCH(req: NextRequest) {
   const update: Record<string, unknown> = {};
   if ("alertRules" in body) update.alert_rules = body.alertRules;
   if ("goals" in body) update.goals = body.goals;
+  if ("digestSubscribed" in body) update.digest_subscribed = body.digestSubscribed;
+  if ("digestDay" in body) update.digest_day = body.digestDay;
 
   if (Object.keys(update).length === 0) {
     return NextResponse.json({ error: "Nothing to update" }, { status: 400 });

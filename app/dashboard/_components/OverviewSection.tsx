@@ -12,6 +12,8 @@ import {
   Tooltip,
   Legend,
   Area,
+  ReferenceLine,
+  Brush,
 } from "recharts";
 import type { Snapshot } from "./DashboardShell";
 import { FunnelSection } from "./AnalyticsTab";
@@ -318,83 +320,134 @@ function buildChartData(
   snapshots: Snapshot[],
   report: ReportType,
   granularity: Granularity = "day",
-  metaCurrency = "USD"
-): { data: Record<string, string | number>[]; lines: { key: string; color: string; label: string; yAxisId: string; type: "line" | "bar" | "area" }[]; currencyMismatch: boolean } {
+  metaCurrency = "USD",
+  allSnapshots?: Snapshot[],
+): { data: Record<string, string | number>[]; lines: { key: string; color: string; label: string; yAxisId: string; type: "line" | "bar" | "area" }[]; currencyMismatch: boolean; primaryKey: string } {
   // Stripe is always USD (amounts in cents). Meta can be any currency.
   // Cross-currency metrics (profit, ROAS, CAC) are only valid when both use the same currency.
   const sameCurrency = metaCurrency === "USD";
 
-  // Step 1 — aggregate raw snapshots into period buckets
+  // ── Step 1: build a period→row aggregation helper ────────────────────────
   type RawBucket = { revenue: number; sessions: number; users: number; conversions: number; spend: number; clicks: number; impressions: number; bounceRateSum: number; bounceRateCount: number; txCount: number };
-  const byPeriod: Record<string, RawBucket> = {};
 
-  for (const snap of snapshots) {
-    const pk = getPeriodKey(snap.date, granularity);
-    if (!byPeriod[pk]) {
-      byPeriod[pk] = { revenue: 0, sessions: 0, users: 0, conversions: 0, spend: 0, clicks: 0, impressions: 0, bounceRateSum: 0, bounceRateCount: 0, txCount: 0 };
+  function aggregateToBuckets(snaps: Snapshot[]): Record<string, RawBucket> {
+    const byPeriod: Record<string, RawBucket> = {};
+    for (const snap of snaps) {
+      const pk = getPeriodKey(snap.date, granularity);
+      if (!byPeriod[pk]) {
+        byPeriod[pk] = { revenue: 0, sessions: 0, users: 0, conversions: 0, spend: 0, clicks: 0, impressions: 0, bounceRateSum: 0, bounceRateCount: 0, txCount: 0 };
+      }
+      const d = byPeriod[pk];
+      if (snap.provider === "stripe") {
+        d.revenue += getField(snap, "revenue");
+        d.txCount += getField(snap, "txCount");
+      }
+      if (snap.provider === "ga4") {
+        d.sessions += getField(snap, "sessions");
+        d.users += getField(snap, "users");
+        d.conversions += getField(snap, "conversions");
+        d.bounceRateSum += getField(snap, "bounceRate");
+        d.bounceRateCount += 1;
+      }
+      if (snap.provider === "meta") {
+        d.spend += getField(snap, "spend");
+        d.clicks += getField(snap, "clicks");
+        d.impressions += getField(snap, "impressions");
+      }
     }
-    const d = byPeriod[pk];
-    if (snap.provider === "stripe") {
-      d.revenue += getField(snap, "revenue");
-      d.txCount += getField(snap, "txCount");
-    }
-    if (snap.provider === "ga4") {
-      d.sessions += getField(snap, "sessions");
-      d.users += getField(snap, "users");
-      d.conversions += getField(snap, "conversions");
-      d.bounceRateSum += getField(snap, "bounceRate");
-      d.bounceRateCount += 1;
-    }
-    if (snap.provider === "meta") {
-      d.spend += getField(snap, "spend");
-      d.clicks += getField(snap, "clicks");
-      d.impressions += getField(snap, "impressions");
+    return byPeriod;
+  }
+
+  function bucketsToRows(byPeriod: Record<string, RawBucket>) {
+    return Object.entries(byPeriod)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([pk, vals]) => {
+        const revenueUSD = vals.revenue / 100;
+        const spendUSD = vals.spend;
+        const bounceRate = vals.bounceRateCount > 0 ? vals.bounceRateSum / vals.bounceRateCount : 0;
+        const profit           = sameCurrency ? revenueUSD - spendUSD : 0;
+        const roas             = sameCurrency && spendUSD > 0 ? revenueUSD / spendUSD : 0;
+        const convRate = vals.sessions > 0 ? (vals.conversions / vals.sessions) * 100 : 0;
+        const ctr = vals.impressions > 0 ? (vals.clicks / vals.impressions) * 100 : 0;
+        const revenuePerVisitor = vals.sessions > 0 ? revenueUSD / vals.sessions : 0;
+        const cpc              = sameCurrency && vals.clicks > 0 ? spendUSD / vals.clicks : 0;
+        const aov = vals.txCount > 0 ? revenueUSD / vals.txCount : 0;
+        const cac              = sameCurrency && vals.conversions > 0 ? spendUSD / vals.conversions : 0;
+        return {
+          _pk: pk,
+          date: fmtPeriodKey(pk, granularity),
+          revenue: parseFloat(revenueUSD.toFixed(2)),
+          sessions: vals.sessions,
+          users: vals.users,
+          conversions: vals.conversions,
+          spend: parseFloat(spendUSD.toFixed(2)),
+          clicks: vals.clicks,
+          impressions: vals.impressions,
+          profit: parseFloat(profit.toFixed(2)),
+          roas: parseFloat(roas.toFixed(2)),
+          convRate: parseFloat(convRate.toFixed(2)),
+          ctr: parseFloat(ctr.toFixed(2)),
+          bounceRate: parseFloat(bounceRate.toFixed(2)),
+          txCount: vals.txCount,
+          revenuePerVisitor: parseFloat(revenuePerVisitor.toFixed(4)),
+          cpc: parseFloat(cpc.toFixed(2)),
+          aov: parseFloat(aov.toFixed(2)),
+          cac: parseFloat(cac.toFixed(2)),
+        };
+      });
+  }
+
+  // Step 2 — aggregate raw snapshots into period buckets
+  const sorted = bucketsToRows(aggregateToBuckets(snapshots));
+
+  // Step 3 — compute prior-period rows (same window length shifted backwards)
+  let priorRows: typeof sorted = [];
+  if (allSnapshots && allSnapshots.length > 0 && sorted.length > 0) {
+    // Determine window in days from first/last snapshot date
+    const dates = snapshots.map((s) => s.date).sort();
+    if (dates.length >= 2) {
+      const windowMs = new Date(dates[dates.length - 1]).getTime() - new Date(dates[0]).getTime();
+      const shiftMs = windowMs + 86400000; // full window + 1 day gap
+      const priorSnaps = allSnapshots.filter((s) => {
+        const t = new Date(s.date).getTime();
+        const startT = new Date(dates[0]).getTime();
+        return t >= startT - shiftMs && t < startT;
+      });
+      priorRows = bucketsToRows(aggregateToBuckets(priorSnaps));
     }
   }
 
-  // Step 2 — compute derived metrics per period
-  const sorted = Object.entries(byPeriod)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([pk, vals]) => {
-      const revenueUSD = vals.revenue / 100;
-      const spendUSD = vals.spend;
-      const bounceRate = vals.bounceRateCount > 0 ? vals.bounceRateSum / vals.bounceRateCount : 0;
-      // Only compute cross-currency metrics when Stripe (USD) and Meta share the same currency
-      const profit           = sameCurrency ? revenueUSD - spendUSD : 0;
-      const roas             = sameCurrency && spendUSD > 0 ? revenueUSD / spendUSD : 0;
-      const convRate = vals.sessions > 0 ? (vals.conversions / vals.sessions) * 100 : 0;
-      const ctr = vals.impressions > 0 ? (vals.clicks / vals.impressions) * 100 : 0;
-      const revenuePerVisitor = vals.sessions > 0 ? revenueUSD / vals.sessions : 0;
-      const cpc              = sameCurrency && vals.clicks > 0 ? spendUSD / vals.clicks : 0;
-      const aov = vals.txCount > 0 ? revenueUSD / vals.txCount : 0;
-      const cac              = sameCurrency && vals.conversions > 0 ? spendUSD / vals.conversions : 0;
+  // Step 4 — merge prior-period values into sorted rows (keyed by position index)
+  const mergedSorted = sorted.map((row, i) => {
+    const prior = priorRows[i];
+    if (!prior) return row;
+    const priorEntry: Record<string, number> = {};
+    for (const k of Object.keys(row)) {
+      if (k !== "date" && k !== "_pk" && typeof (row as Record<string, unknown>)[k] === "number") {
+        priorEntry[`prev_${k}`] = ((prior as unknown as Record<string, number>)[k]) ?? 0;
+      }
+    }
+    return { ...row, ...priorEntry };
+  });
 
-      return {
-        date: fmtPeriodKey(pk, granularity),
-        revenue: parseFloat(revenueUSD.toFixed(2)),
-        sessions: vals.sessions,
-        users: vals.users,
-        conversions: vals.conversions,
-        spend: parseFloat(spendUSD.toFixed(2)),
-        clicks: vals.clicks,
-        impressions: vals.impressions,
-        profit: parseFloat(profit.toFixed(2)),
-        roas: parseFloat(roas.toFixed(2)),
-        convRate: parseFloat(convRate.toFixed(2)),
-        ctr: parseFloat(ctr.toFixed(2)),
-        bounceRate: parseFloat(bounceRate.toFixed(2)),
-        txCount: vals.txCount,
-        revenuePerVisitor: parseFloat(revenuePerVisitor.toFixed(4)),
-        cpc: parseFloat(cpc.toFixed(2)),
-        aov: parseFloat(aov.toFixed(2)),
-        cac: parseFloat(cac.toFixed(2)),
-      };
-    });
+  // Step 5 — compute anomaly flags for the primary series (first non-bar line)
+  function markAnomalies(rows: typeof mergedSorted, key: string): typeof mergedSorted {
+    const vals = rows.map((r) => ((r as Record<string, unknown>)[key] as number) ?? 0);
+    const mean = vals.reduce((a, b) => a + b, 0) / (vals.length || 1);
+    const variance = vals.reduce((a, b) => a + (b - mean) ** 2, 0) / (vals.length || 1);
+    const std = Math.sqrt(variance);
+    return rows.map((r, i) => ({
+      ...r,
+      [`${key}_anomaly`]: std > 0 && Math.abs(vals[i] - mean) > 2 * std ? 1 : 0,
+    }));
+  }
 
   if (report === "business_growth") {
+    const data = markAnomalies(mergedSorted, "revenue");
     return {
       currencyMismatch: !sameCurrency,
-      data: sorted,
+      data,
+      primaryKey: "revenue",
       lines: [
         { key: "revenue", color: COLORS.revenue, label: "Revenue ($)", yAxisId: "left", type: "area" },
         { key: "users", color: COLORS.users, label: "Users", yAxisId: "right", type: "line" },
@@ -404,9 +457,11 @@ function buildChartData(
   }
 
   if (report === "revenue_vs_traffic") {
+    const data = markAnomalies(mergedSorted, "revenue");
     return {
       currencyMismatch: !sameCurrency,
-      data: sorted,
+      data,
+      primaryKey: "revenue",
       lines: [
         { key: "revenue", color: COLORS.revenue, label: "Revenue ($)", yAxisId: "left", type: "bar" },
         { key: "sessions", color: COLORS.sessions, label: "Sessions", yAxisId: "right", type: "line" },
@@ -415,9 +470,11 @@ function buildChartData(
   }
 
   if (report === "ad_efficiency") {
+    const data = markAnomalies(mergedSorted, "spend");
     return {
       currencyMismatch: !sameCurrency,
-      data: sorted,
+      data,
+      primaryKey: "spend",
       lines: [
         { key: "spend", color: COLORS.spend, label: `Ad Spend (${metaCurrency})`, yAxisId: "left", type: "bar" },
         { key: "revenue", color: COLORS.revenue, label: "Revenue ($)", yAxisId: "left", type: "area" },
@@ -427,9 +484,11 @@ function buildChartData(
   }
 
   if (report === "customer_journey") {
+    const data = markAnomalies(mergedSorted, "sessions");
     return {
       currencyMismatch: !sameCurrency,
-      data: sorted,
+      data,
+      primaryKey: "sessions",
       lines: [
         { key: "sessions", color: COLORS.sessions, label: "Sessions", yAxisId: "left", type: "bar" },
         { key: "conversions", color: COLORS.conversions, label: "Conversions", yAxisId: "right", type: "line" },
@@ -439,9 +498,11 @@ function buildChartData(
   }
 
   if (report === "profit_overview") {
+    const data = markAnomalies(mergedSorted, "revenue");
     return {
       currencyMismatch: !sameCurrency,
-      data: sorted,
+      data,
+      primaryKey: "revenue",
       lines: [
         { key: "revenue", color: COLORS.revenue, label: "Revenue ($)", yAxisId: "left", type: "area" },
         { key: "spend", color: COLORS.spend, label: `Ad Spend (${metaCurrency})`, yAxisId: "left", type: "area" },
@@ -452,9 +513,11 @@ function buildChartData(
 
   // engagement_quality
   if (report === "engagement_quality") {
+    const data = markAnomalies(mergedSorted, "convRate");
     return {
       currencyMismatch: !sameCurrency,
-      data: sorted,
+      data,
+      primaryKey: "convRate",
       lines: [
         { key: "convRate", color: COLORS.convRate, label: "Conv Rate (%)", yAxisId: "left", type: "line" },
         { key: "ctr", color: COLORS.ctr, label: "CTR (%)", yAxisId: "left", type: "line" },
@@ -464,9 +527,11 @@ function buildChartData(
   }
 
   if (report === "revenue_per_visitor") {
+    const data = markAnomalies(mergedSorted, "revenuePerVisitor");
     return {
       currencyMismatch: !sameCurrency,
-      data: sorted,
+      data,
+      primaryKey: "revenuePerVisitor",
       lines: [
         { key: "revenuePerVisitor", color: COLORS.revenue, label: "Revenue/Visitor ($)", yAxisId: "left", type: "area" },
         { key: "sessions", color: COLORS.sessions, label: "Sessions", yAxisId: "right", type: "bar" },
@@ -475,9 +540,11 @@ function buildChartData(
   }
 
   if (report === "ad_spend_vs_clicks") {
+    const data = markAnomalies(mergedSorted, "spend");
     return {
       currencyMismatch: !sameCurrency,
-      data: sorted,
+      data,
+      primaryKey: "spend",
       lines: [
         { key: "spend", color: COLORS.spend, label: `Ad Spend (${metaCurrency})`, yAxisId: "left", type: "bar" },
         { key: "clicks", color: COLORS.clicks, label: "Clicks", yAxisId: "right", type: "line" },
@@ -487,9 +554,11 @@ function buildChartData(
   }
 
   if (report === "daily_transactions") {
+    const data = markAnomalies(mergedSorted, "txCount");
     return {
       currencyMismatch: !sameCurrency,
-      data: sorted,
+      data,
+      primaryKey: "txCount",
       lines: [
         { key: "txCount", color: COLORS.revenue, label: "Transactions", yAxisId: "left", type: "bar" },
         { key: "aov", color: COLORS.users, label: "Avg Order Value ($)", yAxisId: "right", type: "line" },
@@ -498,9 +567,11 @@ function buildChartData(
   }
 
   if (report === "impressions_vs_sessions") {
+    const data = markAnomalies(mergedSorted, "impressions");
     return {
       currencyMismatch: !sameCurrency,
-      data: sorted,
+      data,
+      primaryKey: "impressions",
       lines: [
         { key: "impressions", color: COLORS.impressions, label: "Impressions", yAxisId: "left", type: "bar" },
         { key: "sessions", color: COLORS.sessions, label: "Sessions", yAxisId: "right", type: "area" },
@@ -510,9 +581,11 @@ function buildChartData(
   }
 
   if (report === "cac_trend") {
+    const data = markAnomalies(mergedSorted, "cac");
     return {
       currencyMismatch: !sameCurrency,
-      data: sorted,
+      data,
+      primaryKey: "cac",
       lines: [
         { key: "cac", color: COLORS.spend, label: `CAC (${metaCurrency})`, yAxisId: "left", type: "line" },
         { key: "conversions", color: COLORS.conversions, label: "Conversions", yAxisId: "right", type: "bar" },
@@ -523,8 +596,8 @@ function buildChartData(
 
   if (report === "weekly_momentum") {
     // 7-day rolling average
-    const rolling = sorted.map((row, i) => {
-      const window = sorted.slice(Math.max(0, i - 6), i + 1);
+    const rolling = mergedSorted.map((row, i) => {
+      const window = mergedSorted.slice(Math.max(0, i - 6), i + 1);
       const avgRevenue = window.reduce((s, r) => s + (r.revenue as number), 0) / window.length;
       const avgSessions = window.reduce((s, r) => s + (r.sessions as number), 0) / window.length;
       return {
@@ -533,9 +606,11 @@ function buildChartData(
         rollingSessions: Math.round(avgSessions),
       };
     });
+    const data = markAnomalies(rolling, "rollingRevenue");
     return {
       currencyMismatch: !sameCurrency,
-      data: rolling,
+      data,
+      primaryKey: "rollingRevenue",
       lines: [
         { key: "rollingRevenue", color: COLORS.revenue, label: "7d Avg Revenue ($)", yAxisId: "left", type: "area" },
         { key: "rollingSessions", color: COLORS.sessions, label: "7d Avg Sessions", yAxisId: "right", type: "line" },
@@ -544,9 +619,11 @@ function buildChartData(
   }
 
   // fallback
+  const data = markAnomalies(mergedSorted, "convRate");
   return {
     currencyMismatch: !sameCurrency,
-    data: sorted,
+    data,
+    primaryKey: "convRate",
     lines: [
       { key: "convRate", color: COLORS.convRate, label: "Conv Rate (%)", yAxisId: "left", type: "line" },
       { key: "ctr", color: COLORS.ctr, label: "CTR (%)", yAxisId: "left", type: "line" },
@@ -709,9 +786,9 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
 
   // Expose timeRange setter for external sync (unused here but keeps interface stable)
 
-  const { data: chartData, lines, currencyMismatch } = useMemo(
-    () => buildChartData(filtered, report, granularity, metaCurrency),
-    [filtered, report, granularity, metaCurrency]
+  const { data: chartData, lines, currencyMismatch, primaryKey } = useMemo(
+    () => buildChartData(filtered, report, granularity, metaCurrency, snapshots),
+    [filtered, report, granularity, metaCurrency, snapshots]
   );
 
   const insights = useMemo(
@@ -833,6 +910,30 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
 
   const hasData = chartData.length > 0;
 
+  // ── Period-over-period % change for the primary key ──────────────────────
+  const popChange = useMemo(() => {
+    if (chartData.length < 2) return null;
+    const half = Math.floor(chartData.length / 2);
+    const currTotal = chartData.slice(half).reduce((s, r) => s + ((r[primaryKey] as number) ?? 0), 0);
+    const prevTotal = chartData.slice(0, half).reduce((s, r) => s + ((r[primaryKey] as number) ?? 0), 0);
+    if (prevTotal === 0) return null;
+    const pct = ((currTotal - prevTotal) / prevTotal) * 100;
+    return { pct: Math.abs(pct).toFixed(1), up: currTotal >= prevTotal };
+  }, [chartData, primaryKey]);
+
+  // ── Average reference value for the primary key ───────────────────────────
+  const avgRefValue = useMemo(() => {
+    if (chartData.length === 0) return null;
+    const vals = chartData.map((r) => (r[primaryKey] as number) ?? 0);
+    return parseFloat((vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(2));
+  }, [chartData, primaryKey]);
+
+  // ── Does prior-period data exist? ─────────────────────────────────────────
+  const hasPriorData = chartData.length > 0 && chartData.some((r) => r[`prev_${primaryKey}`] !== undefined);
+
+  // ── Primary series color ──────────────────────────────────────────────────
+  const primaryColor = lines[0]?.color ?? "#635bff";
+
   return (
     <div className="space-y-8">
 
@@ -913,9 +1014,22 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
         </div>
 
         {/* Report description */}
-        <p className="mb-5 font-mono text-[11px] text-[#8585aa]">
-          {REPORT_TYPES.find((r) => r.key === report)?.description}
-        </p>
+        <div className="mb-5 flex items-center justify-between gap-3 flex-wrap">
+          <p className="font-mono text-[11px] text-[#8585aa]">
+            {REPORT_TYPES.find((r) => r.key === report)?.description}
+          </p>
+          {popChange && (
+            <span
+              className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 font-mono text-[10px] font-semibold ${
+                popChange.up
+                  ? "bg-[#00d4aa]/10 text-[#00d4aa]"
+                  : "bg-red-400/10 text-red-400"
+              }`}
+            >
+              {popChange.up ? "▲" : "▼"} {popChange.pct}% vs prior period
+            </span>
+          )}
+        </div>
 
         {/* Chart */}
         {!hasData ? (
@@ -926,83 +1040,190 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
             </div>
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height={320}>
-            <ComposedChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#363650" vertical={false} />
-              <XAxis
-                dataKey="date"
-                tick={{ fill: "#8585aa", fontSize: 10, fontFamily: "monospace" }}
-                tickLine={false}
-                axisLine={{ stroke: "#363650" }}
-                interval="preserveStartEnd"
-              />
-              <YAxis
-                yAxisId="left"
-                tick={{ fill: "#8585aa", fontSize: 10, fontFamily: "monospace" }}
-                tickLine={false}
-                axisLine={false}
-                width={50}
-              />
-              <YAxis
-                yAxisId="right"
-                orientation="right"
-                tick={{ fill: "#8585aa", fontSize: 10, fontFamily: "monospace" }}
-                tickLine={false}
-                axisLine={false}
-                width={50}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend
-                wrapperStyle={{ fontFamily: "monospace", fontSize: 10, paddingTop: 16 }}
-                formatter={(value) => (
-                  <span style={{ color: "#bcbcd8" }}>{value}</span>
+          <>
+            <ResponsiveContainer width="100%" height={320}>
+              <ComposedChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                <defs>
+                  {lines.map((l) => (
+                    <linearGradient key={`grad-${l.key}`} id={`grad-${l.key}`} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={l.color} stopOpacity={0.15} />
+                      <stop offset="95%" stopColor={l.color} stopOpacity={0.01} />
+                    </linearGradient>
+                  ))}
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#363650" vertical={false} />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fill: "#8585aa", fontSize: 10, fontFamily: "monospace" }}
+                  tickLine={false}
+                  axisLine={{ stroke: "#363650" }}
+                  interval="preserveStartEnd"
+                />
+                <YAxis
+                  yAxisId="left"
+                  tick={{ fill: "#8585aa", fontSize: 10, fontFamily: "monospace" }}
+                  tickLine={false}
+                  axisLine={false}
+                  width={50}
+                />
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
+                  tick={{ fill: "#8585aa", fontSize: 10, fontFamily: "monospace" }}
+                  tickLine={false}
+                  axisLine={false}
+                  width={50}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend
+                  wrapperStyle={{ fontFamily: "monospace", fontSize: 10, paddingTop: 16 }}
+                  formatter={(value) => (
+                    <span style={{ color: "#bcbcd8" }}>{value}</span>
+                  )}
+                />
+
+                {/* Average reference line */}
+                {avgRefValue !== null && avgRefValue > 0 && (
+                  <ReferenceLine
+                    y={avgRefValue}
+                    yAxisId="left"
+                    stroke={primaryColor}
+                    strokeDasharray="4 4"
+                    strokeOpacity={0.4}
+                    label={{
+                      value: `avg ${avgRefValue}`,
+                      position: "insideTopLeft",
+                      fill: primaryColor,
+                      fontSize: 9,
+                      fontFamily: "monospace",
+                      opacity: 0.6,
+                    }}
+                  />
                 )}
-              />
-              {lines.map((l) => {
-                if (l.type === "bar") {
+
+                {/* Prior period dashed overlay — only for the primary series */}
+                {hasPriorData && (
+                  <Line
+                    key={`prev_${primaryKey}`}
+                    dataKey={`prev_${primaryKey}`}
+                    name="Prior period"
+                    stroke={primaryColor}
+                    strokeWidth={1.5}
+                    strokeDasharray="5 3"
+                    strokeOpacity={0.45}
+                    yAxisId="left"
+                    dot={false}
+                    activeDot={false}
+                    legendType="plainline"
+                  />
+                )}
+
+                {lines.map((l) => {
+                  // Custom anomaly dot: renders a ring around outlier points
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  const AnomalyDot = (props: any) => {
+                    const { cx, cy, payload } = props;
+                    if (!cx || !cy) return null;
+                    const isAnomaly = payload[`${l.key}_anomaly`] === 1;
+                    if (!isAnomaly) return null;
+                    return (
+                      <g key={`anom-${cx}-${cy}`}>
+                        <circle cx={cx} cy={cy} r={8} fill="none" stroke={l.color} strokeWidth={1.5} opacity={0.7} />
+                        <circle cx={cx} cy={cy} r={3} fill={l.color} opacity={0.9} />
+                      </g>
+                    );
+                  };
+
+                  if (l.type === "bar") {
+                    return (
+                      <Bar
+                        key={l.key}
+                        dataKey={l.key}
+                        name={l.label}
+                        fill={l.color}
+                        fillOpacity={0.7}
+                        yAxisId={l.yAxisId}
+                        radius={[3, 3, 0, 0]}
+                      />
+                    );
+                  }
+                  if (l.type === "area") {
+                    return (
+                      <Area
+                        key={l.key}
+                        dataKey={l.key}
+                        name={l.label}
+                        stroke={l.color}
+                        fill={`url(#grad-${l.key})`}
+                        strokeWidth={2}
+                        yAxisId={l.yAxisId}
+                        dot={AnomalyDot}
+                        activeDot={{ r: 4, strokeWidth: 0 }}
+                      />
+                    );
+                  }
                   return (
-                    <Bar
-                      key={l.key}
-                      dataKey={l.key}
-                      name={l.label}
-                      fill={l.color}
-                      fillOpacity={0.7}
-                      yAxisId={l.yAxisId}
-                      radius={[3, 3, 0, 0]}
-                    />
-                  );
-                }
-                if (l.type === "area") {
-                  return (
-                    <Area
+                    <Line
                       key={l.key}
                       dataKey={l.key}
                       name={l.label}
                       stroke={l.color}
-                      fill={l.color}
-                      fillOpacity={0.08}
                       strokeWidth={2}
                       yAxisId={l.yAxisId}
-                      dot={false}
+                      dot={AnomalyDot}
                       activeDot={{ r: 4, strokeWidth: 0 }}
                     />
                   );
-                }
-                return (
-                  <Line
-                    key={l.key}
-                    dataKey={l.key}
-                    name={l.label}
-                    stroke={l.color}
-                    strokeWidth={2}
-                    yAxisId={l.yAxisId}
+                })}
+
+                {/* Brush for zooming */}
+                <Brush
+                  dataKey="date"
+                  height={22}
+                  stroke="#363650"
+                  fill="#13131f"
+                  travellerWidth={6}
+                  startIndex={Math.max(0, chartData.length - Math.min(chartData.length, 30))}
+                  tickFormatter={() => ""}
+                >
+                  <Area
+                    dataKey={primaryKey}
+                    stroke={primaryColor}
+                    fill={primaryColor}
+                    fillOpacity={0.08}
+                    strokeWidth={1}
                     dot={false}
-                    activeDot={{ r: 4, strokeWidth: 0 }}
+                    isAnimationActive={false}
+                    yAxisId="left"
                   />
-                );
-              })}
-            </ComposedChart>
-          </ResponsiveContainer>
+                </Brush>
+              </ComposedChart>
+            </ResponsiveContainer>
+
+            {/* Anomaly legend hint */}
+            {chartData.some((r) => r[`${primaryKey}_anomaly`] === 1) && (
+              <p className="mt-2 font-mono text-[9px] text-[#8585aa]">
+                <span className="inline-flex items-center gap-1 mr-1">
+                  <svg width="10" height="10" viewBox="0 0 10 10">
+                    <circle cx="5" cy="5" r="4" fill="none" stroke={primaryColor} strokeWidth="1" opacity="0.7" />
+                    <circle cx="5" cy="5" r="2" fill={primaryColor} opacity="0.9" />
+                  </svg>
+                </span>
+                Circled points are statistical anomalies (&gt;2σ from mean).
+                {hasPriorData && " Dashed line = prior period."}
+              </p>
+            )}
+            {!chartData.some((r) => r[`${primaryKey}_anomaly`] === 1) && hasPriorData && (
+              <p className="mt-2 font-mono text-[9px] text-[#8585aa]">
+                Dashed line = prior period · Drag the brush below to zoom
+              </p>
+            )}
+            {!chartData.some((r) => r[`${primaryKey}_anomaly`] === 1) && !hasPriorData && (
+              <p className="mt-2 font-mono text-[9px] text-[#8585aa]">
+                Drag the handles below the chart to zoom into a sub-range
+              </p>
+            )}
+          </>
         )}
       </div>
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
+import { sendWelcomeEmail, sendPaymentFailedEmail } from "@/lib/email";
 
 // Stripe sends raw body — Next.js must NOT parse it
 export const runtime = "nodejs";
@@ -66,6 +67,17 @@ export async function POST(req: NextRequest) {
           .eq("id", userId);
 
         if (error) console.error("[webhook] checkout.session.completed update error:", error);
+
+        // Send welcome email (fire-and-forget — don't fail the webhook if email fails)
+        if (!error) {
+          const customerEmail =
+            session.customer_details?.email ?? session.customer_email ?? null;
+          if (customerEmail) {
+            sendWelcomeEmail(customerEmail).catch((e) =>
+              console.error("[webhook] sendWelcomeEmail failed:", e)
+            );
+          }
+        }
       }
       break;
     }
@@ -106,20 +118,43 @@ export async function POST(req: NextRequest) {
       break;
     }
 
-    // ── Invoice payment failed → optionally revoke ─────────────────────
+    // ── Invoice payment failed → email user, keep access during retries ──
+    // Do NOT revoke premium here. Stripe retries automatically (typically
+    // 3–4 attempts over ~1 week per your Smart Retries settings). Access is
+    // only revoked when all retries are exhausted and Stripe fires
+    // customer.subscription.deleted — which we already handle above.
     case "invoice.payment_failed": {
       const invoice = event.data.object as Stripe.Invoice;
-      const customerId =
-        typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id;
 
-      if (customerId) {
-        const { error } = await admin
-          .from("users")
-          .update({ is_premium: false })
-          .eq("stripe_customer_id", customerId);
+      // Only act on subscription invoices (ignore one-off charges)
+      const invoiceSubscription = (invoice as unknown as Record<string, unknown>).subscription;
+      if (!invoiceSubscription) break;
 
-        if (error) console.error("[webhook] invoice.payment_failed error:", error);
+      // Resolve customer email — try invoice fields first, fall back to
+      // fetching the Stripe customer object
+      let customerEmail: string | null = invoice.customer_email ?? null;
+
+      if (!customerEmail) {
+        const customerId =
+          typeof invoice.customer === "string"
+            ? invoice.customer
+            : (invoice.customer as Stripe.Customer | null)?.id ?? null;
+        if (customerId) {
+          try {
+            const customer = await stripe.customers.retrieve(customerId);
+            if (!customer.deleted) customerEmail = (customer as Stripe.Customer).email ?? null;
+          } catch (e) {
+            console.error("[webhook] invoice.payment_failed — could not fetch customer:", e);
+          }
+        }
       }
+
+      if (customerEmail) {
+        sendPaymentFailedEmail(customerEmail).catch((e) =>
+          console.error("[webhook] sendPaymentFailedEmail failed:", e)
+        );
+      }
+
       break;
     }
 

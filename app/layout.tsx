@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     siteName: "Fold",
     images: [
       {
-        url: "/fold-primary-dark.svg",
+        url: "/api/og",
         width: 1200,
         height: 630,
         alt: "Fold — AI Business Intelligence Dashboard",
@@ -45,7 +45,7 @@ export const metadata: Metadata = {
     title: "Fold — AI Business Intelligence for Founders",
     description:
       "Your entire business, understood in seconds. AI-powered dashboard for founders.",
-    images: ["/fold-primary-dark.svg"],
+    images: ["/api/og"],
   },
 };
 

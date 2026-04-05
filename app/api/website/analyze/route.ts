@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import Anthropic from "@anthropic-ai/sdk";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 // Allow up to 90s — screenshot fetch + Claude vision takes longer
 export const maxDuration = 90;
@@ -300,6 +301,15 @@ export async function POST() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  // 5 website analyses per hour per user (expensive — screenshot + Claude vision)
+  const rl = checkRateLimit(`website-analyze:${user.id}`, 5, 60 * 60_000);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Too many analysis requests. Please wait before analyzing again." },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } }
+    );
+  }
 
   const db = createServiceClient();
 
