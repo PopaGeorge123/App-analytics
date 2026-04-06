@@ -1319,8 +1319,8 @@ export default function OverviewTab({
         </div>
       )}
 
-      {/* ── Onboarding wizard — shown when premium + no platforms connected ── */}
-      {isPremium && !isDemoMode && connectedPlatforms.length === 0 && (
+      {/* ── Onboarding wizard — shown when no platforms connected ── */}
+      {!isDemoMode && connectedPlatforms.length === 0 && (
         <OnboardingWizard onNavigate={onNavigate} />
       )}
 
@@ -1356,49 +1356,34 @@ export default function OverviewTab({
         </div>
       )}
 
-      {/* ── Premium gate ─────────────────────────────────────── */}
+      {/* ── Free-plan: data-sync awareness banner ────────────── */}
       {!isPremium && (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 py-16 px-6 text-center">
-          <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-[#a78bfa]/20 bg-[#a78bfa]/10 text-[#a78bfa]">
-            <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+        <div className="flex items-start gap-4 rounded-2xl border border-[#a78bfa]/25 bg-[#a78bfa]/8 px-5 py-4">
+          <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#a78bfa]/15 text-[#a78bfa]">
+            <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
             </svg>
           </div>
-          <p className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#a78bfa] mb-2">Premium Required</p>
-          <h2 className="font-mono text-xl font-bold text-[#f8f8fc] mb-3">Unlock your full dashboard</h2>
-          <p className="text-sm text-[#bcbcd8] max-w-sm mb-6">
-            Get real-time business intelligence with live data from all your connected tools.
-          </p>
-          <div className="grid grid-cols-2 gap-2 mb-7 w-full max-w-sm text-left">
-            {[
-              "KPI dashboard with trends",
-              "Website health score",
-              "Stripe & GA4 analytics",
-              "Meta Ads performance",
-              "AI business advisor",
-              "Daily automated insights",
-            ].map((f) => (
-              <div key={f} className="flex items-center gap-2">
-                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="#00d4aa" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                </svg>
-                <span className="font-mono text-[10px] text-[#bcbcd8]">{f}</span>
-              </div>
-            ))}
+          <div className="flex-1 min-w-0">
+            <p className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#a78bfa] mb-1">Data syncing in progress</p>
+            <p className="font-mono text-[11px] text-[#e0e0f0] leading-relaxed">
+              Your dashboard will populate automatically as each integration syncs. First-time data collection can take up to <span className="text-[#f8f8fc] font-semibold">24 hours</span> — check back soon and your KPIs, trends, and insights will appear here.
+            </p>
+            <p className="mt-2 font-mono text-[10px] text-[#8585aa]">
+              No action needed · syncing happens in the background
+            </p>
           </div>
           <button
             onClick={handleUpgrade}
             disabled={upgradeLoading}
-            className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-7 py-3 font-mono text-sm font-bold text-[#13131f] hover:bg-[#00bfa0] transition disabled:opacity-50"
+            className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-[#a78bfa] px-3 py-1.5 font-mono text-[10px] font-bold text-[#13131f] hover:bg-[#9168f0] transition disabled:opacity-50"
           >
-            {upgradeLoading ? "Redirecting…" : "Start 3-day free trial →"}
+            {upgradeLoading ? "…" : "Upgrade →"}
           </button>
-          <p className="mt-3 font-mono text-[10px] text-[#8585aa]">$29/mo after trial · Cancel anytime</p>
         </div>
       )}
 
-      {/* ── Premium content ──────────────────────────────────── */}
-      {isPremium && <>
+      {/* ── Insights & alerts (premium only) ─────────────────── */}
 
       {/* ── Active alert banners ──────────────────────────── */}
       {isPremium && activeAlerts.length > 0 && (
@@ -1773,8 +1758,6 @@ export default function OverviewTab({
           </div>
         </section>
       )}
-
-      </>}
 
     </div>
   );
