@@ -18,7 +18,7 @@ const UI_INTEGRATIONS = LIVE_INTEGRATIONS.map((cat) => ({
   connectUrl: cat.connectUrl || "",
   color: cat.color,
   icon: (
-    <svg width="14" height="14" viewBox={cat.iconViewBox || "0 0 24 24"} fill="currentColor" dangerouslySetInnerHTML={{ __html: cat.icon }} />
+    <img src={cat.icon} alt={cat.name} width={14} height={14} className="object-contain" />
   ),
   category: cat.category,
 }));
@@ -1115,7 +1115,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms }: Se
               >
                 Start free trial →
               </a>
-              <p className="font-mono text-[9px] text-[#58588a]">No card required during trial · Cancel anytime</p>
+              <p className="font-mono text-[9px] text-[#58588a]">Card required · $29/mo after 3 days · cancel anytime</p>
             </div>
           )}
         </section>

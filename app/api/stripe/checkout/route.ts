@@ -38,6 +38,9 @@ async function createCheckoutSession() {
     customer: customerId,
     payment_method_types: ["card"],
     mode: "subscription",
+    // Card is always required — collected upfront even during the trial.
+    // Stripe will not charge until the trial ends (day 4).
+    payment_method_collection: "always",
     line_items: [
       {
         price: process.env.STRIPE_PREMIUM_PRICE_ID!,

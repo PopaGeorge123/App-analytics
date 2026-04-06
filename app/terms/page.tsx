@@ -70,7 +70,7 @@ export default function TermsPage() {
             <p>
               Fold Analytics is an AI-powered business intelligence platform that connects to
               third-party services (including but not limited to Stripe, Google Analytics 4, Meta
-              Ads, Shopify, Mailchimp, HubSpot, Klaviyo, and 50+ more platforms) to aggregate
+              Ads, Shopify, Mailchimp, and more platforms) to aggregate
               your business data, surface insights, detect anomalies, and provide AI-generated
               recommendations. The Service is intended for use by business founders and operators.
             </p>

@@ -747,7 +747,7 @@ const SETUP_STEPS = LIVE_INTEGRATIONS.map((i, idx) => ({
   connectUrl: i.connectUrl!,
   color: i.color,
   icon: (
-    <svg width="20" height="20" viewBox={i.iconViewBox ?? "0 0 24 24"} dangerouslySetInnerHTML={{ __html: i.icon }} />
+    <img src={i.icon} alt={i.name} width={20} height={20} className="object-contain" />
   ),
 }));
 
@@ -1751,11 +1751,12 @@ export default function OverviewTab({
                   className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
                   style={{ backgroundColor: `${intg.color}18`, color: intg.color }}
                 >
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox={intg.iconViewBox ?? "0 0 24 24"}
-                    dangerouslySetInnerHTML={{ __html: intg.icon }}
+                  <img
+                    src={intg.icon}
+                    alt={intg.name}
+                    width={16}
+                    height={16}
+                    className="object-contain"
                   />
                 </div>
                 <div className="min-w-0">
