@@ -231,7 +231,7 @@ export default function Home() {
       <Nav />
 
       {/* ── HERO ──────────────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden pt-32 pb-24 px-6" aria-label="Hero">
+      <section className="relative overflow-hidden pt-32 pb-24 px-4 sm:px-6" aria-label="Hero">
         <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 h-125 w-225 rounded-full bg-[#00d4aa]/4 blur-3xl" />
         <div className="pointer-events-none absolute top-32 left-0 h-80 w-80 rounded-full bg-[#6366f1]/5 blur-3xl" />
         <div className="pointer-events-none absolute top-20 right-0 h-80 w-80 rounded-full bg-[#00d4aa]/3 blur-3xl" />
@@ -244,21 +244,21 @@ export default function Home() {
                 <span className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#00d4aa]">Free to start — no card needed</span>
               </div>
 
-              <h1 className="mb-6 font-mono text-4xl font-bold leading-tight tracking-tight text-[#f8f8fc] sm:text-5xl lg:text-[3.4rem]">
+              <h1 className="mb-6 font-mono text-[1.75rem] leading-snug font-bold tracking-tight text-[#f8f8fc] sm:text-4xl lg:text-[3.4rem] lg:leading-tight">
                 Stop spending Monday mornings{" "}
                 <span className="text-[#00d4aa]">in spreadsheets<span className="text-white">.</span></span>
               </h1>
 
-              <p className="mb-8 max-w-lg text-base leading-relaxed text-[#bcbcd8] sm:text-lg">
-                Fold connects Stripe, Google Analytics, Meta Ads, Mailchimp, Shopify, and <strong className="text-[#f8f8fc] font-semibold">8 more live integrations</strong> — then tells you <strong className="text-[#f8f8fc] font-semibold">exactly what changed, why it changed, and what to do next</strong>. Before your first coffee.
+              <p className="mb-8 w-full max-w-lg text-sm leading-relaxed text-[#bcbcd8] sm:text-base lg:text-lg">
+                Fold connects Stripe, Google Analytics, Meta Ads, Mailchimp, Shopify, and <strong className="text-[#f8f8fc] font-semibold">8 more live integrations</strong>, understand <strong className="text-[#f8f8fc] font-semibold">exactly what changed, why it changed, and what to do next</strong><br /> Before your first coffee.
               </p>
 
               <div className="mb-8 flex flex-wrap gap-3">
-                <a href="/signup" className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-6 py-3.5 font-mono text-sm font-semibold uppercase tracking-wider text-[#13131f] transition-all hover:bg-[#00bfa0] hover:shadow-[0_0_30px_rgba(0,212,170,0.3)]">
+                <a href="/signup" className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-5 py-3 font-mono text-sm font-semibold uppercase tracking-wider text-[#13131f] transition-all hover:bg-[#00bfa0] hover:shadow-[0_0_30px_rgba(0,212,170,0.3)] sm:px-6 sm:py-3.5">
                   Get started free
                   <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
                 </a>
-                <a href="/login" className="inline-flex items-center gap-2 rounded-xl border border-[#363650] px-6 py-3.5 font-mono text-sm font-semibold uppercase tracking-wider text-[#bcbcd8] transition-all hover:border-[#8585aa] hover:text-[#f8f8fc]">
+                <a href="/login" className="inline-flex items-center gap-2 rounded-xl border border-[#363650] px-5 py-3 font-mono text-sm font-semibold uppercase tracking-wider text-[#bcbcd8] transition-all hover:border-[#8585aa] hover:text-[#f8f8fc] sm:px-6 sm:py-3.5">
                   Sign in
                 </a>
               </div>
