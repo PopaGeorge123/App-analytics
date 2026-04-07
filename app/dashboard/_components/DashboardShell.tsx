@@ -336,6 +336,144 @@ function NotificationBell() {
   );
 }
 
+// ── Per-tab upgrade copy ──────────────────────────────────────────────────
+const UPGRADE_COPY: Record<string, { color: string; icon: React.ReactNode; headline: string; sub: string; features: string[] }> = {
+  analytics: {
+    color: "#635bff",
+    icon: (
+      <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z" />
+      </svg>
+    ),
+    headline: "See exactly which revenue source is growing — and which isn't",
+    sub: "Analytics gives you a unified breakdown of Stripe, Meta Ads, GA4, Shopify, and 30+ more in one view.",
+    features: ["Revenue by source, day & product", "Ad spend vs. revenue ROAS", "Traffic channels & conversion rates", "30-day trend charts per integration"],
+  },
+  growth: {
+    color: "#00d4aa",
+    icon: (
+      <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 015.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941" />
+      </svg>
+    ),
+    headline: "Know your runway before you run out — not after",
+    sub: "Growth shows your real MoM trajectory, forecasts the next 30 days, and tells you if you're on track for your goals.",
+    features: ["MoM revenue & session growth", "30-day AI forecast", "Goal tracking vs. actual", "Cohort-based retention signals"],
+  },
+  customers: {
+    color: "#f59e0b",
+    icon: (
+      <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+      </svg>
+    ),
+    headline: "Find your best customers before they churn",
+    sub: "Customers surfaces your top buyers, at-risk accounts, and new signups — all pulled live from your connected tools.",
+    features: ["Top customers by LTV", "At-risk & churned detection", "New customer acquisition rate", "Segmentation by revenue source"],
+  },
+  website: {
+    color: "#60a5fa",
+    icon: (
+      <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253" />
+      </svg>
+    ),
+    headline: "Fix what's costing you conversions — with a prioritized roadmap",
+    sub: "Website Optimizer scans your site, scores it 0–100, and gives you a prioritized fix list ordered by revenue impact.",
+    features: ["Health score 0–100", "AI-generated fix roadmap", "SEO, performance & UX audit", "Re-scan anytime on demand"],
+  },
+  ai: {
+    color: "#6366f1",
+    icon: (
+      <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+      </svg>
+    ),
+    headline: "Ask your data anything — get answers in plain English",
+    sub: "The AI Advisor reads your Stripe, GA4, Meta Ads, and website data in real time and tells you what to do next.",
+    features: ["Daily automated business insights", "Chat with your real data", "Root-cause analysis on dips", "Multi-source signal fusion"],
+  },
+};
+
+function UpgradeModal({ tab, onClose }: { tab: Tab; onClose: () => void }) {
+  const copy = UPGRADE_COPY[tab];
+  if (!copy) return null;
+
+  // Close on Escape
+  useEffect(() => {
+    function handler(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+
+      {/* Card */}
+      <div
+        className="relative w-full max-w-md rounded-2xl border border-[#363650] bg-[#1c1c2a] p-8 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Close */}
+        <button
+          onClick={onClose}
+          className="absolute right-4 top-4 flex h-7 w-7 items-center justify-center rounded-lg text-[#8585aa] hover:bg-[#363650] hover:text-[#f8f8fc] transition-colors"
+          aria-label="Close"
+        >
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        {/* Icon */}
+        <div
+          className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl border"
+          style={{ borderColor: copy.color + "30", backgroundColor: copy.color + "12", color: copy.color }}
+        >
+          {copy.icon}
+        </div>
+
+        {/* Copy */}
+        <p className="mb-1 font-mono text-[9px] font-semibold uppercase tracking-widest" style={{ color: copy.color }}>
+          Premium Feature
+        </p>
+        <h2 className="mb-2 font-mono text-lg font-bold leading-snug text-[#f8f8fc]">
+          {copy.headline}
+        </h2>
+        <p className="mb-5 text-sm leading-relaxed text-[#bcbcd8]">{copy.sub}</p>
+
+        {/* Feature list */}
+        <ul className="mb-6 space-y-2">
+          {copy.features.map((f) => (
+            <li key={f} className="flex items-center gap-2.5">
+              <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="#00d4aa" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+              </svg>
+              <span className="font-mono text-[11px] text-[#e0e0f0]">{f}</span>
+            </li>
+          ))}
+        </ul>
+
+        {/* CTA */}
+        <a
+          href="/api/stripe/checkout"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#00d4aa] py-3 font-mono text-sm font-bold text-[#13131f] transition hover:bg-[#00bfa0] hover:shadow-[0_0_24px_rgba(0,212,170,0.3)]"
+        >
+          Start 3-day free trial →
+        </a>
+        <p className="mt-2.5 text-center font-mono text-[10px] text-[#8585aa]">$29/mo after trial · Cancel anytime</p>
+      </div>
+    </div>
+  );
+}
+
 function DashboardShellInner({ email, isPremium, connectedPlatforms, snapshots, websiteData, metaCurrency, isSyncing, customers = [] }: DashboardShellProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -344,6 +482,7 @@ function DashboardShellInner({ email, isPremium, connectedPlatforms, snapshots, 
   // The useEffect below immediately corrects the tab from the URL on the client.
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [upgradeModal, setUpgradeModal] = useState<Tab | null>(null);
 
   // Sync tab from URL — runs after hydration so SSR and client HTML always match.
   // Only update when the tab value actually changes to avoid fighting user clicks.
@@ -356,6 +495,12 @@ function DashboardShellInner({ email, isPremium, connectedPlatforms, snapshots, 
   }, [searchParams]);
 
   function navigate(tab: Tab) {
+    // Non-premium users trying to access a locked tab → show contextual upgrade modal
+    const LOCKED_TABS: Tab[] = ["analytics", "growth", "customers", "website", "ai"];
+    if (!isPremium && LOCKED_TABS.includes(tab)) {
+      setUpgradeModal(tab);
+      return;
+    }
     setActiveTab(tab);
     setSidebarOpen(false);
     // Only keep the tab param — drop everything else (OAuth results, syncing, connect, error flags).
@@ -371,6 +516,11 @@ function DashboardShellInner({ email, isPremium, connectedPlatforms, snapshots, 
         hasNoConnections={connectedPlatforms.length === 0}
         onNavigateToSettings={() => navigate("settings")}
       />
+
+      {/* ── Contextual upgrade modal ───────────────────────── */}
+      {upgradeModal && (
+        <UpgradeModal tab={upgradeModal} onClose={() => setUpgradeModal(null)} />
+      )}
 
       {/* ── Mobile overlay ─────────────────────────────────── */}
       {sidebarOpen && (
