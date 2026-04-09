@@ -320,12 +320,13 @@ function buildChartData(
   snapshots: Snapshot[],
   report: ReportType,
   granularity: Granularity = "day",
-  metaCurrency = "USD",
+  adCurrency = "USD",
   allSnapshots?: Snapshot[],
-  stripeCurrency = "USD",
+  revCurrency = "USD",
+  sameCurrencyAll = true,
 ): { data: Record<string, string | number>[]; lines: { key: string; color: string; label: string; yAxisId: string; type: "line" | "bar" | "area" }[]; currencyMismatch: boolean; primaryKey: string } {
-  // Cross-currency metrics (profit, ROAS, CAC) are only valid when both platforms use the same currency.
-  const sameCurrency = metaCurrency === stripeCurrency;
+  // Cross-currency metrics (profit, ROAS, CAC) are only valid when all platforms share one currency.
+  const sameCurrency = sameCurrencyAll;
 
   // ── Step 1: build a period→row aggregation helper ────────────────────────
   type RawBucket = { revenue: number; sessions: number; users: number; conversions: number; spend: number; clicks: number; impressions: number; bounceRateSum: number; bounceRateCount: number; txCount: number };
@@ -476,7 +477,7 @@ function buildChartData(
       data,
       primaryKey: "spend",
       lines: [
-        { key: "spend", color: COLORS.spend, label: `Ad Spend (${metaCurrency})`, yAxisId: "left", type: "bar" },
+        { key: "spend", color: COLORS.spend, label: `Ad Spend (${adCurrency})`, yAxisId: "left", type: "bar" },
         { key: "revenue", color: COLORS.revenue, label: "Revenue ($)", yAxisId: "left", type: "area" },
         { key: "roas", color: COLORS.roas, label: "ROAS (x)", yAxisId: "right", type: "line" },
       ],
@@ -505,7 +506,7 @@ function buildChartData(
       primaryKey: "revenue",
       lines: [
         { key: "revenue", color: COLORS.revenue, label: "Revenue ($)", yAxisId: "left", type: "area" },
-        { key: "spend", color: COLORS.spend, label: `Ad Spend (${metaCurrency})`, yAxisId: "left", type: "area" },
+        { key: "spend", color: COLORS.spend, label: `Ad Spend (${adCurrency})`, yAxisId: "left", type: "area" },
         { key: "profit", color: COLORS.profit, label: "Est. Profit ($)", yAxisId: "left", type: "line" },
       ],
     };
@@ -546,9 +547,9 @@ function buildChartData(
       data,
       primaryKey: "spend",
       lines: [
-        { key: "spend", color: COLORS.spend, label: `Ad Spend (${metaCurrency})`, yAxisId: "left", type: "bar" },
+        { key: "spend", color: COLORS.spend, label: `Ad Spend (${adCurrency})`, yAxisId: "left", type: "bar" },
         { key: "clicks", color: COLORS.clicks, label: "Clicks", yAxisId: "right", type: "line" },
-        { key: "cpc", color: COLORS.roas, label: `CPC (${metaCurrency})`, yAxisId: "left", type: "line" },
+        { key: "cpc", color: COLORS.roas, label: `CPC (${adCurrency})`, yAxisId: "left", type: "line" },
       ],
     };
   }
@@ -587,9 +588,9 @@ function buildChartData(
       data,
       primaryKey: "cac",
       lines: [
-        { key: "cac", color: COLORS.spend, label: `CAC (${metaCurrency})`, yAxisId: "left", type: "line" },
+        { key: "cac", color: COLORS.spend, label: `CAC (${adCurrency})`, yAxisId: "left", type: "line" },
         { key: "conversions", color: COLORS.conversions, label: "Conversions", yAxisId: "right", type: "bar" },
-        { key: "spend", color: COLORS.impressions, label: `Ad Spend (${metaCurrency})`, yAxisId: "left", type: "area" },
+        { key: "spend", color: COLORS.impressions, label: `Ad Spend (${adCurrency})`, yAxisId: "left", type: "area" },
       ],
     };
   }
@@ -638,28 +639,37 @@ function generateInsights(
   snapshots: Snapshot[],
   report: ReportType,
   connectedPlatforms: string[],
-  metaCurrency = "USD",
-  stripeCurrency = "USD",
+  adCurrency = "USD",
+  revCurrency = "USD",
+  sameCurrencyGlobal = true,
 ): { icon: string; title: string; body: string; accent: string }[] {
   const insights: { icon: string; title: string; body: string; accent: string }[] = [];
 
-  // Aggregate totals
+  const REVENUE_PROVIDERS_INS = ["stripe", "lemon-squeezy", "paddle", "shopify", "woocommerce", "gumroad"];
+  const ADS_PROVIDERS_INS = ["meta", "google-ads", "tiktok-ads"];
+  const ANALYTICS_PROVIDERS_INS = ["ga4", "google-analytics", "plausible"];
+
+  const hasRevenue = REVENUE_PROVIDERS_INS.some(p => connectedPlatforms.includes(p));
+  const hasAds = ADS_PROVIDERS_INS.some(p => connectedPlatforms.includes(p));
+  const hasAnalytics = ANALYTICS_PROVIDERS_INS.some(p => connectedPlatforms.includes(p));
+
+  // Aggregate totals across all provider types
   let totalRevenue = 0, totalSessions = 0, totalConversions = 0;
   let totalSpend = 0, totalClicks = 0, totalImpressions = 0, totalTx = 0;
   let bounceSum = 0, bounceCount = 0;
 
   for (const s of snapshots) {
-    if (s.provider === "stripe") {
+    if (REVENUE_PROVIDERS_INS.includes(s.provider)) {
       totalRevenue += getField(s, "revenue");
       totalTx += getField(s, "txCount");
     }
-    if (s.provider === "ga4") {
+    if (ANALYTICS_PROVIDERS_INS.includes(s.provider)) {
       totalSessions += getField(s, "sessions");
       totalConversions += getField(s, "conversions");
       bounceSum += getField(s, "bounceRate");
       bounceCount++;
     }
-    if (s.provider === "meta") {
+    if (ADS_PROVIDERS_INS.includes(s.provider)) {
       totalSpend += getField(s, "spend");
       totalClicks += getField(s, "clicks");
       totalImpressions += getField(s, "impressions");
@@ -667,62 +677,62 @@ function generateInsights(
   }
 
   const revenueUSD = totalRevenue / 100;
-  // Cross-currency metrics are only meaningful when Stripe and Meta share the same currency
-  const sameCurrency = metaCurrency === stripeCurrency;
-  const profit = sameCurrency ? revenueUSD - totalSpend : null;
-  const roas   = sameCurrency && totalSpend > 0 ? revenueUSD / totalSpend : null;
+  // Cross-currency metrics are only meaningful when all platforms share a currency
+  const profit = sameCurrencyGlobal ? revenueUSD - totalSpend : null;
+  const roas   = sameCurrencyGlobal && totalSpend > 0 ? revenueUSD / totalSpend : null;
   const convRate = totalSessions > 0 ? (totalConversions / totalSessions) * 100 : 0;
   const ctr = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
   const avgBounce = bounceCount > 0 ? bounceSum / bounceCount : 0;
-  const cac = sameCurrency && totalConversions > 0 ? totalSpend / totalConversions : null;
+  const cac = sameCurrencyGlobal && totalConversions > 0 ? totalSpend / totalConversions : null;
   const aov = totalTx > 0 ? revenueUSD / totalTx : 0;
 
-  if (connectedPlatforms.includes("stripe") && revenueUSD > 0) {
+  const primaryRevPlatform = REVENUE_PROVIDERS_INS.find(p => connectedPlatforms.includes(p)) ?? "revenue";
+
+  if (hasRevenue && revenueUSD > 0) {
     insights.push({
       icon: "💰",
-      title: `Revenue: $${revenueUSD.toFixed(2)}`,
-      body: `Average order value is $${aov.toFixed(2)}. ${totalTx} total transactions in this period.`,
+      title: `Revenue: ${fmtCurrency(revenueUSD, revCurrency)}`,
+      body: `Average order value is ${fmtCurrency(aov, revCurrency)}. ${totalTx} total transactions in this period.`,
       accent: COLORS.revenue,
     });
   }
 
-  if (connectedPlatforms.includes("meta") && totalSpend > 0) {
-    // Only show ROAS when currencies match (Stripe USD vs Meta currency)
-    if (sameCurrency && roas !== null) {
+  if (hasAds && totalSpend > 0) {
+    if (sameCurrencyGlobal && roas !== null) {
       insights.push({
         icon: roas >= 3 ? "🚀" : roas >= 1 ? "⚠️" : "🔴",
         title: `ROAS: ${roas.toFixed(2)}x`,
         body:
           roas >= 3
-            ? `Excellent! You're earning ${fmtCurrency(roas, metaCurrency)} for every ${fmtCurrency(1, metaCurrency)} spent on ads.`
+            ? `Excellent! You're earning ${fmtCurrency(roas, revCurrency)} for every ${fmtCurrency(1, adCurrency)} spent on ads.`
             : roas >= 1
             ? `Profitable but there's room to improve. Target ≥3x ROAS for healthy margins.`
-            : `Ad spend (${fmtCurrency(totalSpend, metaCurrency)}) exceeds revenue. Consider pausing underperforming campaigns.`,
+            : `Ad spend (${fmtCurrency(totalSpend, adCurrency)}) exceeds revenue. Consider pausing underperforming campaigns.`,
         accent: roas >= 3 ? COLORS.profit : roas >= 1 ? COLORS.roas : COLORS.spend,
       });
-    } else if (!sameCurrency) {
+    } else if (!sameCurrencyGlobal) {
       insights.push({
         icon: "⚠️",
-        title: `Ad Spend: ${fmtCurrency(totalSpend, metaCurrency)}`,
-        body: `ROAS and profit calculations are unavailable — your Meta account uses ${metaCurrency} while Stripe revenue is in USD. Connect both platforms in the same currency for cross-platform metrics.`,
+        title: `Ad Spend: ${fmtCurrency(totalSpend, adCurrency)}`,
+        body: `ROAS and profit calculations are unavailable — ad spend is in ${adCurrency} while ${primaryRevPlatform} revenue is in ${revCurrency}. Connect platforms sharing the same currency for cross-platform metrics.`,
         accent: COLORS.spend,
       });
     }
   }
 
-  if (connectedPlatforms.includes("meta") && connectedPlatforms.includes("stripe") && sameCurrency && profit !== null) {
+  if (hasAds && hasRevenue && sameCurrencyGlobal && profit !== null) {
     insights.push({
       icon: profit >= 0 ? "" : "",
-      title: `Est. Profit: $${profit.toFixed(2)}`,
+      title: `Est. Profit: ${fmtCurrency(profit, revCurrency)}`,
       body:
         profit >= 0
-          ? `After subtracting ${fmtCurrency(totalSpend, metaCurrency)} ad spend from $${revenueUSD.toFixed(2)} revenue.`
+          ? `After subtracting ${fmtCurrency(totalSpend, adCurrency)} ad spend from ${fmtCurrency(revenueUSD, revCurrency)} revenue.`
           : `You're spending more on ads than you're earning. Cut spend or improve conversion rate.`,
       accent: profit >= 0 ? COLORS.profit : COLORS.spend,
     });
   }
 
-  if (connectedPlatforms.includes("ga4") && totalSessions > 0) {
+  if (hasAnalytics && totalSessions > 0) {
     insights.push({
       icon: convRate >= 3 ? "🎯" : convRate >= 1 ? "📊" : "⚠️",
       title: `Conversion Rate: ${convRate.toFixed(2)}%`,
@@ -736,7 +746,7 @@ function generateInsights(
     });
   }
 
-  if (connectedPlatforms.includes("ga4") && avgBounce > 0) {
+  if (hasAnalytics && avgBounce > 0) {
     insights.push({
       icon: avgBounce < 40 ? "🟢" : avgBounce < 70 ? "🟡" : "🔴",
       title: `Bounce Rate: ${avgBounce.toFixed(1)}%`,
@@ -750,11 +760,11 @@ function generateInsights(
     });
   }
 
-  if (connectedPlatforms.includes("meta") && sameCurrency && cac !== null && cac > 0) {
+  if (hasAds && sameCurrencyGlobal && cac !== null && cac > 0) {
     insights.push({
       icon: "👤",
-      title: `CAC: ${fmtCurrency(cac, metaCurrency)} per conversion`,
-      body: `You're spending ${fmtCurrency(cac, metaCurrency)} in ads to acquire each conversion. CTR is ${ctr.toFixed(2)}%.`,
+      title: `CAC: ${fmtCurrency(cac, adCurrency)} per conversion`,
+      body: `You're spending ${fmtCurrency(cac, adCurrency)} in ads to acquire each conversion. CTR is ${ctr.toFixed(2)}%.`,
       accent: COLORS.clicks,
     });
   }
@@ -763,7 +773,7 @@ function generateInsights(
     insights.push({
       icon: "📡",
       title: "Cross-platform health",
-      body: `${connectedPlatforms.length} platforms connected. Tracking ${fmtNum(totalSessions)} sessions, $${revenueUSD.toFixed(0)} revenue, and ${fmtCurrency(totalSpend, metaCurrency)} ad spend in parallel.`,
+      body: `${connectedPlatforms.length} platforms connected. Tracking ${fmtNum(totalSessions)} sessions, ${fmtCurrency(revenueUSD, revCurrency)} revenue, and ${fmtCurrency(totalSpend, adCurrency)} ad spend in parallel.`,
       accent: COLORS.users,
     });
   }
@@ -777,10 +787,21 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
   // Derive per-platform currencies from the map (ads + revenue)
   const ADS_PROVIDERS_LOCAL = ["meta", "google-ads", "tiktok-ads"];
   const REVENUE_PROVIDERS_LOCAL = ["stripe", "lemon-squeezy", "paddle", "shopify", "woocommerce", "gumroad"];
-  const primaryAdProvider = ADS_PROVIDERS_LOCAL.find(p => connectedPlatforms.includes(p));
-  const primaryRevProvider = REVENUE_PROVIDERS_LOCAL.find(p => connectedPlatforms.includes(p));
-  const metaCurrency = primaryAdProvider ? (currencies[primaryAdProvider] ?? "USD") : "USD";
-  const stripeCurrency = primaryRevProvider ? (currencies[primaryRevProvider] ?? "USD") : "USD";
+  const connAdsLocal = ADS_PROVIDERS_LOCAL.filter(p => connectedPlatforms.includes(p));
+  const connRevLocal = REVENUE_PROVIDERS_LOCAL.filter(p => connectedPlatforms.includes(p));
+  const primaryAdProvider = connAdsLocal[0];
+  const primaryRevProvider = connRevLocal[0];
+  // "primary ad currency" — first connected ad platform's currency
+  const adCurrency = primaryAdProvider ? (currencies[primaryAdProvider] ?? "USD") : "USD";
+  // "primary revenue currency" — first connected revenue platform's currency
+  const revCurrency = primaryRevProvider ? (currencies[primaryRevProvider] ?? "USD") : "USD";
+  // sameCurrency: all connected ad+revenue platforms share one currency
+  const allPlatformCurrencies = [...connAdsLocal, ...connRevLocal]
+    .map(p => currencies[p] ?? "USD");
+  const sameCurrencyGlobal = allPlatformCurrencies.length === 0 || new Set(allPlatformCurrencies).size === 1;
+  // Keep legacy variable names for internal helpers that still use them
+  const metaCurrency = adCurrency;
+  const stripeCurrency = revCurrency;
   const [internalTimeRange, setInternalTimeRange] = useState<TimeRange>("30d");
   const [report, setReport] = useState<ReportType>("business_growth");
 
@@ -795,13 +816,13 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
   // Expose timeRange setter for external sync (unused here but keeps interface stable)
 
   const { data: chartData, lines, currencyMismatch, primaryKey } = useMemo(
-    () => buildChartData(filtered, report, granularity, metaCurrency, snapshots, stripeCurrency),
-    [filtered, report, granularity, metaCurrency, snapshots, stripeCurrency]
+    () => buildChartData(filtered, report, granularity, adCurrency, snapshots, revCurrency, sameCurrencyGlobal),
+    [filtered, report, granularity, adCurrency, snapshots, revCurrency, sameCurrencyGlobal]
   );
 
   const insights = useMemo(
-    () => generateInsights(filtered, report, connectedPlatforms, metaCurrency, stripeCurrency),
-    [filtered, report, connectedPlatforms, metaCurrency, stripeCurrency]
+    () => generateInsights(filtered, report, connectedPlatforms, adCurrency, revCurrency, sameCurrencyGlobal),
+    [filtered, report, connectedPlatforms, adCurrency, revCurrency, sameCurrencyGlobal]
   );
 
   // Summary KPIs (always shown regardless of report)
@@ -821,29 +842,34 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
       const idx = filtered.indexOf(s);
       const isSecondHalf = idx >= half;
 
-      if (s.provider === "stripe") {
+      // Sum ALL revenue providers
+      if (REVENUE_PROVIDERS_LOCAL.includes(s.provider)) {
         const r = getField(s, "revenue");
         totalRevenue += r;
         if (!isSecondHalf) prevRevenue += r;
 
-        const mrr = getField(s, "mrr");
-        if (mrr > 0) {
-          if (!isSecondHalf) prevMRR = mrr;
-          currentMRR = mrr; // keep overwriting — last row is most recent
+        // Stripe-specific subscription fields
+        if (s.provider === "stripe") {
+          const mrr = getField(s, "mrr");
+          if (mrr > 0) {
+            if (!isSecondHalf) prevMRR = mrr;
+            currentMRR = mrr;
+          }
+          const activeSubs = getField(s, "activeSubscriptions");
+          if (activeSubs > 0) currentActiveSubs = activeSubs;
+          totalChurned += getField(s, "churnedToday");
         }
-        const activeSubs = getField(s, "activeSubscriptions");
-        if (activeSubs > 0) currentActiveSubs = activeSubs;
-
-        totalChurned += getField(s, "churnedToday");
       }
-      if (s.provider === "ga4") {
+      // Analytics providers (ga4, google-analytics, plausible, etc.)
+      if (s.provider === "ga4" || s.provider === "google-analytics" || s.provider === "plausible") {
         const sess = getField(s, "sessions");
         const conv = getField(s, "conversions");
         totalSessions += sess;
         totalConversions += conv;
         if (!isSecondHalf) { prevSessions += sess; prevConversions += conv; }
       }
-      if (s.provider === "meta") {
+      // Sum ALL ads providers
+      if (ADS_PROVIDERS_LOCAL.includes(s.provider)) {
         const sp = getField(s, "spend");
         totalSpend += sp;
         if (!isSecondHalf) prevSpend += sp;
@@ -852,25 +878,26 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
 
     const revenueUSD = totalRevenue / 100;
     const prevRevenueUSD = prevRevenue / 100;
-    // Only compute cross-currency metrics when Stripe and Meta share the same currency
-    const sameCurr = metaCurrency === stripeCurrency;
-    const profit = sameCurr ? revenueUSD - totalSpend : null;
-    const roas   = sameCurr && totalSpend > 0 ? revenueUSD / totalSpend : 0;
+    // Only compute cross-currency metrics when all connected ad+revenue platforms share one currency
+    const profit = sameCurrencyGlobal ? revenueUSD - totalSpend : null;
+    const roas   = sameCurrencyGlobal && totalSpend > 0 ? revenueUSD / totalSpend : 0;
     const convRate = totalSessions > 0 ? (totalConversions / totalSessions) * 100 : 0;
     const churnRate = currentActiveSubs > 0 ? (totalChurned / currentActiveSubs) * 100 : 0;
+    const hasAnyRevenue = connRevLocal.some(p => connectedPlatforms.includes(p));
+    const hasAnyAds = connAdsLocal.some(p => connectedPlatforms.includes(p));
 
     return [
-      connectedPlatforms.includes("stripe") && {
+      hasAnyRevenue && {
         label: "Total Revenue",
-        value: fmtCurrency(revenueUSD, stripeCurrency),
+        value: fmtCurrency(revenueUSD, revCurrency),
         icon: "",
         color: COLORS.revenue,
         change: pctChange(revenueUSD, prevRevenueUSD),
       },
-      // MRR card — only when subscription data is present
+      // MRR card — only when subscription data is present (Stripe-specific)
       connectedPlatforms.includes("stripe") && currentMRR > 0 && {
         label: "MRR",
-        value: fmtCurrency(currentMRR / 100, stripeCurrency),
+        value: fmtCurrency(currentMRR / 100, revCurrency),
         sub: churnRate > 0 ? `${churnRate.toFixed(1)}% churn` : currentActiveSubs > 0 ? `${currentActiveSubs} subscribers` : undefined,
         icon: "",
         color: "#a78bfa",
@@ -883,17 +910,17 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
         color: COLORS.sessions,
         change: pctChange(totalSessions, prevSessions),
       },
-      connectedPlatforms.includes("meta") && {
+      hasAnyAds && {
         label: "Ad Spend",
-        value: fmtCurrency(totalSpend, metaCurrency),
+        value: fmtCurrency(totalSpend, adCurrency),
         icon: "",
         color: COLORS.spend,
         change: pctChange(totalSpend, prevSpend),
       },
-      // Only show Est. Profit when both platforms use the same currency
-      sameCurr && profit !== null && (connectedPlatforms.includes("meta") || connectedPlatforms.includes("stripe")) && {
+      // Only show Est. Profit when all connected ad+revenue platforms share one currency
+      sameCurrencyGlobal && profit !== null && hasAnyAds && hasAnyRevenue && {
         label: "Est. Profit",
-        value: fmtCurrency(profit, stripeCurrency),
+        value: fmtCurrency(profit, revCurrency),
         sub: roas > 0 ? `ROAS ${roas.toFixed(2)}x` : undefined,
         icon: profit >= 0 ? "" : "",
         color: profit >= 0 ? COLORS.profit : COLORS.spend,
@@ -914,7 +941,7 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
       color: string;
       change: { pct: number; up: boolean } | null;
     }[];
-  }, [filtered, connectedPlatforms, metaCurrency]);
+  }, [filtered, connectedPlatforms, revCurrency, adCurrency, sameCurrencyGlobal, connRevLocal, connAdsLocal]);
 
   const hasData = chartData.length > 0;
 
