@@ -6,15 +6,17 @@ export async function handleLemonSqueezyConnect(userId: string, apiKey: string):
   const { valid, error } = await validateLemonSqueezyApiKey(apiKey);
   if (!valid) throw new Error(error ?? "Invalid Lemon Squeezy API key");
 
-  // Fetch the first store to get storeId
+  // Fetch the first store to get storeId and currency
   let storeId = "";
+  let currency = "USD";
   try {
     const res = await fetch("https://api.lemonsqueezy.com/v1/stores", {
       headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/vnd.api+json" },
     });
     if (res.ok) {
       const body = await res.json();
-      storeId = body.data?.[0]?.id ?? "";
+      storeId  = body.data?.[0]?.id ?? "";
+      currency = (body.data?.[0]?.attributes?.currency ?? "USD").toUpperCase();
     }
   } catch { /* optional */ }
 
@@ -25,6 +27,7 @@ export async function handleLemonSqueezyConnect(userId: string, apiKey: string):
       platform:     "lemon-squeezy",
       access_token: apiKey,
       account_id:   storeId,
+      currency,
       connected_at: new Date().toISOString(),
     },
     { onConflict: "user_id,platform" }

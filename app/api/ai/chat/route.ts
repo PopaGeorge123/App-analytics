@@ -248,6 +248,11 @@ export async function POST(req: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const { isPremiumUser } = await import("@/lib/supabase/isPremiumUser");
+  if (!(await isPremiumUser(user.id))) {
+    return NextResponse.json({ error: "Premium required." }, { status: 403 });
+  }
+
   // 20 AI messages per minute per user
   const rl = checkRateLimit(`ai-chat:${user.id}`, 20, 60_000);
   if (!rl.ok) {

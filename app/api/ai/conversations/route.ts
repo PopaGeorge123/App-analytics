@@ -25,6 +25,11 @@ export async function POST(req: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const { isPremiumUser } = await import("@/lib/supabase/isPremiumUser");
+  if (!(await isPremiumUser(user.id))) {
+    return NextResponse.json({ error: "Premium required." }, { status: 403 });
+  }
+
   const body = await req.json().catch(() => ({}));
   const title: string = (body.title ?? "New Chat").trim() || "New Chat";
 

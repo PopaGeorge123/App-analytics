@@ -47,9 +47,10 @@ interface DashboardShellProps {
   connectedPlatforms: string[];
   snapshots: Snapshot[];
   websiteData: WebsiteData;
-  metaCurrency: string;
-  isSyncing?: string | null; // platform name that just connected, e.g. "meta"
-  customers?: CustomerRow[];  // real customer records from the customers table
+  /** platform → ISO currency code. e.g. { stripe: "EUR", meta: "USD" } */
+  currencies: Record<string, string>;
+  isSyncing?: string | null;
+  customers?: CustomerRow[];
 }
 
 const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
@@ -475,7 +476,7 @@ function UpgradeModal({ tab, onClose }: { tab: Tab; onClose: () => void }) {
   );
 }
 
-function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms, snapshots, websiteData, metaCurrency, isSyncing, customers = [] }: DashboardShellProps) {
+function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms, snapshots, websiteData, currencies, isSyncing, customers = [] }: DashboardShellProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -718,7 +719,7 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
                 connectedPlatforms={connectedPlatforms}
                 snapshots={snapshots}
                 websiteData={websiteData}
-                metaCurrency={metaCurrency}
+                currencies={currencies}
                 onNavigate={navigate}
               />
             </TabErrorBoundary>
@@ -729,7 +730,7 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
                 isPremium={isPremium}
                 connectedPlatforms={connectedPlatforms}
                 snapshots={snapshots}
-                metaCurrency={metaCurrency}
+                currencies={currencies}
               />
             </TabErrorBoundary>
           )}
@@ -739,7 +740,7 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
                 isPremium={isPremium}
                 connectedPlatforms={connectedPlatforms}
                 snapshots={snapshots}
-                metaCurrency={metaCurrency}
+                currencies={currencies}
               />
             </TabErrorBoundary>
           )}
@@ -749,7 +750,7 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
                 isPremium={isPremium}
                 connectedPlatforms={connectedPlatforms}
                 snapshots={snapshots}
-                metaCurrency={metaCurrency}
+                currencies={currencies}
                 customers={customers}
               />
             </TabErrorBoundary>

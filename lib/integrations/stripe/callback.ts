@@ -1,5 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import { triggerRemoteBackfill } from "@/lib/utils/triggerBackfill";
+import Stripe from "stripe";
 
 export async function handleStripeCallback(
   userId: string,
@@ -27,6 +28,17 @@ export async function handleStripeCallback(
   const accessToken = response.access_token as string;
   const accountId = response.stripe_user_id as string;
 
+  // Fetch the account's default currency from Stripe
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const stripe = new Stripe(accessToken, { apiVersion: "2026-02-25.clover" as any });
+  let stripeCurrency = "USD";
+  try {
+    const account = await stripe.accounts.retrieve(accountId);
+    stripeCurrency = (account.default_currency ?? "usd").toUpperCase();
+  } catch {
+    // Fall back to USD if we can't fetch the account details
+  }
+
   // Fetch current account_id before overwriting so the daemon can detect a change
   const db = createServiceClient();
   const { data: existing } = await db
@@ -42,6 +54,7 @@ export async function handleStripeCallback(
       platform: "stripe",
       access_token: accessToken,
       account_id: accountId,
+      currency: stripeCurrency,
       connected_at: new Date().toISOString(),
     },
     { onConflict: "user_id,platform" }

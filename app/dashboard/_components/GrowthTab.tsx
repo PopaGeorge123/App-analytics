@@ -10,7 +10,8 @@ interface GrowthTabProps {
   isPremium: boolean;
   connectedPlatforms: string[];
   snapshots: Snapshot[];
-  metaCurrency: string;
+  /** platform → ISO currency code. e.g. { stripe: "EUR", meta: "USD" } */
+  currencies: Record<string, string>;
 }
 
 interface DayRow {
@@ -44,6 +45,18 @@ function pickPrimaryAnalytics(snaps: Snapshot[], providers: string[]): string | 
   return sorted[0] ?? null;
 }
 
+function fmtCentsWithCurrency(cents: number, currency = "USD"): string {
+  const amount = cents / 100;
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: amount >= 1000 ? 0 : 2,
+    maximumFractionDigits: amount >= 1000 ? 0 : 2,
+    notation: amount >= 1_000_000 ? "compact" : "standard",
+  }).format(amount);
+}
+
+// Legacy alias — used in places that don't have currency context yet
 function fmtCents(cents: number): string {
   const dollars = cents / 100;
   if (dollars >= 1_000_000) return `$${(dollars / 1_000_000).toFixed(2)}M`;
@@ -319,7 +332,12 @@ function GoalModal({
 
 const GOAL_KEY = "fold_monthly_revenue_goal";
 
-export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, metaCurrency }: GrowthTabProps) {
+export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, currencies = {} }: GrowthTabProps) {
+  // Currency-aware revenue formatter — prefer Stripe currency, then first revenue platform, then USD
+  const REVENUE_PROVIDERS_LOCAL = ["stripe", "lemon-squeezy", "paddle", "shopify", "woocommerce", "gumroad"];
+  const primaryRevCurrency = REVENUE_PROVIDERS_LOCAL.map(p => currencies[p]).find(Boolean) ?? "USD";
+  const fmtRev = (cents: number) => fmtCentsWithCurrency(cents, primaryRevCurrency);
+
   // ── Goal state (persisted in localStorage) ──────────────────────────────
   const [goalCents, setGoalCents] = useState<number>(() => {
     if (typeof window === "undefined") return 1000 * 100; // $1k default SSR
@@ -546,9 +564,9 @@ export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, me
           <div className="flex items-start justify-between gap-4 flex-wrap mb-5">
             <div>
               <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa] mb-1">Revenue this month</p>
-              <p className="font-mono text-3xl font-bold text-[#f8f8fc]">{fmtCents(revThisMonth)}</p>
+              <p className="font-mono text-3xl font-bold text-[#f8f8fc]">{fmtRev(revThisMonth)}</p>
               <p className="mt-1 font-mono text-[10px] text-[#8585aa]">
-                of <span className="text-[#f8f8fc]">{fmtCents(goalCents)}</span> goal
+                of <span className="text-[#f8f8fc]">{fmtRev(goalCents)}</span> goal
                 {momGrowth !== null && (
                   <span className={`ml-2 font-bold ${momGrowth >= 0 ? "text-[#00d4aa]" : "text-red-400"}`}>
                     {fmtPct(momGrowth)} vs last month
@@ -590,20 +608,20 @@ export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, me
           </div>
           <div className="flex items-center justify-between font-mono text-[9px] text-[#8585aa]">
             <span>{goalPct.toFixed(1)}% complete</span>
-            <span>{fmtCents(goalCents - revThisMonth > 0 ? goalCents - revThisMonth : 0)} to go</span>
+            <span>{fmtRev(goalCents - revThisMonth > 0 ? goalCents - revThisMonth : 0)} to go</span>
           </div>
 
           {/* Stats row */}
           <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
             <div className="rounded-xl border border-[#363650] bg-[#0f0f18] px-3 py-2.5">
               <p className="font-mono text-[8px] uppercase tracking-widest text-[#8585aa]">Daily rate</p>
-              <p className="mt-1 font-mono text-sm font-bold text-[#f8f8fc]">{fmtCents(dailyRate)}</p>
+              <p className="mt-1 font-mono text-sm font-bold text-[#f8f8fc]">{fmtRev(dailyRate)}</p>
               <p className="font-mono text-[9px] text-[#58588a]">avg/day so far</p>
             </div>
             <div className="rounded-xl border border-[#363650] bg-[#0f0f18] px-3 py-2.5">
               <p className="font-mono text-[8px] uppercase tracking-widest text-[#8585aa]">Run-rate</p>
               <p className={`mt-1 font-mono text-sm font-bold ${runRateStatus === "on-track" ? "text-[#00d4aa]" : runRateStatus === "close" ? "text-[#f59e0b]" : "text-red-400"}`}>
-                {fmtCents(runRate)}
+                {fmtRev(runRate)}
               </p>
               <p className="font-mono text-[9px] text-[#58588a]">
                 {runRateStatus === "on-track" ? "✓ on track" : runRateStatus === "close" ? "close — push it" : "behind pace"}
@@ -612,7 +630,7 @@ export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, me
             <div className="rounded-xl border border-[#363650] bg-[#0f0f18] px-3 py-2.5">
               <p className="font-mono text-[8px] uppercase tracking-widest text-[#8585aa]">Need/day</p>
               <p className="mt-1 font-mono text-sm font-bold text-[#f8f8fc]">
-                {daysLeft > 0 && dailyNeeded > 0 ? fmtCents(dailyNeeded) : "—"}
+                {daysLeft > 0 && dailyNeeded > 0 ? fmtRev(dailyNeeded) : "—"}
               </p>
               <p className="font-mono text-[9px] text-[#58588a]">to hit goal</p>
             </div>
@@ -646,17 +664,17 @@ export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, me
             <div className="space-y-2.5">
               <div>
                 <p className="font-mono text-[8px] text-[#00d4aa] mb-0.5">Best case</p>
-                <p className="font-mono text-xl font-bold text-[#f8f8fc]">{fmtCents(forecast30best)}</p>
+                <p className="font-mono text-xl font-bold text-[#f8f8fc]">{fmtRev(forecast30best)}</p>
                 <p className="font-mono text-[9px] text-[#58588a]">7-day pace holds</p>
               </div>
               <div className="border-t border-[#363650] pt-2.5">
                 <p className="font-mono text-[8px] text-[#f59e0b] mb-0.5">Base case</p>
-                <p className="font-mono text-xl font-bold text-[#f8f8fc]">{fmtCents(Math.max(forecast30base, 0))}</p>
+                <p className="font-mono text-xl font-bold text-[#f8f8fc]">{fmtRev(Math.max(forecast30base, 0))}</p>
                 <p className="font-mono text-[9px] text-[#58588a]">30-day avg holds</p>
               </div>
               <div className="border-t border-[#363650] pt-2.5">
                 <p className="font-mono text-[8px] text-red-400 mb-0.5">Worst case</p>
-                <p className="font-mono text-xl font-bold text-[#f8f8fc]">{fmtCents(Math.max(forecast30worst, 0))}</p>
+                <p className="font-mono text-xl font-bold text-[#f8f8fc]">{fmtRev(Math.max(forecast30worst, 0))}</p>
                 <p className="font-mono text-[9px] text-[#58588a]">10% below avg</p>
               </div>
             </div>
@@ -668,7 +686,7 @@ export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, me
             <div className="space-y-2.5">
               <div>
                 <p className="font-mono text-[8px] text-[#8585aa] mb-0.5">Trend projection</p>
-                <p className="font-mono text-2xl font-bold text-[#f8f8fc]">{fmtCents(Math.max(forecast60base, 0))}</p>
+                <p className="font-mono text-2xl font-bold text-[#f8f8fc]">{fmtRev(Math.max(forecast60base, 0))}</p>
                 <p className="font-mono text-[9px] text-[#58588a]">momentum extended</p>
               </div>
               <div className="border-t border-[#363650] pt-2.5">
@@ -681,7 +699,7 @@ export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, me
                 <div className="flex items-center justify-between mt-1.5">
                   <p className="font-mono text-[9px] text-[#8585aa]">Daily momentum</p>
                   <span className={`font-mono text-[9px] font-bold ${revenueSlope30 >= 0 ? "text-[#00d4aa]" : "text-red-400"}`}>
-                    {revenueSlope30 >= 0 ? "+" : ""}{fmtCents(Math.abs(revenueSlope30))}/day
+                    {revenueSlope30 >= 0 ? "+" : ""}{fmtRev(Math.abs(revenueSlope30))}/day
                   </span>
                 </div>
               </div>
@@ -694,20 +712,20 @@ export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, me
             <div className="space-y-2.5">
               <div>
                 <p className="font-mono text-[8px] text-[#8585aa] mb-0.5">Quarter projection</p>
-                <p className="font-mono text-2xl font-bold text-[#f8f8fc]">{fmtCents(Math.max(forecast90base, 0))}</p>
+                <p className="font-mono text-2xl font-bold text-[#f8f8fc]">{fmtRev(Math.max(forecast90base, 0))}</p>
                 <p className="font-mono text-[9px] text-[#58588a]">trend-adjusted</p>
               </div>
               <div className="border-t border-[#363650] pt-2.5">
                 <div className="flex items-center justify-between">
                   <p className="font-mono text-[9px] text-[#8585aa]">Annualised run-rate</p>
                   <span className="font-mono text-[9px] font-bold text-[#a78bfa]">
-                    {fmtCents(avgDaily30 * 365)}
+                    {fmtRev(avgDaily30 * 365)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between mt-1.5">
                   <p className="font-mono text-[9px] text-[#8585aa]">Last month</p>
                   <span className="font-mono text-[9px] text-[#8585aa]">
-                    {fmtCents(lastMonthRev)}
+                    {fmtRev(lastMonthRev)}
                   </span>
                 </div>
               </div>
@@ -723,7 +741,7 @@ export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, me
       <section>
         <SectionHeader
           title="Revenue Breakdown"
-          sub={`Last 30 days · ${hasData ? fmtCents(totalRev30) : "No data"} total`}
+          sub={`Last 30 days · ${hasData ? fmtRev(totalRev30) : "No data"} total`}
         />
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {/* Platform split */}
@@ -754,7 +772,7 @@ export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, me
                             <span className="font-mono text-[10px] text-[#bcbcd8] capitalize">{p.id}</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="font-mono text-[10px] font-bold text-[#f8f8fc]">{fmtCents(p.rev)}</span>
+                            <span className="font-mono text-[10px] font-bold text-[#f8f8fc]">{fmtRev(p.rev)}</span>
                             <span className="font-mono text-[9px] text-[#8585aa]">{pct.toFixed(0)}%</span>
                           </div>
                         </div>
@@ -815,7 +833,7 @@ export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, me
               <div className="grid grid-cols-2 gap-2 pt-1">
                 <div className="rounded-xl bg-[#0f0f18] px-3 py-2.5">
                   <p className="font-mono text-[8px] uppercase tracking-widest text-[#8585aa]">MRR</p>
-                  <p className="mt-1 font-mono text-sm font-bold text-[#f8f8fc]">{fmtCents(currentMRR)}</p>
+                  <p className="mt-1 font-mono text-sm font-bold text-[#f8f8fc]">{fmtRev(currentMRR)}</p>
                 </div>
                 <div className="rounded-xl bg-[#0f0f18] px-3 py-2.5">
                   <p className="font-mono text-[8px] uppercase tracking-widest text-[#8585aa]">Active subs</p>
@@ -837,9 +855,9 @@ export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, me
           {/* Revenue per session */}
           <RatioCard
             label="Rev / Session"
-            value={totalSessions30 > 0 ? fmtCents(revPerSession) : "—"}
+            value={totalSessions30 > 0 ? fmtRev(revPerSession) : "—"}
             sub="per visitor (30d)"
-            note={totalSessions30 > 0 ? `${fmtNum(totalSessions30)} sessions · ${fmtCents(totalRev30)} revenue` : "Connect analytics to unlock"}
+            note={totalSessions30 > 0 ? `${fmtNum(totalSessions30)} sessions · ${fmtRev(totalRev30)} revenue` : "Connect analytics to unlock"}
             color="#635bff"
             icon={
               <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -852,7 +870,7 @@ export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, me
             label="LTV : CAC"
             value={ltvcac !== null ? `${ltvcac.toFixed(1)}x` : cac > 0 ? `CAC ${fmtNum(cac)}` : "—"}
             sub={ltvcac !== null ? (ltvcac >= 3 ? "Excellent (≥3x)" : ltvcac >= 1 ? "Acceptable (≥1x)" : "⚠ Unprofitable") : "Connect ads + revenue"}
-            note={ltv > 0 ? `LTV ${fmtCents(ltv)} · CAC ${cac > 0 ? fmtNum(cac) : "N/A"}` : undefined}
+            note={ltv > 0 ? `LTV ${fmtRev(ltv)} · CAC ${cac > 0 ? fmtNum(cac) : "N/A"}` : undefined}
             color={ltvcac !== null ? (ltvcac >= 3 ? "#00d4aa" : ltvcac >= 1 ? "#f59e0b" : "#f87171") : "#8585aa"}
             icon={
               <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -865,7 +883,7 @@ export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, me
             label="MoM Revenue"
             value={momGrowth !== null ? fmtPct(momGrowth) : "—"}
             sub={momGrowth !== null ? (momGrowth >= 10 ? "Strong growth 🚀" : momGrowth >= 0 ? "Positive" : "Revenue declined") : "Need 2+ months of data"}
-            note={momGrowth !== null ? `This month ${fmtCents(revThisMonth)} · Last ${fmtCents(lastMonthRev)}` : undefined}
+            note={momGrowth !== null ? `This month ${fmtRev(revThisMonth)} · Last ${fmtRev(lastMonthRev)}` : undefined}
             color={momGrowth !== null ? (momGrowth >= 10 ? "#00d4aa" : momGrowth >= 0 ? "#f59e0b" : "#f87171") : "#8585aa"}
             icon={
               <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -893,7 +911,7 @@ export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, me
       <section>
         <SectionHeader
           title="Revenue Milestones"
-          sub={`All-time revenue · ${fmtCents(allTimeRev)} earned`}
+          sub={`All-time revenue · ${fmtRev(allTimeRev)} earned`}
         />
         <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/70 p-6">
           {/* Progress to next milestone */}
@@ -930,7 +948,7 @@ export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, me
                 <span>{nextMilestone.label}</span>
               </div>
               <p className="mt-2 font-mono text-[10px] text-[#8585aa]">
-                {fmtCents(allTimeRev)} earned · {fmtCents(Math.max(nextMilestone.cents - allTimeRev, 0))} to go
+                {fmtRev(allTimeRev)} earned · {fmtRev(Math.max(nextMilestone.cents - allTimeRev, 0))} to go
               </p>
             </div>
           )}

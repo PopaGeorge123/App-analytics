@@ -27,7 +27,7 @@ interface Props {
   connectedPlatforms: string[];
   timeRange?: TimeRange;
   granularity?: Granularity;
-  metaCurrency?: string;
+  currencies?: Record<string, string>;
 }
 
 type TimeRange = "1d" | "7d" | "30d" | "90d" | "all";
@@ -322,10 +322,10 @@ function buildChartData(
   granularity: Granularity = "day",
   metaCurrency = "USD",
   allSnapshots?: Snapshot[],
+  stripeCurrency = "USD",
 ): { data: Record<string, string | number>[]; lines: { key: string; color: string; label: string; yAxisId: string; type: "line" | "bar" | "area" }[]; currencyMismatch: boolean; primaryKey: string } {
-  // Stripe is always USD (amounts in cents). Meta can be any currency.
-  // Cross-currency metrics (profit, ROAS, CAC) are only valid when both use the same currency.
-  const sameCurrency = metaCurrency === "USD";
+  // Cross-currency metrics (profit, ROAS, CAC) are only valid when both platforms use the same currency.
+  const sameCurrency = metaCurrency === stripeCurrency;
 
   // ── Step 1: build a period→row aggregation helper ────────────────────────
   type RawBucket = { revenue: number; sessions: number; users: number; conversions: number; spend: number; clicks: number; impressions: number; bounceRateSum: number; bounceRateCount: number; txCount: number };
@@ -638,7 +638,8 @@ function generateInsights(
   snapshots: Snapshot[],
   report: ReportType,
   connectedPlatforms: string[],
-  metaCurrency = "USD"
+  metaCurrency = "USD",
+  stripeCurrency = "USD",
 ): { icon: string; title: string; body: string; accent: string }[] {
   const insights: { icon: string; title: string; body: string; accent: string }[] = [];
 
@@ -666,8 +667,8 @@ function generateInsights(
   }
 
   const revenueUSD = totalRevenue / 100;
-  // Cross-currency metrics are only meaningful when Stripe (USD) and Meta share the same currency
-  const sameCurrency = metaCurrency === "USD";
+  // Cross-currency metrics are only meaningful when Stripe and Meta share the same currency
+  const sameCurrency = metaCurrency === stripeCurrency;
   const profit = sameCurrency ? revenueUSD - totalSpend : null;
   const roas   = sameCurrency && totalSpend > 0 ? revenueUSD / totalSpend : null;
   const convRate = totalSessions > 0 ? (totalConversions / totalSessions) * 100 : 0;
@@ -772,7 +773,14 @@ function generateInsights(
 
 // ── Main Component ────────────────────────────────────────────────────────
 
-export default function OverviewSection({ snapshots, connectedPlatforms, timeRange: externalTimeRange, granularity = "day", metaCurrency = "USD" }: Props) {
+export default function OverviewSection({ snapshots, connectedPlatforms, timeRange: externalTimeRange, granularity = "day", currencies = {} }: Props) {
+  // Derive per-platform currencies from the map (ads + revenue)
+  const ADS_PROVIDERS_LOCAL = ["meta", "google-ads", "tiktok-ads"];
+  const REVENUE_PROVIDERS_LOCAL = ["stripe", "lemon-squeezy", "paddle", "shopify", "woocommerce", "gumroad"];
+  const primaryAdProvider = ADS_PROVIDERS_LOCAL.find(p => connectedPlatforms.includes(p));
+  const primaryRevProvider = REVENUE_PROVIDERS_LOCAL.find(p => connectedPlatforms.includes(p));
+  const metaCurrency = primaryAdProvider ? (currencies[primaryAdProvider] ?? "USD") : "USD";
+  const stripeCurrency = primaryRevProvider ? (currencies[primaryRevProvider] ?? "USD") : "USD";
   const [internalTimeRange, setInternalTimeRange] = useState<TimeRange>("30d");
   const [report, setReport] = useState<ReportType>("business_growth");
 
@@ -787,13 +795,13 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
   // Expose timeRange setter for external sync (unused here but keeps interface stable)
 
   const { data: chartData, lines, currencyMismatch, primaryKey } = useMemo(
-    () => buildChartData(filtered, report, granularity, metaCurrency, snapshots),
-    [filtered, report, granularity, metaCurrency, snapshots]
+    () => buildChartData(filtered, report, granularity, metaCurrency, snapshots, stripeCurrency),
+    [filtered, report, granularity, metaCurrency, snapshots, stripeCurrency]
   );
 
   const insights = useMemo(
-    () => generateInsights(filtered, report, connectedPlatforms, metaCurrency),
-    [filtered, report, connectedPlatforms, metaCurrency]
+    () => generateInsights(filtered, report, connectedPlatforms, metaCurrency, stripeCurrency),
+    [filtered, report, connectedPlatforms, metaCurrency, stripeCurrency]
   );
 
   // Summary KPIs (always shown regardless of report)
@@ -844,8 +852,8 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
 
     const revenueUSD = totalRevenue / 100;
     const prevRevenueUSD = prevRevenue / 100;
-    // Only compute cross-currency metrics when Stripe (USD) and Meta share the same currency
-    const sameCurr = metaCurrency === "USD";
+    // Only compute cross-currency metrics when Stripe and Meta share the same currency
+    const sameCurr = metaCurrency === stripeCurrency;
     const profit = sameCurr ? revenueUSD - totalSpend : null;
     const roas   = sameCurr && totalSpend > 0 ? revenueUSD / totalSpend : 0;
     const convRate = totalSessions > 0 ? (totalConversions / totalSessions) * 100 : 0;
@@ -854,7 +862,7 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
     return [
       connectedPlatforms.includes("stripe") && {
         label: "Total Revenue",
-        value: `$${revenueUSD.toFixed(2)}`,
+        value: fmtCurrency(revenueUSD, stripeCurrency),
         icon: "",
         color: COLORS.revenue,
         change: pctChange(revenueUSD, prevRevenueUSD),
@@ -862,7 +870,7 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
       // MRR card — only when subscription data is present
       connectedPlatforms.includes("stripe") && currentMRR > 0 && {
         label: "MRR",
-        value: `$${(currentMRR / 100).toFixed(2)}`,
+        value: fmtCurrency(currentMRR / 100, stripeCurrency),
         sub: churnRate > 0 ? `${churnRate.toFixed(1)}% churn` : currentActiveSubs > 0 ? `${currentActiveSubs} subscribers` : undefined,
         icon: "",
         color: "#a78bfa",
@@ -885,7 +893,7 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
       // Only show Est. Profit when both platforms use the same currency
       sameCurr && profit !== null && (connectedPlatforms.includes("meta") || connectedPlatforms.includes("stripe")) && {
         label: "Est. Profit",
-        value: `$${profit.toFixed(2)}`,
+        value: fmtCurrency(profit, stripeCurrency),
         sub: roas > 0 ? `ROAS ${roas.toFixed(2)}x` : undefined,
         icon: profit >= 0 ? "" : "",
         color: profit >= 0 ? COLORS.profit : COLORS.spend,
@@ -1228,7 +1236,7 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
       </div>
 
       {/* ── Full Funnel ──────────────────────────────────────── */}
-      <FunnelSection snapshots={filtered} connectedPlatforms={connectedPlatforms} metaCurrency={metaCurrency} />
+      <FunnelSection snapshots={filtered} connectedPlatforms={connectedPlatforms} currencies={currencies} />
 
       {/* ── AI Insights ─────────────────────────────────────────── */}
       {insights.length > 0 && (

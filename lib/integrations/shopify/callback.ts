@@ -19,6 +19,18 @@ export async function handleShopifyOAuthCallback(
   const tokenData = await tokenRes.json();
   if (!tokenData.access_token) throw new Error("Shopify token exchange failed");
 
+  // Fetch shop currency
+  let currency = "USD";
+  try {
+    const shopRes = await fetch(`https://${shop}/admin/api/2024-01/shop.json`, {
+      headers: { "X-Shopify-Access-Token": tokenData.access_token },
+    });
+    if (shopRes.ok) {
+      const shopData = await shopRes.json();
+      currency = (shopData?.shop?.currency ?? "USD").toUpperCase();
+    }
+  } catch { /* non-fatal */ }
+
   const supabase = createServiceClient();
   await supabase.from("integrations").upsert(
     {
@@ -26,6 +38,7 @@ export async function handleShopifyOAuthCallback(
       platform: "shopify",
       access_token: tokenData.access_token,
       account_id: shop,
+      currency,
       connected_at: new Date().toISOString(),
     },
     { onConflict: "user_id,platform" },
@@ -42,6 +55,18 @@ export async function handleShopifyConnect(
   const { valid, error } = await validateShopifyCredentials(domain, accessToken);
   if (!valid) throw new Error(error ?? "Invalid Shopify credentials");
 
+  // Fetch shop currency
+  let currency = "USD";
+  try {
+    const shopRes = await fetch(`https://${domain}/admin/api/2024-01/shop.json`, {
+      headers: { "X-Shopify-Access-Token": accessToken },
+    });
+    if (shopRes.ok) {
+      const shopData = await shopRes.json();
+      currency = (shopData?.shop?.currency ?? "USD").toUpperCase();
+    }
+  } catch { /* non-fatal */ }
+
   const supabase = createServiceClient();
   const { error: dbError } = await supabase.from("integrations").upsert(
     {
@@ -49,6 +74,7 @@ export async function handleShopifyConnect(
       platform:     "shopify",
       access_token: accessToken,
       account_id:   domain,
+      currency,
       connected_at: new Date().toISOString(),
     },
     { onConflict: "user_id,platform" }

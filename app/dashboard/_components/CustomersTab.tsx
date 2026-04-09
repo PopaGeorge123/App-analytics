@@ -11,9 +11,8 @@ interface CustomersTabProps {
   isPremium: boolean;
   connectedPlatforms: string[];
   snapshots: Snapshot[];
-  metaCurrency: string;
-  /** Real customer records fetched from the customers table.
-   *  When non-empty, used directly. When empty, falls back to synthesised data. */
+  /** platform → ISO currency code. e.g. { stripe: "EUR", meta: "USD" } */
+  currencies?: Record<string, string>;
   customers?: CustomerRow[];
 }
 
@@ -355,7 +354,7 @@ export default function CustomersTab({
   isPremium,
   connectedPlatforms,
   snapshots,
-  metaCurrency: _metaCurrency,
+  currencies: _currencies = {},
   customers: realCustomers = [],
 }: CustomersTabProps) {
   const connRevenue = connectedIn(connectedPlatforms, REVENUE_PROVIDERS);

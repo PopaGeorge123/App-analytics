@@ -37,7 +37,8 @@ interface OverviewTabProps {
   connectedPlatforms: string[];
   snapshots: Snapshot[];
   websiteData: WebsiteData;
-  metaCurrency: string;
+  /** platform → ISO currency code. e.g. { stripe: "EUR", meta: "USD" } */
+  currencies: Record<string, string>;
   onNavigate: (tab: Tab) => void;
 }
 
@@ -834,7 +835,7 @@ export default function OverviewTab({
   connectedPlatforms,
   snapshots,
   websiteData,
-  metaCurrency: metaCurrencyProp,
+  currencies = {},
   onNavigate,
 }: OverviewTabProps) {
   const router = useRouter();
@@ -880,13 +881,15 @@ export default function OverviewTab({
     const snaps14 = filterDays(effectiveSnapshots, 14);
     const snapsPrev7 = snaps14.filter((s) => !snaps7.find((x) => x.id === s.id));
 
-    // Meta currency — from integrations table (authoritative, passed as prop from server)
-    const metaCurrency = metaCurrencyProp;
-
     // ── Multi-provider groups ───────────────────────────────────────────
     const connRevenue  = connectedIn(effectivePlatforms, REVENUE_PROVIDERS);
     const connAnalytics = connectedIn(effectivePlatforms, ANALYTICS_PROVIDERS);
     const connAds      = connectedIn(effectivePlatforms, ADS_PROVIDERS);
+
+    // For CAC display, use the primary ad platform's currency
+    const primaryAdCurrency: string = connAds.length > 0
+      ? (currencies[connAds[0]] ?? "USD")
+      : "USD";
 
     const primaryAnalytics = pickPrimaryAnalyticsProvider(snaps7, connAnalytics)
       ?? pickPrimaryAnalyticsProvider(effectiveSnapshots, connAnalytics);
@@ -954,7 +957,7 @@ export default function OverviewTab({
     if (hasRevenue && revenueYday > 0) narrativeParts.push(`${fmt(revenueYday, "currency")} revenue${txYday > 0 ? ` (${txYday} txns)` : ""}`);
     if (hasAnalytics && sessionsYday > 0) narrativeParts.push(`${fmt(sessionsYday)} sessions`);
     if (hasRevenue && newCxYday > 0) narrativeParts.push(`${newCxYday} new customer${newCxYday !== 1 ? "s" : ""}`);
-    if (hasAds && spendYday > 0) narrativeParts.push(`${fmtMetaSpend(spendYday, metaCurrency)} ad spend`);
+    if (hasAds && spendYday > 0) narrativeParts.push(`${fmtMetaSpend(spendYday, primaryAdCurrency)} ad spend`);
 
     const narrative = {
       hasData: hasYesterdayData && narrativeParts.length > 0,
@@ -1008,7 +1011,7 @@ export default function OverviewTab({
       },
       {
         label: "Ad Spend (7d)",
-        value: hasAds ? fmtMetaSpend(spend7, metaCurrency) : null,
+        value: hasAds ? fmtMetaSpend(spend7, primaryAdCurrency) : null,
         sub: hasAds ? adsSourceLabel : null,
         trend: hasAds ? { current: spend7, prev: spendPrev } : null,
         icon: "adspend",
@@ -1026,10 +1029,10 @@ export default function OverviewTab({
       },
       {
         label: "CAC",
-        value: hasAds && hasRevenue && cac7 !== null ? fmtMetaSpend(cac7, metaCurrency) : null,
+        value: hasAds && hasRevenue && cac7 !== null ? fmtMetaSpend(cac7, primaryAdCurrency) : null,
         sub: hasAds && hasRevenue && cac7 !== null
-          ? metaCurrency !== "USD"
-            ? `${metaCurrency} spend ÷ new customers`
+          ? primaryAdCurrency !== (currencies[connRevenue[0]] ?? "USD")
+            ? `${primaryAdCurrency} spend ÷ new customers`
             : "ad spend ÷ new customers"
           : null,
         trend: null,
@@ -1086,7 +1089,7 @@ export default function OverviewTab({
       sessionsMonth: primaryAnalytics ? sumField(snapsThisMonth, primaryAnalytics, "sessions") : 0,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectiveSnapshots, effectivePlatforms, websiteData, metaCurrencyProp]);
+  }, [effectiveSnapshots, effectivePlatforms, websiteData, currencies]);
 
   const pendingTasks = websiteData.tasks.filter((t) => !t.completed);
   const completedTasks = websiteData.tasks.filter((t) => t.completed);

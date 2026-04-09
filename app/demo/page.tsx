@@ -107,7 +107,7 @@ function DemoShell() {
                 },
               ],
             }}
-            metaCurrency="USD"
+            currencies={{}}
             isSyncing={null}
             customers={[]}
           />

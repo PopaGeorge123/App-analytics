@@ -50,6 +50,20 @@ export async function handleWooCommerceConnect(
   const { valid, error } = await validateWooCommerceCredentials(base, consumerKey, consumerSecret);
   if (!valid) throw new Error(error ?? "Invalid WooCommerce credentials");
 
+  // Fetch shop currency from WooCommerce settings
+  let currency = "USD";
+  try {
+    const auth = Buffer.from(`${consumerKey}:${consumerSecret}`).toString("base64");
+    const settingsRes = await fetch(`${base}/wp-json/wc/v3/settings/general`, {
+      headers: { Authorization: `Basic ${auth}` },
+    });
+    if (settingsRes.ok) {
+      const settings: { id: string; value: string }[] = await settingsRes.json();
+      const woofiCurrency = settings.find((s) => s.id === "woocommerce_currency");
+      if (woofiCurrency?.value) currency = woofiCurrency.value.toUpperCase();
+    }
+  } catch { /* non-fatal */ }
+
   // Store combined credential: "consumerKey:consumerSecret" in access_token; siteUrl in account_id
   const supabase = createServiceClient();
   const { error: dbError } = await supabase.from("integrations").upsert(
@@ -58,6 +72,7 @@ export async function handleWooCommerceConnect(
       platform:     "woocommerce",
       access_token: `${consumerKey}:${consumerSecret}`,
       account_id:   base,
+      currency,
       connected_at: new Date().toISOString(),
     },
     { onConflict: "user_id,platform" }

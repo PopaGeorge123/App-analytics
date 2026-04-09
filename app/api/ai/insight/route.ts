@@ -36,6 +36,11 @@ export async function POST() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const { isPremiumUser } = await import("@/lib/supabase/isPremiumUser");
+  if (!(await isPremiumUser(user.id))) {
+    return NextResponse.json({ error: "Premium required." }, { status: 403 });
+  }
+
   const db = createServiceClient();
   const today = new Date().toISOString().slice(0, 10);
 

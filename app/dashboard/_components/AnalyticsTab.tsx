@@ -12,7 +12,8 @@ interface AnalyticsTabProps {
   isPremium: boolean;
   connectedPlatforms: string[];
   snapshots: Snapshot[];
-  metaCurrency?: string;
+  /** platform → ISO currency code. e.g. { stripe: "EUR", meta: "USD" } */
+  currencies?: Record<string, string>;
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────
@@ -573,7 +574,7 @@ function DataTable({ rows }: { rows: { period: string; cells: { label: string; v
 
 // ── Cross-platform Funnel Waterfall ──────────────────────────────────────
 
-export function FunnelSection({ snapshots, connectedPlatforms, metaCurrency = "USD" }: { snapshots: Snapshot[]; connectedPlatforms: string[]; metaCurrency?: string }) {
+export function FunnelSection({ snapshots, connectedPlatforms, currencies = {} }: { snapshots: Snapshot[]; connectedPlatforms: string[]; currencies?: Record<string, string> }) {
   // ── Multi-provider aggregation ───────────────────────────────────────
   const connRevenue  = connectedPlatforms.filter((p) => REVENUE_PROVIDERS.includes(p));
   const connAnalytics = connectedPlatforms.filter((p) => ANALYTICS_PROVIDERS.includes(p));
@@ -684,7 +685,13 @@ export function FunnelSection({ snapshots, connectedPlatforms, metaCurrency = "U
   // For ROAS: only show when both ad + revenue providers are connected in same currency
   const hasMeta    = connectedPlatforms.includes("meta");
   const hasStripe  = connectedPlatforms.includes("stripe");
-  const showROAS   = hasAds && hasRevenue && adSpend > 0 && revenue > 0 && metaCurrency === "USD";
+  // Derive currencies for ad spend and primary revenue platform
+  const primaryAdCurrency = connAds.length > 0 ? (currencies[connAds[0]] ?? "USD") : "USD";
+  const primaryRevCurrency = connRevenue.length > 0 ? (currencies[connRevenue[0]] ?? "USD") : "USD";
+  const allCurrenciesMatch = [...connAds, ...connRevenue].every(
+    (p) => (currencies[p] ?? "USD") === primaryAdCurrency
+  );
+  const showROAS   = hasAds && hasRevenue && adSpend > 0 && revenue > 0 && allCurrenciesMatch;
 
   return (
     <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-5 space-y-4">
@@ -783,11 +790,11 @@ export function FunnelSection({ snapshots, connectedPlatforms, metaCurrency = "U
           )}
         </div>
       )}
-      {hasMeta && hasStripe && metaCurrency !== "USD" && (
+      {hasMeta && hasStripe && primaryAdCurrency !== primaryRevCurrency && (
         <div className="flex items-center gap-3 rounded-xl border border-[#f59e0b]/30 bg-[#f59e0b]/8 px-4 py-3">
           <span className="text-sm">⚠️</span>
           <p className="font-mono text-[10px] text-[#f59e0b]">
-            ROAS and cross-platform efficiency metrics are hidden — Meta spend is in <strong>{metaCurrency}</strong> while Stripe revenue is in <strong>USD</strong>.
+            ROAS and cross-platform efficiency metrics are hidden — ad spend is in <strong>{primaryAdCurrency}</strong> while revenue is in <strong>{primaryRevCurrency}</strong>.
           </p>
         </div>
       )}
@@ -2664,7 +2671,7 @@ const PLATFORM_LABELS: Record<PlatformTab, string> = {
   "twitter-organic": "X (Twitter)",
 };
 
-export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots, metaCurrency = "USD" }: AnalyticsTabProps) {
+export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots, currencies = {} }: AnalyticsTabProps) {
   const availablePlatforms = (["stripe", "ga4", "meta", "paypal", "paddle", "lemon-squeezy", "gumroad", "plausible", "mixpanel", "amplitude", "posthog", "fathom", "google-ads", "tiktok-ads", "twitter-ads", "linkedin-ads", "snapchat-ads", "pinterest-ads", "mailchimp", "klaviyo", "convertkit", "activecampaign", "brevo", "beehiiv", "shopify", "woocommerce", "bigcommerce", "amazon-seller", "etsy", "hubspot", "salesforce", "pipedrive", "notion", "intercom", "zendesk", "freshdesk", "segment", "heap", "fullstory", "hotjar", "instagram", "youtube", "twitter-organic"] as Exclude<PlatformTab, "overview">[]).filter(
     (p) => connectedPlatforms.includes(p)
   );
@@ -2863,7 +2870,7 @@ export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots,
               connectedPlatforms={connectedPlatforms}
               timeRange="all"
               granularity={granularity}
-              metaCurrency={metaCurrency}
+              currencies={currencies}
             />
           )}
           {activeSection === "stripe" && connectedPlatforms.includes("stripe") && (

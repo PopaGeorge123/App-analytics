@@ -302,6 +302,11 @@ export async function POST() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const { isPremiumUser } = await import("@/lib/supabase/isPremiumUser");
+  if (!(await isPremiumUser(user.id))) {
+    return NextResponse.json({ error: "Premium required." }, { status: 403 });
+  }
+
   // 5 website analyses per hour per user (expensive — screenshot + Claude vision)
   const rl = checkRateLimit(`website-analyze:${user.id}`, 5, 60 * 60_000);
   if (!rl.ok) {

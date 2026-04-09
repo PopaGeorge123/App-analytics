@@ -57,9 +57,13 @@ export default async function DashboardPage({
 
   const connectedPlatforms = (integrations ?? []).map((i) => i.platform);
 
-  // Meta currency from the integrations table (authoritative — updated on every reconnect)
-  const metaCurrency: string =
-    (integrations ?? []).find((i) => i.platform === "meta")?.currency ?? "USD";
+  // Currency map: platform → ISO currency code (e.g. { stripe: "EUR", meta: "USD", "lemon-squeezy": "USD" })
+  // Populated at connect time by each integration's callback. Defaults to "USD" when absent.
+  const currencies: Record<string, string> = Object.fromEntries(
+    (integrations ?? [])
+      .filter((i) => i.currency)
+      .map((i) => [i.platform, (i.currency as string).toUpperCase()])
+  );
 
   // Fetch last 180 days of snapshots across all providers (Analytics needs broad range)
   const { data: rawSnapshots } = await db
@@ -183,7 +187,7 @@ export default async function DashboardPage({
         connectedPlatforms={connectedPlatforms}
         snapshots={snapshots}
         websiteData={websiteData}
-        metaCurrency={metaCurrency}
+        currencies={currencies}
         isSyncing={isSyncing}
         customers={customers}
       />
