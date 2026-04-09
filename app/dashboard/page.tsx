@@ -38,11 +38,14 @@ export default async function DashboardPage({
   // Fetch premium status from public.users (Supabase)
   const { data: dbUser } = await supabase
     .from("users")
-    .select("is_premium")
+    .select("is_premium, trial_ends_at")
     .eq("id", user.id)
     .single();
 
-  const isPremium = dbUser?.is_premium === true;
+  const isOnActiveTrial =
+    !!dbUser?.trial_ends_at && new Date(dbUser.trial_ends_at) > new Date();
+  const isPremium = dbUser?.is_premium === true || isOnActiveTrial;
+  const trialEndsAt: string | null = isOnActiveTrial ? (dbUser!.trial_ends_at as string) : null;
 
   const db = createServiceClient();
 
@@ -143,10 +146,16 @@ export default async function DashboardPage({
           </div>
 
           <div className="flex items-center gap-3">
-            {isPremium && (
+            {isPremium && !trialEndsAt && (
               <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-[#00d4aa]/25 bg-[#00d4aa]/8 px-3 py-1 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#00d4aa]">
                 <span className="h-1 w-1 rounded-full bg-[#00d4aa] animate-pulse" />
                 Premium
+              </span>
+            )}
+            {trialEndsAt && (
+              <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-[#f59e0b]/25 bg-[#f59e0b]/8 px-3 py-1 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#f59e0b]">
+                <span className="h-1 w-1 rounded-full bg-[#f59e0b] animate-pulse" />
+                Free Trial
               </span>
             )}
             <div className="hidden h-4 w-px bg-[#363650] sm:block" />
@@ -170,6 +179,7 @@ export default async function DashboardPage({
       <DashboardShell
         email={user.email!}
         isPremium={isPremium}
+        trialEndsAt={trialEndsAt}
         connectedPlatforms={connectedPlatforms}
         snapshots={snapshots}
         websiteData={websiteData}

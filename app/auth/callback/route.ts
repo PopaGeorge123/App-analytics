@@ -44,6 +44,10 @@ export async function GET(request: NextRequest) {
           { auth: { persistSession: false } }
         );
 
+        // trial_ends_at is only set on INSERT (ignoreDuplicates: true means
+        // existing rows are not touched — returning users keep their original trial date)
+        const trialEndsAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+
         const { error: insertError } = await adminClient
           .from("users")
           .upsert(
@@ -52,6 +56,7 @@ export async function GET(request: NextRequest) {
               email: user.email!,
               full_name: (user.user_metadata?.full_name as string) ?? null,
               avatar_url: (user.user_metadata?.avatar_url as string) ?? null,
+              trial_ends_at: trialEndsAt,
             },
             { onConflict: "id", ignoreDuplicates: true }
           );

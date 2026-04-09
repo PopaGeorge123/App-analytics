@@ -43,6 +43,7 @@ interface WebsiteData {
 interface DashboardShellProps {
   email: string;
   isPremium: boolean;
+  trialEndsAt?: string | null;
   connectedPlatforms: string[];
   snapshots: Snapshot[];
   websiteData: WebsiteData;
@@ -474,9 +475,15 @@ function UpgradeModal({ tab, onClose }: { tab: Tab; onClose: () => void }) {
   );
 }
 
-function DashboardShellInner({ email, isPremium, connectedPlatforms, snapshots, websiteData, metaCurrency, isSyncing, customers = [] }: DashboardShellProps) {
+function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms, snapshots, websiteData, metaCurrency, isSyncing, customers = [] }: DashboardShellProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  // Compute trial days remaining (client-side, rounded up)
+  const trialDaysLeft = trialEndsAt
+    ? Math.max(0, Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+    : null;
+  const isOnTrial = trialDaysLeft !== null;
 
   // Always start with "overview" on server/first render to avoid hydration mismatch.
   // The useEffect below immediately corrects the tab from the URL on the client.
@@ -604,7 +611,35 @@ function DashboardShellInner({ email, isPremium, connectedPlatforms, snapshots, 
 
         {/* Bottom section */}
         <div className="relative p-3 border-t border-[#363650]/60">
-          {isPremium ? (
+          {isOnTrial ? (
+            /* ── Trial countdown badge ── */
+            <div className="rounded-xl border border-[#f59e0b]/25 bg-[#f59e0b]/5 px-3 py-2.5">
+              <div className="flex items-center justify-between gap-1 mb-1.5">
+                <div className="flex items-center gap-1.5">
+                  <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="#f59e0b" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z" />
+                  </svg>
+                  <p className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#f59e0b]">Free Trial</p>
+                </div>
+                <p className="font-mono text-[9px] font-bold text-[#f59e0b]">
+                  {trialDaysLeft === 0 ? "Expires today" : `${trialDaysLeft}d left`}
+                </p>
+              </div>
+              {/* Progress bar */}
+              <div className="h-1 w-full rounded-full bg-[#363650] overflow-hidden mb-2">
+                <div
+                  className="h-full rounded-full bg-[#f59e0b] transition-all"
+                  style={{ width: `${Math.max(5, ((3 - (trialDaysLeft ?? 0)) / 3) * 100)}%` }}
+                />
+              </div>
+              <a
+                href="/api/stripe/checkout"
+                className="block w-full rounded-lg bg-[#f59e0b]/10 border border-[#f59e0b]/20 px-2 py-1.5 text-center font-mono text-[9px] font-semibold text-[#f59e0b] hover:bg-[#f59e0b]/20 transition"
+              >
+                Upgrade now →
+              </a>
+            </div>
+          ) : isPremium ? (
             <div className="rounded-xl border border-[#00d4aa]/20 bg-[#00d4aa]/5 px-3 py-2.5">
               <div className="flex items-center gap-2">
                 <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="#00d4aa" strokeWidth={2}>
