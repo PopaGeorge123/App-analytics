@@ -144,7 +144,7 @@ export default function SignupPage() {
         <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/90 p-8 shadow-2xl backdrop-blur-md">
 
           {/* 3-item value strip */}
-          <div className="mb-6 grid grid-cols-3 gap-2">
+          {/* <div className="mb-6 grid grid-cols-3 gap-2">
             {[
               { icon: "⚡", label: "Live KPIs" },
               { icon: "🤖", label: "AI insights" },
@@ -155,7 +155,7 @@ export default function SignupPage() {
                 <span className="font-mono text-[9px] font-semibold text-[#8585aa]">{item.label}</span>
               </div>
             ))}
-          </div>
+          </div> */}
 
           {/* Trial badge */}
           <div className="mb-5 flex items-center justify-center gap-2 rounded-xl border border-[#00d4aa]/20 bg-[#00d4aa]/5 py-2">
