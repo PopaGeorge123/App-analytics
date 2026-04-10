@@ -160,7 +160,7 @@ export default function SignupPage() {
           {/* Trial badge */}
           <div className="mb-5 flex items-center justify-center gap-2 rounded-xl border border-[#00d4aa]/20 bg-[#00d4aa]/5 py-2">
             <span className="h-1.5 w-1.5 rounded-full bg-[#00d4aa] animate-pulse" />
-            <span className="font-mono text-[10px] font-semibold text-[#00d4aa]">3-day free trial · Card required · charged day 4</span>
+            <span className="font-mono text-[10px] font-semibold text-[#00d4aa]">3-day free trial · No card required</span>
           </div>
 
           {/* Google OAuth */}
