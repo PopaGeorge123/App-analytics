@@ -44,11 +44,12 @@ export async function GET(request: NextRequest) {
           { auth: { persistSession: false } }
         );
 
-        // trial_ends_at is only set on INSERT (ignoreDuplicates: true means
-        // existing rows are not touched — returning users keep their original trial date)
         const trialEndsAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
 
-        const { error: insertError } = await adminClient
+        // Step 1: Insert the row if it doesn't exist yet.
+        // The DB trigger (handle_new_auth_user) already does this for OAuth sign-ups,
+        // so this is a safety net for email/password sign-ups only.
+        await adminClient
           .from("users")
           .upsert(
             {
@@ -61,8 +62,17 @@ export async function GET(request: NextRequest) {
             { onConflict: "id", ignoreDuplicates: true }
           );
 
-        if (insertError) {
-          console.error("[auth/callback] Error upserting user row:", insertError.message);
+        // Step 2: If the row already existed (trigger created it without trial_ends_at),
+        // the ignoreDuplicates upsert above did nothing. Fill in trial_ends_at now
+        // only when it is still NULL (first-ever sign-in for this user).
+        const { error: updateError } = await adminClient
+          .from("users")
+          .update({ trial_ends_at: trialEndsAt })
+          .eq("id", user.id)
+          .is("trial_ends_at", null);
+
+        if (updateError) {
+          console.error("[auth/callback] Error setting trial_ends_at:", updateError.message);
         }
       }
 
