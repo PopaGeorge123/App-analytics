@@ -53,7 +53,18 @@ cron.schedule("0 7 * * *", async () => {
   }
 }, { timezone: "UTC" });
 
+// ── 09:00 UTC — Send trial-ending reminder (fires ~24h before expiry) ───────
+cron.schedule("0 9 * * *", async () => {
+  console.log("[cron-server] Running trial-reminder...");
+  try {
+    await callRoute("/api/cron/trial-reminder");
+  } catch (err) {
+    console.error("[cron-server] Trial-reminder failed:", err);
+  }
+}, { timezone: "UTC" });
+
 console.log("[cron-server] Started. Schedules:");
 console.log("  02:00 UTC → /api/cron/sync");
 console.log("  07:00 UTC → /api/cron/digest");
+console.log("  09:00 UTC → /api/cron/trial-reminder");
 console.log(`  App URL: ${APP_URL}`);

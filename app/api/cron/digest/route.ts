@@ -22,12 +22,28 @@ export async function POST(request: NextRequest) {
 
   const userIds = [...new Set((integrations ?? []).map((i) => i.user_id))];
 
-  // Fetch premium users from this set
-  const { data: users } = await db
+  // Fetch premium users OR active trial users from this set
+  const now = new Date().toISOString();
+  const { data: premiumUsers } = await db
     .from("users")
     .select("id, email")
     .eq("is_premium", true)
     .in("id", userIds.length > 0 ? userIds : ["__none__"]);
+
+  const { data: trialUsers } = await db
+    .from("users")
+    .select("id, email")
+    .eq("is_premium", false)
+    .gt("trial_ends_at", now)
+    .in("id", userIds.length > 0 ? userIds : ["__none__"]);
+
+  // Deduplicate by user id
+  const seen = new Set<string>();
+  const users = [...(premiumUsers ?? []), ...(trialUsers ?? [])].filter((u) => {
+    if (seen.has(u.id)) return false;
+    seen.add(u.id);
+    return true;
+  });
 
   const results: Record<string, string> = {};
 

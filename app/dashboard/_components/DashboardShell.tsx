@@ -511,6 +511,17 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
+  // Show upgrade success banner when redirected back from Stripe checkout
+  useEffect(() => {
+    if (searchParams.get("upgraded") === "true") {
+      pushNotification("🎉 Welcome to Fold Premium — all features are now unlocked!", "#00d4aa");
+      // Remove the param without affecting the tab
+      const tab = searchParams.get("tab") ?? "overview";
+      router.replace(`/dashboard?tab=${tab}`, { scroll: false });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function navigate(tab: Tab) {
     // Non-premium users trying to access a locked tab → show contextual upgrade modal
     const LOCKED_TABS: Tab[] = ["analytics", "growth", "customers", "website", "ai"];
