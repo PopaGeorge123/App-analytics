@@ -41,11 +41,15 @@ function connectedIn(connected: string[], group: string[]): string[] {
   return connected.filter((p) => group.includes(p));
 }
 
-function fmtCents(cents: number): string {
-  const dollars = cents / 100;
-  if (dollars >= 1_000_000) return `$${(dollars / 1_000_000).toFixed(2)}M`;
-  if (dollars >= 1_000) return `$${(dollars / 1_000).toFixed(1)}k`;
-  return `$${dollars.toFixed(2)}`;
+function fmtCents(cents: number, currency = "USD"): string {
+  const amount = cents / 100;
+  if (amount >= 1_000_000) {
+    return new Intl.NumberFormat("en-US", { style: "currency", currency, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount / 1_000_000) + "M";
+  }
+  if (amount >= 1_000) {
+    return new Intl.NumberFormat("en-US", { style: "currency", currency, minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(amount / 1_000) + "k";
+  }
+  return new Intl.NumberFormat("en-US", { style: "currency", currency, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
 }
 
 function fmtNum(n: number): string {
@@ -354,11 +358,15 @@ export default function CustomersTab({
   isPremium,
   connectedPlatforms,
   snapshots,
-  currencies: _currencies = {},
+  currencies = {},
   customers: realCustomers = [],
 }: CustomersTabProps) {
   const connRevenue = connectedIn(connectedPlatforms, REVENUE_PROVIDERS);
   const hasRevenue  = connRevenue.length > 0;
+
+  // Derive primary revenue currency from the currencies map
+  const REVENUE_PROVIDERS_LOCAL = ["stripe", "lemon-squeezy", "paddle", "shopify", "woocommerce", "gumroad"];
+  const revCurrency = REVENUE_PROVIDERS_LOCAL.map((p) => currencies[p]).find(Boolean) ?? "USD";
 
   // ── Compute everything ─────────────────────────────────────────────────
   const { customers, cohorts, stats } = useMemo(() => {
@@ -507,7 +515,7 @@ export default function CustomersTab({
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatPill label="Total Customers"   value={fmtNum(stats.totalCustomers)} />
         <StatPill label="Active"            value={fmtNum(stats.activeCount)}    color="#00d4aa" />
-        <StatPill label="Avg LTV"           value={fmtCents(stats.avgLtv)}       color="#f59e0b" />
+        <StatPill label="Avg LTV"           value={fmtCents(stats.avgLtv, revCurrency)}       color="#f59e0b" />
         <StatPill label="At Risk"           value={fmtNum(stats.atRiskCount)}    color="#fb923c" />
       </div>
 
@@ -623,7 +631,7 @@ export default function CustomersTab({
                         </div>
                       </td>
                       <td className="py-3 text-right font-mono text-[11px] font-bold text-[#f8f8fc]">
-                        {fmtCents(c.totalSpent)}
+                        {fmtCents(c.totalSpent, revCurrency)}
                       </td>
                       <td className="py-3 text-right font-mono text-[11px] text-[#bcbcd8]">
                         {c.orderCount}
@@ -731,7 +739,7 @@ export default function CustomersTab({
               </svg>
               <p className="font-mono text-[10px] text-[#fb923c]">
                 <span className="font-bold">{atRiskList.length}</span> customers at risk ·{" "}
-                <span className="font-bold">{fmtCents(atRiskList.reduce((a, c) => a + c.totalSpent, 0))}</span> combined LTV
+                <span className="font-bold">{fmtCents(atRiskList.reduce((a, c) => a + c.totalSpent, 0), revCurrency)}</span> combined LTV
               </p>
             </div>
 
@@ -746,7 +754,7 @@ export default function CustomersTab({
                   <Avatar name={c.name} provider={c.provider} size={30} />
                   <div className="flex-1 min-w-0">
                     <p className="font-mono text-[11px] font-semibold text-[#e0e0f0] truncate">{c.name}</p>
-                    <p className="font-mono text-[9px] text-[#58588a]">LTV: {fmtCents(c.totalSpent)} · {c.orderCount} orders</p>
+                    <p className="font-mono text-[9px] text-[#58588a]">LTV: {fmtCents(c.totalSpent, revCurrency)} · {c.orderCount} orders</p>
                   </div>
                   <div className="text-right shrink-0">
                     <p className="font-mono text-[10px] font-bold" style={{ color: urgency }}>

@@ -53,11 +53,28 @@ function getField(snap: Snapshot, field: string): number {
   return d[field] ?? 0;
 }
 
-function fmt(n: number, type: "currency" | "number" | "percent" = "number"): string {
+function fmt(n: number, type: "currency" | "number" | "percent" = "number", currency = "USD"): string {
   if (type === "currency") {
     const dollars = n / 100;
-    if (dollars >= 1000) return `$${(dollars / 1000).toFixed(1)}k`;
-    return `$${dollars.toFixed(2)}`;
+    // Use Intl for correct symbol — USD → $, EUR → €, GBP → £, etc.
+    const formatted = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(dollars);
+    // Compact for large values
+    if (Math.abs(dollars) >= 1000) {
+      const compact = new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency,
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
+        notation: "compact",
+      }).format(dollars);
+      return compact;
+    }
+    return formatted;
   }
   if (type === "percent") return `${n.toFixed(1)}%`;
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -620,10 +637,13 @@ export function FunnelSection({ snapshots, connectedPlatforms, currencies = {} }
     available: boolean;
   };
 
-  // Build currency for ad spend display
+  // Build currency for ad spend display — use currencies map first, fall back to snapshot data
+  const connAds0 = connAds[0] as string | undefined;
   const currency: string =
-    ([...snapshots].reverse().find((s) => s.provider === "meta" && (s.data as Record<string, unknown>)?.currency) as { data: Record<string, unknown> } | undefined)
-      ?.data.currency as string ?? "USD";
+    (connAds0 ? currencies[connAds0] : undefined) ??
+    (([...snapshots].reverse().find((s) => s.provider === "meta" && (s.data as Record<string, unknown>)?.currency) as { data: Record<string, unknown> } | undefined)
+      ?.data.currency as string) ??
+    "USD";
   const fmtSpend = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
 
   // Multi-source labels
@@ -631,9 +651,10 @@ export function FunnelSection({ snapshots, connectedPlatforms, currencies = {} }
     ? `${connAds.join(" + ")}${adSpend > 0 && adClicks > 0 ? " · " + fmtSpend(adSpend / adClicks) + " CPC" : ""}`
     : adSpend > 0 && adClicks > 0 ? fmtSpend(adSpend / adClicks) + " CPC" : connAds[0] ?? "Ads";
 
+  const revCurrency: string = (connRevenue[0] ? currencies[connRevenue[0]] : undefined) ?? "USD";
   const revenueSub = connRevenue.length > 1
     ? connRevenue.join(" + ")
-    : conversions > 0 && revenue > 0 ? fmt(revenue / conversions, "currency") + " per conv" : connRevenue[0] ?? "Revenue";
+    : conversions > 0 && revenue > 0 ? fmt(revenue / conversions, "currency", revCurrency) + " per conv" : connRevenue[0] ?? "Revenue";
 
   const stages: FunnelStage[] = [
     {
@@ -671,7 +692,7 @@ export function FunnelSection({ snapshots, connectedPlatforms, currencies = {} }
     {
       label: "Revenue",
       value: revenue,
-      displayValue: hasRevenue ? fmt(revenue, "currency") : "—",
+      displayValue: hasRevenue ? fmt(revenue, "currency", revCurrency) : "—",
       color: "#635bff",
       sub: revenueSub,
       available: hasRevenue,
@@ -810,7 +831,7 @@ export function FunnelSection({ snapshots, connectedPlatforms, currencies = {} }
 
 // ── Platform sections ─────────────────────────────────────────────────────
 
-function StripeSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+function StripeSection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
   const grouped = groupSnapshots(
     snapshots, granularity,
     ["revenue", "txCount", "refunds", "newCustomers", "churnedToday"],
@@ -842,12 +863,12 @@ function StripeSection({ snapshots, granularity }: { snapshots: Snapshot[]; gran
   const tableRows = grouped.map((r) => ({
     period: fmtPeriod(r.period, granularity),
     cells: [
-      { label: "Revenue",       value: fmt(r.data.revenue, "currency") },
+      { label: "Revenue",       value: fmt(r.data.revenue, "currency", currency) },
       { label: "Transactions",  value: fmt(r.data.txCount) },
       { label: "New Customers", value: fmt(r.data.newCustomers) },
-      { label: "Refunds",       value: fmt(r.data.refunds, "currency") },
+      { label: "Refunds",       value: fmt(r.data.refunds, "currency", currency) },
       ...(hasSubscriptions ? [
-        { label: "MRR",         value: fmt(r.data.mrr, "currency") },
+        { label: "MRR",         value: fmt(r.data.mrr, "currency", currency) },
         { label: "Active Subs", value: fmt(r.data.activeSubscriptions) },
         { label: "Churned",     value: fmt(r.data.churnedToday) },
       ] : []),
@@ -868,10 +889,10 @@ function StripeSection({ snapshots, granularity }: { snapshots: Snapshot[]; gran
 
       {/* ── Revenue row ── */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard label="Total Revenue"   value={fmt(totalRevenue, "currency")} values={revenue}      color="#635bff" sparkFormatter={(v) => fmt(v, "currency")} />
+        <StatCard label="Total Revenue"   value={fmt(totalRevenue, "currency", currency)} values={revenue}      color="#635bff" sparkFormatter={(v) => fmt(v, "currency", currency)} />
         <StatCard label="Transactions"    value={fmt(totalTx)}                  values={txCount}      color="#635bff" />
         <StatCard label="New Customers"   value={fmt(totalNew)}                 values={newCustomers} color="#00d4aa" />
-        <StatCard label="Avg Order Val"   value={fmt(avgOrderVal, "currency")}  sub={`${fmt(totalRefunds, "currency")} refunds`} values={revenue.length ? [avgOrderVal] : []} color="#f59e0b" sparkFormatter={(v) => fmt(v, "currency")} />
+        <StatCard label="Avg Order Val"   value={fmt(avgOrderVal, "currency", currency)}  sub={`${fmt(totalRefunds, "currency", currency)} refunds`} values={revenue.length ? [avgOrderVal] : []} color="#f59e0b" sparkFormatter={(v) => fmt(v, "currency", currency)} />
       </div>
 
       {/* ── Subscription health row (only when subscription data exists) ── */}
@@ -885,11 +906,11 @@ function StripeSection({ snapshots, granularity }: { snapshots: Snapshot[]; gran
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <StatCard
               label="MRR"
-              value={fmt(currentMRR, "currency")}
+              value={fmt(currentMRR, "currency", currency)}
               sub="monthly recurring"
               values={mrrSeries}
               color="#a78bfa"
-              sparkFormatter={(v) => fmt(v, "currency")}
+              sparkFormatter={(v) => fmt(v, "currency", currency)}
             />
             <StatCard
               label="Active Subs"
@@ -900,11 +921,11 @@ function StripeSection({ snapshots, granularity }: { snapshots: Snapshot[]; gran
             />
             <StatCard
               label="ARPU"
-              value={fmt(currentARPU, "currency")}
+              value={fmt(currentARPU, "currency", currency)}
               sub="avg per subscriber/mo"
               values={grouped.map((r) => r.data.arpu)}
               color="#635bff"
-              sparkFormatter={(v) => fmt(v, "currency")}
+              sparkFormatter={(v) => fmt(v, "currency", currency)}
             />
             <StatCard
               label="Churn"
@@ -924,7 +945,7 @@ function StripeSection({ snapshots, granularity }: { snapshots: Snapshot[]; gran
 
 // ── Product Revenue Breakdown ─────────────────────────────────────────────
 
-function ProductBreakdownSection({ snapshots }: { snapshots: Snapshot[] }) {
+function ProductBreakdownSection({ snapshots, currency = "USD" }: { snapshots: Snapshot[]; currency?: string }) {
   const products = useMemo(() => {
     // Aggregate revenue by product name / price ID across all snapshots.
     // Stripe sync stores either:
@@ -978,7 +999,7 @@ function ProductBreakdownSection({ snapshots }: { snapshots: Snapshot[] }) {
           </svg>
         </div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Revenue by Product</h3>
-        <span className="ml-auto font-mono text-[10px] text-[#8585aa]">{fmt(totalRevenue, "currency")} total</span>
+        <span className="ml-auto font-mono text-[10px] text-[#8585aa]">{fmt(totalRevenue, "currency", currency)} total</span>
       </div>
 
       <div className="space-y-3">
@@ -994,7 +1015,7 @@ function ProductBreakdownSection({ snapshots }: { snapshots: Snapshot[] }) {
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   <span className="font-mono text-[9px] text-[#8585aa]">{p.count} sales</span>
-                  <span className="font-mono text-[10px] font-bold text-[#f8f8fc]">{fmt(p.revenue, "currency")}</span>
+                  <span className="font-mono text-[10px] font-bold text-[#f8f8fc]">{fmt(p.revenue, "currency", currency)}</span>
                   <span className="font-mono text-[9px] text-[#8585aa] w-8 text-right">{pct}%</span>
                 </div>
               </div>
@@ -1276,7 +1297,7 @@ function MetaSection({ snapshots, granularity }: { snapshots: Snapshot[]; granul
   );
 }
 
-function PayPalSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+function PayPalSection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
   const grouped = groupSnapshots(snapshots, granularity,
     ["revenue", "fees", "netRevenue", "txCount"], []);
 
@@ -1294,9 +1315,9 @@ function PayPalSection({ snapshots, granularity }: { snapshots: Snapshot[]; gran
   const tableRows = grouped.map((r) => ({
     period: fmtPeriod(r.period, granularity),
     cells: [
-      { label: "Revenue",     value: fmt(r.data.revenue,    "currency") },
-      { label: "Fees",        value: fmt(r.data.fees,       "currency") },
-      { label: "Net Revenue", value: fmt(r.data.netRevenue, "currency") },
+      { label: "Revenue",     value: fmt(r.data.revenue,    "currency", currency) },
+      { label: "Fees",        value: fmt(r.data.fees,       "currency", currency) },
+      { label: "Net Revenue", value: fmt(r.data.netRevenue, "currency", currency) },
       { label: "Tx Count",    value: fmt(r.data.txCount) },
     ],
   }));
@@ -1313,17 +1334,17 @@ function PayPalSection({ snapshots, granularity }: { snapshots: Snapshot[]; gran
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">PayPal</h3>
       </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard label="Revenue"     value={fmt(totalRevenue,  "currency")} values={revenues}    color="#009cde" />
-        <StatCard label="Net Revenue" value={fmt(totalNet,      "currency")} values={netRevenues} color="#00d4aa" />
-        <StatCard label="Fees Paid"   value={fmt(totalFees,     "currency")} values={fees}        color="#f87171" />
-        <StatCard label="Avg Order"   value={fmt(avgOrderValue, "currency")} sub={`${fmt(totalTx)} tx`} values={txCounts} color="#f59e0b" />
+        <StatCard label="Revenue"     value={fmt(totalRevenue,  "currency", currency)} values={revenues}    color="#009cde" />
+        <StatCard label="Net Revenue" value={fmt(totalNet,      "currency", currency)} values={netRevenues} color="#00d4aa" />
+        <StatCard label="Fees Paid"   value={fmt(totalFees,     "currency", currency)} values={fees}        color="#f87171" />
+        <StatCard label="Avg Order"   value={fmt(avgOrderValue, "currency", currency)} sub={`${fmt(totalTx)} tx`} values={txCounts} color="#f59e0b" />
       </div>
       <DataTable rows={tableRows} />
     </div>
   );
 }
 
-function PaddleSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+function PaddleSection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
   const grouped = groupSnapshots(snapshots, granularity,
     ["revenue", "fees", "netRevenue", "txCount"], []);
 
@@ -1341,9 +1362,9 @@ function PaddleSection({ snapshots, granularity }: { snapshots: Snapshot[]; gran
   const tableRows = grouped.map((r) => ({
     period: fmtPeriod(r.period, granularity),
     cells: [
-      { label: "Revenue",     value: fmt(r.data.revenue,    "currency") },
-      { label: "Fees",        value: fmt(r.data.fees,       "currency") },
-      { label: "Net Revenue", value: fmt(r.data.netRevenue, "currency") },
+      { label: "Revenue",     value: fmt(r.data.revenue,    "currency", currency) },
+      { label: "Fees",        value: fmt(r.data.fees,       "currency", currency) },
+      { label: "Net Revenue", value: fmt(r.data.netRevenue, "currency", currency) },
       { label: "Tx Count",    value: fmt(r.data.txCount) },
     ],
   }));
@@ -1359,17 +1380,17 @@ function PaddleSection({ snapshots, granularity }: { snapshots: Snapshot[]; gran
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Paddle</h3>
       </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard label="Revenue"     value={fmt(totalRevenue,  "currency")} values={revenues}    color="#3ddc97" />
-        <StatCard label="Net Revenue" value={fmt(totalNet,      "currency")} values={netRevenues} color="#00d4aa" />
-        <StatCard label="Fees Paid"   value={fmt(totalFees,     "currency")} values={fees}        color="#f87171" />
-        <StatCard label="Avg Order"   value={fmt(avgOrderValue, "currency")} sub={`${fmt(totalTx)} tx`} values={txCounts} color="#f59e0b" />
+        <StatCard label="Revenue"     value={fmt(totalRevenue,  "currency", currency)} values={revenues}    color="#3ddc97" />
+        <StatCard label="Net Revenue" value={fmt(totalNet,      "currency", currency)} values={netRevenues} color="#00d4aa" />
+        <StatCard label="Fees Paid"   value={fmt(totalFees,     "currency", currency)} values={fees}        color="#f87171" />
+        <StatCard label="Avg Order"   value={fmt(avgOrderValue, "currency", currency)} sub={`${fmt(totalTx)} tx`} values={txCounts} color="#f59e0b" />
       </div>
       <DataTable rows={tableRows} />
     </div>
   );
 }
 
-function LemonSqueezySection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+function LemonSqueezySection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
   const grouped = groupSnapshots(snapshots, granularity,
     ["revenue", "fees", "netRevenue", "txCount"], []);
 
@@ -1387,9 +1408,9 @@ function LemonSqueezySection({ snapshots, granularity }: { snapshots: Snapshot[]
   const tableRows = grouped.map((r) => ({
     period: fmtPeriod(r.period, granularity),
     cells: [
-      { label: "Revenue",     value: fmt(r.data.revenue,    "currency") },
-      { label: "Fees",        value: fmt(r.data.fees,       "currency") },
-      { label: "Net Revenue", value: fmt(r.data.netRevenue, "currency") },
+      { label: "Revenue",     value: fmt(r.data.revenue,    "currency", currency) },
+      { label: "Fees",        value: fmt(r.data.fees,       "currency", currency) },
+      { label: "Net Revenue", value: fmt(r.data.netRevenue, "currency", currency) },
       { label: "Tx Count",    value: fmt(r.data.txCount) },
     ],
   }));
@@ -1405,17 +1426,17 @@ function LemonSqueezySection({ snapshots, granularity }: { snapshots: Snapshot[]
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Lemon Squeezy</h3>
       </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard label="Revenue"     value={fmt(totalRevenue,  "currency")} values={revenues}    color="#FFC233" />
-        <StatCard label="Net Revenue" value={fmt(totalNet,      "currency")} values={netRevenues} color="#f59e0b" />
-        <StatCard label="Fees Paid"   value={fmt(totalFees,     "currency")} values={fees}        color="#f87171" />
-        <StatCard label="Avg Order"   value={fmt(avgOrderValue, "currency")} sub={`${fmt(totalTx)} tx`} values={txCounts} color="#00d4aa" />
+        <StatCard label="Revenue"     value={fmt(totalRevenue,  "currency", currency)} values={revenues}    color="#FFC233" />
+        <StatCard label="Net Revenue" value={fmt(totalNet,      "currency", currency)} values={netRevenues} color="#f59e0b" />
+        <StatCard label="Fees Paid"   value={fmt(totalFees,     "currency", currency)} values={fees}        color="#f87171" />
+        <StatCard label="Avg Order"   value={fmt(avgOrderValue, "currency", currency)} sub={`${fmt(totalTx)} tx`} values={txCounts} color="#00d4aa" />
       </div>
       <DataTable rows={tableRows} />
     </div>
   );
 }
 
-function GumroadSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+function GumroadSection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
   const grouped = groupSnapshots(snapshots, granularity, ["revenue", "fees", "netRevenue", "txCount"], []);
   const revenues    = grouped.map((r) => r.data.revenue);
   const fees        = grouped.map((r) => r.data.fees);
@@ -1429,9 +1450,9 @@ function GumroadSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
   const tableRows = grouped.map((r) => ({
     period: fmtPeriod(r.period, granularity),
     cells: [
-      { label: "Revenue",     value: fmt(r.data.revenue,    "currency") },
-      { label: "Fees",        value: fmt(r.data.fees,       "currency") },
-      { label: "Net Revenue", value: fmt(r.data.netRevenue, "currency") },
+      { label: "Revenue",     value: fmt(r.data.revenue,    "currency", currency) },
+      { label: "Fees",        value: fmt(r.data.fees,       "currency", currency) },
+      { label: "Net Revenue", value: fmt(r.data.netRevenue, "currency", currency) },
       { label: "Tx Count",    value: fmt(r.data.txCount) },
     ],
   }));
@@ -1442,10 +1463,10 @@ function GumroadSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Gumroad</h3>
       </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard label="Revenue"     value={fmt(totalRevenue,  "currency")} values={revenues}    color="#ff90e8" />
-        <StatCard label="Net Revenue" value={fmt(totalNet,      "currency")} values={netRevenues} color="#f59e0b" />
-        <StatCard label="Fees Paid"   value={fmt(totalFees,     "currency")} values={fees}        color="#f87171" />
-        <StatCard label="Avg Order"   value={fmt(avgOrderValue, "currency")} sub={`${fmt(totalTx)} tx`} values={txCounts} color="#00d4aa" />
+        <StatCard label="Revenue"     value={fmt(totalRevenue,  "currency", currency)} values={revenues}    color="#ff90e8" />
+        <StatCard label="Net Revenue" value={fmt(totalNet,      "currency", currency)} values={netRevenues} color="#f59e0b" />
+        <StatCard label="Fees Paid"   value={fmt(totalFees,     "currency", currency)} values={fees}        color="#f87171" />
+        <StatCard label="Avg Order"   value={fmt(avgOrderValue, "currency", currency)} sub={`${fmt(totalTx)} tx`} values={txCounts} color="#00d4aa" />
       </div>
       <DataTable rows={tableRows} />
     </div>
@@ -2038,7 +2059,7 @@ function BeehiivSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
 }
 
 // ── Shopify ───────────────────────────────────────────────────────────────────
-function ShopifySection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+function ShopifySection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
   const grouped   = groupSnapshots(snapshots, granularity, ["revenue", "orders", "refunds", "newCustomers"], []);
   const revenue   = grouped.map((r) => r.data.revenue);
   const orders    = grouped.map((r) => r.data.orders);
@@ -2047,7 +2068,7 @@ function ShopifySection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
   const tableRows = grouped.map((r) => ({
     period: fmtPeriod(r.period, granularity),
     cells: [
-      { label: "Revenue",       value: fmt(r.data.revenue, "currency") },
+      { label: "Revenue",       value: fmt(r.data.revenue, "currency", currency) },
       { label: "Orders",        value: fmt(r.data.orders) },
       { label: "Refunds",       value: fmt(r.data.refunds) },
       { label: "New Customers", value: fmt(r.data.newCustomers) },
@@ -2060,7 +2081,7 @@ function ShopifySection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Shopify</h3>
       </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard label="Revenue"       value={fmt(revenue.reduce((a,b)=>a+b,0), "currency")}   values={revenue}   color="#96bf48" />
+        <StatCard label="Revenue"       value={fmt(revenue.reduce((a,b)=>a+b,0), "currency", currency)}   values={revenue}   color="#96bf48" />
         <StatCard label="Orders"        value={fmt(orders.reduce((a,b)=>a+b,0))}          values={orders}    color="#a3e635" />
         <StatCard label="Refunds"       value={fmt(refunds.reduce((a,b)=>a+b,0))}         values={refunds}   color="#f87171" />
         <StatCard label="New Customers" value={fmt(customers.reduce((a,b)=>a+b,0))}       values={customers} color="#00d4aa" />
@@ -2071,7 +2092,7 @@ function ShopifySection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
 }
 
 // ── WooCommerce ───────────────────────────────────────────────────────────────
-function WooCommerceSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+function WooCommerceSection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
   const grouped   = groupSnapshots(snapshots, granularity, ["revenue", "orders", "refunds", "newCustomers"], []);
   const revenue   = grouped.map((r) => r.data.revenue);
   const orders    = grouped.map((r) => r.data.orders);
@@ -2080,7 +2101,7 @@ function WooCommerceSection({ snapshots, granularity }: { snapshots: Snapshot[];
   const tableRows = grouped.map((r) => ({
     period: fmtPeriod(r.period, granularity),
     cells: [
-      { label: "Revenue",       value: fmt(r.data.revenue, "currency") },
+      { label: "Revenue",       value: fmt(r.data.revenue, "currency", currency) },
       { label: "Orders",        value: fmt(r.data.orders) },
       { label: "Refunds",       value: fmt(r.data.refunds) },
       { label: "New Customers", value: fmt(r.data.newCustomers) },
@@ -2093,7 +2114,7 @@ function WooCommerceSection({ snapshots, granularity }: { snapshots: Snapshot[];
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">WooCommerce</h3>
       </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard label="Revenue"       value={fmt(revenue.reduce((a,b)=>a+b,0), "currency")}   values={revenue}   color="#7f54b3" />
+        <StatCard label="Revenue"       value={fmt(revenue.reduce((a,b)=>a+b,0), "currency", currency)}   values={revenue}   color="#7f54b3" />
         <StatCard label="Orders"        value={fmt(orders.reduce((a,b)=>a+b,0))}          values={orders}    color="#a78bfa" />
         <StatCard label="Refunds"       value={fmt(refunds.reduce((a,b)=>a+b,0))}         values={refunds}   color="#f87171" />
         <StatCard label="New Customers" value={fmt(customers.reduce((a,b)=>a+b,0))}       values={customers} color="#00d4aa" />
@@ -2104,7 +2125,7 @@ function WooCommerceSection({ snapshots, granularity }: { snapshots: Snapshot[];
 }
 
 // ── BigCommerce ───────────────────────────────────────────────────────────────
-function BigCommerceSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+function BigCommerceSection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
   const grouped   = groupSnapshots(snapshots, granularity, ["revenue", "orders", "refunds", "newCustomers"], []);
   const revenue   = grouped.map((r) => r.data.revenue);
   const orders    = grouped.map((r) => r.data.orders);
@@ -2113,7 +2134,7 @@ function BigCommerceSection({ snapshots, granularity }: { snapshots: Snapshot[];
   const tableRows = grouped.map((r) => ({
     period: fmtPeriod(r.period, granularity),
     cells: [
-      { label: "Revenue",       value: fmt(r.data.revenue, "currency") },
+      { label: "Revenue",       value: fmt(r.data.revenue, "currency", currency) },
       { label: "Orders",        value: fmt(r.data.orders) },
       { label: "Refunds",       value: fmt(r.data.refunds) },
       { label: "New Customers", value: fmt(r.data.newCustomers) },
@@ -2126,7 +2147,7 @@ function BigCommerceSection({ snapshots, granularity }: { snapshots: Snapshot[];
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">BigCommerce</h3>
       </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard label="Revenue"       value={fmt(revenue.reduce((a,b)=>a+b,0), "currency")}   values={revenue}   color="#bcbcd8" />
+        <StatCard label="Revenue"       value={fmt(revenue.reduce((a,b)=>a+b,0), "currency", currency)}   values={revenue}   color="#bcbcd8" />
         <StatCard label="Orders"        value={fmt(orders.reduce((a,b)=>a+b,0))}          values={orders}    color="#a78bfa" />
         <StatCard label="Refunds"       value={fmt(refunds.reduce((a,b)=>a+b,0))}         values={refunds}   color="#f87171" />
         <StatCard label="New Customers" value={fmt(customers.reduce((a,b)=>a+b,0))}       values={customers} color="#00d4aa" />
@@ -2137,7 +2158,7 @@ function BigCommerceSection({ snapshots, granularity }: { snapshots: Snapshot[];
 }
 
 // ── Amazon Seller ─────────────────────────────────────────────────────────────
-function AmazonSellerSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+function AmazonSellerSection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
   const grouped  = groupSnapshots(snapshots, granularity, ["revenue", "orders", "units", "refunds"], []);
   const revenue  = grouped.map((r) => r.data.revenue);
   const orders   = grouped.map((r) => r.data.orders);
@@ -2146,7 +2167,7 @@ function AmazonSellerSection({ snapshots, granularity }: { snapshots: Snapshot[]
   const tableRows = grouped.map((r) => ({
     period: fmtPeriod(r.period, granularity),
     cells: [
-      { label: "Revenue", value: fmt(r.data.revenue, "currency") },
+      { label: "Revenue", value: fmt(r.data.revenue, "currency", currency) },
       { label: "Orders",  value: fmt(r.data.orders) },
       { label: "Units",   value: fmt(r.data.units) },
       { label: "Refunds", value: fmt(r.data.refunds) },
@@ -2159,7 +2180,7 @@ function AmazonSellerSection({ snapshots, granularity }: { snapshots: Snapshot[]
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Amazon Seller</h3>
       </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard label="Revenue" value={fmt(revenue.reduce((a,b)=>a+b,0), "currency")} values={revenue} color="#FF9900" />
+        <StatCard label="Revenue" value={fmt(revenue.reduce((a,b)=>a+b,0), "currency", currency)} values={revenue} color="#FF9900" />
         <StatCard label="Orders"  value={fmt(orders.reduce((a,b)=>a+b,0))}       values={orders}  color="#fbbf24" />
         <StatCard label="Units"   value={fmt(units.reduce((a,b)=>a+b,0))}        values={units}   color="#00d4aa" />
         <StatCard label="Refunds" value={fmt(refunds.reduce((a,b)=>a+b,0))}      values={refunds} color="#f87171" />
@@ -2170,7 +2191,7 @@ function AmazonSellerSection({ snapshots, granularity }: { snapshots: Snapshot[]
 }
 
 // ── Etsy ──────────────────────────────────────────────────────────────────────
-function EtsySection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+function EtsySection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
   const grouped  = groupSnapshots(snapshots, granularity, ["revenue", "orders", "views", "newCustomers"], []);
   const revenue  = grouped.map((r) => r.data.revenue);
   const orders   = grouped.map((r) => r.data.orders);
@@ -2179,7 +2200,7 @@ function EtsySection({ snapshots, granularity }: { snapshots: Snapshot[]; granul
   const tableRows = grouped.map((r) => ({
     period: fmtPeriod(r.period, granularity),
     cells: [
-      { label: "Revenue",       value: fmt(r.data.revenue, "currency") },
+      { label: "Revenue",       value: fmt(r.data.revenue, "currency", currency) },
       { label: "Orders",        value: fmt(r.data.orders) },
       { label: "Views",         value: fmt(r.data.views) },
       { label: "New Customers", value: fmt(r.data.newCustomers) },
@@ -2192,7 +2213,7 @@ function EtsySection({ snapshots, granularity }: { snapshots: Snapshot[]; granul
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Etsy</h3>
       </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard label="Revenue"       value={fmt(revenue.reduce((a,b)=>a+b,0), "currency")}   values={revenue}   color="#F56400" />
+        <StatCard label="Revenue"       value={fmt(revenue.reduce((a,b)=>a+b,0), "currency", currency)}   values={revenue}   color="#F56400" />
         <StatCard label="Orders"        value={fmt(orders.reduce((a,b)=>a+b,0))}          values={orders}    color="#fb923c" />
         <StatCard label="Views"         value={fmt(views.reduce((a,b)=>a+b,0))}           values={views}     color="#60a5fa" />
         <StatCard label="New Customers" value={fmt(customers.reduce((a,b)=>a+b,0))}       values={customers} color="#00d4aa" />
@@ -2203,7 +2224,7 @@ function EtsySection({ snapshots, granularity }: { snapshots: Snapshot[]; granul
 }
 
 // ── HubSpot ───────────────────────────────────────────────────────────────────
-function HubSpotSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+function HubSpotSection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
   const grouped       = groupSnapshots(snapshots, granularity, ["dealsWon", "closedRevenue", "newContacts", "pipelineValue"], []);
   const dealsWon      = grouped.map((r) => r.data.dealsWon);
   const closedRev     = grouped.map((r) => r.data.closedRevenue);
@@ -2214,9 +2235,9 @@ function HubSpotSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
     period: fmtPeriod(r.period, granularity),
     cells: [
       { label: "Deals Won",       value: fmt(r.data.dealsWon) },
-      { label: "Closed Revenue",  value: fmt(r.data.closedRevenue, "currency") },
+      { label: "Closed Revenue",  value: fmt(r.data.closedRevenue, "currency", currency) },
       { label: "New Contacts",    value: fmt(r.data.newContacts) },
-      { label: "Pipeline Value",  value: fmt(r.data.pipelineValue, "currency") },
+      { label: "Pipeline Value",  value: fmt(r.data.pipelineValue, "currency", currency) },
     ],
   }));
   return (
@@ -2227,9 +2248,9 @@ function HubSpotSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
       </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Deals Won"      value={fmt(dealsWon.reduce((a,b)=>a+b,0))}        values={dealsWon}    color="#ff7a59" />
-        <StatCard label="Closed Revenue" value={fmt(closedRev.reduce((a,b)=>a+b,0), "currency")} values={closedRev}   color="#fb923c" />
+        <StatCard label="Closed Revenue" value={fmt(closedRev.reduce((a,b)=>a+b,0), "currency", currency)} values={closedRev}   color="#fb923c" />
         <StatCard label="New Contacts"   value={fmt(newContacts.reduce((a,b)=>a+b,0))}     values={newContacts} color="#00d4aa" />
-        <StatCard label="Pipeline"       value={fmt(lastPipeline, "currency")}                    values={pipeline}    color="#a78bfa" />
+        <StatCard label="Pipeline"       value={fmt(lastPipeline, "currency", currency)}                    values={pipeline}    color="#a78bfa" />
       </div>
       <DataTable rows={tableRows} />
     </div>
@@ -2239,7 +2260,7 @@ function HubSpotSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
 // ── Salesforce ────────────────────────────────────────────────────────────────
 // Duplicate SalesforceSection removed (already defined above)
 
-function SalesforceSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+function SalesforceSection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
   const grouped      = groupSnapshots(snapshots, granularity, ["dealsWon", "closedRevenue", "newLeads", "pipelineValue"], []);
   const dealsWon     = grouped.map((r) => r.data.dealsWon);
   const closedRev    = grouped.map((r) => r.data.closedRevenue);
@@ -2250,9 +2271,9 @@ function SalesforceSection({ snapshots, granularity }: { snapshots: Snapshot[]; 
     period: fmtPeriod(r.period, granularity),
     cells: [
       { label: "Deals Won",      value: fmt(r.data.dealsWon) },
-      { label: "Closed Revenue", value: fmt(r.data.closedRevenue, "currency") },
+      { label: "Closed Revenue", value: fmt(r.data.closedRevenue, "currency", currency) },
       { label: "New Leads",      value: fmt(r.data.newLeads) },
-      { label: "Pipeline Value", value: fmt(r.data.pipelineValue, "currency") },
+      { label: "Pipeline Value", value: fmt(r.data.pipelineValue, "currency", currency) },
     ],
   }));
   return (
@@ -2263,16 +2284,16 @@ function SalesforceSection({ snapshots, granularity }: { snapshots: Snapshot[]; 
       </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Deals Won"      value={fmt(dealsWon.reduce((a,b)=>a+b,0))}        values={dealsWon}  color="#00A1E0" />
-        <StatCard label="Closed Revenue" value={fmt(closedRev.reduce((a,b)=>a+b,0), "currency")} values={closedRev} color="#38bdf8" />
+        <StatCard label="Closed Revenue" value={fmt(closedRev.reduce((a,b)=>a+b,0), "currency", currency)} values={closedRev} color="#38bdf8" />
         <StatCard label="New Leads"      value={fmt(newLeads.reduce((a,b)=>a+b,0))}        values={newLeads}  color="#00d4aa" />
-        <StatCard label="Pipeline"       value={fmt(lastPipeline, "currency")}                    values={pipeline}  color="#a78bfa" />
+        <StatCard label="Pipeline"       value={fmt(lastPipeline, "currency", currency)}                    values={pipeline}  color="#a78bfa" />
       </div>
       <DataTable rows={tableRows} />
     </div>
   );
 }
 
-function PipedriveSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
+function PipedriveSection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
   const grouped     = groupSnapshots(snapshots, granularity, ["dealsWon", "closedRevenue", "newContacts", "pipelineValue"], []);
   const dealsWon    = grouped.map((r) => r.data.dealsWon);
   const closedRev   = grouped.map((r) => r.data.closedRevenue);
@@ -2283,9 +2304,9 @@ function PipedriveSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
     period: fmtPeriod(r.period, granularity),
     cells: [
       { label: "Deals Won",      value: fmt(r.data.dealsWon) },
-      { label: "Closed Revenue", value: fmt(r.data.closedRevenue, "currency") },
+      { label: "Closed Revenue", value: fmt(r.data.closedRevenue, "currency", currency) },
       { label: "New Contacts",   value: fmt(r.data.newContacts) },
-      { label: "Pipeline Value", value: fmt(r.data.pipelineValue, "currency") },
+      { label: "Pipeline Value", value: fmt(r.data.pipelineValue, "currency", currency) },
     ],
   }));
   return (
@@ -2296,9 +2317,9 @@ function PipedriveSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
       </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Deals Won"      value={fmt(dealsWon.reduce((a,b)=>a+b,0))}             values={dealsWon}    color="#30a04c" />
-        <StatCard label="Closed Revenue" value={fmt(closedRev.reduce((a,b)=>a+b,0), "currency")} values={closedRev}   color="#4ade80" />
+        <StatCard label="Closed Revenue" value={fmt(closedRev.reduce((a,b)=>a+b,0), "currency", currency)} values={closedRev}   color="#4ade80" />
         <StatCard label="New Contacts"   value={fmt(newContacts.reduce((a,b)=>a+b,0))}           values={newContacts} color="#00d4aa" />
-        <StatCard label="Pipeline"       value={fmt(lastPipe, "currency")}                        values={pipeline}    color="#a78bfa" />
+        <StatCard label="Pipeline"       value={fmt(lastPipe, "currency", currency)}                        values={pipeline}    color="#a78bfa" />
       </div>
       <DataTable rows={tableRows} />
     </div>
@@ -2877,8 +2898,8 @@ export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots,
             snapshotsByPlatform.stripe.length > 0
               ? (
                 <div className="space-y-6">
-                  <StripeSection snapshots={snapshotsByPlatform.stripe} granularity={granularity} />
-                  <ProductBreakdownSection snapshots={snapshotsByPlatform.stripe} />
+                  <StripeSection snapshots={snapshotsByPlatform.stripe} granularity={granularity} currency={currencies["stripe"] ?? "USD"} />
+                  <ProductBreakdownSection snapshots={snapshotsByPlatform.stripe} currency={currencies["stripe"] ?? "USD"} />
                   <CohortSection snapshots={snapshotsByPlatform.stripe} />
                 </div>
               )
@@ -2896,22 +2917,22 @@ export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots,
           )}
           {activeSection === "paypal" && connectedPlatforms.includes("paypal") && (
             snapshotsByPlatform.paypal.length > 0
-              ? <PayPalSection snapshots={snapshotsByPlatform.paypal} granularity={granularity} />
+              ? <PayPalSection snapshots={snapshotsByPlatform.paypal} granularity={granularity} currency={currencies["paypal"] ?? "USD"} />
               : <EmptySection platform="PayPal" />
           )}
           {activeSection === "paddle" && connectedPlatforms.includes("paddle") && (
             snapshotsByPlatform.paddle.length > 0
-              ? <PaddleSection snapshots={snapshotsByPlatform.paddle} granularity={granularity} />
+              ? <PaddleSection snapshots={snapshotsByPlatform.paddle} granularity={granularity} currency={currencies["paddle"] ?? "USD"} />
               : <EmptySection platform="Paddle" />
           )}
           {activeSection === "lemon-squeezy" && connectedPlatforms.includes("lemon-squeezy") && (
             snapshotsByPlatform["lemon-squeezy"].length > 0
-              ? <LemonSqueezySection snapshots={snapshotsByPlatform["lemon-squeezy"]} granularity={granularity} />
+              ? <LemonSqueezySection snapshots={snapshotsByPlatform["lemon-squeezy"]} granularity={granularity} currency={currencies["lemon-squeezy"] ?? "USD"} />
               : <EmptySection platform="Lemon Squeezy" />
           )}
           {activeSection === "gumroad" && connectedPlatforms.includes("gumroad") && (
             snapshotsByPlatform.gumroad.length > 0
-              ? <GumroadSection snapshots={snapshotsByPlatform.gumroad} granularity={granularity} />
+              ? <GumroadSection snapshots={snapshotsByPlatform.gumroad} granularity={granularity} currency={currencies["gumroad"] ?? "USD"} />
               : <EmptySection platform="Gumroad" />
           )}
           {activeSection === "plausible" && connectedPlatforms.includes("plausible") && (
@@ -3001,42 +3022,42 @@ export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots,
           )}
           {activeSection === "shopify" && connectedPlatforms.includes("shopify") && (
             snapshotsByPlatform.shopify.length > 0
-              ? <ShopifySection snapshots={snapshotsByPlatform.shopify} granularity={granularity} />
+              ? <ShopifySection snapshots={snapshotsByPlatform.shopify} granularity={granularity} currency={currencies["shopify"] ?? "USD"} />
               : <EmptySection platform="Shopify" />
           )}
           {activeSection === "woocommerce" && connectedPlatforms.includes("woocommerce") && (
             snapshotsByPlatform.woocommerce.length > 0
-              ? <WooCommerceSection snapshots={snapshotsByPlatform.woocommerce} granularity={granularity} />
+              ? <WooCommerceSection snapshots={snapshotsByPlatform.woocommerce} granularity={granularity} currency={currencies["woocommerce"] ?? "USD"} />
               : <EmptySection platform="WooCommerce" />
           )}
           {activeSection === "bigcommerce" && connectedPlatforms.includes("bigcommerce") && (
             snapshotsByPlatform.bigcommerce.length > 0
-              ? <BigCommerceSection snapshots={snapshotsByPlatform.bigcommerce} granularity={granularity} />
+              ? <BigCommerceSection snapshots={snapshotsByPlatform.bigcommerce} granularity={granularity} currency={currencies["bigcommerce"] ?? "USD"} />
               : <EmptySection platform="BigCommerce" />
           )}
           {activeSection === "amazon-seller" && connectedPlatforms.includes("amazon-seller") && (
             snapshotsByPlatform["amazon-seller"].length > 0
-              ? <AmazonSellerSection snapshots={snapshotsByPlatform["amazon-seller"]} granularity={granularity} />
+              ? <AmazonSellerSection snapshots={snapshotsByPlatform["amazon-seller"]} granularity={granularity} currency={currencies["amazon-seller"] ?? "USD"} />
               : <EmptySection platform="Amazon Seller" />
           )}
           {activeSection === "etsy" && connectedPlatforms.includes("etsy") && (
             snapshotsByPlatform.etsy.length > 0
-              ? <EtsySection snapshots={snapshotsByPlatform.etsy} granularity={granularity} />
+              ? <EtsySection snapshots={snapshotsByPlatform.etsy} granularity={granularity} currency={currencies["etsy"] ?? "USD"} />
               : <EmptySection platform="Etsy" />
           )}
           {activeSection === "hubspot" && connectedPlatforms.includes("hubspot") && (
             snapshotsByPlatform.hubspot.length > 0
-              ? <HubSpotSection snapshots={snapshotsByPlatform.hubspot} granularity={granularity} />
+              ? <HubSpotSection snapshots={snapshotsByPlatform.hubspot} granularity={granularity} currency={currencies["hubspot"] ?? "USD"} />
               : <EmptySection platform="HubSpot" />
           )}
           {activeSection === "salesforce" && connectedPlatforms.includes("salesforce") && (
             snapshotsByPlatform.salesforce.length > 0
-              ? <SalesforceSection snapshots={snapshotsByPlatform.salesforce} granularity={granularity} />
+              ? <SalesforceSection snapshots={snapshotsByPlatform.salesforce} granularity={granularity} currency={currencies["salesforce"] ?? "USD"} />
               : <EmptySection platform="Salesforce" />
           )}
           {activeSection === "pipedrive" && connectedPlatforms.includes("pipedrive") && (
             snapshotsByPlatform.pipedrive.length > 0
-              ? <PipedriveSection snapshots={snapshotsByPlatform.pipedrive} granularity={granularity} />
+              ? <PipedriveSection snapshots={snapshotsByPlatform.pipedrive} granularity={granularity} currency={currencies["pipedrive"] ?? "USD"} />
               : <EmptySection platform="Pipedrive" />
           )}
           {activeSection === "notion" && connectedPlatforms.includes("notion") && (

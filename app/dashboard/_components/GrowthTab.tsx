@@ -57,11 +57,15 @@ function fmtCentsWithCurrency(cents: number, currency = "USD"): string {
 }
 
 // Legacy alias — used in places that don't have currency context yet
-function fmtCents(cents: number): string {
-  const dollars = cents / 100;
-  if (dollars >= 1_000_000) return `$${(dollars / 1_000_000).toFixed(2)}M`;
-  if (dollars >= 1_000) return `$${(dollars / 1_000).toFixed(1)}k`;
-  return `$${dollars.toFixed(2)}`;
+function fmtCents(cents: number, cur = "USD"): string {
+  const amount = cents / 100;
+  if (amount >= 1_000_000) {
+    return new Intl.NumberFormat("en-US", { style: "currency", currency: cur, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount / 1_000_000) + "M";
+  }
+  if (amount >= 1_000) {
+    return new Intl.NumberFormat("en-US", { style: "currency", currency: cur, minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(amount / 1_000) + "k";
+  }
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: cur, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
 }
 
 function fmtNum(n: number): string {
@@ -277,10 +281,12 @@ function Donut({ segments, size = 120 }: { segments: { value: number; color: str
 
 function GoalModal({
   currentGoal,
+  currency = "USD",
   onSave,
   onClose,
 }: {
   currentGoal: number;
+  currency?: string;
   onSave: (v: number) => void;
   onClose: () => void;
 }) {
@@ -293,10 +299,12 @@ function GoalModal({
         <h3 className="font-mono text-sm font-bold text-[#f8f8fc] mb-1">Set Monthly Revenue Goal</h3>
         <p className="font-mono text-[10px] text-[#8585aa] mb-5">Enter your target revenue for this calendar month.</p>
         <label className="block font-mono text-[9px] uppercase tracking-widest text-[#8585aa] mb-1.5">
-          Goal Amount (USD)
+          Goal Amount ({currency})
         </label>
         <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-sm text-[#8585aa]">$</span>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-sm text-[#8585aa]">
+            {new Intl.NumberFormat("en-US", { style: "currency", currency, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(0).replace(/[\d,]/g, "").trim()}
+          </span>
           <input
             className="w-full rounded-xl border border-[#363650] bg-[#0f0f18] pl-7 pr-4 py-2.5 font-mono text-sm text-[#f8f8fc] focus:border-[#00d4aa] focus:outline-none"
             value={raw}
@@ -306,7 +314,7 @@ function GoalModal({
         </div>
         {parsed > 0 && (
           <p className="mt-2 font-mono text-[10px] text-[#8585aa]">
-            = ~{fmtCents(Math.round(parsed / new Date().getDate()) * 100)}/day needed
+            = ~{fmtCents(Math.round(parsed / new Date().getDate()) * 100, currency)}/day needed
           </p>
         )}
         <div className="flex gap-3 mt-5">
@@ -988,6 +996,7 @@ export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, cu
       {showGoalModal && (
         <GoalModal
           currentGoal={goalCents}
+          currency={primaryRevCurrency}
           onSave={saveGoal}
           onClose={() => setShowGoalModal(false)}
         />
