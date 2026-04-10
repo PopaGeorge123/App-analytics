@@ -96,10 +96,28 @@ function PricingCard({
       )}
       <div className="mb-6">
         <p className="font-mono text-xs font-semibold uppercase tracking-widest text-[#8585aa] mb-2">{name}</p>
-        <div className="flex items-end gap-1.5 mb-3">
-          <span className="font-mono text-4xl font-bold text-[#f8f8fc]">{price}</span>
-          {price !== "Free" && <span className="font-mono text-sm text-[#8585aa] mb-1">/ month</span>}
-        </div>
+        {highlight ? (
+          <>
+            {/* Trial price tag */}
+            <div className="mb-3">
+              <div className="inline-flex items-baseline gap-1.5 rounded-xl border border-[#00d4aa]/25 bg-[#00d4aa]/8 px-3.5 py-2 mb-2">
+                <span className="font-mono text-4xl font-bold text-[#00d4aa]">$0</span>
+                <span className="font-mono text-sm text-[#00d4aa]/70">/ 3 days</span>
+              </div>
+              <div className="flex items-center gap-2 mt-1.5">
+                <svg className="h-3 w-3 text-[#8585aa]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+                <span className="font-mono text-sm text-[#8585aa]">then <span className="text-[#f8f8fc] font-semibold">{price}</span> / month</span>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="flex items-end gap-1.5 mb-3">
+            <span className="font-mono text-4xl font-bold text-[#f8f8fc]">{price}</span>
+            {price !== "Free" && <span className="font-mono text-sm text-[#8585aa] mb-1">/ month</span>}
+          </div>
+        )}
         <p className="text-sm text-[#bcbcd8]">{description}</p>
       </div>
       <ul className="flex-1 space-y-3 mb-8">
@@ -642,7 +660,43 @@ export default function Home() {
             <h2 className="font-mono text-3xl font-bold text-[#f8f8fc] sm:text-4xl">Simple, transparent pricing</h2>
             <p className="mx-auto mt-4 max-w-xl text-[#bcbcd8]">Try every feature free for 3 days. Card required — you won&apos;t be charged until day 4. Cancel anytime.</p>
           </div>
-          <div className="max-w-md mx-auto">
+          <div className="grid gap-6 sm:grid-cols-2 max-w-3xl mx-auto">
+            {/* Free Trial card */}
+            <div className="relative flex flex-col rounded-2xl border border-[#a78bfa]/30 bg-[#a78bfa]/5 p-8">
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full border border-[#a78bfa]/40 bg-[#13131f] px-4 py-1 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#a78bfa]">
+                Start here
+              </div>
+              <div className="mb-6">
+                <p className="font-mono text-xs font-semibold uppercase tracking-widest text-[#8585aa] mb-2">Free Trial</p>
+                <div className="inline-flex items-baseline gap-1.5 rounded-xl border border-[#a78bfa]/25 bg-[#a78bfa]/8 px-3.5 py-2 mb-3">
+                  <span className="font-mono text-4xl font-bold text-[#a78bfa]">$0</span>
+                  <span className="font-mono text-sm text-[#a78bfa]/70">/ 3 days</span>
+                </div>
+                <p className="text-sm text-[#bcbcd8]">Every Premium feature. Fully unlocked. No restrictions — card required, cancel before day 4 and you owe nothing.</p>
+              </div>
+              <ul className="flex-1 space-y-3 mb-8">
+                {[
+                  "All Premium features included",
+                  "Unified KPI dashboard",
+                  "Full analytics per platform",
+                  "AI Advisor & daily insights",
+                  "Website health score & tasks",
+                  "Cancel anytime — no charge",
+                ].map((f) => (
+                  <li key={f} className="flex items-start gap-3 text-sm text-[#e0e0f0]">
+                    <svg className="mt-0.5 h-4 w-4 shrink-0 text-[#a78bfa]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <a href="/signup" className="block w-full rounded-xl py-3 text-center font-mono text-sm font-semibold uppercase tracking-wider transition-all border border-[#a78bfa]/40 text-[#a78bfa] hover:border-[#a78bfa]/80 hover:bg-[#a78bfa]/10">
+                Start free trial
+              </a>
+            </div>
+
+            {/* Premium card */}
             <PricingCard
               name="Premium"
               price="$29"
@@ -660,12 +714,12 @@ export default function Home() {
               cta="Start 3-day free trial"
               highlight
             />
-            <p className="mt-5 text-center font-mono text-[11px] text-[#8585aa]">
-              Not ready to commit?{" "}
-              <a href="/signup" className="text-[#00d4aa] hover:underline">Create a free account</a>
-              {" "}to explore the app — you can start your trial any time from inside the dashboard.
-            </p>
           </div>
+          <p className="mt-5 text-center font-mono text-[11px] text-[#8585aa]">
+            Not ready to commit?{" "}
+            <a href="/signup" className="text-[#00d4aa] hover:underline">Create a free account</a>
+            {" "}to explore the app — you can start your trial any time from inside the dashboard.
+          </p>
         </div>
       </section>
 

@@ -480,11 +480,20 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Compute trial days remaining (client-side, rounded up)
-  const trialDaysLeft = trialEndsAt
-    ? Math.max(0, Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+  // Compute trial time remaining (client-side)
+  const trialMsLeft = trialEndsAt
+    ? Math.max(0, new Date(trialEndsAt).getTime() - Date.now())
     : null;
-  const isOnTrial = trialDaysLeft !== null;
+  // Ceiling so "47h 59m left" shows as "2d left", not "1d left"
+  const trialDaysLeft = trialMsLeft !== null
+    ? Math.ceil(trialMsLeft / (1000 * 60 * 60 * 24))
+    : null;
+  // Exact fraction elapsed (0 = just started, 1 = expired) for the progress bar
+  const TRIAL_DURATION_MS = 3 * 24 * 60 * 60 * 1000;
+  const trialElapsedPct = trialMsLeft !== null
+    ? Math.min(100, Math.max(5, ((TRIAL_DURATION_MS - trialMsLeft) / TRIAL_DURATION_MS) * 100))
+    : 0;
+  const isOnTrial = trialDaysLeft !== null && trialDaysLeft > 0;
 
   // Always start with "overview" on server/first render to avoid hydration mismatch.
   // The useEffect below immediately corrects the tab from the URL on the client.
@@ -630,7 +639,7 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
               <div className="h-1 w-full rounded-full bg-[#363650] overflow-hidden mb-2">
                 <div
                   className="h-full rounded-full bg-[#f59e0b] transition-all"
-                  style={{ width: `${Math.max(5, ((3 - (trialDaysLeft ?? 0)) / 3) * 100)}%` }}
+                  style={{ width: `${trialElapsedPct}%` }}
                 />
               </div>
               <a

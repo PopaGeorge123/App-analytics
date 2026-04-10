@@ -46,6 +46,10 @@ export default async function DashboardPage({
     !!dbUser?.trial_ends_at && new Date(dbUser.trial_ends_at) > new Date();
   const isPremium = dbUser?.is_premium === true || isOnActiveTrial;
   const trialEndsAt: string | null = isOnActiveTrial ? (dbUser!.trial_ends_at as string) : null;
+  // Pre-compute days left server-side for the header badge (ceiling, same as client)
+  const trialDaysLeftServer = trialEndsAt
+    ? Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    : null;
 
   const db = createServiceClient();
 
@@ -159,7 +163,7 @@ export default async function DashboardPage({
             {trialEndsAt && (
               <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-[#f59e0b]/25 bg-[#f59e0b]/8 px-3 py-1 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#f59e0b]">
                 <span className="h-1 w-1 rounded-full bg-[#f59e0b] animate-pulse" />
-                Free Trial
+                {trialDaysLeftServer === 0 ? "Trial expires today" : `Trial · ${trialDaysLeftServer}d left`}
               </span>
             )}
             <div className="hidden h-4 w-px bg-[#363650] sm:block" />

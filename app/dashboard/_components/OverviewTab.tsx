@@ -70,10 +70,13 @@ function avgField(snaps: Snapshot[], provider: string, field: string): number {
   return total / rows.length;
 }
 
-function fmt(n: number, type: "currency" | "number" | "percent" = "number"): string {
+function fmt(n: number, type: "currency" | "number" | "percent" = "number", currency = "USD"): string {
   if (type === "currency") {
-    if (n >= 100000) return `$${(n / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
-    return `$${(n / 100).toFixed(2)}`;
+    const amount = n / 100;
+    if (n >= 100_000) {
+      return new Intl.NumberFormat("en-US", { style: "currency", currency, notation: "compact", maximumFractionDigits: 1 }).format(amount);
+    }
+    return new Intl.NumberFormat("en-US", { style: "currency", currency, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
   }
   if (type === "percent") return `${n.toFixed(1)}%`;
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -405,11 +408,13 @@ function GoalsWidget({
   sessionsMonth,
   stripeConn,
   ga4Conn,
+  currency = "USD",
 }: {
   revenueMonth: number;
   sessionsMonth: number;
   stripeConn: boolean;
   ga4Conn: boolean;
+  currency?: string;
 }) {
   const [goals, setGoals] = useState<Goals>({ revenueTarget: 0, sessionsTarget: 0 });
   const [editing, setEditing] = useState(false);
@@ -483,7 +488,7 @@ function GoalsWidget({
         <p className="font-mono text-[9px] uppercase tracking-widest text-[#00d4aa]">Monthly goals</p>
         {stripeConn && (
           <div className="flex items-center gap-2">
-            <label className="font-mono text-[10px] text-[#bcbcd8] w-28 shrink-0">Revenue / mo ($)</label>
+            <label className="font-mono text-[10px] text-[#bcbcd8] w-28 shrink-0">Revenue / mo ({currency})</label>
             <input
               type="number"
               placeholder="e.g. 10000"
@@ -528,8 +533,8 @@ function GoalsWidget({
           <div className="flex items-center justify-between">
             <span className="font-mono text-[10px] text-[#bcbcd8]">Revenue</span>
             <span className="font-mono text-[10px]">
-              <span className="text-[#f8f8fc]">{fmt(revenueMonth, "currency")}</span>
-              <span className="text-[#58588a]"> / {fmt(goals.revenueTarget, "currency")}</span>
+              <span className="text-[#f8f8fc]">{fmt(revenueMonth, "currency", currency)}</span>
+              <span className="text-[#58588a]"> / {fmt(goals.revenueTarget, "currency", currency)}</span>
             </span>
           </div>
           <TrajectoryBar actual={revenueMonth} projected={revProjected} target={goals.revenueTarget} color="#635bff" />
@@ -538,7 +543,7 @@ function GoalsWidget({
               <span className="font-mono text-[9px] text-[#00d4aa]">🎉 Goal reached!</span>
             ) : (
               <span className="font-mono text-[9px]" style={{ color: revProjected >= goals.revenueTarget * 0.9 ? "#00d4aa" : "#f59e0b" }}>
-                {revProjected >= goals.revenueTarget * 0.9 ? "✓ On track" : "⚠ Below pace"} · projected {fmt(revProjected, "currency")}
+                {revProjected >= goals.revenueTarget * 0.9 ? "✓ On track" : "⚠ Below pace"} · projected {fmt(revProjected, "currency", currency)}
               </span>
             )}
             <span className="font-mono text-[9px] text-[#58588a]">{Math.round((revenueMonth / goals.revenueTarget) * 100)}%</span>
@@ -587,11 +592,11 @@ interface RevenueChartTooltipProps {
   label?: string;
 }
 
-function RevenueChartTooltip({ active, payload, label }: RevenueChartTooltipProps) {
+function RevenueChartTooltip({ active, payload, label, currency = "USD" }: RevenueChartTooltipProps & { currency?: string }) {
   if (!active || !payload?.length) return null;
   const dollars = (payload[0].value / 100).toLocaleString("en-US", {
     style: "currency",
-    currency: "USD",
+    currency,
     minimumFractionDigits: 2,
   });
   return (
@@ -605,10 +610,12 @@ function RevenueChartTooltip({ active, payload, label }: RevenueChartTooltipProp
 function RevenueOverTimeChart({
   snapshots,
   connectedRevenueProviders,
+  currency = "USD",
   onNavigate,
 }: {
   snapshots: Snapshot[];
   connectedRevenueProviders: string[];
+  currency?: string;
   onNavigate: (tab: Tab) => void;
 }) {
   const [range, setRange] = useState<RevRange>("30d");
@@ -653,7 +660,7 @@ function RevenueOverTimeChart({
         <div>
           <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Revenue over time</p>
           <p className="mt-0.5 font-mono text-xl font-bold text-[#f8f8fc]">
-            {(totalRevenue / 100).toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 })}
+            {(totalRevenue / 100).toLocaleString("en-US", { style: "currency", currency, minimumFractionDigits: 0 })}
             <span className="ml-2 font-mono text-[10px] font-normal text-[#8585aa]">
               {REV_RANGES.find((r) => r.id === range)!.label} total
             </span>
@@ -709,8 +716,8 @@ function RevenueOverTimeChart({
             <YAxis
               tickFormatter={(v: number) => {
                 const d = v / 100;
-                if (d >= 1000) return `$${(d / 1000).toFixed(0)}k`;
-                return `$${d.toFixed(0)}`;
+                if (d >= 1000) return new Intl.NumberFormat("en-US", { style: "currency", currency, notation: "compact", maximumFractionDigits: 0 }).format(d);
+                return new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 0 }).format(d);
               }}
               tick={{ fill: "#58588a", fontFamily: "monospace", fontSize: 9 }}
               axisLine={false}
@@ -718,7 +725,7 @@ function RevenueOverTimeChart({
               width={44}
               domain={[0, maxRevenue * 1.15]}
             />
-            <Tooltip content={<RevenueChartTooltip />} cursor={{ stroke: "#635bff40", strokeWidth: 1 }} />
+            <Tooltip content={<RevenueChartTooltip currency={currency} />} cursor={{ stroke: "#635bff40", strokeWidth: 1 }} />
             <Area
               type="monotone"
               dataKey="revenue"
@@ -876,7 +883,7 @@ export default function OverviewTab({
   const effectiveSnapshots = isDemoMode ? DEMO_SNAPSHOTS : snapshots;
   const effectivePlatforms = isDemoMode ? DEMO_CONNECTED_PLATFORMS : connectedPlatforms;
 
-  const { kpis, activity, narrative, crossInsights, metrics7, revenueMonth, sessionsMonth } = useMemo(() => {
+  const { kpis, activity, narrative, crossInsights, metrics7, revenueMonth, sessionsMonth, primaryRevCurrency } = useMemo(() => {
     const snaps7 = filterDays(effectiveSnapshots, 7);
     const snaps14 = filterDays(effectiveSnapshots, 14);
     const snapsPrev7 = snaps14.filter((s) => !snaps7.find((x) => x.id === s.id));
@@ -889,6 +896,11 @@ export default function OverviewTab({
     // For CAC display, use the primary ad platform's currency
     const primaryAdCurrency: string = connAds.length > 0
       ? (currencies[connAds[0]] ?? "USD")
+      : "USD";
+
+    // For revenue display, use the primary revenue platform's currency
+    const primaryRevCurrency: string = connRevenue.length > 0
+      ? (currencies[connRevenue[0]] ?? "USD")
       : "USD";
 
     const primaryAnalytics = pickPrimaryAnalyticsProvider(snaps7, connAnalytics)
@@ -954,7 +966,7 @@ export default function OverviewTab({
 
     // Build narrative sentence
     const narrativeParts: string[] = [];
-    if (hasRevenue && revenueYday > 0) narrativeParts.push(`${fmt(revenueYday, "currency")} revenue${txYday > 0 ? ` (${txYday} txns)` : ""}`);
+    if (hasRevenue && revenueYday > 0) narrativeParts.push(`${fmt(revenueYday, "currency", primaryRevCurrency)} revenue${txYday > 0 ? ` (${txYday} txns)` : ""}`);
     if (hasAnalytics && sessionsYday > 0) narrativeParts.push(`${fmt(sessionsYday)} sessions`);
     if (hasRevenue && newCxYday > 0) narrativeParts.push(`${newCxYday} new customer${newCxYday !== 1 ? "s" : ""}`);
     if (hasAds && spendYday > 0) narrativeParts.push(`${fmtMetaSpend(spendYday, primaryAdCurrency)} ad spend`);
@@ -997,7 +1009,7 @@ export default function OverviewTab({
     const kpis = [
       {
         label: "Revenue (7d)",
-        value: hasRevenue ? fmt(revenue7, "currency") : null,
+        value: hasRevenue ? fmt(revenue7, "currency", primaryRevCurrency) : null,
         sub: hasRevenue ? revSourceLabel : null,
         trend: hasRevenue ? { current: revenue7, prev: revenuePrev } : null,
         icon: "revenue",
@@ -1087,6 +1099,7 @@ export default function OverviewTab({
       metrics7: { revenue7, sessions7, bounceRate7, spend7, revenuePrev },
       revenueMonth: sumProviders(snapsThisMonth, connRevenue, "revenue"),
       sessionsMonth: primaryAnalytics ? sumField(snapsThisMonth, primaryAnalytics, "sessions") : 0,
+      primaryRevCurrency,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveSnapshots, effectivePlatforms, websiteData, currencies]);
@@ -1474,6 +1487,7 @@ export default function OverviewTab({
         <RevenueOverTimeChart
           snapshots={effectiveSnapshots}
           connectedRevenueProviders={connectedIn(effectivePlatforms, REVENUE_PROVIDERS)}
+          currency={primaryRevCurrency}
           onNavigate={onNavigate}
         />
       )}
@@ -1607,6 +1621,7 @@ export default function OverviewTab({
                 sessionsMonth={sessionsMonth}
                 stripeConn={connectedIn(effectivePlatforms, REVENUE_PROVIDERS).length > 0}
                 ga4Conn={connectedIn(effectivePlatforms, ANALYTICS_PROVIDERS).length > 0}
+                currency={primaryRevCurrency}
               />
               <button
                 onClick={() => onNavigate("website")}

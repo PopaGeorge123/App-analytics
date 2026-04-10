@@ -22,6 +22,7 @@ export interface Database {
           is_premium: boolean;
           stripe_customer_id: string | null;
           stripe_subscription_id: string | null;
+          trial_ends_at: string | null;
           trial_used: boolean;
           alert_rules: Json | null;
           goals: Json | null;
@@ -42,6 +43,7 @@ export interface Database {
           is_premium?: boolean;
           stripe_customer_id?: string | null;
           stripe_subscription_id?: string | null;
+          trial_ends_at?: string | null;
           trial_used?: boolean;
           alert_rules?: Json | null;
           goals?: Json | null;
@@ -60,6 +62,7 @@ export interface Database {
           is_premium?: boolean;
           stripe_customer_id?: string | null;
           stripe_subscription_id?: string | null;
+          trial_ends_at?: string | null;
           trial_used?: boolean;
           alert_rules?: Json | null;
           goals?: Json | null;
