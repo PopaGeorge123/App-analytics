@@ -3,48 +3,61 @@
 /**
  * OnboardingModal
  * ──────────────────────────────────────────────────────────────────────────────
- * Shown once to new users who have zero connected platforms.
- * Walks them through:
- *   Step 1 → Connect Stripe (most common first revenue signal)
- *   Step 2 → Connect Google Analytics 4
- *   Step 3 → Done — celebrate & close
+ * Shown to new users who have zero connected platforms.
  *
- * Dismissal is persisted in localStorage so the modal never shows again
- * once the user either connects a platform or explicitly skips it.
+ * Key design decisions:
+ *  - The modal re-appears every session until at least ONE integration is
+ *    connected. A "Maybe later" soft-dismiss only hides it for 24 h so it
+ *    comes back the next day.
+ *  - The primary CTA starts the OAuth flow directly (no extra Settings hop).
+ *  - "You're all set!" step is only reachable once hasNoConnections is false
+ *    (i.e. the user actually connected something and came back).
  */
 
 import { useState, useEffect } from "react";
 
-const STORAGE_KEY = "fold_onboarding_dismissed";
+// Soft-dismiss: hides for 24 h, then shows again if still no connections.
+const DISMISS_STORAGE_KEY = "fold_onboarding_dismissed_until";
+const DISMISS_DURATION_MS = 24 * 60 * 60 * 1000; // 24 h
 
 interface Props {
   /** Whether the user currently has zero connected platforms */
   hasNoConnections: boolean;
-  /** Called when the user wants to connect a platform — navigate to settings */
+  /** Called when the user wants to browse the Settings tab instead */
   onNavigateToSettings: () => void;
 }
 
 export default function OnboardingModal({ hasNoConnections, onNavigateToSettings }: Props) {
   const [visible, setVisible] = useState(false);
-  const [step, setStep] = useState(1); // 1 | 2 | 3
+  const [step, setStep] = useState(1); // 1 | 2
 
   useEffect(() => {
-    if (!hasNoConnections) return;
+    // If they already connected something, never show this modal.
+    if (!hasNoConnections) {
+      setVisible(false);
+      return;
+    }
     try {
-      const dismissed = localStorage.getItem(STORAGE_KEY);
-      if (!dismissed) setVisible(true);
+      const until = localStorage.getItem(DISMISS_STORAGE_KEY);
+      const snoozedUntil = until ? parseInt(until, 10) : 0;
+      if (Date.now() > snoozedUntil) {
+        setVisible(true);
+      }
     } catch {
-      /* storage blocked */
+      setVisible(true);
     }
   }, [hasNoConnections]);
 
-  function dismiss() {
-    try { localStorage.setItem(STORAGE_KEY, "1"); } catch { /* ignore */ }
+  /** Soft-dismiss: hides for 24 h then comes back if still no connections */
+  function snooze() {
+    try {
+      localStorage.setItem(DISMISS_STORAGE_KEY, String(Date.now() + DISMISS_DURATION_MS));
+    } catch { /* ignore */ }
     setVisible(false);
   }
 
   function goToSettings() {
-    dismiss();
+    snooze();
     onNavigateToSettings();
   }
 
@@ -62,7 +75,8 @@ export default function OnboardingModal({ hasNoConnections, onNavigateToSettings
       title: "Connect Stripe",
       description:
         "Link your Stripe account to instantly see revenue, new customers, refunds, and daily transaction trends — all in one place.",
-      cta: "Connect Stripe →",
+      connectUrl: "/api/auth/stripe/url",
+      cta: "Connect Stripe",
     },
     {
       number: 2,
@@ -78,27 +92,14 @@ export default function OnboardingModal({ hasNoConnections, onNavigateToSettings
       title: "Connect Google Analytics",
       description:
         "Pull in sessions, bounce rate, and conversion data from GA4 so Fold can pair your traffic with revenue for a complete picture.",
-      cta: "Connect GA4 →",
-    },
-    {
-      number: 3,
-      icon: (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      ),
-      color: "#00d4aa",
-      title: "You're all set!",
-      description:
-        "Fold is syncing your data now. Your dashboard will be populated shortly. You can connect more platforms at any time from the Settings tab.",
-      cta: "Go to dashboard",
+      connectUrl: "/api/auth/google/url",
+      cta: "Connect GA4",
     },
   ];
 
   const current = steps[step - 1]!;
 
   return (
-    /* Backdrop */
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4"
       role="dialog"
@@ -128,13 +129,12 @@ export default function OnboardingModal({ hasNoConnections, onNavigateToSettings
 
         {/* Body */}
         <div className="px-8 pt-6 pb-8">
-          {/* Step label */}
           <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa] mb-4">
-            {step < 3 ? `Step ${step} of 2` : "All done"}
+            Step {step} of {steps.length} · connect your first integration
           </p>
 
           {/* Icon + title */}
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-3 mb-3">
             <div
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border"
               style={{ color: current.color, borderColor: `${current.color}30`, backgroundColor: `${current.color}10` }}
@@ -144,39 +144,61 @@ export default function OnboardingModal({ hasNoConnections, onNavigateToSettings
             <h2 className="font-mono text-xl font-bold text-[#f8f8fc]">{current.title}</h2>
           </div>
 
-          <p className="text-sm leading-relaxed text-[#bcbcd8] mb-8">{current.description}</p>
+          <p className="text-sm leading-relaxed text-[#bcbcd8] mb-6">{current.description}</p>
 
-          {/* CTA */}
-          {step < 3 ? (
-            <div className="flex flex-col gap-3">
-              <button
-                onClick={goToSettings}
-                className="w-full rounded-xl py-3 font-mono text-sm font-semibold uppercase tracking-wider text-[#13131f] transition-all hover:opacity-90"
-                style={{ backgroundColor: current.color }}
-              >
-                {current.cta}
-              </button>
-              <button
-                onClick={() => setStep((s) => s + 1)}
-                className="w-full rounded-xl border border-[#363650] py-2.5 font-mono text-xs uppercase tracking-wider text-[#8585aa] transition-all hover:border-[#8585aa] hover:text-[#bcbcd8]"
-              >
-                Skip this step
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={dismiss}
-              className="w-full rounded-xl py-3 font-mono text-sm font-semibold uppercase tracking-wider text-[#13131f] transition-all hover:opacity-90 bg-[#00d4aa]"
+          {/* Value reminder */}
+          <div className="mb-6 rounded-xl border border-[#00d4aa]/15 bg-[#00d4aa]/5 px-4 py-3">
+            <p className="font-mono text-[10px] text-[#00d4aa] leading-relaxed">
+              <span className="font-bold">Your dashboard is empty until you connect.</span>{" "}
+              It takes under 60 seconds — no code, read-only access.
+            </p>
+          </div>
+
+          {/* Primary CTA — goes straight to OAuth */}
+          <div className="flex flex-col gap-3">
+            <a
+              href={current.connectUrl}
+              className="flex w-full items-center justify-center gap-2 rounded-xl py-3 font-mono text-sm font-semibold uppercase tracking-wider text-white transition-all hover:opacity-90"
+              style={{ backgroundColor: current.color }}
             >
               {current.cta}
-            </button>
-          )}
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+              </svg>
+            </a>
+
+            {/* Secondary: skip to next step OR go to settings for other integrations */}
+            <div className="flex gap-2">
+              {step < steps.length ? (
+                <button
+                  onClick={() => setStep((s) => s + 1)}
+                  className="flex-1 rounded-xl border border-[#363650] py-2.5 font-mono text-xs uppercase tracking-wider text-[#8585aa] transition-all hover:border-[#8585aa] hover:text-[#bcbcd8]"
+                >
+                  Skip — show next
+                </button>
+              ) : (
+                <button
+                  onClick={goToSettings}
+                  className="flex-1 rounded-xl border border-[#363650] py-2.5 font-mono text-xs uppercase tracking-wider text-[#8585aa] transition-all hover:border-[#8585aa] hover:text-[#bcbcd8]"
+                >
+                  See all integrations
+                </button>
+              )}
+              <button
+                onClick={snooze}
+                className="rounded-xl border border-[#363650] px-4 py-2.5 font-mono text-xs uppercase tracking-wider text-[#8585aa] transition-all hover:border-[#8585aa] hover:text-[#bcbcd8]"
+                title="Remind me tomorrow"
+              >
+                Later
+              </button>
+            </div>
+          </div>
         </div>
 
-        {/* Dismiss X */}
+        {/* X button — soft dismiss only (comes back tomorrow) */}
         <button
-          onClick={dismiss}
-          aria-label="Dismiss onboarding"
+          onClick={snooze}
+          aria-label="Dismiss — remind me tomorrow"
           className="absolute top-4 right-4 flex h-7 w-7 items-center justify-center rounded-lg text-[#8585aa] hover:bg-[#363650] hover:text-[#f8f8fc] transition-colors"
         >
           <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -187,3 +209,5 @@ export default function OnboardingModal({ hasNoConnections, onNavigateToSettings
     </div>
   );
 }
+
+
