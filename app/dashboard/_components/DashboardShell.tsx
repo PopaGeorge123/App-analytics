@@ -799,6 +799,7 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
                 email={email}
                 isPremium={isPremium}
                 connectedPlatforms={connectedPlatforms}
+                currencies={currencies}
               />
             </TabErrorBoundary>
           )}

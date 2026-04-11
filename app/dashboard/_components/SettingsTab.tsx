@@ -5,10 +5,15 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { LIVE_INTEGRATIONS, INTEGRATION_CATEGORIES } from "@/lib/integrations/catalog";
 
+const REVENUE_PROVIDERS_LOCAL = ["stripe", "lemon-squeezy", "paddle", "shopify", "woocommerce", "gumroad"];
+const ADS_PROVIDERS_LOCAL = ["meta", "google-ads", "tiktok-ads"];
+
 interface SettingsTabProps {
   email: string;
   isPremium: boolean;
   connectedPlatforms: string[];
+  /** platform → ISO currency code. e.g. { stripe: "EUR", meta: "USD" } */
+  currencies: Record<string, string>;
 }
 
 const UI_INTEGRATIONS = LIVE_INTEGRATIONS.map((cat) => ({
@@ -217,10 +222,14 @@ export const DEFAULT_ALERTS: AlertRules = {
   spendSpikeThreshold: 0,
 };
 
-function AlertsSection() {
+function AlertsSection({ currencies }: { currencies: Record<string, string> }) {
   const [rules, setRules] = useState<AlertRules>(DEFAULT_ALERTS);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Derive the ads currency from connected ad platforms
+  const adsCurrency = ADS_PROVIDERS_LOCAL.map((p) => currencies[p]).find(Boolean) ?? "USD";
+  const adsLabel = adsCurrency; // always show ISO code (e.g. "RON", "USD", "EUR")
 
   useEffect(() => {
     fetch("/api/user/settings")
@@ -321,10 +330,10 @@ function AlertsSection() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-mono text-[11px] font-semibold text-[#e0e0f0]">Ad spend cap</p>
-            <p className="font-mono text-[9px] text-[#8585aa]">Alert if a single day&apos;s ad spend exceeds $X</p>
+            <p className="font-mono text-[9px] text-[#8585aa]">Alert if a single day&apos;s ad spend exceeds {adsLabel} X</p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <span className="font-mono text-[10px] text-[#8585aa]">$</span>
+            <span className="font-mono text-[10px] text-[#8585aa]">{adsLabel}</span>
             <input
               type="number"
               min={0}
@@ -489,7 +498,7 @@ const DEFAULT_GOALS: Goals = {
   adSpendBudget: 0,
 };
 
-function GoalsSection() {
+function GoalsSection({ currencies }: { currencies: Record<string, string> }) {
   const [goals, setGoals] = useState<Goals>(DEFAULT_GOALS);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -535,6 +544,15 @@ function GoalsSection() {
     goals.subscribersTarget > 0 ||
     goals.adSpendBudget > 0;
 
+  // Derive currency symbols from the connected platforms
+  const revCurrency = REVENUE_PROVIDERS_LOCAL.map((p) => currencies[p]).find(Boolean) ?? "USD";
+  const adsCurrency = ADS_PROVIDERS_LOCAL.map((p) => currencies[p]).find(Boolean) ?? "USD";
+
+  // Always use the ISO code as the label (e.g. "RON", "USD", "EUR").
+  // This is unambiguous for every currency, including those without a short symbol.
+  const revSymbol = revCurrency;
+  const adsSymbol = adsCurrency;
+
   const KPI_ROWS: {
     key: keyof Goals;
     label: string;
@@ -550,8 +568,8 @@ function GoalsSection() {
     {
       key: "revenueTarget",
       label: "Monthly revenue target",
-      sublabel: "Shown as goal line on Overview & AI advisor",
-      unit: "$",
+      sublabel: `Shown as goal line on Overview & AI advisor · ${revCurrency}`,
+      unit: revSymbol,
       unitPos: "left",
       placeholder: "e.g. 10000",
       color: "#635bff",
@@ -598,8 +616,8 @@ function GoalsSection() {
     {
       key: "adSpendBudget",
       label: "Monthly ad spend budget",
-      sublabel: "Max budget cap across Meta / Google Ads / TikTok Ads",
-      unit: "$",
+      sublabel: `Max budget cap across Meta / Google Ads / TikTok Ads · ${adsCurrency}`,
+      unit: adsSymbol,
       unitPos: "left",
       placeholder: "e.g. 2000",
       color: "#f59e0b",
@@ -903,7 +921,7 @@ function ConnectModalShell({
   );
 }
 
-export default function SettingsTab({ email, isPremium, connectedPlatforms }: SettingsTabProps) {
+export default function SettingsTab({ email, isPremium, connectedPlatforms, currencies }: SettingsTabProps) {
   const router = useRouter();
   const [portalLoading, setPortalLoading] = useState(false);
   const [portalError, setPortalError] = useState("");
@@ -1236,7 +1254,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms }: Se
             </div>
             <p className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#8585aa]">Goals &amp; KPIs</p>
           </div>
-          <GoalsSection />
+          <GoalsSection currencies={currencies} />
         </section>
 
       </div>{/* end Row 2 grid */}
@@ -1257,7 +1275,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms }: Se
               </div>
               <p className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#8585aa]">Alert Rules</p>
             </div>
-            <AlertsSection />
+            <AlertsSection currencies={currencies} />
           </section>
 
           {/* Email Digest */}
