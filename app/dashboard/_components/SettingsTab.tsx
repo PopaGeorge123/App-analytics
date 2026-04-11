@@ -227,8 +227,14 @@ function AlertsSection({ currencies }: { currencies: Record<string, string> }) {
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Derive the ads currency from connected ad platforms
-  const adsCurrency = ADS_PROVIDERS_LOCAL.map((p) => currencies[p]).find(Boolean) ?? "USD";
+  // Derive the ads currency from connected ad platforms.
+  // Fall back to the revenue platform currency (e.g. RON from Stripe)
+  // so the label is always in the user's actual currency, not hardcoded USD.
+  const revCurrencyForAlerts = REVENUE_PROVIDERS_LOCAL.map((p) => currencies[p]).find(Boolean);
+  const adsCurrency =
+    ADS_PROVIDERS_LOCAL.map((p) => currencies[p]).find(Boolean) ??
+    revCurrencyForAlerts ??
+    "USD";
   const adsLabel = adsCurrency; // always show ISO code (e.g. "RON", "USD", "EUR")
 
   useEffect(() => {
@@ -544,12 +550,15 @@ function GoalsSection({ currencies }: { currencies: Record<string, string> }) {
     goals.subscribersTarget > 0 ||
     goals.adSpendBudget > 0;
 
-  // Derive currency symbols from the connected platforms
+  // Derive currency symbols from the connected platforms.
+  // Always use the ISO code as the label (e.g. "RON", "USD", "EUR") —
+  // unambiguous for every currency, including those without a short symbol.
   const revCurrency = REVENUE_PROVIDERS_LOCAL.map((p) => currencies[p]).find(Boolean) ?? "USD";
-  const adsCurrency = ADS_PROVIDERS_LOCAL.map((p) => currencies[p]).find(Boolean) ?? "USD";
+  // Ads currency falls back to revenue currency so users without an ads
+  // platform connected still see their own currency (e.g. RON), not USD.
+  const adsCurrency =
+    ADS_PROVIDERS_LOCAL.map((p) => currencies[p]).find(Boolean) ?? revCurrency;
 
-  // Always use the ISO code as the label (e.g. "RON", "USD", "EUR").
-  // This is unambiguous for every currency, including those without a short symbol.
   const revSymbol = revCurrency;
   const adsSymbol = adsCurrency;
 
