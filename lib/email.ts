@@ -182,6 +182,87 @@ export async function sendWelcomeEmail(email: string): Promise<void> {
   });
 }
 
+export async function sendTrialWelcomeEmail(email: string): Promise<void> {
+  if (!email) return;
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+  const connectStripeUrl = `${baseUrl}/api/auth/stripe/url`;
+  const connectGoogleUrl = `${baseUrl}/api/auth/google/url`;
+  const settingsUrl      = `${baseUrl}/dashboard?tab=settings`;
+  const fromName  = process.env.SMTP_FROM_NAME  ?? "Fold Team";
+  const fromEmail = process.env.SMTP_FROM_EMAIL ?? process.env.SMTP_USER ?? "";
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /></head>
+<body style="margin:0;padding:0;background-color:#0a0a0f;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#0a0a0f;padding:40px 20px;">
+    <tr><td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background-color:#12121a;border:1px solid #1e1e2e;border-radius:12px;overflow:hidden;">
+        <tr>
+          <td style="padding:32px 40px 24px;border-bottom:1px solid #1e1e2e;">
+            <span style="font-family:'Courier New',monospace;font-size:20px;font-weight:700;color:#00d4aa;">Fold</span>
+            <span style="display:block;font-size:11px;color:#4a4a6a;margin-top:2px;font-family:'Courier New',monospace;letter-spacing:1px;">AI BUSINESS INTELLIGENCE</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:40px 40px 32px;">
+            <p style="margin:0 0 8px;font-size:13px;color:#00d4aa;font-family:'Courier New',monospace;letter-spacing:1px;">YOUR 3-DAY TRIAL IS ACTIVE</p>
+            <h1 style="margin:0 0 24px;font-size:26px;font-weight:700;color:#f0f0f5;line-height:1.3;">One step to see your real numbers.</h1>
+            <p style="margin:0 0 16px;font-size:16px;color:#8888aa;line-height:1.7;">
+              Your Fold dashboard is ready — but it needs data. Connect at least one integration and you'll instantly see your revenue, traffic, and key metrics in one place.
+            </p>
+            <p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#f0f0f5;">Takes under 60 seconds. Read-only. No code.</p>
+
+            <table cellpadding="0" cellspacing="0" style="width:100%;margin:24px 0;">
+              <tr>
+                <td style="padding-bottom:12px;">
+                  <a href="${connectStripeUrl}" style="display:block;padding:14px 24px;background-color:#635bff;border-radius:8px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;">
+                    💳 Connect Stripe &rarr;
+                  </a>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding-bottom:12px;">
+                  <a href="${connectGoogleUrl}" style="display:block;padding:14px 24px;background-color:#4285F4;border-radius:8px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;">
+                    📊 Connect Google Analytics &rarr;
+                  </a>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <a href="${settingsUrl}" style="display:block;padding:14px 24px;background-color:#1e1e2e;border:1px solid #363650;border-radius:8px;font-size:15px;font-weight:600;color:#bcbcd8;text-decoration:none;">
+                    🔌 See all 30+ integrations &rarr;
+                  </a>
+                </td>
+              </tr>
+            </table>
+
+            <p style="margin:0;font-size:13px;color:#4a4a6a;line-height:1.6;">
+              You have 3 days of full access. After that, upgrade for $29/month or your data stops syncing. Questions? Reply to this email.
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:20px 40px;border-top:1px solid #1e1e2e;">
+            <p style="margin:0;font-size:13px;color:#4a4a6a;">&copy; 2026 Fold. Built for founders.</p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`.trim();
+
+  const transporter = createTransporter();
+  await transporter.sendMail({
+    from: `"${fromName}" <${fromEmail}>`,
+    to: email,
+    subject: "Your Fold trial is live — connect your first integration",
+    html,
+  });
+}
+
 export async function sendTrialEndingEmail(email: string, trialEndDate: string): Promise<void> {
   if (!email) return;
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";

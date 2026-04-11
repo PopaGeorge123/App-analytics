@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
+import { sendTrialWelcomeEmail } from "@/lib/email";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
@@ -65,14 +66,33 @@ export async function GET(request: NextRequest) {
         // Step 2: If the row already existed (trigger created it without trial_ends_at),
         // the ignoreDuplicates upsert above did nothing. Fill in trial_ends_at now
         // only when it is still NULL (first-ever sign-in for this user).
-        const { error: updateError } = await adminClient
+        const { count: updatedCount, error: updateError } = await adminClient
           .from("users")
-          .update({ trial_ends_at: trialEndsAt })
+          .update({ trial_ends_at: trialEndsAt }, { count: "exact" })
           .eq("id", user.id)
           .is("trial_ends_at", null);
 
         if (updateError) {
           console.error("[auth/callback] Error setting trial_ends_at:", updateError.message);
+        }
+
+        // Send activation email only to brand-new users (trial_ends_at was just set)
+        // updatedCount > 0 means the row existed without trial_ends_at → OAuth new user
+        // updatedCount === 0 could mean the ignoreDuplicates INSERT ran (email/pass new user)
+        // We detect the email/pass new-user case by checking if the upsert inserted a row
+        // via a separate select of trial_ends_at to see if it equals the value we just set.
+        // Simpler: fire the email whenever this is a truly fresh signup by checking
+        // if the user was created in the last 30 seconds.
+        const createdAt = user.created_at ? new Date(user.created_at).getTime() : 0;
+        const isNewUser = (updatedCount ?? 0) > 0 || (Date.now() - createdAt < 30_000);
+
+        if (isNewUser && user.email) {
+          try {
+            await sendTrialWelcomeEmail(user.email);
+          } catch (emailError) {
+            // Non-fatal — log and continue
+            console.error("[auth/callback] Failed to send trial welcome email:", emailError);
+          }
         }
       }
 
