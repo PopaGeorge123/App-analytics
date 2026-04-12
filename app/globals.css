@@ -89,3 +89,14 @@ body {
 .scrollbar-none::-webkit-scrollbar {
   display: none; /* Chrome / Safari / Edge */
 }
+
+/* Integrations section highlight — triggered by OnboardingModal "Maybe later" */
+@keyframes integrations-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(0, 212, 170, 0); border-color: #363650; }
+  25%  { box-shadow: 0 0 0 6px rgba(0, 212, 170, 0.25); border-color: #00d4aa; }
+  75%  { box-shadow: 0 0 0 6px rgba(0, 212, 170, 0.25); border-color: #00d4aa; }
+  100% { box-shadow: 0 0 0 0 rgba(0, 212, 170, 0); border-color: #363650; }
+}
+.integrations-highlight {
+  animation: integrations-pulse 2s ease-in-out forwards;
+}

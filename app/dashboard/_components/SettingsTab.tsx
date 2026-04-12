@@ -1155,7 +1155,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
       <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
 
         {/* ── Integrations ──────────────────────────────── */}
-        <section className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-6">
+        <section id="integrations-section" className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-6">
         {/* Section header + search */}
         <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
