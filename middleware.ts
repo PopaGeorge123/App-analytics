@@ -73,7 +73,12 @@ export async function middleware(request: NextRequest) {
     if (!intError && Array.isArray(integrations) && integrations.length === 0) {
       const onboardingUrl = request.nextUrl.clone();
       onboardingUrl.pathname = "/onboarding";
-      onboardingUrl.search = "";
+      // Forward OAuth error params so onboarding can show feedback
+      // e.g. /dashboard?tab=settings&stripe=error  →  /onboarding?error=stripe
+      const errorPlatform = Array.from(request.nextUrl.searchParams.entries()).find(
+        ([k, v]) => !["tab", "syncing", "connect", "redirectTo"].includes(k) && v === "error"
+      );
+      onboardingUrl.search = errorPlatform ? `?error=${errorPlatform[0]}` : "";
       return NextResponse.redirect(onboardingUrl);
     }
   }

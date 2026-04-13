@@ -283,16 +283,21 @@ const CATEGORY_ICONS: Record<string, string> = {
 interface OnboardingFlowProps {
   liveIntegrations: Integration[];
   userEmail: string;
+  oauthError?: string | null;
 }
 
-export default function OnboardingFlow({ liveIntegrations, userEmail }: OnboardingFlowProps) {
+export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError }: OnboardingFlowProps) {
   const router = useRouter();
 
   const [selected, setSelected] = useState<Integration | null>(null);
   const [apiKeyFields, setApiKeyFields] = useState<Record<string, string>>({});
   const [shopDomain, setShopDomain] = useState("");
   const [connecting, setConnecting] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(
+    oauthError
+      ? `Could not connect ${oauthError.replace(/-/g, " ")} — please try again.`
+      : ""
+  );
   const [success, setSuccess] = useState("");
 
   // Group integrations by category
@@ -408,6 +413,16 @@ export default function OnboardingFlow({ liveIntegrations, userEmail }: Onboardi
       </header>
 
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+        {/* ── OAuth error banner ───────────────────────────────────────── */}
+        {oauthError && (
+          <div className="mb-6 flex items-center gap-3 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3">
+            <span className="text-base">⚠️</span>
+            <p className="text-sm text-red-400">
+              Could not connect <strong className="text-red-300">{oauthError.replace(/-/g, " ")}</strong> — the authorization was denied or something went wrong. Please try again.
+            </p>
+          </div>
+        )}
+
         {/* ── Hero ──────────────────────────────────────────────────────── */}
         <div className="mb-10 text-center">
           <h1 className="mb-3 font-mono text-3xl font-bold text-[#f8f8fc] sm:text-4xl">

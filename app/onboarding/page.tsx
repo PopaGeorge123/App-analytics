@@ -8,7 +8,11 @@ export const metadata = {
   title: "Connect your first integration – Fold",
 };
 
-export default async function OnboardingPage() {
+export default async function OnboardingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -27,10 +31,14 @@ export default async function OnboardingPage() {
     redirect("/dashboard");
   }
 
+  const params = await searchParams;
+  const oauthError = typeof params.error === "string" ? params.error : null;
+
   return (
     <OnboardingFlow
       liveIntegrations={LIVE_INTEGRATIONS}
       userEmail={user.email ?? ""}
+      oauthError={oauthError}
     />
   );
 }
