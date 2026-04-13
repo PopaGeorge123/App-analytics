@@ -33,7 +33,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Protected routes — redirect to /login if not authenticated
-  const protectedRoutes = ["/dashboard"];
+  const protectedRoutes = ["/dashboard", "/onboarding"];
   const isProtected = protectedRoutes.some((route) =>
     pathname.startsWith(route)
   );
@@ -52,6 +52,29 @@ export async function middleware(request: NextRequest) {
     dashboardUrl.pathname = "/dashboard";
     dashboardUrl.searchParams.delete("redirectTo");
     return NextResponse.redirect(dashboardUrl);
+  }
+
+  // Force users with 0 integrations to /onboarding before they can use the dashboard
+  // Skip: /onboarding itself, /api/*, /auth/callback (OAuth flow must be allowed through)
+  const skipOnboardingCheck =
+    pathname.startsWith("/onboarding") ||
+    pathname.startsWith("/api/") ||
+    pathname.startsWith("/auth/");
+
+  if (user && pathname.startsWith("/dashboard") && !skipOnboardingCheck) {
+    const { data: integrations } = await supabase
+      .from("integrations")
+      .select("platform", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .limit(1);
+
+    // integrations === [] means no rows — redirect to onboarding
+    if (Array.isArray(integrations) && integrations.length === 0) {
+      const onboardingUrl = request.nextUrl.clone();
+      onboardingUrl.pathname = "/onboarding";
+      onboardingUrl.search = "";
+      return NextResponse.redirect(onboardingUrl);
+    }
   }
 
   return supabaseResponse;
