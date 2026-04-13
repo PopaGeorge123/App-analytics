@@ -62,14 +62,15 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/auth/");
 
   if (user && pathname.startsWith("/dashboard") && !skipOnboardingCheck) {
-    const { data: integrations } = await supabase
+    const { data: integrations, error: intError } = await supabase
       .from("integrations")
-      .select("platform", { count: "exact", head: true })
+      .select("platform")
       .eq("user_id", user.id)
       .limit(1);
 
-    // integrations === [] means no rows — redirect to onboarding
-    if (Array.isArray(integrations) && integrations.length === 0) {
+    // data is null on RLS/network error — don't block in that case
+    // data is [] when user has no integrations → send to onboarding
+    if (!intError && Array.isArray(integrations) && integrations.length === 0) {
       const onboardingUrl = request.nextUrl.clone();
       onboardingUrl.pathname = "/onboarding";
       onboardingUrl.search = "";
