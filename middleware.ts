@@ -56,10 +56,12 @@ export async function middleware(request: NextRequest) {
 
   // Force users with 0 integrations to /onboarding before they can use the dashboard
   // Skip: /onboarding itself, /api/*, /auth/callback (OAuth flow must be allowed through)
+  // Also skip if the user explicitly clicked "Skip for now" (cookie set by the button)
   const skipOnboardingCheck =
     pathname.startsWith("/onboarding") ||
     pathname.startsWith("/api/") ||
-    pathname.startsWith("/auth/");
+    pathname.startsWith("/auth/") ||
+    request.cookies.get("onboarding_skipped")?.value === "1";
 
   if (user && pathname.startsWith("/dashboard") && !skipOnboardingCheck) {
     const { data: integrations, error: intError } = await supabase

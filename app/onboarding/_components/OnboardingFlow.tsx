@@ -300,6 +300,13 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
   );
   const [success, setSuccess] = useState("");
 
+  // Set a short-lived cookie so the middleware lets the user through to /dashboard
+  // even if they have 0 integrations (explicit skip — expires after 24 hours)
+  function skipToDashboard() {
+    document.cookie = "onboarding_skipped=1; path=/; max-age=86400; SameSite=Lax";
+    router.push("/dashboard");
+  }
+
   // Group integrations by category
   const grouped = CATEGORY_ORDER.map((cat) => ({
     category: cat,
@@ -403,7 +410,7 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
           <div className="flex items-center gap-4">
             <span className="hidden font-mono text-[11px] text-[#58588a] sm:block">{userEmail}</span>
             <button
-              onClick={() => router.push("/dashboard")}
+              onClick={skipToDashboard}
               className="rounded-lg border border-[#363650] px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#8585aa] transition hover:text-[#bcbcd8]"
             >
               Skip for now
@@ -615,7 +622,7 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
         <p className="mt-12 text-center font-mono text-[10px] text-[#3a3a55]">
           Fold is SOC 2-aligned. All data is encrypted at rest and in transit. We never sell or share your data.
           <button
-            onClick={() => router.push("/dashboard")}
+            onClick={skipToDashboard}
             className="ml-2 text-[#58588a] underline underline-offset-2 hover:text-[#8585aa]"
           >
             Skip setup
