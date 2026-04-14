@@ -425,7 +425,7 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
       <header className="border-b border-[#1e1e30] bg-[#0d0d1a]/80 px-6 py-4">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="font-mono text-lg font-bold text-[#00d4aa]">✦ Fold</span>
+            <img src="/fold-primary-dark.svg" alt="Fold" className="h-7 w-auto" />
             <span className="hidden font-mono text-xs text-[#58588a] sm:block">/ Setup</span>
           </div>
           <div className="flex items-center gap-4">

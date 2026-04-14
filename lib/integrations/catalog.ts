@@ -269,10 +269,10 @@ export const INTEGRATIONS_CATALOG: Integration[] = [
     name: "Beehiiv",
     description: "Newsletter subscribers, opens & paid upgrades",
     category: "Email & Marketing",
-    color: "#FF6B35",
+    color: "#FC5200",
     status: "live",  // Fastest-growing newsletter platform; high overlap with Fold's ICP
     connectUrl: "/dashboard?tab=settings&connect=beehiiv",
-    icon: "/integrations/beehiiv.svg",
+    icon: "/integrations/beehiiv.png",
   },
   {
     id: "activecampaign",
