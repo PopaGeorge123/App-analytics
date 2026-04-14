@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Integration } from "@/lib/integrations/catalog";
@@ -270,12 +270,33 @@ const CATEGORY_ORDER = [
   "E-commerce",
 ];
 
-const CATEGORY_ICONS: Record<string, string> = {
-  "Payments & Revenue": "💳",
-  "Web Analytics": "📊",
-  "Advertising": "📣",
-  "Email & Marketing": "✉️",
-  "E-commerce": "🛒",
+// SVG icons per category (inline, no emoji)
+const CATEGORY_ICONS: Record<string, React.ReactNode> = {
+  "Payments & Revenue": (
+    <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
+    </svg>
+  ),
+  "Web Analytics": (
+    <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+    </svg>
+  ),
+  "Advertising": (
+    <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 110-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.962.584 1.892.985 2.783.247.55.06 1.21-.463 1.511l-.657.38c-.551.318-1.26.117-1.527-.461a20.845 20.845 0 01-1.44-4.282m3.102.069a18.03 18.03 0 01-.59-4.59c0-1.586.205-3.124.59-4.59m0 9.18a23.848 23.848 0 018.835 2.535M10.34 6.66a23.847 23.847 0 008.835-2.535m0 0A23.74 23.74 0 0018.795 3m.38 1.125a23.91 23.91 0 011.014 5.395m-1.014 8.855c-.118.38-.245.754-.38 1.125m.38-1.125a23.91 23.91 0 001.014-5.395m0-3.46c.495.413.811 1.035.811 1.73 0 .695-.316 1.317-.811 1.73m0-3.46a24.347 24.347 0 010 3.46" />
+    </svg>
+  ),
+  "Email & Marketing": (
+    <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+    </svg>
+  ),
+  "E-commerce": (
+    <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
+    </svg>
+  ),
 };
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -423,7 +444,9 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
         {/* ── OAuth error banner ───────────────────────────────────────── */}
         {oauthError && (
           <div className="mb-6 flex items-center gap-3 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3">
-            <span className="text-base">⚠️</span>
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#f87171" strokeWidth={2} className="shrink-0">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+            </svg>
             <p className="text-sm text-red-400">
               Could not connect <strong className="text-red-300">{oauthError.replace(/-/g, " ")}</strong> — the authorization was denied or something went wrong. Please try again.
             </p>
@@ -450,7 +473,11 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
             {grouped.map(({ category, integrations }) => (
               <div key={category}>
                 <div className="mb-3 flex items-center gap-2">
-                  <span className="text-base">{CATEGORY_ICONS[category] ?? "🔌"}</span>
+                  <span className="text-[#8585aa]">{CATEGORY_ICONS[category] ?? (
+                    <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+                    </svg>
+                  )}</span>
                   <h2 className="font-mono text-xs font-semibold uppercase tracking-widest text-[#8585aa]">
                     {category}
                   </h2>
@@ -509,7 +536,11 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
             {!selected ? (
               /* Empty state */
               <div className="flex h-80 flex-col items-center justify-center rounded-2xl border border-dashed border-[#363650] bg-[#13131f] p-8 text-center lg:h-full lg:min-h-125">
-                <div className="mb-4 text-4xl opacity-30">🔌</div>
+                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-[#363650] bg-[#1c1c2a] opacity-40">
+                  <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="#8585aa" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+                  </svg>
+                </div>
                 <p className="font-mono text-sm font-semibold text-[#f8f8fc] opacity-50">
                   Select an integration
                 </p>
@@ -548,19 +579,31 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
                   {privacy && (
                     <>
                       <PrivacyBlock
-                        icon="📥"
+                        icon={
+                          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="#3b82f6" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                          </svg>
+                        }
                         title="What we read"
                         color="#3b82f6"
                         items={privacy.reads}
                       />
                       <PrivacyBlock
-                        icon="💾"
+                        icon={
+                          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="#8b5cf6" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 2.625c0 2.278-3.694 4.125-8.25 4.125S3.75 11.278 3.75 9m16.5 2.625c0 2.278-3.694 4.125-8.25 4.125S3.75 13.903 3.75 11.625" />
+                          </svg>
+                        }
                         title="What we store"
                         color="#8b5cf6"
                         items={privacy.stores}
                       />
                       <PrivacyBlock
-                        icon="🚫"
+                        icon={
+                          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="#ef4444" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                          </svg>
+                        }
                         title="What we never access"
                         color="#ef4444"
                         items={privacy.never}
@@ -641,7 +684,7 @@ function PrivacyBlock({
   color,
   items,
 }: {
-  icon: string;
+  icon: React.ReactNode;
   title: string;
   color: string;
   items: string[];
@@ -649,7 +692,7 @@ function PrivacyBlock({
   return (
     <div>
       <div className="mb-2 flex items-center gap-1.5">
-        <span className="text-sm">{icon}</span>
+        <span className="flex shrink-0 items-center">{icon}</span>
         <span className="font-mono text-[10px] font-semibold uppercase tracking-widest" style={{ color }}>
           {title}
         </span>
