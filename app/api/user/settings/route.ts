@@ -13,7 +13,7 @@ export async function GET() {
   const db = createServiceClient();
   const { data, error } = await db
     .from("users")
-    .select("alert_rules, goals, digest_subscribed, digest_day")
+    .select("alert_rules, goals, digest_subscribed, digest_day, newsletter_emails")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -24,6 +24,7 @@ export async function GET() {
     goals:             data?.goals              ?? null,
     digestSubscribed:  data?.digest_subscribed  ?? false,
     digestDay:         data?.digest_day         ?? 1, // Monday default
+    newsletterEmails:  data?.newsletter_emails  ?? true,
   });
 }
 
@@ -47,6 +48,7 @@ export async function PATCH(req: NextRequest) {
   if ("goals" in body) update.goals = body.goals;
   if ("digestSubscribed" in body) update.digest_subscribed = body.digestSubscribed;
   if ("digestDay" in body) update.digest_day = body.digestDay;
+  if ("newsletterEmails" in body) update.newsletter_emails = body.newsletterEmails;
 
   if (Object.keys(update).length === 0) {
     return NextResponse.json({ error: "Nothing to update" }, { status: 400 });

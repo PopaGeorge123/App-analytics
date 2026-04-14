@@ -488,6 +488,89 @@ const DYNAMIC_MODALS: Record<string, { label: string; name: string; optional?: b
   zendesk: [{ name: "subdomain", label: "Subdomain" }, { name: "email", label: "Email" }, { name: "apiToken", label: "API Token" }],
 };
 
+// ── Newsletter / Email Preferences Section ────────────────────────────────────
+
+function NewsletterSection() {
+  const [enabled, setEnabled] = useState<boolean>(true);
+  const [loaded, setLoaded] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/user/settings")
+      .then((r) => r.json())
+      .then((d) => {
+        if (typeof d.newsletterEmails === "boolean") setEnabled(d.newsletterEmails);
+        setLoaded(true);
+      })
+      .catch(() => setLoaded(true));
+  }, []);
+
+  async function toggle(next: boolean) {
+    setEnabled(next);
+    setSaving(true);
+    setSaved(false);
+    try {
+      await fetch("/api/user/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newsletterEmails: next }),
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className={`transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}>
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-[#f8f8fc]">Newsletter &amp; product updates</p>
+          <p className="mt-1 text-xs text-[#8585aa]">
+            Tips, new integrations, and product updates from Fold. You&apos;ll always receive
+            transactional emails (digest reports, alerts) regardless of this setting.
+          </p>
+        </div>
+
+        {/* Toggle switch */}
+        <button
+          role="switch"
+          aria-checked={enabled}
+          onClick={() => !saving && toggle(!enabled)}
+          disabled={saving || !loaded}
+          className={`relative mt-0.5 h-6 w-11 shrink-0 rounded-full border transition-all duration-200 focus:outline-none disabled:opacity-50 ${
+            enabled
+              ? "border-[#00d4aa]/50 bg-[#00d4aa]/20"
+              : "border-[#363650] bg-[#1c1c2a]"
+          }`}
+        >
+          <span
+            className={`absolute top-0.5 h-5 w-5 rounded-full border transition-all duration-200 ${
+              enabled
+                ? "left-[calc(100%-1.375rem)] border-[#00d4aa]/60 bg-[#00d4aa]"
+                : "left-0.5 border-[#58588a] bg-[#58588a]"
+            }`}
+          />
+        </button>
+      </div>
+
+      <div className="mt-2 flex items-center gap-2">
+        {saving && (
+          <span className="font-mono text-[10px] text-[#58588a]">Saving…</span>
+        )}
+        {saved && !saving && (
+          <span className="font-mono text-[10px] text-[#00d4aa]">✓ Saved</span>
+        )}
+        {!enabled && !saving && !saved && (
+          <span className="font-mono text-[10px] text-[#58588a]">You are opted out of newsletter emails.</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Goals & KPIs Section ─────────────────────────────────────────────────
 
 interface Goals {
@@ -1147,6 +1230,19 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
           )}
         </section>
       </div>
+
+      {/* ── Email Preferences ─────────────────────────────────────────────── */}
+      <section className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-5">
+        <div className="mb-4 flex items-center gap-2">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#a78bfa]/10 text-[#a78bfa]">
+            <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <p className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#8585aa]">Email Preferences</p>
+        </div>
+        <NewsletterSection />
+      </section>
 
       {/* ═══════════════════════════════════════════════════
           Row 2: Integrations + Goals & KPIs side-by-side
