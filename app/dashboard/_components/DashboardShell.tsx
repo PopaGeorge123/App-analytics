@@ -51,6 +51,8 @@ interface DashboardShellProps {
   currencies: Record<string, string>;
   isSyncing?: string | null;
   customers?: CustomerRow[];
+  /** When true — visitor is on the /demo page; bypasses auth-gated AI routes */
+  isDemo?: boolean;
 }
 
 const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
@@ -476,7 +478,7 @@ function UpgradeModal({ tab, onClose }: { tab: Tab; onClose: () => void }) {
   );
 }
 
-function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms, snapshots, websiteData, currencies, isSyncing, customers = [] }: DashboardShellProps) {
+function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms, snapshots, websiteData, currencies, isSyncing, customers = [], isDemo = false }: DashboardShellProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -513,7 +515,7 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
 
   // Show upgrade success banner when redirected back from Stripe checkout
   useEffect(() => {
-    if (searchParams.get("upgraded") === "true") {
+    if (!isDemo && searchParams.get("upgraded") === "true") {
       pushNotification("🎉 Welcome to Fold Premium — all features are now unlocked!", "#00d4aa");
       // Remove the param without affecting the tab
       const tab = searchParams.get("tab") ?? "overview";
@@ -531,10 +533,9 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
     }
     setActiveTab(tab);
     setSidebarOpen(false);
-    // Only keep the tab param — drop everything else (OAuth results, syncing, connect, error flags).
-    // This is the only safe approach: extra params like ?shopify=error keep searchParams changing
-    // which re-triggers the useEffect and snaps the tab back.
-    router.replace(`/dashboard?tab=${tab}`, { scroll: false });
+    // Demo visitors stay on /demo — never push to /dashboard (middleware would redirect to /login)
+    const basePath = isDemo ? "/demo" : "/dashboard";
+    router.replace(`${basePath}?tab=${tab}`, { scroll: false });
   }
 
   return (
@@ -790,7 +791,7 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
           )}
           {activeTab === "ai" && (
             <TabErrorBoundary tabName="AI Advisor">
-              <AiTab isPremium={isPremium} />
+              <AiTab isPremium={isPremium} isDemo={isDemo} />
             </TabErrorBoundary>
           )}
           {activeTab === "settings" && (

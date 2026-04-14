@@ -45,6 +45,7 @@ function DemoShell() {
           <DashboardShell
             email="demo@usefold.io"
             isPremium={true}
+            isDemo={true}
             connectedPlatforms={DEMO_CONNECTED_PLATFORMS}
             snapshots={DEMO_SNAPSHOTS}
             websiteData={{

@@ -24,6 +24,7 @@ interface Insight {
 
 interface AiTabProps {
   isPremium: boolean;
+  isDemo?: boolean;
 }
 
 // ── Markdown-lite renderer ─────────────────────────────────────────────────
@@ -198,8 +199,363 @@ function ConvItem({
   );
 }
 
+// ── Demo-mode static data ──────────────────────────────────────────────────
+const DEMO_INSIGHT: Insight = {
+  id: "demo-insight-1",
+  created_at: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+  content: `**Revenue overview — last 30 days**
+
+Your MRR reached **$14,280** this month, up **18.3%** from last month. New subscription growth is strong — 41 new paying customers added vs. 27 churned, resulting in a net MRR expansion of **+$2,204**.
+
+**Where growth is coming from**
+
+- Stripe subscriptions account for 91% of revenue — healthy concentration given your SaaS model
+- Average revenue per user (ARPU) climbed to $348, up from $312 last month
+- 3 customers upgraded from Starter to Pro plan this week
+
+**Ad spend efficiency — watch this**
+
+- Meta ROAS dropped to **1.8×** this week, down from 2.6× last week — your CPM increased 34% (likely audience fatigue)
+- Consider rotating your ad creative set; the current hero image has been live for 38 days
+- Google Ads is performing better at 3.1× ROAS — reallocating 20% of Meta budget could recover $620/mo in ad efficiency
+
+**Churn signal**
+
+- 4 accounts are on a payment retry cycle — recommend a Stripe dunning email within 48 hours to recover ~$480
+- Churn rate this month: 3.1% (industry median for B2B SaaS: 3.5%) — you are performing slightly above average`,
+};
+
+const DEMO_CONV: Conversation = {
+  id: "demo-conv-1",
+  title: "Revenue & churn deep-dive",
+  created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+  updated_at: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+};
+
+const DEMO_CONV_2: Conversation = {
+  id: "demo-conv-2",
+  title: "Ad spend analysis",
+  created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+  updated_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+};
+
+const DEMO_MESSAGES: Message[] = [
+  {
+    id: "dm-1",
+    role: "user",
+    content: "Why did churn spike last week?",
+    created_at: new Date(Date.now() - 28 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "dm-2",
+    role: "assistant",
+    content: `Looking at your Stripe data from the past 14 days, here's what I found:
+
+**Churn breakdown last week**
+
+- 6 customers cancelled — 4 were on monthly Starter plans (avg $29/mo), 2 were annual Pro downgrades
+- Of the 6, **3 had zero logins in the 14 days prior to cancellation** — classic disengagement churn, not price-driven
+- 1 left a cancellation reason: "found a cheaper alternative"
+
+**Root cause — low activation on Starter plan**
+
+Your Starter cohort that joined 45–60 days ago has a 23% weekly active rate vs. 71% for Pro. Customers who don't reach the "aha moment" (connecting ≥2 integrations) within the first week are 4× more likely to churn.
+
+**Recommended actions**
+
+1. Trigger an in-app prompt at day 3 if a user hasn't connected a second integration
+2. Set up a Stripe dunning sequence — 2 of the 6 churns were actually failed payments, not intentional cancellations
+3. Consider a 30-day check-in email for Starter users with <2 logins/week`,
+    created_at: new Date(Date.now() - 27 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "dm-3",
+    role: "user",
+    content: "What's my best channel for new customers right now?",
+    created_at: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "dm-4",
+    role: "assistant",
+    content: `Based on your GA4 + Stripe data combined, here's the channel breakdown for last 30 days:
+
+**Customer acquisition by channel**
+
+- **Organic search** — 18 new paid customers, CAC: $0 (content is working)
+- **Google Ads** — 11 new paid customers, CAC: $67, ROAS: 3.1× ✅
+- **Meta Ads** — 8 new paid customers, CAC: $118, ROAS: 1.8× ⚠️
+- **Referral / word-of-mouth** — 4 new paid customers, CAC: $0
+
+**Verdict**
+
+Organic search is your best channel by LTV:CAC ratio — invest in 2–3 more comparison articles ("Fold vs X") since those pages convert at 4.2% vs. your blog average of 1.1%.
+
+Google Ads at 3.1× ROAS is solid and scalable. Meta is underperforming this week specifically — likely creative fatigue (38 days on same ad set). Refresh the creative before increasing budget.`,
+    created_at: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+  },
+];
+
+// ── Demo AI view ───────────────────────────────────────────────────────────
+function DemoAiView() {
+  const [insightExpanded, setInsightExpanded] = useState(true);
+  const [demoInput, setDemoInput] = useState("");
+  const [activeConv, setActiveConv] = useState<string>("demo-conv-1");
+  const [showSignUpPrompt, setShowSignUpPrompt] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const chatBottomRef = useRef<HTMLDivElement>(null);
+
+  function handleInputChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
+    setDemoInput(e.target.value);
+    const ta = e.target;
+    ta.style.height = "auto";
+    ta.style.height = `${Math.min(ta.scrollHeight, 160)}px`;
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleDemoSend();
+    }
+  }
+
+  function handleDemoSend() {
+    if (!demoInput.trim()) return;
+    setDemoInput("");
+    if (textareaRef.current) textareaRef.current.style.height = "auto";
+    setShowSignUpPrompt(true);
+    setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+  }
+
+  const messages = activeConv === "demo-conv-1" ? DEMO_MESSAGES : [];
+
+  return (
+    <div className="flex flex-col gap-6 w-full">
+      {/* ── Page header ─────────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-mono text-2xl font-bold text-[#f8f8fc]">AI Advisor</h1>
+          <p className="font-mono text-sm text-[#bcbcd8] mt-0.5">
+            Analyzes your Stripe, GA4, Meta &amp; website data in real time
+          </p>
+        </div>
+        <div className="hidden sm:flex items-center gap-1.5 rounded-full border border-[#00d4aa]/20 bg-[#00d4aa]/5 px-3 py-1.5">
+          <span className="h-1.5 w-1.5 rounded-full bg-[#00d4aa] animate-pulse" />
+          <span className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#00d4aa]">Demo data</span>
+        </div>
+      </div>
+
+      {/* ── Daily Insight card ───────────────────────────────────────────── */}
+      <div className="rounded-2xl border border-[#00d4aa]/15 bg-[#1c1c2a] overflow-hidden" style={{ boxShadow: "0 0 0 1px #00d4aa08" }}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#363650]">
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#00d4aa]/10 text-[#00d4aa]">
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold text-[#f8f8fc]">Daily AI Insight</h2>
+              <p className="text-xs text-[#8585aa]">Generated {formatDate(DEMO_INSIGHT.created_at)}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setInsightExpanded((v) => !v)}
+              className="rounded-lg p-1.5 text-[#8585aa] hover:bg-[#363650] hover:text-[#bcbcd8] transition-colors"
+            >
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                className={`transition-transform ${insightExpanded ? "" : "rotate-180"}`}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
+              </svg>
+            </button>
+            <div className="flex items-center gap-1.5 rounded-xl border border-[#00d4aa]/20 bg-[#00d4aa]/5 px-3 py-1.5 text-xs font-medium text-[#00d4aa] opacity-50 cursor-not-allowed select-none">
+              <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+              </svg>
+              Refresh
+            </div>
+          </div>
+        </div>
+        <div className="px-5 py-4">
+          {insightExpanded && (
+            <div className="prose-sm text-[0.8rem] leading-relaxed">
+              {renderMarkdown(DEMO_INSIGHT.content)}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Chat area ───────────────────────────────────────────────────── */}
+      <div className="flex gap-4 min-h-140">
+
+        {/* ── Conversations sidebar ──────────────────────────────────────── */}
+        <div className="flex flex-col w-52 shrink-0 rounded-2xl border border-[#363650] bg-[#1c1c2a] overflow-hidden">
+          <div className="flex items-center justify-between px-3 py-3 border-b border-[#363650]">
+            <span className="text-xs font-semibold text-[#bcbcd8] uppercase tracking-wider">Chats</span>
+            <a
+              href="/signup"
+              className="flex items-center gap-1 rounded-lg border border-[#363650] bg-[#0a0a14] px-2 py-1 text-[10px] font-medium text-[#bcbcd8] hover:border-[#6366f1]/30 hover:text-[#6366f1] transition-colors"
+            >
+              <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              New
+            </a>
+          </div>
+          <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-1">
+            {[DEMO_CONV, DEMO_CONV_2].map((conv) => (
+              <div
+                key={conv.id}
+                onClick={() => setActiveConv(conv.id)}
+                className={`group relative flex items-center gap-2 rounded-xl px-3 py-2.5 cursor-pointer transition-all ${
+                  activeConv === conv.id
+                    ? "bg-[#6366f1]/10 border border-[#6366f1]/20 text-[#f8f8fc]"
+                    : "border border-transparent text-[#bcbcd8] hover:bg-[#363650] hover:text-[#f8f8fc]"
+                }`}
+              >
+                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} className="shrink-0 opacity-60">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+                </svg>
+                <span className="flex-1 min-w-0 truncate text-xs">{conv.title}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Chat panel ────────────────────────────────────────────────── */}
+        <div className="flex flex-1 flex-col rounded-2xl border border-[#363650] bg-[#1c1c2a] overflow-hidden min-w-0">
+          {/* Chat header */}
+          <div className="flex items-center justify-between px-5 py-4 border-b border-[#363650]">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#6366f1]/10 text-[#6366f1]">
+                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+                </svg>
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-sm font-semibold text-[#f8f8fc] truncate">
+                  {activeConv === "demo-conv-1" ? DEMO_CONV.title : DEMO_CONV_2.title}
+                </h2>
+                <p className="text-xs text-[#8585aa]">
+                  {activeConv === "demo-conv-1" ? `${DEMO_MESSAGES.length} messages` : "Start a conversation"}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Messages */}
+          <div className="flex flex-col gap-4 flex-1 px-5 py-4 overflow-y-auto min-h-72 max-h-120">
+            {activeConv === "demo-conv-2" ? (
+              <div className="flex flex-1 flex-col items-center justify-center gap-3 py-10 text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[#363650] bg-[#0a0a14]">
+                  <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="#8585aa" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-[#bcbcd8]">Demo conversation</p>
+                  <p className="text-xs text-[#8585aa] mt-1">Sign up to ask questions about your own business data</p>
+                </div>
+                <a
+                  href="/signup"
+                  className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-5 py-2.5 font-mono text-xs font-bold text-[#13131f] hover:bg-[#00bfa0] transition"
+                >
+                  Start free trial →
+                </a>
+              </div>
+            ) : (
+              <>
+                {messages.map((msg) => (
+                  <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                    <div className={`flex flex-col gap-1 max-w-[80%] ${msg.role === "user" ? "items-end" : "items-start"}`}>
+                      {msg.role === "assistant" && (
+                        <div className="flex items-center gap-1.5 px-1">
+                          <div className="flex h-4 w-4 items-center justify-center rounded bg-[#6366f1]/20">
+                            <svg width="9" height="9" fill="none" viewBox="0 0 24 24" stroke="#6366f1" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                            </svg>
+                          </div>
+                          <span className="text-[10px] font-medium text-[#8585aa]">AI Advisor</span>
+                        </div>
+                      )}
+                      <div className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                        msg.role === "user"
+                          ? "bg-[#00d4aa]/10 border border-[#00d4aa]/20 text-[#f8f8fc] rounded-tr-sm"
+                          : "bg-[#0a0a14] border border-[#363650] text-[#c0c0d5] rounded-tl-sm"
+                      }`}>
+                        {msg.role === "assistant" ? renderMarkdown(msg.content) : <p>{msg.content}</p>}
+                      </div>
+                      <span className="text-[10px] text-[#8585aa] px-1">{formatTime(msg.created_at)}</span>
+                    </div>
+                  </div>
+                ))}
+
+                {showSignUpPrompt && (
+                  <div className="flex justify-start">
+                    <div className="flex flex-col gap-3 max-w-[80%] items-start">
+                      <div className="flex items-center gap-1.5 px-1">
+                        <div className="flex h-4 w-4 items-center justify-center rounded bg-[#6366f1]/20">
+                          <svg width="9" height="9" fill="none" viewBox="0 0 24 24" stroke="#6366f1" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                          </svg>
+                        </div>
+                        <span className="text-[10px] font-medium text-[#8585aa]">AI Advisor</span>
+                      </div>
+                      <div className="rounded-2xl rounded-tl-sm bg-[#0a0a14] border border-[#363650] px-4 py-4 text-sm text-[#c0c0d5]">
+                        <p className="mb-3">Great question! To answer that with your real data, I need access to your connected integrations.</p>
+                        <p className="text-[#8585aa] text-xs mb-4">This is a demo — sign up for free to connect Stripe, GA4, Meta Ads and get answers like the ones above based on <em>your</em> actual numbers.</p>
+                        <a
+                          href="/signup"
+                          className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-4 py-2.5 font-mono text-xs font-bold text-[#13131f] hover:bg-[#00bfa0] transition"
+                        >
+                          Start free — 3-day trial →
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div ref={chatBottomRef} />
+              </>
+            )}
+          </div>
+
+          {/* Input bar */}
+          <div className="border-t border-[#363650] px-4 py-3">
+            <div className="flex items-end gap-3">
+              <textarea
+                ref={textareaRef}
+                value={demoInput}
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
+                placeholder="Ask about revenue, churn, ad spend, website… (demo)"
+                rows={1}
+                className="flex-1 resize-none rounded-xl border border-[#363650] bg-[#0a0a14] px-4 py-3 text-sm text-[#f8f8fc] placeholder:text-[#8585aa] focus:border-[#00d4aa]/30 focus:outline-none transition-colors"
+                style={{ minHeight: "44px", maxHeight: "160px" }}
+              />
+              <button
+                onClick={handleDemoSend}
+                disabled={!demoInput.trim()}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#00d4aa] text-[#0a0a14] hover:bg-[#00bfa3] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                title="Send"
+              >
+                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+                </svg>
+              </button>
+            </div>
+            <p className="mt-2 text-[10px] text-[#8585aa]">Press Enter to send · Shift+Enter for new line</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
 // ── Main component ─────────────────────────────────────────────────────────
-export default function AiTab({ isPremium }: AiTabProps) {
+export default function AiTab({ isPremium, isDemo = false }: AiTabProps) {
+  // ── Demo mode: show scripted conversation, no API calls ───────────────
+  if (isDemo) return <DemoAiView />;
   // ── Insight state ─────────────────────────────────────────────────────
   const [insight, setInsight] = useState<Insight | null>(null);
   const [insightLoading, setInsightLoading] = useState(true);
