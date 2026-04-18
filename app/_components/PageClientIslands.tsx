@@ -351,6 +351,7 @@ export function Nav() {
     { label: "How it works", href: "#how-it-works" },
     { label: "Pricing", href: "#pricing" },
     { label: "FAQ", href: "#faq" },
+    { label: "Learn more", href: "/learn" },
   ];
 
   return (

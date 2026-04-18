@@ -420,6 +420,19 @@ export default function Home() {
           })()}
 
           <SecurityBadges />
+
+          {/* Learn more link */}
+          <div className="mt-8 text-center">
+            <a
+              href="/learn"
+              className="inline-flex items-center gap-2 font-mono text-xs font-semibold uppercase tracking-widest text-[#8585aa] transition-colors hover:text-[#00d4aa]"
+            >
+              See every feature & integration explained in detail
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+              </svg>
+            </a>
+          </div>
         </div>
       </section>
 

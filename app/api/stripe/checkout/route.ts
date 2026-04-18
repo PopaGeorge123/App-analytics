@@ -63,19 +63,32 @@ async function createCheckoutSession() {
 // Used by plain <a href> links throughout the app — redirects directly to Stripe
 export async function GET() {
   const supabase = await createClient();
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Not logged in → send to signup, not login
   if (!user) {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
-    return NextResponse.redirect(`${baseUrl}/login`);
+    return NextResponse.redirect(`${baseUrl}/signup`);
   }
 
+  // Already premium → no point going through checkout again
+  const { data: dbUser } = await supabase
+    .from("users")
+    .select("is_premium")
+    .eq("id", user.id)
+    .single();
+
+  if (dbUser?.is_premium) {
+    return NextResponse.redirect(`${baseUrl}/dashboard?tab=settings`);
+  }
+
+  // Free trial user with no active subscription → real Stripe checkout
   const session = await createCheckoutSession();
 
   if (!session?.url) {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
     return NextResponse.redirect(`${baseUrl}/dashboard?tab=settings`);
   }
 
