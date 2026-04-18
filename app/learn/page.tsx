@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Nav } from "@/app/_components/PageClientIslands";
 import { INTEGRATIONS_CATALOG } from "@/lib/integrations/catalog";
+import { PLATFORM_DETAILS } from "@/lib/integrations/platform-details";
 import type { ReactNode } from "react";
 
 export const metadata: Metadata = {
@@ -251,7 +253,7 @@ export default function LearnPage() {
 
       {/* ── HERO ──────────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden pt-36 pb-20 px-6">
-        <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 h-[500px] w-[800px] rounded-full bg-[#00d4aa]/4 blur-3xl" />
+        <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 h-125 w-200 rounded-full bg-[#00d4aa]/4 blur-3xl" />
         <div className="relative mx-auto max-w-4xl text-center">
           <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#00d4aa]/25 bg-[#00d4aa]/8 px-3 py-1.5">
             <span className="h-1.5 w-1.5 rounded-full bg-[#00d4aa]" />
@@ -665,6 +667,19 @@ export default function LearnPage() {
                             <Check key={m}>{m}</Check>
                           ))}
                         </ul>
+                        {PLATFORM_DETAILS[integration.id] && (
+                          <div className="mt-5 pt-4 border-t border-[#363650]">
+                            <Link
+                              href={`/learn/${integration.id}`}
+                              className="inline-flex items-center gap-2 font-mono text-[11px] font-semibold uppercase tracking-wider text-[#00d4aa] hover:underline underline-offset-2"
+                            >
+                              See full data breakdown — what we store, what we never touch, how to revoke
+                              <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                              </svg>
+                            </Link>
+                          </div>
+                        )}
                       </>
                     ) : (
                       <p className="text-sm text-[#8585aa]">{integration.description}</p>

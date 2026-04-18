@@ -3609,39 +3609,70 @@ async function sendDailyDigests() {
     return;
   }
 
-  const today     = new Date().toISOString().slice(0, 10);   // YYYY-MM-DD
-  const todayDow  = new Date().getUTCDay();                   // 0=Sun…6=Sat
-  const appUrl    = g('NEXT_PUBLIC_APP_URL') || 'https://usefold.io';
+  const today    = new Date().toISOString().slice(0, 10);   // YYYY-MM-DD
+  const todayDow = new Date().getUTCDay();                   // 0=Sun…6=Sat
+  const appUrl   = g('NEXT_PUBLIC_APP_URL') || 'https://usefold.io';
 
   log(`[digest] Running digest send — today=${today} dow=${todayDow}`);
 
-  // 1. Fetch all premium users who have opted in and today is their chosen day
-  let users;
+  // ── 1. Fetch all eligible users: premium OR active trial, opted in,
+  //       and today matches their chosen digest_day (NULL → treated as Monday=1)
+  // ─────────────────────────────────────────────────────────────────────────────
+  let allUsers;
   try {
-    users = await SB.selectWhere('users', 'id,email', {
-      is_premium:         'eq.true',
-      digest_subscribed:  'eq.true',
-      digest_day:         `eq.${todayDow}`,
-    });
+    // Premium users
+    const premiumUsers = await SB.selectWhere(
+      'users', 'id,email,digest_subscribed,digest_day,is_premium,trial_ends_at',
+      { is_premium: 'eq.true', digest_subscribed: 'eq.true' },
+    );
+    // Trial users (trial_ends_at >= today, not already premium)
+    const trialUsers = await SB.selectWhere(
+      'users', 'id,email,digest_subscribed,digest_day,is_premium,trial_ends_at',
+      { trial_ends_at: `gte.${today}`, digest_subscribed: 'eq.true' },
+    ).catch(() => []);
+
+    // Merge, dedup by id
+    const seen = new Set((premiumUsers ?? []).map(u => u.id));
+    const merged = [...(premiumUsers ?? [])];
+    for (const u of (trialUsers ?? [])) {
+      if (!seen.has(u.id)) { merged.push(u); seen.add(u.id); }
+    }
+
+    // Filter to users whose digest_day matches today
+    // If digest_day is null/undefined, default to Monday (1)
+    allUsers = merged.filter(u => (u.digest_day ?? 1) === todayDow);
   } catch (err) {
     logFail(`[digest] Cannot fetch users: ${err.message}`);
     return;
   }
 
-  if (!users?.length) {
+  if (!allUsers.length) {
     log(`[digest] No users scheduled for digest today (dow=${todayDow}).`);
     return;
   }
 
-  log(`[digest] ${users.length} user(s) due for digest today.`);
+  log(`[digest] ${allUsers.length} user(s) due for digest today (dow=${todayDow}).`);
   let sent = 0;
 
-  for (const user of users) {
+  for (const user of allUsers) {
     const uid   = user.id;
     const email = user.email;
     log(`[digest] Processing user ${uid.slice(0, 8)}…`);
 
-    // 2. Fetch last 14 days of snapshots
+    // ── 2. Idempotency check: skip if digest already sent/saved today ─────────
+    try {
+      const existing = await SB.selectWhere('digests', 'id', {
+        user_id: `eq.${uid}`,
+        date:    `eq.${today}`,
+      });
+      if (existing?.length) {
+        logOk(`[digest] Already sent for ${uid.slice(0, 8)} on ${today} — skipping`);
+        sent++; // count as done (not a failure)
+        continue;
+      }
+    } catch (_) { /* non-fatal — proceed anyway */ }
+
+    // ── 3. Fetch last 14 days of snapshots (ALL platforms) ───────────────────
     let snaps;
     try {
       const cutoff14 = daysAgo(14);
@@ -3652,7 +3683,11 @@ async function sendDailyDigests() {
         order:   'date.desc',
       });
       const getHeaders = { apikey: SB.headers.apikey, Authorization: SB.headers.Authorization };
-      const r = await fetchRetry(`SB SELECT daily_snapshots[digest]`, `${SUPABASE_URL}/rest/v1/daily_snapshots?${p}`, { headers: getHeaders });
+      const r = await fetchRetry(
+        `SB SELECT daily_snapshots[digest:${uid.slice(0, 8)}]`,
+        `${SUPABASE_URL}/rest/v1/daily_snapshots?${p}`,
+        { headers: getHeaders },
+      );
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       snaps = await r.json();
     } catch (err) {
@@ -3665,7 +3700,7 @@ async function sendDailyDigests() {
       continue;
     }
 
-    // 3. Compute 7d vs prev-7d metrics (mirrors the API route logic exactly)
+    // ── 4. Compute 7d vs prev-7d metrics across ALL connected platforms ───────
     const cutoff7Str = daysAgo(7);
     const snaps7     = snaps.filter(s => s.date >= cutoff7Str);
     const snapsPrev7 = snaps.filter(s => s.date <  cutoff7Str);
@@ -3677,35 +3712,99 @@ async function sendDailyDigests() {
       const rows = arr.filter(s => s.provider === provider);
       return rows.length ? rows.reduce((acc, s) => acc + ((s.data?.[field]) ?? 0), 0) / rows.length : 0;
     };
+    const maxField = (arr, provider, field) => {
+      const vals = arr.filter(s => s.provider === provider).map(s => s.data?.[field] ?? 0).filter(v => v > 0);
+      return vals.length ? Math.max(...vals) : 0;
+    };
 
-    const revenue7     = sumField(snaps7,     'stripe', 'revenue');
-    const revenuePrev  = sumField(snapsPrev7,  'stripe', 'revenue');
+    // Revenue platforms
+    const REVENUE_PLATFORMS = ['stripe', 'shopify', 'woocommerce', 'gumroad', 'lemon-squeezy', 'paddle'];
+    const connectedProviders = [...new Set(snaps.map(s => s.provider))];
+
+    const revenue7    = REVENUE_PLATFORMS.reduce((a, p) => a + sumField(snaps7, p, 'revenue'), 0);
+    const revenuePrev = REVENUE_PLATFORMS.reduce((a, p) => a + sumField(snapsPrev7, p, 'revenue'), 0);
+
     const sessions7    = sumField(snaps7,     'ga4',    'sessions');
     const sessionsPrev = sumField(snapsPrev7,  'ga4',    'sessions');
     const spend7       = sumField(snaps7,     'meta',   'spend');
+    const spendPrev    = sumField(snapsPrev7,  'meta',   'spend');
     const bounceRate7  = avgField(snaps7,     'ga4',    'bounceRate');
-    const newCustomers7 = sumField(snaps7,    'stripe', 'newCustomers');
 
-    const revChange  = revenuePrev  > 0 ? ((revenue7  - revenuePrev)  / revenuePrev)  * 100 : 0;
-    const sessChange = sessionsPrev > 0 ? ((sessions7 - sessionsPrev) / sessionsPrev) * 100 : 0;
+    // New customers (Stripe primarily, supplement with Shopify)
+    const newCustomers7 = sumField(snaps7, 'stripe', 'newCustomers') +
+                          sumField(snaps7, 'shopify', 'newCustomers');
 
-    // 4. Fetch website profile for context
+    // Subscription metrics
+    const currentMRR   = maxField(snaps7, 'stripe', 'mrr');
+    const activeSubs   = maxField(snaps7, 'stripe', 'activeSubscriptions');
+    const churnedTotal = sumField(snaps7, 'stripe', 'churnedToday');
+
+    // Email / newsletter platforms
+    const emailPlatforms = ['mailchimp', 'klaviyo', 'beehiiv', 'convertkit', 'brevo'];
+    const emailLines = emailPlatforms
+      .filter(p => connectedProviders.includes(p))
+      .map(p => {
+        const subs    = maxField(snaps7, p, 'subscribers');
+        const subsPrev = maxField(snapsPrev7, p, 'subscribers');
+        const openRate = avgField(snaps7, p, 'openRate');
+        const subChange = subsPrev > 0 ? ((subs - subsPrev) / subsPrev * 100).toFixed(1) : '—';
+        return `${p} Subscribers: ${subs} (${subChange}% vs prev week)${openRate > 0 ? `, Open Rate: ${openRate.toFixed(1)}%` : ''}`;
+      });
+
+    // Additional ad platforms
+    const adPlatforms = ['google-ads', 'tiktok-ads', 'twitter-ads', 'linkedin-ads'];
+    const adLines = adPlatforms
+      .filter(p => connectedProviders.includes(p))
+      .map(p => {
+        const adSpend = sumField(snaps7, p, 'spend');
+        const clicks  = sumField(snaps7, p, 'clicks');
+        return `${p} Spend (7d): $${adSpend.toFixed(2)}${clicks > 0 ? ` — ${clicks} clicks` : ''}`;
+      });
+
+    // % changes
+    const revChange  = revenuePrev  > 0 ? ((revenue7  - revenuePrev)  / revenuePrev  * 100) : 0;
+    const sessChange = sessionsPrev > 0 ? ((sessions7 - sessionsPrev) / sessionsPrev * 100) : 0;
+    const spendChange = spendPrev   > 0 ? ((spend7    - spendPrev)    / spendPrev    * 100) : 0;
+    const cacLine    = newCustomers7 > 0 && spend7 > 0
+      ? `CAC (Meta spend / new customers): $${(spend7 / newCustomers7).toFixed(2)}`
+      : 'CAC: N/A';
+
+    // ── 5. Fetch website profile for context ─────────────────────────────────
     let website = null;
     try {
       const wp = await SB.selectWhere('website_profiles', 'url,score', { user_id: `eq.${uid}` });
       website = wp?.[0] ?? null;
     } catch (_) { /* optional */ }
 
-    const contextBlock = `DATE: ${today}
-Revenue (7d): $${(revenue7 / 100).toFixed(2)} (${revChange >= 0 ? '+' : ''}${revChange.toFixed(1)}% vs prev week)
-Sessions (7d): ${sessions7} (${sessChange >= 0 ? '+' : ''}${sessChange.toFixed(1)}% vs prev week)
-Ad Spend (7d): $${(spend7 / 100).toFixed(2)}
-New Customers (7d): ${newCustomers7}
-Bounce Rate (7d): ${bounceRate7.toFixed(1)}%
-CAC: ${newCustomers7 > 0 ? `$${((spend7 / 100) / newCustomers7).toFixed(2)}` : 'N/A'}
-Website: ${website?.url ?? 'Not set'} — Score ${website?.score ?? 0}/100`.trim();
+    // ── 6. Build context block for AI ────────────────────────────────────────
+    const contextLines = [
+      `DATE: ${today}`,
+      `Connected platforms: ${connectedProviders.join(', ')}`,
+      '',
+      `=== REVENUE ===`,
+      `Total Revenue (7d): $${(revenue7 / 100).toFixed(2)} (${revChange >= 0 ? '+' : ''}${revChange.toFixed(1)}% vs prev week)`,
+      currentMRR > 0 ? `MRR: $${(currentMRR / 100).toFixed(2)}` : null,
+      activeSubs > 0 ? `Active Subscriptions: ${activeSubs}` : null,
+      churnedTotal > 0 ? `Churned Subscribers (7d): ${churnedTotal}` : null,
+      newCustomers7 > 0 ? `New Customers (7d): ${newCustomers7}` : null,
+      '',
+      `=== TRAFFIC ===`,
+      sessions7 > 0 ? `Sessions (7d): ${sessions7} (${sessChange >= 0 ? '+' : ''}${sessChange.toFixed(1)}% vs prev week)` : null,
+      bounceRate7 > 0 ? `Bounce Rate (7d avg): ${bounceRate7.toFixed(1)}%` : null,
+      '',
+      `=== ADVERTISING ===`,
+      spend7 > 0 ? `Meta Ad Spend (7d): $${spend7.toFixed(2)} (${spendChange >= 0 ? '+' : ''}${spendChange.toFixed(1)}% vs prev week)` : null,
+      ...adLines,
+      cacLine,
+      '',
+      emailLines.length ? `=== EMAIL & NEWSLETTER ===` : null,
+      ...emailLines,
+      '',
+      website ? `=== WEBSITE ===` : null,
+      website ? `URL: ${website.url} — Health Score: ${website.score}/100` : null,
+    ].filter(l => l !== null).join('\n');
 
-    // 5. Call Anthropic claude-opus-4-5 to generate digest JSON
+    // ── 7. Call Anthropic to generate digest JSON ─────────────────────────────
     let digestContent;
     try {
       const aiRes = await fetchRetry(
@@ -3721,7 +3820,7 @@ Website: ${website?.url ?? 'Not set'} — Score ${website?.score ?? 0}/100`.trim
           body: JSON.stringify({
             model:      'claude-opus-4-5',
             max_tokens: 900,
-            system: `You are a concise business intelligence assistant. Generate a weekly digest JSON object based on the provided metrics. Return ONLY valid JSON, no markdown.
+            system: `You are a concise business intelligence assistant. Generate a daily digest JSON object based on the provided metrics. Return ONLY valid JSON, no markdown.
 
 Schema:
 {
@@ -3736,7 +3835,7 @@ Schema:
   "action": { "title": "Top action", "description": "what to do", "priority": "High|Medium|Low", "effort": "Low|Medium|High" }
 }`,
             messages: [
-              { role: 'user', content: `Generate a weekly digest for this business:\n\n${contextBlock}` },
+              { role: 'user', content: `Generate a daily business digest for this business:\n\n${contextLines}` },
             ],
           }),
         },
@@ -3759,7 +3858,7 @@ Schema:
       continue;
     }
 
-    // 6. Upsert digest into `digests` table
+    // ── 8. Upsert digest into `digests` table ────────────────────────────────
     try {
       await SB.upsert(
         'digests',
@@ -3771,7 +3870,7 @@ Schema:
           anomalies:     digestContent.anomalies      ?? [],
           cross_insight: digestContent.cross_insight  ?? '',
           action:        digestContent.action         ?? {},
-          raw_context:   { contextBlock },
+          raw_context:   { contextLines },
         },
         'user_id,date',
       );
@@ -3780,7 +3879,7 @@ Schema:
       // Still attempt email — don't hard-fail
     }
 
-    // 7. Send email via Resend REST API
+    // ── 9. Send email via Resend REST API ────────────────────────────────────
     try {
       const emailHtml = buildDigestEmailHtml({ ...digestContent, date: today }, appUrl);
       const res = await fetchRetry(
@@ -3804,7 +3903,7 @@ Schema:
         const e = await res.json().catch(() => ({}));
         logWarn(`[digest] Resend failed for ${uid.slice(0, 8)}: ${e?.message ?? res.status}`);
       } else {
-        logOk(`[digest] Sent to ${email}`);
+        logOk(`[digest] Sent to ${email} (${user.is_premium ? 'premium' : 'trial'})`);
         sent++;
       }
     } catch (err) {
@@ -3814,7 +3913,7 @@ Schema:
     await sleep(USER_DELAY_MS);
   }
 
-  log(`[digest] Done — ${sent}/${users.length} digest(s) sent`);
+  log(`[digest] Done — ${sent}/${allUsers.length} digest(s) sent`);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -4647,13 +4746,16 @@ if (backfillMode) {
   // 0. Start the HTTP trigger server (fire-and-forget backfill on OAuth connect)
   startTriggerServer();
 
-  // 1. Immediate first run
+  // 1. Immediate first run (sync + alerts + anomalies + goals)
+  // Note: sendDailyDigests is intentionally NOT called here — it runs only at
+  // the scheduled daily time (02:00 UTC) to avoid duplicate sends on restarts.
+  // The idempotency check in sendDailyDigests also protects against duplicates,
+  // but we skip it on startup for clarity and to avoid unnecessary API calls.
   await runAutoBackfill();
   await runSync();
   await checkAlerts();
   await runAnomalyAlerts();
   await checkGoals();
-  await sendDailyDigests();
   await pingHeartbeat();
 
   // 2. Auto-backfill loop — every 30 minutes
