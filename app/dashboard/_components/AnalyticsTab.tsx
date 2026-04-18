@@ -831,6 +831,140 @@ export function FunnelSection({ snapshots, connectedPlatforms, currencies = {} }
 
 // ── Platform sections ─────────────────────────────────────────────────────
 
+// ── MRR Benchmarks ───────────────────────────────────────────────────────
+
+// Industry benchmarks sourced from Baremetrics Open Startups, ChartMogul SaaS Report, OpenView SaaS Benchmarks
+const SAAS_BENCHMARKS = {
+  mrrGrowthMedian: 8,      // % monthly MRR growth, SaaS median
+  mrrGrowthTop25:  20,     // % monthly MRR growth, top quartile
+  churnMedian:     2.5,    // % monthly churn, SaaS median
+  churnTop25:      1,      // % monthly churn, top quartile (lower = better)
+  arpuSMB:         50,     // USD, SMB SaaS ARPU median (in dollars)
+  arpuMid:         250,    // USD, mid-market SaaS ARPU median
+};
+
+function MRRBenchmarks({ currentMRR, mrrSeries, churnRate, arpu, currency }: {
+  currentMRR: number; mrrSeries: number[]; churnRate: number; arpu: number; currency: string;
+}) {
+  // Compute MRR growth: compare last value to first non-zero value
+  const firstMRR = mrrSeries.find((v) => v > 0) ?? 0;
+  const mrrGrowthPct = firstMRR > 0 && currentMRR > firstMRR
+    ? ((currentMRR - firstMRR) / firstMRR) * 100
+    : null;
+
+  // Arpu in dollars (stored in cents)
+  const arpuDollars = arpu / 100;
+
+  type BenchmarkItem = {
+    label: string;
+    yourValue: string;
+    median: string;
+    top25: string;
+    status: "above" | "below" | "on" | "na";
+    note: string;
+  };
+
+  const items: BenchmarkItem[] = [];
+
+  if (mrrGrowthPct !== null) {
+    const status = mrrGrowthPct >= SAAS_BENCHMARKS.mrrGrowthTop25 ? "above"
+      : mrrGrowthPct >= SAAS_BENCHMARKS.mrrGrowthMedian ? "on" : "below";
+    items.push({
+      label: "MRR Growth",
+      yourValue: `${mrrGrowthPct.toFixed(1)}%`,
+      median: `${SAAS_BENCHMARKS.mrrGrowthMedian}%`,
+      top25: `${SAAS_BENCHMARKS.mrrGrowthTop25}%`,
+      status,
+      note: status === "above" ? "Top quartile 🚀" : status === "on" ? "At median" : "Below median",
+    });
+  }
+
+  if (churnRate > 0) {
+    const status = churnRate <= SAAS_BENCHMARKS.churnTop25 ? "above"
+      : churnRate <= SAAS_BENCHMARKS.churnMedian ? "on" : "below";
+    items.push({
+      label: "Monthly Churn",
+      yourValue: `${churnRate.toFixed(1)}%`,
+      median: `${SAAS_BENCHMARKS.churnMedian}%`,
+      top25: `${SAAS_BENCHMARKS.churnTop25}%`,
+      status,
+      note: status === "above" ? "Top quartile 🎯" : status === "on" ? "At median" : "Above median (high churn)",
+    });
+  }
+
+  if (arpuDollars > 0 && currency === "USD") {
+    const status = arpuDollars >= SAAS_BENCHMARKS.arpuMid ? "above"
+      : arpuDollars >= SAAS_BENCHMARKS.arpuSMB ? "on" : "below";
+    items.push({
+      label: "ARPU / Month",
+      yourValue: `$${arpuDollars.toFixed(0)}`,
+      median: `$${SAAS_BENCHMARKS.arpuSMB} (SMB)`,
+      top25: `$${SAAS_BENCHMARKS.arpuMid}+ (Mid-market)`,
+      status,
+      note: status === "above" ? "Mid-market range 🏆" : status === "on" ? "SMB range" : "Below SMB median",
+    });
+  }
+
+  if (items.length === 0) return null;
+
+  const statusColor = (s: BenchmarkItem["status"]) =>
+    s === "above" ? "#00d4aa" : s === "on" ? "#f59e0b" : "#f87171";
+
+  return (
+    <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-5 space-y-4">
+      <div className="flex items-center gap-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#a78bfa]/10 text-[#a78bfa]">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/>
+          </svg>
+        </div>
+        <div>
+          <h4 className="font-mono text-sm font-semibold text-[#f8f8fc]">SaaS Benchmarks</h4>
+          <p className="font-mono text-[10px] text-[#8585aa]">How your metrics compare to industry medians</p>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto rounded-xl border border-[#363650]">
+        <table className="w-full text-left">
+          <thead>
+            <tr className="border-b border-[#363650] bg-[#222235]">
+              {["Metric", "You", "SaaS Median", "Top 25%", "Status"].map((h) => (
+                <th key={h} className="px-4 py-2.5 font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item) => (
+              <tr key={item.label} className="border-b border-[#363650]/50">
+                <td className="px-4 py-2.5 font-mono text-[11px] text-[#bcbcd8]">{item.label}</td>
+                <td className="px-4 py-2.5 font-mono text-[12px] font-bold" style={{ color: statusColor(item.status) }}>
+                  {item.yourValue}
+                </td>
+                <td className="px-4 py-2.5 font-mono text-[11px] text-[#8585aa]">{item.median}</td>
+                <td className="px-4 py-2.5 font-mono text-[11px] text-[#8585aa]">{item.top25}</td>
+                <td className="px-4 py-2.5">
+                  <span
+                    className="inline-block rounded-md px-2 py-0.5 font-mono text-[9px] font-semibold"
+                    style={{ backgroundColor: statusColor(item.status) + "15", color: statusColor(item.status) }}
+                  >
+                    {item.note}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <p className="font-mono text-[9px] text-[#58588a]">
+        Benchmarks from Baremetrics Open Startups, ChartMogul SaaS Report, OpenView SaaS Benchmarks 2024. MRR growth measured over the selected period.
+      </p>
+    </div>
+  );
+}
+
+// ── Stripe Section ────────────────────────────────────────────────────────
+
 function StripeSection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
   const grouped = groupSnapshots(
     snapshots, granularity,
@@ -939,11 +1073,10 @@ function StripeSection({ snapshots, granularity, currency = "USD" }: { snapshots
       )}
 
       <DataTable rows={tableRows} />
+      {hasSubscriptions && <MRRBenchmarks currentMRR={currentMRR} mrrSeries={mrrSeries} churnRate={churnRate} arpu={currentARPU} currency={currency} />}
     </div>
   );
 }
-
-// ── Product Revenue Breakdown ─────────────────────────────────────────────
 
 function ProductBreakdownSection({ snapshots, currency = "USD" }: { snapshots: Snapshot[]; currency?: string }) {
   const products = useMemo(() => {

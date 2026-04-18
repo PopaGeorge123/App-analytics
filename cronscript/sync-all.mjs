@@ -19,12 +19,16 @@
  *    Every 30 minutes: checks for new users with no data → backfills them
  *    Daily at 02:00 UTC: syncs yesterday's data for ALL users
  *    After daily sync:   checks alert_rules and sends email if thresholds exceeded
+ *    After alert check:  runs anomaly detection (25%/50% deviation vs 7d avg)
+ *                        → writes to `notifications` table + emails critical alerts
+ *    After anomaly check: checks goals & KPIs, sends digest emails
  *
  *  ONE-SHOT sync (yesterday + alert check, then exit):
  *    node cronscript/sync-all.mjs
  *
  *  ONE-SHOT alert check only (for testing):
  *    node cronscript/sync-all.mjs --alerts
+ *    (runs checkAlerts + runAnomalyAlerts + checkGoals, then exits)
  *
  *  ONE-SHOT backfill (full history, then exit):
  *    node cronscript/sync-all.mjs --backfill
@@ -3814,6 +3818,335 @@ Schema:
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// ANOMALY ALERTS
+// Runs daily after sync. Compares today's snapshot for each monitored metric
+// against the 7-day rolling average. Flags deviations ≥ 25% as warnings and
+// ≥ 50% as critical. Writes every alert to the `notifications` table (shows up
+// in the in-app bell) and sends an email for critical anomalies or ≥2 warnings.
+//
+// Monitored platforms / metrics:
+//   stripe  → revenue, newCustomers, churnedToday
+//   ga4     → sessions, conversions, bounceRate
+//   meta    → spend, clicks, impressions
+//   shopify → revenue, orders
+//   mailchimp, klaviyo, beehiiv → subscribers, openRate
+// ─────────────────────────────────────────────────────────────────────────────
+
+const ANOMALY_MONITORED = {
+  stripe:    [
+    { key: 'revenue',      label: 'Daily Revenue',        unit: 'currency', lowerIsBad: true  },
+    { key: 'newCustomers', label: 'New Customers',         unit: null,       lowerIsBad: true  },
+    { key: 'churnedToday', label: 'Churned Subscribers',   unit: null,       lowerIsBad: false },
+  ],
+  ga4:       [
+    { key: 'sessions',    label: 'Sessions',               unit: null,       lowerIsBad: true  },
+    { key: 'conversions', label: 'Conversions',             unit: null,       lowerIsBad: true  },
+    { key: 'bounceRate',  label: 'Bounce Rate',             unit: 'pct',      lowerIsBad: false },
+  ],
+  meta:      [
+    { key: 'spend',       label: 'Ad Spend',               unit: 'currency', lowerIsBad: false },
+    { key: 'clicks',      label: 'Ad Clicks',               unit: null,       lowerIsBad: true  },
+    { key: 'impressions', label: 'Impressions',             unit: null,       lowerIsBad: true  },
+  ],
+  shopify:   [
+    { key: 'revenue',     label: 'Shopify Revenue',         unit: 'currency', lowerIsBad: true  },
+    { key: 'orders',      label: 'Orders',                  unit: null,       lowerIsBad: true  },
+  ],
+  mailchimp: [
+    { key: 'subscribers', label: 'Subscribers',             unit: null,       lowerIsBad: true  },
+    { key: 'openRate',    label: 'Email Open Rate',          unit: 'pct',      lowerIsBad: true  },
+  ],
+  klaviyo:   [
+    { key: 'subscribers', label: 'Subscribers',             unit: null,       lowerIsBad: true  },
+  ],
+  beehiiv:   [
+    { key: 'subscribers', label: 'Subscribers',             unit: null,       lowerIsBad: true  },
+    { key: 'openRate',    label: 'Newsletter Open Rate',     unit: 'pct',      lowerIsBad: true  },
+  ],
+};
+
+const ANOMALY_WARN_THRESHOLD = 0.25;  // 25% deviation → warning
+const ANOMALY_CRIT_THRESHOLD = 0.50;  // 50% deviation → critical
+const ANOMALY_MIN_HISTORY    = 3;     // minimum historical days required
+
+function buildAnomalyAlertEmailHtml(alerts) {
+  const rows = alerts.map(a => {
+    const arrow      = a.direction === 'down' ? '▼' : '▲';
+    const arrowColor = a.direction === 'down' ? '#f87171' : (a.lowerIsBad ? '#f87171' : '#f59e0b');
+    const badgeColor = a.severity === 'critical' ? '#f87171' : '#f59e0b';
+    const badgeLabel = a.severity === 'critical' ? 'CRITICAL' : 'WARNING';
+
+    const fmtVal = (v) => {
+      if (a.unit === 'currency') return `$${(v / 100).toFixed(2)}`;
+      if (a.unit === 'pct')     return `${v.toFixed(1)}%`;
+      return v.toLocaleString('en-US', { maximumFractionDigits: 0 });
+    };
+
+    return `
+    <tr>
+      <td style="padding:12px 16px;border-bottom:1px solid #2a2a3e;">
+        <div style="font-family:monospace;font-size:12px;font-weight:700;color:#f8f8fc;">${a.label}</div>
+        <div style="font-family:monospace;font-size:10px;color:#8585aa;margin-top:2px;">${a.platform}</div>
+      </td>
+      <td style="padding:12px 16px;border-bottom:1px solid #2a2a3e;font-family:monospace;font-size:13px;font-weight:700;" align="right">
+        <span style="color:${arrowColor}">${arrow} ${Math.abs(a.changePct).toFixed(0)}%</span>
+      </td>
+      <td style="padding:12px 16px;border-bottom:1px solid #2a2a3e;font-family:monospace;font-size:11px;color:#bcbcd8;" align="right">
+        ${fmtVal(a.current)} vs avg ${fmtVal(a.average)}
+      </td>
+      <td style="padding:12px 16px;border-bottom:1px solid #2a2a3e;" align="right">
+        <span style="background:${badgeColor};color:#13131f;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700;">${badgeLabel}</span>
+      </td>
+    </tr>`;
+  }).join('');
+
+  const critCount  = alerts.filter(a => a.severity === 'critical').length;
+  const subject    = critCount > 0
+    ? `🚨 ${critCount} critical metric alert${critCount > 1 ? 's' : ''} — Fold`
+    : `⚠️ ${alerts.length} metric warning${alerts.length > 1 ? 's' : ''} — Fold`;
+  const appUrl     = g('NEXT_PUBLIC_APP_URL') || 'https://usefold.io';
+
+  const html = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#0d0d1a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <div style="max-width:640px;margin:0 auto;padding:32px 16px;">
+    <div style="margin-bottom:28px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+        <span style="font-family:monospace;font-size:18px;font-weight:700;color:#00d4aa;">fold</span>
+        <span style="font-family:monospace;font-size:10px;color:#8585aa;letter-spacing:0.15em;text-transform:uppercase;">anomaly alert</span>
+      </div>
+      <div style="height:2px;background:linear-gradient(90deg,#f87171 0%,#f59e0b 60%,transparent 100%);border-radius:1px;"></div>
+    </div>
+    <div style="background:#1c1c2a;border:1px solid #363650;border-left:3px solid ${critCount > 0 ? '#f87171' : '#f59e0b'};border-radius:12px;padding:20px 24px;margin-bottom:24px;">
+      <p style="font-family:monospace;font-size:22px;font-weight:700;color:#f8f8fc;margin:0 0 6px;">
+        ${alerts.length} metric ${alerts.length === 1 ? 'anomaly' : 'anomalies'} detected
+      </p>
+      <p style="font-family:monospace;font-size:12px;color:#8585aa;margin:0;">
+        Today's data deviates significantly from your 7-day average. Review below.
+      </p>
+    </div>
+    <div style="background:#1c1c2a;border:1px solid #363650;border-radius:12px;overflow:hidden;margin-bottom:24px;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+        <thead>
+          <tr style="background:#222235;">
+            <th style="padding:10px 16px;font-family:monospace;font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:#8585aa;text-align:left;">Metric</th>
+            <th style="padding:10px 16px;font-family:monospace;font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:#8585aa;text-align:right;">Change</th>
+            <th style="padding:10px 16px;font-family:monospace;font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:#8585aa;text-align:right;">Today vs Avg</th>
+            <th style="padding:10px 16px;font-family:monospace;font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:#8585aa;text-align:right;">Severity</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <div style="text-align:center;margin-bottom:32px;">
+      <a href="${appUrl}/dashboard?tab=analytics" style="display:inline-block;background:#00d4aa;color:#13131f;font-family:monospace;font-size:13px;font-weight:700;padding:12px 28px;border-radius:10px;text-decoration:none;">
+        View Dashboard →
+      </a>
+    </div>
+    <div style="border-top:1px solid #1c1c2a;padding-top:20px;text-align:center;">
+      <p style="font-family:monospace;font-size:10px;color:#454560;margin:0 0 4px;">
+        You're receiving anomaly alerts from Fold Analytics.
+      </p>
+      <p style="font-family:monospace;font-size:10px;color:#454560;margin:0;">
+        <a href="${appUrl}/dashboard?tab=settings" style="color:#454560;">Manage notification settings</a>
+      </p>
+    </div>
+  </div>
+</body></html>`;
+
+  return { subject, html };
+}
+
+async function runAnomalyAlerts() {
+  if (!RESEND_KEY) {
+    logWarn('[anomaly] RESEND_API_KEY not set — skipping anomaly alert emails');
+  }
+
+  const today        = new Date().toISOString().slice(0, 10);
+  const lookback     = daysAgo(14);
+  const monitoredPlatforms = Object.keys(ANOMALY_MONITORED);
+
+  log('[anomaly] Running anomaly detection for all active users…');
+
+  // 1. Fetch all premium + active-trial users
+  let users;
+  try {
+    users = await SB.selectWhere('users', 'id,email,is_premium,trial_ends_at', {
+      is_premium: 'eq.true',
+    });
+    // Also fetch trial users
+    const trialUsers = await SB.selectWhere('users', 'id,email,is_premium,trial_ends_at', {
+      trial_ends_at: `gte.${today}`,
+    }).catch(() => []);
+    // Merge, deduplicate by id
+    const seen = new Set(users.map(u => u.id));
+    for (const u of (trialUsers ?? [])) {
+      if (!seen.has(u.id)) { users.push(u); seen.add(u.id); }
+    }
+  } catch (err) {
+    logFail(`[anomaly] Cannot fetch users: ${err.message}`);
+    return;
+  }
+
+  if (!users?.length) { log('[anomaly] No eligible users.'); return; }
+
+  // 2. Filter to users who have at least one monitored integration
+  let integrations;
+  try {
+    integrations = await SB.selectWhere('integrations', 'user_id,platform', {
+      platform: `in.(${monitoredPlatforms.join(',')})`,
+    });
+  } catch (err) {
+    logFail(`[anomaly] Cannot fetch integrations: ${err.message}`);
+    return;
+  }
+
+  const usersWithIntegrations = new Set((integrations ?? []).map(i => i.user_id));
+  const eligibleUsers = users.filter(u => usersWithIntegrations.has(u.id));
+
+  log(`[anomaly] ${eligibleUsers.length} user(s) with monitored integrations`);
+  let notified = 0;
+
+  for (const user of eligibleUsers) {
+    const uid = user.id;
+
+    // 3. Fetch last 14 days of snapshots for monitored platforms
+    let snaps;
+    try {
+      const p = new URLSearchParams({
+        select:   'provider,date,data',
+        user_id:  `eq.${uid}`,
+        date:     `gte.${lookback}`,
+        provider: `in.(${monitoredPlatforms.join(',')})`,
+        order:    'date.asc',
+      });
+      const getHeaders = { apikey: SB.headers.apikey, Authorization: SB.headers.Authorization };
+      const r = await fetchRetry(
+        `SB SELECT daily_snapshots[anomaly:${uid.slice(0, 8)}]`,
+        `${SUPABASE_URL}/rest/v1/daily_snapshots?${p}`,
+        { headers: getHeaders },
+      );
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      snaps = await r.json();
+    } catch (err) {
+      logWarn(`[anomaly] Cannot fetch snapshots for ${uid.slice(0, 8)}: ${err.message}`);
+      continue;
+    }
+
+    if (!snaps?.length) continue;
+
+    // 4. Detect anomalies
+    const alerts = [];
+
+    for (const [platform, metrics] of Object.entries(ANOMALY_MONITORED)) {
+      const platformSnaps = snaps.filter(s => s.provider === platform);
+      const historical    = platformSnaps.filter(s => s.date < today);
+      const todaySnap     = platformSnaps.find(s => s.date === today);
+
+      if (!todaySnap || historical.length < ANOMALY_MIN_HISTORY) continue;
+
+      for (const { key, label, unit, lowerIsBad } of metrics) {
+        const historicalVals = historical
+          .map(s => s.data?.[key] ?? 0)
+          .filter(v => v > 0);
+
+        if (historicalVals.length < ANOMALY_MIN_HISTORY) continue;
+
+        const average  = historicalVals.reduce((a, b) => a + b, 0) / historicalVals.length;
+        if (average === 0) continue;
+
+        const current   = todaySnap.data?.[key] ?? 0;
+        const changePct = ((current - average) / average) * 100;
+        const absPct    = Math.abs(changePct);
+
+        // Only alert when the change is in the "bad" direction
+        const isBadDrop  = lowerIsBad  && changePct < 0 && absPct >= ANOMALY_WARN_THRESHOLD * 100;
+        const isBadSpike = !lowerIsBad && changePct > 0 && absPct >= ANOMALY_WARN_THRESHOLD * 100;
+        if (!isBadDrop && !isBadSpike) continue;
+
+        const severity = absPct >= ANOMALY_CRIT_THRESHOLD * 100 ? 'critical' : 'warning';
+        alerts.push({
+          label,
+          platform: platform.charAt(0).toUpperCase() + platform.slice(1),
+          current,
+          average,
+          changePct,
+          direction: current < average ? 'down' : 'up',
+          severity,
+          unit,
+          lowerIsBad,
+        });
+      }
+    }
+
+    if (!alerts.length) {
+      logOk(`[anomaly] User ${uid.slice(0, 8)} — no anomalies`);
+      continue;
+    }
+
+    log(`[anomaly] User ${uid.slice(0, 8)} — ${alerts.length} anomal${alerts.length === 1 ? 'y' : 'ies'} detected`);
+    alerts.forEach(a =>
+      log(`  → ${a.severity === 'critical' ? '🚨' : '⚠️'} ${a.label} ${a.direction === 'down' ? '▼' : '▲'} ${Math.abs(a.changePct).toFixed(0)}% (${a.platform})`)
+    );
+
+    // 5. Write to notifications table
+    try {
+      const records = alerts.map(a => ({
+        user_id: uid,
+        message: `${a.severity === 'critical' ? '🚨' : '⚠️'} ${a.label} ${a.direction === 'down' ? 'dropped' : 'spiked'} ${Math.abs(a.changePct).toFixed(0)}%`,
+        detail:  `${a.platform}: today ${a.current.toLocaleString('en-US', { maximumFractionDigits: 0 })} vs 7d avg ${a.average.toLocaleString('en-US', { maximumFractionDigits: 0 })}`,
+        color:   a.severity === 'critical' ? '#f87171' : '#f59e0b',
+        icon:    a.severity === 'critical' ? '🚨' : '⚠️',
+        read:    false,
+      }));
+      await SB.insert('notifications', records);
+    } catch (err) {
+      logWarn(`[anomaly] Could not persist notifications for ${uid.slice(0, 8)}: ${err.message}`);
+    }
+
+    // 6. Send email for critical alerts or ≥2 warnings
+    const hasCritical = alerts.some(a => a.severity === 'critical');
+    const shouldEmail = RESEND_KEY && (hasCritical || alerts.length >= 2) && user.email;
+
+    if (shouldEmail) {
+      try {
+        const { subject, html } = buildAnomalyAlertEmailHtml(alerts);
+        const res = await fetchRetry(
+          `Resend anomaly[${uid.slice(0, 8)}]`,
+          'https://api.resend.com/emails',
+          {
+            method: 'POST',
+            headers: {
+              Authorization:  `Bearer ${RESEND_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              from:    FROM_EMAIL,
+              to:      user.email,
+              subject,
+              html,
+            }),
+          },
+        );
+        if (!res.ok) {
+          const e = await res.json().catch(() => ({}));
+          logWarn(`[anomaly] Resend failed for ${uid.slice(0, 8)}: ${e?.message ?? res.status}`);
+        } else {
+          logOk(`[anomaly] Alert email sent to ${user.email}`);
+        }
+      } catch (err) {
+        logWarn(`[anomaly] Email error for ${uid.slice(0, 8)}: ${err.message}`);
+      }
+    }
+
+    notified++;
+    await sleep(PLATFORM_DELAY_MS);
+  }
+
+  log(`[anomaly] Done — ${notified}/${eligibleUsers.length} user(s) had anomalies`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // GOALS & KPIs CHECK
 // Run after every daily sync (same cadence as checkAlerts).
 // Reads the `goals` JSONB column on `users` (set by the user in Settings),
@@ -4286,8 +4619,9 @@ if (backfillMode) {
   await runBackfill();
 
 } else if (alertsOnly) {
-  // Manual one-shot: alert check + goals check only, then exit
+  // Manual one-shot: alert check + anomaly alerts + goals check only, then exit
   await checkAlerts();
+  await runAnomalyAlerts();
   await checkGoals();
 
 } else if (digestOnly) {
@@ -4304,6 +4638,7 @@ if (backfillMode) {
   log(`  • Auto-backfill check: every ${CHECK_INTERVAL_MS / 60000} minutes`);
   log(`  • Daily sync:          02:00 UTC`);
   log(`  • Alert rules check:   after every daily sync`);
+  log(`  • Anomaly detection:   after every daily sync`);
   log(`  • Goals & KPIs check:  after every daily sync`);
   log(`  • Digest send:         after every daily sync (sent to users on their chosen day)`);
   log(`  • Trigger server:      port ${TRIGGER_PORT}`);
@@ -4316,6 +4651,7 @@ if (backfillMode) {
   await runAutoBackfill();
   await runSync();
   await checkAlerts();
+  await runAnomalyAlerts();
   await checkGoals();
   await sendDailyDigests();
   await pingHeartbeat();
@@ -4325,19 +4661,21 @@ if (backfillMode) {
     try { await runAutoBackfill(); } catch (e) { logFail(`[auto-backfill loop] ${e.message}`); }
   }, CHECK_INTERVAL_MS);
 
-  // 3. Daily sync + alerts + goals + digest at 02:00 UTC
+  // 3. Daily sync + alerts + anomalies + goals + digest at 02:00 UTC
   scheduleDailyAt(DAILY_UTC_HOUR, async () => {
     await runSync();
     await checkAlerts();
+    await runAnomalyAlerts();
     await checkGoals();
     await sendDailyDigests();
     await pingHeartbeat();
-  }, 'daily-sync+alerts+digest');
+  }, 'daily-sync+alerts+anomalies+digest');
 
 } else {
-  // One-shot: sync yesterday + check alerts + check goals + send digests, then exit
+  // One-shot: sync yesterday + check alerts + anomalies + goals + send digests, then exit
   await runSync();
   await checkAlerts();
+  await runAnomalyAlerts();
   await checkGoals();
   await sendDailyDigests();
 }

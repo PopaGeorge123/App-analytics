@@ -45,11 +45,42 @@ export interface MetaContext {
   spendTrend: number;
 }
 
+export interface EmailContext {
+  platform: string;
+  connected: boolean;
+  current7: { subscribers: number; openRate: number; clickRate: number; sent: number };
+  prev7: { subscribers: number; openRate: number; clickRate: number; sent: number };
+  subscribersTrend: number;
+}
+
+export interface EcommerceContext {
+  platform: string;
+  connected: boolean;
+  current7: { revenue: number; orders: number; newCustomers: number };
+  prev7: { revenue: number; orders: number; newCustomers: number };
+  revenueTrend: number;
+}
+
+export interface AttributionContext {
+  /** Blended CAC across all ad platforms (ad spend / new customers) */
+  blendedCAC: number | null;
+  /** Total ad spend across all connected ad platforms */
+  totalAdSpend: number;
+  /** Total new customers from revenue platforms */
+  totalNewCustomers: number;
+}
+
 export interface DigestContext {
   userId: string;
   stripe: StripeContext;
   ga4: GA4Context;
   meta: MetaContext;
+  /** Email marketing platforms (Mailchimp, Klaviyo, Beehiiv) */
+  emailPlatforms: EmailContext[];
+  /** Ecommerce platforms (Shopify, WooCommerce, Gumroad, Lemon Squeezy, Paddle) */
+  ecommercePlatforms: EcommerceContext[];
+  /** Cross-channel attribution summary */
+  attribution: AttributionContext;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -58,6 +89,118 @@ function pick(rows: any[], key: string): number[] {
     const data = r.data as Record<string, number>;
     return data[key] ?? 0;
   });
+}
+
+// ── Email platform helper ─────────────────────────────────────────────────
+
+const EMAIL_PLATFORMS = ["mailchimp", "klaviyo", "beehiiv", "convertkit", "brevo"];
+const ECOMMERCE_PLATFORMS = ["shopify", "woocommerce", "gumroad", "lemon-squeezy", "paddle"];
+
+async function buildEmailContexts(
+  userId: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  db: any,
+  cur7Start: string, cur7End: string,
+  prev7Start: string, prev7End: string,
+  hasIntegration: (p: string) => Promise<boolean>,
+  getSnapshots: (provider: string, start: string, end: string) => Promise<{ data: Record<string, number> }[]>
+): Promise<EmailContext[]> {
+  const results: EmailContext[] = [];
+
+  for (const platform of EMAIL_PLATFORMS) {
+    const connected = await hasIntegration(platform);
+    if (!connected) continue;
+
+    const curRows = await getSnapshots(platform, cur7Start, cur7End);
+    const prevRows = await getSnapshots(platform, prev7Start, prev7End);
+
+    const current7 = {
+      subscribers: Math.max(...pick(curRows, "subscribers").filter((v) => v > 0), 0),
+      openRate: pick(curRows, "openRate").reduce((a, b) => a + b, 0) / (curRows.length || 1),
+      clickRate: pick(curRows, "clickRate").reduce((a, b) => a + b, 0) / (curRows.length || 1),
+      sent: pick(curRows, "sent").reduce((a, b) => a + b, 0),
+    };
+    const prev7 = {
+      subscribers: Math.max(...pick(prevRows, "subscribers").filter((v) => v > 0), 0),
+      openRate: pick(prevRows, "openRate").reduce((a, b) => a + b, 0) / (prevRows.length || 1),
+      clickRate: pick(prevRows, "clickRate").reduce((a, b) => a + b, 0) / (prevRows.length || 1),
+      sent: pick(prevRows, "sent").reduce((a, b) => a + b, 0),
+    };
+
+    results.push({
+      platform,
+      connected: true,
+      current7,
+      prev7,
+      subscribersTrend: prev7.subscribers > 0
+        ? ((current7.subscribers - prev7.subscribers) / prev7.subscribers) * 100
+        : 0,
+    });
+  }
+
+  return results;
+}
+
+async function buildEcommerceContexts(
+  userId: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  db: any,
+  cur7Start: string, cur7End: string,
+  prev7Start: string, prev7End: string,
+  hasIntegration: (p: string) => Promise<boolean>,
+  getSnapshots: (provider: string, start: string, end: string) => Promise<{ data: Record<string, number> }[]>
+): Promise<EcommerceContext[]> {
+  // Suppress unused param warning
+  void userId; void db;
+  const results: EcommerceContext[] = [];
+
+  for (const platform of ECOMMERCE_PLATFORMS) {
+    const connected = await hasIntegration(platform);
+    if (!connected) continue;
+
+    const curRows = await getSnapshots(platform, cur7Start, cur7End);
+    const prevRows = await getSnapshots(platform, prev7Start, prev7End);
+
+    const sumOf = (rows: { data: Record<string, number> }[], key: string) =>
+      rows.reduce((a, r) => a + (r.data[key] ?? 0), 0);
+
+    const current7 = {
+      revenue: sumOf(curRows, "revenue"),
+      orders: sumOf(curRows, "orders"),
+      newCustomers: sumOf(curRows, "newCustomers"),
+    };
+    const prev7 = {
+      revenue: sumOf(prevRows, "revenue"),
+      orders: sumOf(prevRows, "orders"),
+      newCustomers: sumOf(prevRows, "newCustomers"),
+    };
+
+    results.push({
+      platform,
+      connected: true,
+      current7,
+      prev7,
+      revenueTrend: prev7.revenue > 0
+        ? ((current7.revenue - prev7.revenue) / prev7.revenue) * 100
+        : 0,
+    });
+  }
+
+  return results;
+}
+
+function buildAttribution(
+  metaConnected: boolean,
+  metaCurrent7: { spend: number; conversions: number },
+  stripeCurrent7: { newCustomers: number }
+): AttributionContext {
+  const totalAdSpend = metaConnected ? metaCurrent7.spend : 0;
+  const totalNewCustomers = stripeCurrent7.newCustomers;
+  const blendedCAC = totalAdSpend > 0 && totalNewCustomers > 0
+    ? totalAdSpend / totalNewCustomers
+    : null;
+
+  return { blendedCAC, totalAdSpend, totalNewCustomers };
 }
 
 export async function buildContext(userId: string): Promise<DigestContext> {
@@ -201,5 +344,8 @@ export async function buildContext(userId: string): Promise<DigestContext> {
       prev7: metaPrev7,
       spendTrend: calcTrend(metaCurrent7.spend, metaPrev7.spend),
     },
+    emailPlatforms: await buildEmailContexts(userId, db, current7Start, current7End, prev7Start, prev7End, hasIntegration, getSnapshots),
+    ecommercePlatforms: await buildEcommerceContexts(userId, db, current7Start, current7End, prev7Start, prev7End, hasIntegration, getSnapshots),
+    attribution: buildAttribution(metaConnected, metaCurrent7, stripeCurrent7),
   };
 }

@@ -1265,6 +1265,9 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
       {/* ── Full Funnel ──────────────────────────────────────── */}
       <FunnelSection snapshots={filtered} connectedPlatforms={connectedPlatforms} currencies={currencies} />
 
+      {/* ── Revenue Attribution / CAC per Channel ───────────────── */}
+      <RevenueAttributionSection snapshots={filtered} connectedPlatforms={connectedPlatforms} currencies={currencies} />
+
       {/* ── AI Insights ─────────────────────────────────────────── */}
       {insights.length > 0 && (
         <div>
@@ -1282,6 +1285,242 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
 
       {/* ── Health Score ─────────────────────────────────────────── */}
       <HealthScore snapshots={filtered} connectedPlatforms={connectedPlatforms} />
+    </div>
+  );
+}
+
+// ── Revenue Attribution / CAC per Channel ────────────────────────────────
+
+const ADS_PLATFORMS: { key: string; label: string; color: string }[] = [
+  { key: "meta",         label: "Meta Ads",      color: "#1877f2" },
+  { key: "google-ads",   label: "Google Ads",    color: "#34a853" },
+  { key: "tiktok-ads",   label: "TikTok Ads",    color: "#fe2c55" },
+  { key: "twitter-ads",  label: "X Ads",         color: "#1d9bf0" },
+  { key: "linkedin-ads", label: "LinkedIn Ads",  color: "#0077b5" },
+  { key: "snapchat-ads", label: "Snapchat Ads",  color: "#fffc00" },
+  { key: "pinterest-ads",label: "Pinterest Ads", color: "#e60023" },
+];
+
+const REVENUE_PLATFORMS_ATTR = ["stripe", "lemon-squeezy", "paddle", "shopify", "woocommerce", "gumroad"];
+
+function RevenueAttributionSection({
+  snapshots,
+  connectedPlatforms,
+  currencies = {},
+}: {
+  snapshots: Snapshot[];
+  connectedPlatforms: string[];
+  currencies?: Record<string, string>;
+}) {
+  const connectedAds = ADS_PLATFORMS.filter((p) => connectedPlatforms.includes(p.key));
+  const hasRevenue = REVENUE_PLATFORMS_ATTR.some((p) => connectedPlatforms.includes(p));
+
+  if (connectedAds.length === 0 || !hasRevenue) return null;
+
+  // Total new customers across all revenue platforms
+  const totalNewCustomers = snapshots
+    .filter((s) => REVENUE_PLATFORMS_ATTR.includes(s.provider))
+    .reduce((a, s) => a + (((s.data as Record<string, number>).newCustomers) ?? 0), 0);
+
+  // Total revenue
+  const totalRevenue = snapshots
+    .filter((s) => REVENUE_PLATFORMS_ATTR.includes(s.provider))
+    .reduce((a, s) => a + (((s.data as Record<string, number>).revenue) ?? 0), 0);
+  const totalRevenueUSD = totalRevenue / 100;
+
+  // Per-channel metrics
+  type ChannelRow = {
+    key: string;
+    label: string;
+    color: string;
+    spend: number;
+    clicks: number;
+    impressions: number;
+    currency: string;
+    cac: number | null;
+    roas: number | null;
+    cpc: number | null;
+    ctr: number | null;
+    sharePct: number;
+  };
+
+  // Aggregate total spend across all ad platforms for share calculation
+  let totalSpendAll = 0;
+
+  const channels: ChannelRow[] = connectedAds.map((adPlatform) => {
+    const adSnaps = snapshots.filter((s) => s.provider === adPlatform.key);
+    const spend = adSnaps.reduce((a, s) => a + (((s.data as Record<string, number>).spend) ?? 0), 0);
+    const clicks = adSnaps.reduce((a, s) => a + (((s.data as Record<string, number>).clicks) ?? 0), 0);
+    const impressions = adSnaps.reduce((a, s) => a + (((s.data as Record<string, number>).impressions) ?? 0), 0);
+    totalSpendAll += spend;
+
+    const currency = currencies[adPlatform.key] ?? "USD";
+    // Same-currency check for this channel vs revenue
+    const primaryRevCurrency = (REVENUE_PLATFORMS_ATTR.find(p => connectedPlatforms.includes(p)) ? currencies[REVENUE_PLATFORMS_ATTR.find(p => connectedPlatforms.includes(p))!] : null) ?? "USD";
+    const sameCurrency = currency === primaryRevCurrency;
+
+    const cac = sameCurrency && totalNewCustomers > 0 && spend > 0 ? spend / totalNewCustomers : null;
+    const roas = sameCurrency && spend > 0 && totalRevenueUSD > 0 ? (totalRevenueUSD * (spend / totalSpendAll + 1) / spend) : null; // approx proportional attribution
+    const cpc = clicks > 0 && spend > 0 ? spend / clicks : null;
+    const ctr = impressions > 0 && clicks > 0 ? (clicks / impressions) * 100 : null;
+
+    return { ...adPlatform, spend, clicks, impressions, currency, cac, roas, cpc, ctr, sharePct: 0 };
+  });
+
+  // Compute spend share after totalSpendAll is known
+  for (const ch of channels) {
+    ch.sharePct = totalSpendAll > 0 ? (ch.spend / totalSpendAll) * 100 : 0;
+    // recompute roas with accurate attribution
+    const primaryRevCurrency = (REVENUE_PLATFORMS_ATTR.find(p => connectedPlatforms.includes(p)) ? currencies[REVENUE_PLATFORMS_ATTR.find(p => connectedPlatforms.includes(p))!] : null) ?? "USD";
+    const sameCurrency = ch.currency === primaryRevCurrency;
+    if (sameCurrency && ch.spend > 0 && totalSpendAll > 0) {
+      const attributedRevenue = totalRevenueUSD * (ch.spend / totalSpendAll);
+      ch.roas = attributedRevenue / ch.spend;
+    }
+  }
+
+  const activeChannels = channels.filter((c) => c.spend > 0 || c.clicks > 0);
+  if (activeChannels.length === 0) return null;
+
+  const maxSpend = Math.max(...activeChannels.map((c) => c.spend), 1);
+  const lowestCAC = activeChannels.filter((c) => c.cac !== null && c.cac > 0).sort((a, b) => (a.cac ?? Infinity) - (b.cac ?? Infinity))[0];
+  const highestROAS = activeChannels.filter((c) => c.roas !== null && c.roas > 0).sort((a, b) => (b.roas ?? 0) - (a.roas ?? 0))[0];
+
+  function fmtSpend(n: number, cur: string) {
+    return new Intl.NumberFormat("en-US", { style: "currency", currency: cur, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
+  }
+
+  return (
+    <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-5 space-y-5">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#a78bfa]/10 text-[#a78bfa]">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"/><path d="m16 8-4 4-4-4m0 8 4-4 4 4"/>
+          </svg>
+        </div>
+        <div>
+          <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Revenue Attribution</h3>
+          <p className="font-mono text-[10px] text-[#8585aa]">CAC &amp; ROAS per ad channel · proportional attribution</p>
+        </div>
+        {(lowestCAC || highestROAS) && (
+          <div className="ml-auto flex items-center gap-3">
+            {lowestCAC && (
+              <div className="text-right">
+                <p className="font-mono text-[8px] uppercase tracking-widest text-[#8585aa]">Best CAC</p>
+                <p className="font-mono text-[11px] font-bold text-[#00d4aa]">{lowestCAC.label}</p>
+              </div>
+            )}
+            {highestROAS && (
+              <div className="text-right">
+                <p className="font-mono text-[8px] uppercase tracking-widest text-[#8585aa]">Best ROAS</p>
+                <p className="font-mono text-[11px] font-bold text-[#a78bfa]">{highestROAS.label}</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Channel bars */}
+      <div className="space-y-3">
+        {activeChannels.map((ch) => {
+          const barPct = (ch.spend / maxSpend) * 100;
+          return (
+            <div key={ch.key} className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="h-2 w-2 rounded-full" style={{ backgroundColor: ch.color }} />
+                  <span className="font-mono text-[11px] font-semibold text-[#f8f8fc]">{ch.label}</span>
+                  {ch.sharePct > 0 && (
+                    <span className="font-mono text-[9px] text-[#58588a]">{ch.sharePct.toFixed(0)}% of spend</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-4">
+                  {ch.cac !== null && (
+                    <div className="text-right">
+                      <p className="font-mono text-[8px] text-[#8585aa]">CAC</p>
+                      <p className="font-mono text-[11px] font-bold text-[#f8f8fc]">{fmtSpend(ch.cac, ch.currency)}</p>
+                    </div>
+                  )}
+                  {ch.roas !== null && (
+                    <div className="text-right">
+                      <p className="font-mono text-[8px] text-[#8585aa]">ROAS</p>
+                      <p className={`font-mono text-[11px] font-bold ${ch.roas >= 3 ? "text-[#00d4aa]" : ch.roas >= 1 ? "text-[#f59e0b]" : "text-red-400"}`}>
+                        {ch.roas.toFixed(2)}×
+                      </p>
+                    </div>
+                  )}
+                  {ch.cpc !== null && (
+                    <div className="text-right">
+                      <p className="font-mono text-[8px] text-[#8585aa]">CPC</p>
+                      <p className="font-mono text-[11px] font-bold text-[#f8f8fc]">{fmtSpend(ch.cpc, ch.currency)}</p>
+                    </div>
+                  )}
+                  <div className="text-right w-20">
+                    <p className="font-mono text-[8px] text-[#8585aa]">Spend</p>
+                    <p className="font-mono text-[11px] font-bold text-[#f8f8fc]">{fmtSpend(ch.spend, ch.currency)}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="h-2 w-full rounded-full bg-[#363650]/60 overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-700"
+                  style={{ width: `${Math.max(barPct, 1)}%`, backgroundColor: ch.color + "80" }}
+                />
+              </div>
+              <div className="flex items-center gap-4 pl-4">
+                {ch.impressions > 0 && (
+                  <span className="font-mono text-[9px] text-[#58588a]">
+                    {ch.impressions.toLocaleString("en-US")} impressions
+                  </span>
+                )}
+                {ch.clicks > 0 && (
+                  <span className="font-mono text-[9px] text-[#58588a]">
+                    {ch.clicks.toLocaleString("en-US")} clicks
+                    {ch.ctr !== null && ` · ${ch.ctr.toFixed(2)}% CTR`}
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Summary row */}
+      <div className="flex flex-wrap gap-4 rounded-xl border border-[#363650] bg-[#222235] px-4 py-3">
+        <div>
+          <p className="font-mono text-[8px] uppercase tracking-widest text-[#8585aa]">Total Ad Spend</p>
+          <p className="font-mono text-sm font-bold text-[#f8f8fc]">
+            {fmtSpend(totalSpendAll, (connectedAds[0] ? currencies[connectedAds[0].key] : null) ?? "USD")}
+          </p>
+        </div>
+        {totalNewCustomers > 0 && (
+          <div>
+            <p className="font-mono text-[8px] uppercase tracking-widest text-[#8585aa]">New Customers</p>
+            <p className="font-mono text-sm font-bold text-[#f8f8fc]">{totalNewCustomers.toLocaleString("en-US")}</p>
+          </div>
+        )}
+        {totalNewCustomers > 0 && totalSpendAll > 0 && (
+          <div>
+            <p className="font-mono text-[8px] uppercase tracking-widest text-[#8585aa]">Blended CAC</p>
+            <p className="font-mono text-sm font-bold text-[#f8f8fc]">
+              {fmtSpend(totalSpendAll / totalNewCustomers, (connectedAds[0] ? currencies[connectedAds[0].key] : null) ?? "USD")}
+            </p>
+          </div>
+        )}
+        {totalRevenueUSD > 0 && totalSpendAll > 0 && (
+          <div>
+            <p className="font-mono text-[8px] uppercase tracking-widest text-[#8585aa]">Blended ROAS</p>
+            <p className={`font-mono text-sm font-bold ${totalRevenueUSD / totalSpendAll >= 3 ? "text-[#00d4aa]" : totalRevenueUSD / totalSpendAll >= 1 ? "text-[#f59e0b]" : "text-red-400"}`}>
+              {(totalRevenueUSD / totalSpendAll).toFixed(2)}×
+            </p>
+          </div>
+        )}
+      </div>
+
+      <p className="font-mono text-[9px] text-[#58588a]">
+        CAC = total ad spend ÷ new customers (all revenue platforms) · ROAS = proportional revenue attribution by spend share · period matches selected time range
+      </p>
     </div>
   );
 }
