@@ -287,7 +287,7 @@ IMPORTANT: Respond ONLY with valid JSON, no markdown, no explanation:
   "tasks": [
     {
       "title": "<short action title max 8 words>",
-      "description": "<quote the specific existing text/element or describe what you saw in the screenshot, explain the exact problem, suggest the concrete fix — 2-3 sentences>",
+      "description": "<STRUCTURED, DETAILED explanation — must include ALL of the following sections in flowing prose (not bullet points): (1) WHAT IS THE PROBLEM: describe the exact current state, quoting the actual text, element name, or visual observation from the screenshot; (2) WHY IT MATTERS: explain the specific negative business impact — how it hurts conversions, rankings, load time, or trust with concrete reasoning; (3) HOW TO FIX IT: give a precise, step-by-step implementation guide — name the exact HTML tag, attribute, tool, or setting to change, and give a specific example of the improved version; (4) EXPECTED OUTCOME: state what measurable improvement to expect (e.g., 'this typically improves Core Web Vitals LCP by 0.5–1s' or 'expect 10–20% higher click-through rate on this CTA'). Write 4–6 sentences minimum. Be direct and technical.">",
       "category": "<ux|performance|seo|copy|conversion|accessibility>",
       "impact_score": <integer 1-${maxImpact}>
     }
@@ -377,7 +377,7 @@ export async function POST() {
     // 5. Call Claude with vision
     const message = await anthropic.messages.create({
       model: "claude-opus-4-5",
-      max_tokens: 2048,
+      max_tokens: 4096,
       messages: [{ role: "user", content: userContent }],
     });
 
@@ -401,12 +401,13 @@ export async function POST() {
     // Clamp score
     const newScore = Math.min(100, Math.max(0, Math.round(parsed.score)));
 
-    // 7. Delete old pending tasks (keep completed ones for history)
+    // 7. Delete ALL previous tasks — each analysis is a complete fresh scan.
+    // Keeping completed tasks would let falsely-marked-done tasks persist
+    // across analyses, misleading the score and task list.
     await db
       .from("website_tasks")
       .delete()
-      .eq("user_id", user.id)
-      .eq("completed", false);
+      .eq("user_id", user.id);
 
     // 8. Insert new tasks
     const taskRows = parsed.tasks.map((t) => ({

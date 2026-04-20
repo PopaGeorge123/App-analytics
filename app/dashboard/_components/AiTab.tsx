@@ -335,7 +335,7 @@ function DemoAiView() {
         <div>
           <h1 className="font-mono text-2xl font-bold text-[#f8f8fc]">AI Advisor</h1>
           <p className="font-mono text-sm text-[#bcbcd8] mt-0.5">
-            Analyzes your Stripe, GA4, Meta &amp; website data in real time
+            Analyzes your Stripe, GA4, Meta &amp; more in real time
           </p>
         </div>
         <div className="hidden sm:flex items-center gap-1.5 rounded-full border border-[#00d4aa]/20 bg-[#00d4aa]/5 px-3 py-1.5">
@@ -766,7 +766,7 @@ export default function AiTab({ isPremium, isDemo = false }: AiTabProps) {
       <div className="w-full">
         <div className="mb-8">
           <h1 className="font-mono text-2xl font-bold text-[#f8f8fc]">AI Advisor</h1>
-          <p className="mt-1 text-sm text-[#bcbcd8]">Analyzes your Stripe, GA4, Meta &amp; website data in real time.</p>
+          <p className="mt-1 text-sm text-[#bcbcd8]">Analyzes your Stripe, GA4, Meta &amp; more in real time.</p>
         </div>
         <div className="flex flex-col items-center justify-center rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 py-16 px-6 text-center">
           <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-[#6366f1]/20 bg-[#6366f1]/10 text-[#6366f1]">
@@ -816,7 +816,7 @@ export default function AiTab({ isPremium, isDemo = false }: AiTabProps) {
         <div>
           <h1 className="font-mono text-2xl font-bold text-[#f8f8fc]">AI Advisor</h1>
           <p className="font-mono text-sm text-[#bcbcd8] mt-0.5">
-            Analyzes your Stripe, GA4, Meta &amp; website data in real time
+            Analyzes your Stripe, GA4, Meta &amp; more in real time
           </p>
         </div>
         {/* Live data context indicator */}

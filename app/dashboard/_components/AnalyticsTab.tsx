@@ -268,21 +268,27 @@ function StatCard({ label, value, sub, values, color, sparkFormatter }: {
     const tableRows = grouped.map((r) => ({
       period: fmtPeriod(r.period, granularity),
       cells: [
-        { label: "Subscribers", value: fmt(r.data.subscribers) },
-        { label: "Total Views", value: fmt(r.data.totalViews) },
+        { label: "Subscribers", value: fmt(r.data.subscribers), raw: r.data.subscribers },
+        { label: "Total Views", value: fmt(r.data.totalViews),  raw: r.data.totalViews },
       ],
     }));
+    const youtubeInsights = buildInsights({
+      primary: { label: "Subscribers", values: subs },
+      secondary: [{ label: "Total Views", values: views }],
+    });
     return (
       <div className="space-y-5">
         <div className="flex items-center gap-3 rounded-xl border border-[#FF0000]/15 bg-[#FF0000]/5 px-4 py-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FF0000]/15 font-mono text-[10px] font-bold text-[#FF0000]">YT</div>
           <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">YouTube</h3>
         </div>
+        <PeriodCompare values={subs} label="Subscribers" />
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <StatCard label="Subscribers" value={fmt(lastSubs)} values={subs} color="#FF0000" />
           <StatCard label="Total Views" value={fmt(views.reduce((a,b)=>a+b,0))} values={views} color="#f87171" />
         </div>
         <DataTable rows={tableRows} />
+        <PlatformInsights insights={youtubeInsights} />
       </div>
     );
   }
@@ -295,21 +301,27 @@ function StatCard({ label, value, sub, values, color, sparkFormatter }: {
     const tableRows = grouped.map((r) => ({
       period: fmtPeriod(r.period, granularity),
       cells: [
-        { label: "Followers", value: fmt(r.data.followers) },
-        { label: "Tweets", value: fmt(r.data.tweetCount) },
+        { label: "Followers", value: fmt(r.data.followers),  raw: r.data.followers },
+        { label: "Tweets",    value: fmt(r.data.tweetCount), raw: r.data.tweetCount },
       ],
     }));
+    const twitterInsights = buildInsights({
+      primary: { label: "Followers", values: followers },
+      secondary: [{ label: "Tweets", values: tweets }],
+    });
     return (
       <div className="space-y-5">
         <div className="flex items-center gap-3 rounded-xl border border-[#1d9bf0]/15 bg-[#1d9bf0]/5 px-4 py-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1d9bf0]/15 font-mono text-[10px] font-bold text-[#1d9bf0]">XA</div>
           <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">X (Twitter)</h3>
         </div>
+        <PeriodCompare values={followers} label="Followers" />
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <StatCard label="Followers" value={fmt(lastFollowers)} values={followers} color="#1d9bf0" />
           <StatCard label="Tweets" value={fmt(tweets.reduce((a,b)=>a+b,0))} values={tweets} color="#60a5fa" />
         </div>
         <DataTable rows={tableRows} />
+        <PlatformInsights insights={twitterInsights} />
       </div>
     );
   }
@@ -559,34 +571,442 @@ function AnalyticsControls({
   );
 }
 
-// ── Data table ────────────────────────────────────────────────────────────
+// ── Smart Data Table — with Δ deltas, best/worst highlights ──────────────
 
-function DataTable({ rows }: { rows: { period: string; cells: { label: string; value: string }[] }[] }) {
+type SmartRow = { period: string; cells: { label: string; value: string; raw?: number }[] };
+
+function SmartTable({ rows, title = "Period breakdown" }: { rows: SmartRow[]; title?: string }) {
+  const [open, setOpen] = useState(false);
   if (!rows.length) return null;
+
+  // Compute deltas: for each column, compare each row to the previous row
+  // (rows are sorted oldest→newest; we display newest→oldest)
+  const sorted = [...rows]; // oldest first (same order as input)
+
+  function deltaClass(delta: number | null) {
+    if (delta === null) return "text-[#58588a]";
+    return delta > 0 ? "text-[#00d4aa]" : delta < 0 ? "text-[#f87171]" : "text-[#58588a]";
+  }
+  function deltaStr(delta: number | null) {
+    if (delta === null) return "";
+    if (delta === 0) return "—";
+    const sign = delta > 0 ? "▲" : "▼";
+    return `${sign} ${Math.abs(delta).toFixed(1)}%`;
+  }
+
+  // Find best/worst row by primary metric (first cell with a raw value)
+  let bestIdx = -1, worstIdx = -1;
+  let bestVal = -Infinity, worstVal = Infinity;
+  sorted.forEach((row, i) => {
+    const v = row.cells[0]?.raw;
+    if (v === undefined) return;
+    if (v > bestVal) { bestVal = v; bestIdx = i; }
+    if (v < worstVal) { worstVal = v; worstIdx = i; }
+  });
+
+  const displayed = [...sorted].reverse(); // newest first
+
   return (
-    <div className="overflow-x-auto rounded-xl border border-[#363650]">
-      <table className="w-full text-left text-xs">
-        <thead>
-          <tr className="border-b border-[#363650]">
-            <th className="px-4 py-3 font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Period</th>
-            {rows[0].cells.map((c) => (
-              <th key={c.label} className="px-4 py-3 font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">{c.label}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {[...rows].reverse().map((row, i) => (
-            <tr key={row.period} className={`border-b border-[#363650]/50 ${i % 2 === 0 ? "bg-[#1c1c2a]/40" : ""}`}>
-              <td className="px-4 py-2.5 font-mono text-[11px] text-[#bcbcd8]">{row.period}</td>
-              {row.cells.map((c) => (
-                <td key={c.label} className="px-4 py-2.5 font-mono text-[11px] text-[#f8f8fc]">{c.value}</td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="rounded-xl border border-[#1e1e2e] overflow-hidden">
+      {/* Toggle header */}
+      <button
+        onClick={() => setOpen((s) => !s)}
+        className="w-full flex items-center justify-between px-4 py-3 bg-[#0f0f14] hover:bg-[#111118] transition-colors"
+      >
+        <span className="font-mono text-[9px] uppercase tracking-widest text-[#5a5a7a]">{title}</span>
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-[9px] text-[#3a3a5a]">{rows.length} periods</span>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
+            className={`text-[#3a3a5a] transition-transform duration-200 ${open ? "rotate-180" : ""}`}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </button>
+
+      {open && (
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead>
+              <tr className="border-b border-[#1e1e2e] bg-[#0c0c12]">
+                <th className="px-4 py-2.5 font-mono text-[9px] uppercase tracking-widest text-[#3a3a5a]">Period</th>
+                {rows[0].cells.map((c) => (
+                  <th key={c.label} colSpan={2} className="px-3 py-2.5 font-mono text-[9px] uppercase tracking-widest text-[#3a3a5a]">{c.label}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {displayed.map((row, di) => {
+                // Find this row's index in sorted (oldest-first) for delta calc
+                const si = sorted.length - 1 - di;
+                const prevRow = sorted[si - 1];
+                // Best/worst highlight on first cell's raw
+                const isBest  = si === bestIdx && bestVal > 0;
+                const isWorst = si === worstIdx && worstIdx !== bestIdx;
+
+                return (
+                  <tr
+                    key={row.period}
+                    className={`border-b border-[#1e1e2e]/60 ${
+                      isBest  ? "bg-[#00d4aa]/4" :
+                      isWorst ? "bg-[#f87171]/3" :
+                      di % 2 === 0 ? "bg-[#0f0f14]/60" : ""
+                    }`}
+                  >
+                    <td className="px-4 py-2 font-mono text-[11px] text-[#6a6a8a] whitespace-nowrap">
+                      <span className="flex items-center gap-1.5">
+                        {isBest  && <span className="w-1.5 h-1.5 rounded-full bg-[#00d4aa] shrink-0" />}
+                        {isWorst && <span className="w-1.5 h-1.5 rounded-full bg-[#f87171] shrink-0" />}
+                        {!isBest && !isWorst && <span className="w-1.5 h-1.5 shrink-0" />}
+                        {row.period}
+                      </span>
+                    </td>
+                    {row.cells.map((c, ci) => {
+                      const prevVal = prevRow?.cells[ci]?.raw;
+                      const curVal  = c.raw;
+                      let delta: number | null = null;
+                      if (curVal !== undefined && prevVal !== undefined && prevVal !== 0) {
+                        delta = ((curVal - prevVal) / Math.abs(prevVal)) * 100;
+                      }
+                      return (
+                        <td key={c.label} colSpan={2} className="px-3 py-2">
+                          <span className="font-mono text-[11px] text-[#c8c8de]">{c.value}</span>
+                          {delta !== null && (
+                            <span className={`ml-1.5 font-mono text-[9px] ${deltaClass(delta)}`}>
+                              {deltaStr(delta)}
+                            </span>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          {/* Legend */}
+          <div className="flex items-center gap-4 px-4 py-2 bg-[#0c0c12] border-t border-[#1e1e2e]">
+            <span className="flex items-center gap-1.5 font-mono text-[9px] text-[#3a3a5a]">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#00d4aa]" /> Best period
+            </span>
+            <span className="flex items-center gap-1.5 font-mono text-[9px] text-[#3a3a5a]">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#f87171]" /> Lowest period
+            </span>
+            <span className="font-mono text-[9px] text-[#3a3a5a]">▲▼ = change vs prior period</span>
+          </div>
+        </div>
+      )}
     </div>
   );
+}
+
+// Legacy alias so existing <DataTable rows={…} /> calls still compile
+function DataTable({ rows }: { rows: SmartRow[] }) {
+  return <SmartTable rows={rows} />;
+}
+
+// ── Platform Insights ─────────────────────────────────────────────────────
+
+type InsightSeverity = "positive" | "negative" | "warning" | "neutral";
+
+interface PlatformInsight {
+  severity: InsightSeverity;
+  headline: string;
+  detail: string;
+}
+
+function InsightBadge({ severity }: { severity: InsightSeverity }) {
+  const map: Record<InsightSeverity, { color: string; icon: React.ReactNode }> = {
+    positive: {
+      color: "#00d4aa",
+      icon: <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
+    },
+    negative: {
+      color: "#f87171",
+      icon: <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>,
+    },
+    warning: {
+      color: "#f59e0b",
+      icon: <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+    },
+    neutral: {
+      color: "#8585aa",
+      icon: <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>,
+    },
+  };
+  const { color, icon } = map[severity];
+  return (
+    <div className="flex items-center justify-center w-6 h-6 rounded-md shrink-0" style={{ backgroundColor: `${color}15`, color }}>
+      {icon}
+    </div>
+  );
+}
+
+function PlatformInsights({ insights }: { insights: PlatformInsight[] }) {
+  if (!insights.length) return null;
+  return (
+    <div className="rounded-xl border border-[#1e1e2e] bg-[#0c0c12] overflow-hidden">
+      <div className="px-4 py-2.5 border-b border-[#1e1e2e] flex items-center gap-2">
+        <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="#5a5a7a" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 017 7c0 2.38-1.19 4.47-3 5.74V17a1 1 0 01-1 1H9a1 1 0 01-1-1v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 017-7z"/>
+        </svg>
+        <span className="font-mono text-[9px] uppercase tracking-widest text-[#3a3a5a]">Insights</span>
+      </div>
+      <div className="divide-y divide-[#1a1a28]">
+        {insights.map((ins, i) => (
+          <div key={i} className="flex items-start gap-3 px-4 py-3">
+            <InsightBadge severity={ins.severity} />
+            <div className="min-w-0">
+              <p className="text-[12px] font-semibold text-[#c8c8de] leading-snug">{ins.headline}</p>
+              <p className="text-[11px] text-[#5a5a7a] mt-0.5 leading-relaxed">{ins.detail}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Revenue run-rate strip — shown at top of all revenue sections */
+function RunRateStrip({
+  snapshots,
+  field,
+  currency,
+  label = "Revenue",
+}: {
+  snapshots: Snapshot[];
+  field: string;
+  currency?: string;
+  label?: string;
+}) {
+  if (snapshots.length === 0) return null;
+  const sorted = [...snapshots].sort((a, b) => a.date.localeCompare(b.date));
+  const total = sorted.reduce((sum, s) => sum + (((s.data as Record<string, number>)[field]) ?? 0), 0);
+  if (total === 0) return null;
+
+  const firstDate = new Date(sorted[0].date + "T12:00:00");
+  const lastDate  = new Date(sorted[sorted.length - 1].date + "T12:00:00");
+  const periodDays = Math.max(1, (lastDate.getTime() - firstDate.getTime()) / 86400000 + 1);
+  const dailyRate  = total / periodDays;
+  const monthly    = dailyRate * 30.44;
+  const annual     = dailyRate * 365.25;
+
+  // Trend: first half vs second half of sorted snapshots
+  const half      = Math.max(1, Math.floor(sorted.length / 2));
+  const firstHalf = sorted.slice(0, half).reduce((sum, s) => sum + (((s.data as Record<string, number>)[field]) ?? 0), 0);
+  const lastHalf  = sorted.slice(-half).reduce((sum, s) => sum + (((s.data as Record<string, number>)[field]) ?? 0), 0);
+  const trendPct  = firstHalf > 0 ? ((lastHalf - firstHalf) / firstHalf) * 100 : 0;
+  const up        = lastHalf >= firstHalf;
+
+  return (
+    <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-[#00d4aa]/15 bg-[#00d4aa]/5 px-4 py-3">
+      <div className="flex items-center gap-2 shrink-0">
+        <span className="h-1.5 w-1.5 rounded-full bg-[#00d4aa] animate-pulse" />
+        <span className="font-mono text-[9px] uppercase tracking-widest text-[#00d4aa]">Run Rate</span>
+      </div>
+      <div className="flex items-baseline gap-1.5">
+        <span className="font-mono text-[10px] text-[#8585aa]">Monthly</span>
+        <span className="font-mono text-sm font-bold text-[#f8f8fc]">{fmt(monthly, "currency", currency)}</span>
+      </div>
+      <div className="flex items-baseline gap-1.5">
+        <span className="font-mono text-[10px] text-[#8585aa]">Annual</span>
+        <span className="font-mono text-sm font-bold text-[#00d4aa]">{fmt(annual, "currency", currency)}</span>
+      </div>
+      <div className="flex items-baseline gap-1.5">
+        <span className="font-mono text-[10px] text-[#8585aa]">Avg/day</span>
+        <span className="font-mono text-xs font-semibold text-[#bcbcd8]">{fmt(dailyRate, "currency", currency)}</span>
+      </div>
+      <div className="ml-auto flex items-center gap-1.5 shrink-0">
+        <span className={`font-mono text-xs font-bold ${up ? "text-[#00d4aa]" : "text-red-400"}`}>
+          {up ? "▲" : "▼"} {Math.abs(trendPct).toFixed(1)}%
+        </span>
+        <span className="font-mono text-[9px] text-[#8585aa]">period trend</span>
+      </div>
+      <p className="w-full font-mono text-[9px] text-[#8585aa]">
+        Based on {fmt(total, "currency", currency)} {label.toLowerCase()} over {Math.round(periodDays)} days · extrapolated at current daily pace
+      </p>
+    </div>
+  );
+}
+
+/** Period-over-period header banner for any section */
+function PeriodCompare({
+  values,
+  label,
+  isCurrency,
+  currency,
+  lowerIsBetter = false,
+  formatter,
+}: {
+  values: number[];
+  label: string;
+  isCurrency?: boolean;
+  currency?: string;
+  lowerIsBetter?: boolean;
+  formatter?: (v: number) => string;
+}) {
+  if (values.length < 2) return null;
+  const half      = Math.floor(values.length / 2);
+  const prev      = values.slice(0, half).reduce((a, b) => a + b, 0);
+  const curr      = values.slice(-half).reduce((a, b) => a + b, 0);
+  if (prev === 0) return null;
+  const delta     = curr - prev;
+  const deltaPct  = (delta / prev) * 100;
+  const positive  = lowerIsBetter ? delta <= 0 : delta >= 0;
+  const fmtVal    = formatter ?? ((v: number) => isCurrency ? fmt(v, "currency", currency) : fmt(v));
+
+  return (
+    <div className={`flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border px-4 py-3 ${positive ? "border-[#00d4aa]/15 bg-[#00d4aa]/5" : "border-red-400/15 bg-red-400/5"}`}>
+      <div className="flex items-center gap-2 shrink-0">
+        <span className={`font-mono text-[9px] uppercase tracking-widest ${positive ? "text-[#00d4aa]" : "text-red-400"}`}>
+          Period comparison
+        </span>
+      </div>
+      <div className="flex items-baseline gap-2">
+        <span className={`font-mono text-xl font-bold ${positive ? "text-[#00d4aa]" : "text-red-400"}`}>
+          {delta >= 0 ? "+" : ""}{deltaPct.toFixed(1)}%
+        </span>
+        <span className="font-mono text-xs text-[#8585aa]">{label}</span>
+      </div>
+      <div className="flex items-center gap-4 ml-auto shrink-0">
+        <div className="text-right">
+          <p className="font-mono text-[9px] text-[#58588a] uppercase tracking-widest">First half</p>
+          <p className="font-mono text-xs font-semibold text-[#bcbcd8]">{fmtVal(prev)}</p>
+        </div>
+        <div className="font-mono text-[#363650]">→</div>
+        <div className="text-right">
+          <p className="font-mono text-[9px] text-[#58588a] uppercase tracking-widest">Second half</p>
+          <p className="font-mono text-xs font-semibold text-[#f8f8fc]">{fmtVal(curr)}</p>
+        </div>
+      </div>
+      <p className="w-full font-mono text-[9px] text-[#8585aa]">
+        Comparing first {half} vs last {half} {values.length <= 31 ? "day" : "period"}s in the selected range
+        {Math.abs(deltaPct) > 20 ? (positive ? " · Significant improvement" : " · Significant decline — review contributing factors") : ""}
+      </p>
+    </div>
+  );
+}
+
+/** Build insights from any numeric series */
+function buildInsights(params: {
+  primary: { label: string; values: number[]; isCurrency?: boolean; currency?: string; lowerIsBetter?: boolean };
+  secondary?: { label: string; values: number[] }[];
+  rateMetrics?: { label: string; numerator: number; denominator: number; suffix: string; goodThreshold?: number; badThreshold?: number; lowerIsBetter?: boolean }[];
+  customInsights?: PlatformInsight[];
+}): PlatformInsight[] {
+  const insights: PlatformInsight[] = [];
+  const { primary, secondary = [], rateMetrics = [], customInsights = [] } = params;
+
+  function fmtV(v: number, isCurrency = false, currency = "USD") {
+    if (isCurrency) return fmt(v, "currency", currency);
+    if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+    if (v >= 1_000) return `${(v / 1_000).toFixed(1)}k`;
+    return v.toLocaleString("en-US", { maximumFractionDigits: 0 });
+  }
+
+  const pv = primary.values;
+  const total = pv.reduce((a, b) => a + b, 0);
+  const n = pv.length;
+
+  // 1. Period-over-period trend
+  if (n >= 4) {
+    const half = Math.floor(n / 2);
+    const prevHalf = pv.slice(0, half).reduce((a, b) => a + b, 0);
+    const currHalf = pv.slice(half).reduce((a, b) => a + b, 0);
+    if (prevHalf > 0) {
+      const pct = ((currHalf - prevHalf) / prevHalf) * 100;
+      const up = pct > 0;
+      const good = primary.lowerIsBetter ? !up : up;
+      insights.push({
+        severity: Math.abs(pct) < 5 ? "neutral" : good ? "positive" : "negative",
+        headline: `${primary.label} ${up ? "up" : "down"} ${Math.abs(pct).toFixed(1)}% vs previous half`,
+        detail: `${fmtV(currHalf, primary.isCurrency, primary.currency)} this half vs ${fmtV(prevHalf, primary.isCurrency, primary.currency)} prior half.${Math.abs(pct) >= 20 ? " Notable swing — worth investigating the cause." : ""}`,
+      });
+    }
+  }
+
+  // 2. Best/worst period
+  if (n >= 3) {
+    const maxV = Math.max(...pv);
+    const minV = Math.min(...pv);
+    const maxIdx = pv.lastIndexOf(maxV);
+    const minIdx = pv.indexOf(minV);
+    const avg = total / n;
+    if (maxV > 0 && maxIdx === n - 1) {
+      insights.push({
+        severity: "positive",
+        headline: `Best ${primary.label.toLowerCase()} period on record`,
+        detail: `The most recent period hit ${fmtV(maxV, primary.isCurrency, primary.currency)} — ${((maxV / avg - 1) * 100).toFixed(0)}% above the period average of ${fmtV(avg, primary.isCurrency, primary.currency)}.`,
+      });
+    } else if (maxV > 0 && minIdx === n - 1 && n >= 4) {
+      insights.push({
+        severity: primary.lowerIsBetter ? "positive" : "negative",
+        headline: `${primary.label} at its lowest this period`,
+        detail: `Latest period: ${fmtV(minV, primary.isCurrency, primary.currency)} — ${((1 - minV / avg) * 100).toFixed(0)}% below average. Investigate for seasonal dips or issues.`,
+      });
+    } else if (maxV > 0) {
+      insights.push({
+        severity: "neutral",
+        headline: `Peak ${primary.label.toLowerCase()}: ${fmtV(maxV, primary.isCurrency, primary.currency)}`,
+        detail: `Reached in period ${maxIdx + 1} of ${n}. Average across all periods: ${fmtV(avg, primary.isCurrency, primary.currency)}.`,
+      });
+    }
+  }
+
+  // 3. Volatility check
+  if (n >= 5) {
+    const avg = total / n;
+    const stddev = Math.sqrt(pv.reduce((a, v) => a + Math.pow(v - avg, 2), 0) / n);
+    const cv = avg > 0 ? (stddev / avg) * 100 : 0;
+    if (cv > 40) {
+      insights.push({
+        severity: "warning",
+        headline: `High volatility in ${primary.label.toLowerCase()} (CV ${cv.toFixed(0)}%)`,
+        detail: `Values swing widely period-to-period. This may indicate seasonal demand, irregular ad spend, or inconsistent customer behaviour.`,
+      });
+    }
+  }
+
+  // 4. Secondary series trend
+  for (const sec of secondary) {
+    const sv = sec.values;
+    if (sv.length >= 4) {
+      const half = Math.floor(sv.length / 2);
+      const prev = sv.slice(0, half).reduce((a, b) => a + b, 0);
+      const curr = sv.slice(half).reduce((a, b) => a + b, 0);
+      if (prev > 0) {
+        const pct = ((curr - prev) / prev) * 100;
+        if (Math.abs(pct) >= 10) {
+          insights.push({
+            severity: Math.abs(pct) < 5 ? "neutral" : pct > 0 ? "positive" : "warning",
+            headline: `${sec.label} ${pct > 0 ? "grew" : "fell"} ${Math.abs(pct).toFixed(1)}% this half`,
+            detail: `${fmtV(curr)} this half vs ${fmtV(prev)} prior half.`,
+          });
+        }
+      }
+    }
+  }
+
+  // 5. Rate metrics
+  for (const rm of rateMetrics) {
+    if (rm.denominator === 0) continue;
+    const rate = (rm.numerator / rm.denominator) * 100;
+    let severity: InsightSeverity = "neutral";
+    if (rm.goodThreshold !== undefined) {
+      const isGood = rm.lowerIsBetter ? rate <= rm.goodThreshold : rate >= rm.goodThreshold;
+      severity = isGood ? "positive" : rm.badThreshold !== undefined
+        ? (rm.lowerIsBetter ? rate >= rm.badThreshold : rate <= rm.badThreshold) ? "negative" : "warning"
+        : "warning";
+    }
+    insights.push({
+      severity,
+      headline: `${rm.label}: ${rate.toFixed(2)}${rm.suffix}`,
+      detail: rm.goodThreshold !== undefined
+        ? `${rm.lowerIsBetter ? "Target" : "Target"}: ${rm.goodThreshold}${rm.suffix}. ${severity === "positive" ? "You're hitting this benchmark." : severity === "negative" ? "Below benchmark — action recommended." : "Close to benchmark."}`
+        : `Derived from ${fmtV(rm.numerator)} / ${fmtV(rm.denominator)}.`,
+    });
+  }
+
+  return [...insights, ...customInsights].slice(0, 5);
 }
 
 // ── Cross-platform Funnel Waterfall ──────────────────────────────────────
@@ -997,17 +1417,37 @@ function StripeSection({ snapshots, granularity, currency = "USD" }: { snapshots
   const tableRows = grouped.map((r) => ({
     period: fmtPeriod(r.period, granularity),
     cells: [
-      { label: "Revenue",       value: fmt(r.data.revenue, "currency", currency) },
-      { label: "Transactions",  value: fmt(r.data.txCount) },
-      { label: "New Customers", value: fmt(r.data.newCustomers) },
-      { label: "Refunds",       value: fmt(r.data.refunds, "currency", currency) },
+      { label: "Revenue",       value: fmt(r.data.revenue, "currency", currency),       raw: r.data.revenue },
+      { label: "Transactions",  value: fmt(r.data.txCount),                              raw: r.data.txCount },
+      { label: "New Customers", value: fmt(r.data.newCustomers),                         raw: r.data.newCustomers },
+      { label: "Refunds",       value: fmt(r.data.refunds, "currency", currency),       raw: r.data.refunds },
       ...(hasSubscriptions ? [
-        { label: "MRR",         value: fmt(r.data.mrr, "currency", currency) },
-        { label: "Active Subs", value: fmt(r.data.activeSubscriptions) },
-        { label: "Churned",     value: fmt(r.data.churnedToday) },
+        { label: "MRR",         value: fmt(r.data.mrr, "currency", currency),           raw: r.data.mrr },
+        { label: "Active Subs", value: fmt(r.data.activeSubscriptions),                 raw: r.data.activeSubscriptions },
+        { label: "Churned",     value: fmt(r.data.churnedToday),                        raw: r.data.churnedToday },
       ] : []),
     ],
   }));
+
+  // ── Stripe-specific insights ──
+  const stripeInsights = buildInsights({
+    primary: { label: "Revenue", values: revenue, isCurrency: true, currency },
+    secondary: [
+      { label: "New customers", values: newCustomers },
+      ...(hasSubscriptions ? [{ label: "MRR", values: mrrSeries }] : []),
+    ],
+    rateMetrics: [
+      ...(churnRate > 0 ? [{ label: "Monthly churn rate", numerator: totalChurned, denominator: currentActiveSubs, suffix: "%", goodThreshold: 2.5, badThreshold: 5, lowerIsBetter: true }] : []),
+      ...(totalTx > 0 ? [{ label: "Refund rate", numerator: totalRefunds, denominator: totalRevenue, suffix: "%", goodThreshold: 5, badThreshold: 10, lowerIsBetter: true }] : []),
+    ],
+    customInsights: [
+      ...(currentMRR > 0 ? [{
+        severity: "neutral" as const,
+        headline: `ARR run rate: ${fmt(currentMRR * 12, "currency", currency)}`,
+        detail: `Based on current MRR of ${fmt(currentMRR, "currency", currency)}. Maintaining this pace yields ${fmt(currentMRR * 12, "currency", currency)} annualised.`,
+      }] : []),
+    ],
+  });
 
   return (
     <div className="space-y-5">
@@ -1022,6 +1462,8 @@ function StripeSection({ snapshots, granularity, currency = "USD" }: { snapshots
       </div>
 
       {/* ── Revenue row ── */}
+      <RunRateStrip snapshots={snapshots} field="revenue" currency={currency} label="Revenue" />
+      <PeriodCompare values={revenue} label="Revenue" isCurrency currency={currency} />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Total Revenue"   value={fmt(totalRevenue, "currency", currency)} values={revenue}      color="#635bff" sparkFormatter={(v) => fmt(v, "currency", currency)} />
         <StatCard label="Transactions"    value={fmt(totalTx)}                  values={txCount}      color="#635bff" />
@@ -1073,6 +1515,7 @@ function StripeSection({ snapshots, granularity, currency = "USD" }: { snapshots
       )}
 
       <DataTable rows={tableRows} />
+      <PlatformInsights insights={stripeInsights} />
       {hasSubscriptions && <MRRBenchmarks currentMRR={currentMRR} mrrSeries={mrrSeries} churnRate={churnRate} arpu={currentARPU} currency={currency} />}
     </div>
   );
@@ -1336,12 +1779,21 @@ function GA4Section({ snapshots, granularity }: { snapshots: Snapshot[]; granula
   const tableRows = grouped.map((r) => ({
     period: fmtPeriod(r.period, granularity),
     cells: [
-      { label: "Sessions",    value: fmt(r.data.sessions) },
-      { label: "Users",       value: fmt(r.data.users) },
-      { label: "Conversions", value: fmt(r.data.conversions) },
-      { label: "Bounce Rate", value: fmt(r.data.bounceRate, "percent") },
+      { label: "Sessions",    value: fmt(r.data.sessions),                     raw: r.data.sessions },
+      { label: "Users",       value: fmt(r.data.users),                        raw: r.data.users },
+      { label: "Conversions", value: fmt(r.data.conversions),                  raw: r.data.conversions },
+      { label: "Bounce Rate", value: fmt(r.data.bounceRate, "percent"),        raw: r.data.bounceRate },
     ],
   }));
+
+  const ga4Insights = buildInsights({
+    primary: { label: "Sessions", values: sessions },
+    secondary: [{ label: "Conversions", values: conversions }],
+    rateMetrics: [
+      { label: "Conversion rate", numerator: totalConversions, denominator: totalSessions, suffix: "%", goodThreshold: 2, badThreshold: 0.5 },
+      { label: "Bounce rate", numerator: totalSessions * avgBounce / 100, denominator: totalSessions, suffix: "%", goodThreshold: 40, badThreshold: 70, lowerIsBetter: true },
+    ],
+  });
 
   return (
     <div className="space-y-5">
@@ -1351,6 +1803,7 @@ function GA4Section({ snapshots, granularity }: { snapshots: Snapshot[]; granula
         </div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Google Analytics 4</h3>
       </div>
+      <PeriodCompare values={sessions} label="Sessions" />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Sessions"        value={fmt(totalSessions)}    values={sessions}    color="#f59e0b" />
         <StatCard label="Users"           value={fmt(totalUsers)}       values={users}       color="#f59e0b" />
@@ -1358,6 +1811,7 @@ function GA4Section({ snapshots, granularity }: { snapshots: Snapshot[]; granula
         <StatCard label="Avg Bounce Rate" value={fmt(avgBounce, "percent")} values={bounceRates} color="#f87171" />
       </div>
       <DataTable rows={tableRows} />
+      <PlatformInsights insights={ga4Insights} />
     </div>
   );
 }
@@ -1397,13 +1851,27 @@ function MetaSection({ snapshots, granularity }: { snapshots: Snapshot[]; granul
     return {
       period: fmtPeriod(r.period, granularity),
       cells: [
-        { label: "Spend",       value: fmtSpend(r.data.spend) },
-        { label: "Impressions", value: fmt(r.data.impressions) },
-        { label: "Clicks",      value: fmt(r.data.clicks) },
-        { label: "CPC",         value: fmtSpend(rowCpc) },
-        { label: "Conversions", value: fmt(r.data.conversions) },
+        { label: "Spend",       value: fmtSpend(r.data.spend),       raw: r.data.spend },
+        { label: "Impressions", value: fmt(r.data.impressions),       raw: r.data.impressions },
+        { label: "Clicks",      value: fmt(r.data.clicks),            raw: r.data.clicks },
+        { label: "CPC",         value: fmtSpend(rowCpc),              raw: rowCpc },
+        { label: "Conversions", value: fmt(r.data.conversions),       raw: r.data.conversions },
       ],
     };
+  });
+
+  const metaInsights = buildInsights({
+    primary: { label: "Ad spend", values: spend },
+    secondary: [{ label: "Conversions", values: conversions }],
+    rateMetrics: [
+      { label: "Click-through rate (CTR)", numerator: totalClicks, denominator: totalImpressions, suffix: "%", goodThreshold: 2, badThreshold: 0.5 },
+      ...(totalConversions > 0 ? [{ label: "Conversion rate on clicks", numerator: totalConversions, denominator: totalClicks, suffix: "%", goodThreshold: 3 }] : []),
+    ],
+    customInsights: totalClicks > 0 && totalSpend > 0 ? [{
+      severity: cpc < 1 ? "positive" as const : cpc < 3 ? "neutral" as const : "warning" as const,
+      headline: `Average CPC: ${fmtSpend(cpc)}`,
+      detail: `${fmt(totalClicks)} clicks at ${fmtSpend(cpc)} each. ${cpc < 1 ? "Strong efficiency — below $1 CPC." : cpc < 3 ? "CPC in normal range." : "CPC is elevated — consider refining targeting or creative."}`,
+    }] : [],
   });
 
   return (
@@ -1419,6 +1887,8 @@ function MetaSection({ snapshots, granularity }: { snapshots: Snapshot[]; granul
           </span>
         )}
       </div>
+      <RunRateStrip snapshots={snapshots} field="spend" currency={currency} label="Ad Spend" />
+      <PeriodCompare values={spend} label="Ad Spend" isCurrency currency={currency} />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Ad Spend"    value={fmtSpend(totalSpend)}  values={spend}       color="#1877f2" />
         <StatCard label="Impressions" value={fmt(totalImpressions)}  values={impressions} color="#1877f2" />
@@ -1426,6 +1896,7 @@ function MetaSection({ snapshots, granularity }: { snapshots: Snapshot[]; granul
         <StatCard label="CPC"         value={fmtSpend(cpc)}          sub={`${fmt(totalConversions)} conversions`} values={spend.length ? [cpc] : []} color="#f59e0b" />
       </div>
       <DataTable rows={tableRows} />
+      <PlatformInsights insights={metaInsights} />
     </div>
   );
 }
@@ -1448,12 +1919,18 @@ function PayPalSection({ snapshots, granularity, currency = "USD" }: { snapshots
   const tableRows = grouped.map((r) => ({
     period: fmtPeriod(r.period, granularity),
     cells: [
-      { label: "Revenue",     value: fmt(r.data.revenue,    "currency", currency) },
-      { label: "Fees",        value: fmt(r.data.fees,       "currency", currency) },
-      { label: "Net Revenue", value: fmt(r.data.netRevenue, "currency", currency) },
-      { label: "Tx Count",    value: fmt(r.data.txCount) },
+      { label: "Revenue",     value: fmt(r.data.revenue,    "currency", currency), raw: r.data.revenue },
+      { label: "Fees",        value: fmt(r.data.fees,       "currency", currency), raw: r.data.fees },
+      { label: "Net Revenue", value: fmt(r.data.netRevenue, "currency", currency), raw: r.data.netRevenue },
+      { label: "Tx Count",    value: fmt(r.data.txCount),                           raw: r.data.txCount },
     ],
   }));
+
+  const paypalInsights = buildInsights({
+    primary: { label: "Revenue", values: revenues, isCurrency: true, currency },
+    secondary: [{ label: "Transactions", values: txCounts }],
+    rateMetrics: totalRevenue > 0 ? [{ label: "Fee rate", numerator: totalFees, denominator: totalRevenue, suffix: "%", goodThreshold: 4, badThreshold: 6, lowerIsBetter: true }] : [],
+  });
 
   return (
     <div className="space-y-5">
@@ -1466,6 +1943,8 @@ function PayPalSection({ snapshots, granularity, currency = "USD" }: { snapshots
         </div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">PayPal</h3>
       </div>
+      <RunRateStrip snapshots={snapshots} field="revenue" currency={currency} label="Revenue" />
+      <PeriodCompare values={revenues} label="Revenue" isCurrency currency={currency} />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Revenue"     value={fmt(totalRevenue,  "currency", currency)} values={revenues}    color="#009cde" />
         <StatCard label="Net Revenue" value={fmt(totalNet,      "currency", currency)} values={netRevenues} color="#00d4aa" />
@@ -1473,6 +1952,7 @@ function PayPalSection({ snapshots, granularity, currency = "USD" }: { snapshots
         <StatCard label="Avg Order"   value={fmt(avgOrderValue, "currency", currency)} sub={`${fmt(totalTx)} tx`} values={txCounts} color="#f59e0b" />
       </div>
       <DataTable rows={tableRows} />
+      <PlatformInsights insights={paypalInsights} />
     </div>
   );
 }
@@ -1495,12 +1975,18 @@ function PaddleSection({ snapshots, granularity, currency = "USD" }: { snapshots
   const tableRows = grouped.map((r) => ({
     period: fmtPeriod(r.period, granularity),
     cells: [
-      { label: "Revenue",     value: fmt(r.data.revenue,    "currency", currency) },
-      { label: "Fees",        value: fmt(r.data.fees,       "currency", currency) },
-      { label: "Net Revenue", value: fmt(r.data.netRevenue, "currency", currency) },
-      { label: "Tx Count",    value: fmt(r.data.txCount) },
+      { label: "Revenue",     value: fmt(r.data.revenue,    "currency", currency), raw: r.data.revenue },
+      { label: "Fees",        value: fmt(r.data.fees,       "currency", currency), raw: r.data.fees },
+      { label: "Net Revenue", value: fmt(r.data.netRevenue, "currency", currency), raw: r.data.netRevenue },
+      { label: "Tx Count",    value: fmt(r.data.txCount),                           raw: r.data.txCount },
     ],
   }));
+
+  const paddleInsights = buildInsights({
+    primary: { label: "Revenue", values: revenues, isCurrency: true, currency },
+    secondary: [{ label: "Transactions", values: txCounts }],
+    rateMetrics: totalRevenue > 0 ? [{ label: "Fee rate", numerator: totalFees, denominator: totalRevenue, suffix: "%", goodThreshold: 5, badThreshold: 8, lowerIsBetter: true }] : [],
+  });
 
   return (
     <div className="space-y-5">
@@ -1512,6 +1998,8 @@ function PaddleSection({ snapshots, granularity, currency = "USD" }: { snapshots
         </div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Paddle</h3>
       </div>
+      <RunRateStrip snapshots={snapshots} field="revenue" currency={currency} label="Revenue" />
+      <PeriodCompare values={revenues} label="Revenue" isCurrency currency={currency} />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Revenue"     value={fmt(totalRevenue,  "currency", currency)} values={revenues}    color="#3ddc97" />
         <StatCard label="Net Revenue" value={fmt(totalNet,      "currency", currency)} values={netRevenues} color="#00d4aa" />
@@ -1519,6 +2007,7 @@ function PaddleSection({ snapshots, granularity, currency = "USD" }: { snapshots
         <StatCard label="Avg Order"   value={fmt(avgOrderValue, "currency", currency)} sub={`${fmt(totalTx)} tx`} values={txCounts} color="#f59e0b" />
       </div>
       <DataTable rows={tableRows} />
+      <PlatformInsights insights={paddleInsights} />
     </div>
   );
 }
@@ -1541,12 +2030,18 @@ function LemonSqueezySection({ snapshots, granularity, currency = "USD" }: { sna
   const tableRows = grouped.map((r) => ({
     period: fmtPeriod(r.period, granularity),
     cells: [
-      { label: "Revenue",     value: fmt(r.data.revenue,    "currency", currency) },
-      { label: "Fees",        value: fmt(r.data.fees,       "currency", currency) },
-      { label: "Net Revenue", value: fmt(r.data.netRevenue, "currency", currency) },
-      { label: "Tx Count",    value: fmt(r.data.txCount) },
+      { label: "Revenue",     value: fmt(r.data.revenue,    "currency", currency), raw: r.data.revenue },
+      { label: "Fees",        value: fmt(r.data.fees,       "currency", currency), raw: r.data.fees },
+      { label: "Net Revenue", value: fmt(r.data.netRevenue, "currency", currency), raw: r.data.netRevenue },
+      { label: "Tx Count",    value: fmt(r.data.txCount),                           raw: r.data.txCount },
     ],
   }));
+
+  const lemonInsights = buildInsights({
+    primary: { label: "Revenue", values: revenues, isCurrency: true, currency },
+    secondary: [{ label: "Transactions", values: txCounts }],
+    rateMetrics: totalRevenue > 0 ? [{ label: "Fee rate", numerator: totalFees, denominator: totalRevenue, suffix: "%", goodThreshold: 5, badThreshold: 10, lowerIsBetter: true }] : [],
+  });
 
   return (
     <div className="space-y-5">
@@ -1558,6 +2053,8 @@ function LemonSqueezySection({ snapshots, granularity, currency = "USD" }: { sna
         </div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Lemon Squeezy</h3>
       </div>
+      <RunRateStrip snapshots={snapshots} field="revenue" currency={currency} label="Revenue" />
+      <PeriodCompare values={revenues} label="Revenue" isCurrency currency={currency} />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Revenue"     value={fmt(totalRevenue,  "currency", currency)} values={revenues}    color="#FFC233" />
         <StatCard label="Net Revenue" value={fmt(totalNet,      "currency", currency)} values={netRevenues} color="#f59e0b" />
@@ -1565,6 +2062,7 @@ function LemonSqueezySection({ snapshots, granularity, currency = "USD" }: { sna
         <StatCard label="Avg Order"   value={fmt(avgOrderValue, "currency", currency)} sub={`${fmt(totalTx)} tx`} values={txCounts} color="#00d4aa" />
       </div>
       <DataTable rows={tableRows} />
+      <PlatformInsights insights={lemonInsights} />
     </div>
   );
 }
@@ -1583,18 +2081,25 @@ function GumroadSection({ snapshots, granularity, currency = "USD" }: { snapshot
   const tableRows = grouped.map((r) => ({
     period: fmtPeriod(r.period, granularity),
     cells: [
-      { label: "Revenue",     value: fmt(r.data.revenue,    "currency", currency) },
-      { label: "Fees",        value: fmt(r.data.fees,       "currency", currency) },
-      { label: "Net Revenue", value: fmt(r.data.netRevenue, "currency", currency) },
-      { label: "Tx Count",    value: fmt(r.data.txCount) },
+      { label: "Revenue",     value: fmt(r.data.revenue,    "currency", currency), raw: r.data.revenue },
+      { label: "Fees",        value: fmt(r.data.fees,       "currency", currency), raw: r.data.fees },
+      { label: "Net Revenue", value: fmt(r.data.netRevenue, "currency", currency), raw: r.data.netRevenue },
+      { label: "Tx Count",    value: fmt(r.data.txCount),                           raw: r.data.txCount },
     ],
   }));
+  const gumroadInsights = buildInsights({
+    primary: { label: "Revenue", values: revenues, isCurrency: true, currency },
+    secondary: [{ label: "Transactions", values: txCounts }],
+    rateMetrics: totalRevenue > 0 ? [{ label: "Fee rate", numerator: totalFees, denominator: totalRevenue, suffix: "%", goodThreshold: 8, badThreshold: 12, lowerIsBetter: true }] : [],
+  });
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#ff90e8]/15 bg-[#ff90e8]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#ff90e8]/15 font-mono text-sm font-bold text-[#ff90e8]">G</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Gumroad</h3>
       </div>
+      <RunRateStrip snapshots={snapshots} field="revenue" currency={currency} label="Revenue" />
+      <PeriodCompare values={revenues} label="Revenue" isCurrency currency={currency} />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Revenue"     value={fmt(totalRevenue,  "currency", currency)} values={revenues}    color="#ff90e8" />
         <StatCard label="Net Revenue" value={fmt(totalNet,      "currency", currency)} values={netRevenues} color="#f59e0b" />
@@ -1602,6 +2107,7 @@ function GumroadSection({ snapshots, granularity, currency = "USD" }: { snapshot
         <StatCard label="Avg Order"   value={fmt(avgOrderValue, "currency", currency)} sub={`${fmt(totalTx)} tx`} values={txCounts} color="#00d4aa" />
       </div>
       <DataTable rows={tableRows} />
+      <PlatformInsights insights={gumroadInsights} />
     </div>
   );
 }
@@ -1619,18 +2125,26 @@ function PlausibleSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
   const tableRows = grouped.map((r) => ({
     period: fmtPeriod(r.period, granularity),
     cells: [
-      { label: "Visitors",       value: fmt(r.data.visitors) },
-      { label: "Pageviews",      value: fmt(r.data.pageviews) },
-      { label: "Bounce Rate",    value: `${(r.data.bounceRate ?? 0).toFixed(1)}%` },
-      { label: "Avg Duration",   value: `${Math.round(r.data.visitDuration ?? 0)}s` },
+      { label: "Visitors",     value: fmt(r.data.visitors),                              raw: r.data.visitors },
+      { label: "Pageviews",    value: fmt(r.data.pageviews),                             raw: r.data.pageviews },
+      { label: "Bounce Rate",  value: `${(r.data.bounceRate ?? 0).toFixed(1)}%`,         raw: r.data.bounceRate },
+      { label: "Avg Duration", value: `${Math.round(r.data.visitDuration ?? 0)}s`,       raw: r.data.visitDuration },
     ],
   }));
+  const plausibleInsights = buildInsights({
+    primary: { label: "Visitors", values: visitors },
+    secondary: [{ label: "Pageviews", values: pageviews }],
+    rateMetrics: [
+      { label: "Bounce rate", numerator: avgBounce * bounceRates.length, denominator: bounceRates.length || 1, suffix: "%", goodThreshold: 40, badThreshold: 70, lowerIsBetter: true },
+    ],
+  });
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#5850ec]/15 bg-[#5850ec]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#5850ec]/15 font-mono text-sm font-bold text-[#5850ec]">P</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Plausible</h3>
       </div>
+      <PeriodCompare values={visitors} label="Visitors" />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Visitors"    value={fmt(totalVisitors)}                            values={visitors}    color="#5850ec" />
         <StatCard label="Pageviews"   value={fmt(totalPageviews)}                           values={pageviews}   color="#818cf8" />
@@ -1638,6 +2152,7 @@ function PlausibleSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
         <StatCard label="Avg Duration" value={`${Math.round(avgDuration)}s`}               values={durations}   color="#f59e0b" />
       </div>
       <DataTable rows={tableRows} />
+      <PlatformInsights insights={plausibleInsights} />
     </div>
   );
 }
@@ -1651,21 +2166,27 @@ function MixpanelSection({ snapshots, granularity }: { snapshots: Snapshot[]; gr
   const tableRows = grouped.map((r) => ({
     period: fmtPeriod(r.period, granularity),
     cells: [
-      { label: "Events",       value: fmt(r.data.events) },
-      { label: "Unique Users", value: fmt(r.data.uniqueUsers) },
+      { label: "Events",       value: fmt(r.data.events),      raw: r.data.events },
+      { label: "Unique Users", value: fmt(r.data.uniqueUsers), raw: r.data.uniqueUsers },
     ],
   }));
+  const mixpanelInsights = buildInsights({
+    primary: { label: "Events", values: events },
+    secondary: [{ label: "Unique Users", values: users }],
+  });
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#7856ff]/15 bg-[#7856ff]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#7856ff]/15 font-mono text-[10px] font-bold text-[#7856ff]">MX</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Mixpanel</h3>
       </div>
+      <PeriodCompare values={events} label="Events" />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
         <StatCard label="Total Events"  value={fmt(totalEvents)} values={events} color="#7856ff" />
         <StatCard label="Unique Users"  value={fmt(totalUsers)}  values={users}  color="#a78bfa" />
       </div>
       <DataTable rows={tableRows} />
+      <PlatformInsights insights={mixpanelInsights} />
     </div>
   );
 }
@@ -1681,23 +2202,29 @@ function AmplitudeSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
   const tableRows = grouped.map((r) => ({
     period: fmtPeriod(r.period, granularity),
     cells: [
-      { label: "Active Users",  value: fmt(r.data.activeUsers) },
-      { label: "Total Events",  value: fmt(r.data.totalEvents) },
-      { label: "New Users",     value: fmt(r.data.newUsers) },
+      { label: "Active Users",  value: fmt(r.data.activeUsers),  raw: r.data.activeUsers },
+      { label: "Total Events",  value: fmt(r.data.totalEvents),  raw: r.data.totalEvents },
+      { label: "New Users",     value: fmt(r.data.newUsers),     raw: r.data.newUsers },
     ],
   }));
+  const amplitudeInsights = buildInsights({
+    primary: { label: "Active Users", values: activeUsers },
+    secondary: [{ label: "New Users", values: newUsers }, { label: "Events", values: events }],
+  });
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#1e73be]/15 bg-[#1e73be]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1e73be]/15 font-mono text-sm font-bold text-[#1e73be]">A</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Amplitude</h3>
       </div>
+      <PeriodCompare values={activeUsers} label="Active Users" />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <StatCard label="Active Users" value={fmt(totalActive)} values={activeUsers} color="#1e73be" />
         <StatCard label="Total Events" value={fmt(totalEvents)} values={events}      color="#3b82f6" />
         <StatCard label="New Users"    value={fmt(totalNew)}    values={newUsers}    color="#00d4aa" />
       </div>
       <DataTable rows={tableRows} />
+      <PlatformInsights insights={amplitudeInsights} />
     </div>
   );
 }
@@ -1713,23 +2240,29 @@ function PostHogSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
   const tableRows = grouped.map((r) => ({
     period: fmtPeriod(r.period, granularity),
     cells: [
-      { label: "Pageviews",    value: fmt(r.data.pageviews) },
-      { label: "Unique Users", value: fmt(r.data.uniqueUsers) },
-      { label: "Sessions",     value: fmt(r.data.sessions) },
+      { label: "Pageviews",    value: fmt(r.data.pageviews),    raw: r.data.pageviews },
+      { label: "Unique Users", value: fmt(r.data.uniqueUsers),  raw: r.data.uniqueUsers },
+      { label: "Sessions",     value: fmt(r.data.sessions),     raw: r.data.sessions },
     ],
   }));
+  const posthogInsights = buildInsights({
+    primary: { label: "Pageviews", values: pageviews },
+    secondary: [{ label: "Unique Users", values: users }, { label: "Sessions", values: sessions }],
+  });
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#f76300]/15 bg-[#f76300]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f76300]/15 font-mono text-[10px] font-bold text-[#f76300]">PH</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">PostHog</h3>
       </div>
+      <PeriodCompare values={pageviews} label="Pageviews" />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <StatCard label="Pageviews"    value={fmt(totalPV)}    values={pageviews} color="#f76300" />
         <StatCard label="Unique Users" value={fmt(totalUsers)} values={users}     color="#fb923c" />
         <StatCard label="Sessions"     value={fmt(totalSess)}  values={sessions}  color="#f59e0b" />
       </div>
       <DataTable rows={tableRows} />
+      <PlatformInsights insights={posthogInsights} />
     </div>
   );
 }
@@ -1747,18 +2280,24 @@ function FathomSection({ snapshots, granularity }: { snapshots: Snapshot[]; gran
   const tableRows = grouped.map((r) => ({
     period: fmtPeriod(r.period, granularity),
     cells: [
-      { label: "Pageviews",    value: fmt(r.data.pageviews) },
-      { label: "Uniques",      value: fmt(r.data.uniques) },
-      { label: "Bounce Rate",  value: `${(r.data.bounceRate ?? 0).toFixed(1)}%` },
-      { label: "Avg Duration", value: `${Math.round(r.data.avgDuration ?? 0)}s` },
+      { label: "Pageviews",    value: fmt(r.data.pageviews),                          raw: r.data.pageviews },
+      { label: "Uniques",      value: fmt(r.data.uniques),                            raw: r.data.uniques },
+      { label: "Bounce Rate",  value: `${(r.data.bounceRate ?? 0).toFixed(1)}%`,      raw: r.data.bounceRate },
+      { label: "Avg Duration", value: `${Math.round(r.data.avgDuration ?? 0)}s`,      raw: r.data.avgDuration },
     ],
   }));
+  const fathomInsights = buildInsights({
+    primary: { label: "Pageviews", values: pageviews },
+    secondary: [{ label: "Uniques", values: uniques }],
+    rateMetrics: [{ label: "Bounce rate", numerator: avgBounce * bounceRates.length, denominator: bounceRates.length || 1, suffix: "%", goodThreshold: 40, badThreshold: 70, lowerIsBetter: true }],
+  });
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#9333ea]/15 bg-[#9333ea]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#9333ea]/15 font-mono text-[10px] font-bold text-[#9333ea]">FA</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Fathom</h3>
       </div>
+      <PeriodCompare values={pageviews} label="Pageviews" />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Pageviews"    value={fmt(totalPV)}            values={pageviews}   color="#9333ea" />
         <StatCard label="Uniques"      value={fmt(totalUniq)}          values={uniques}     color="#c084fc" />
@@ -1766,6 +2305,7 @@ function FathomSection({ snapshots, granularity }: { snapshots: Snapshot[]; gran
         <StatCard label="Avg Duration" value={`${Math.round(avgDur)}s`}   values={durations}   color="#f59e0b" />
       </div>
       <DataTable rows={tableRows} />
+      <PlatformInsights insights={fathomInsights} />
     </div>
   );
 }
@@ -1783,18 +2323,28 @@ function GoogleAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
   const tableRows = grouped.map((r) => ({
     period: fmtPeriod(r.period, granularity),
     cells: [
-      { label: "Spend",        value: `$${(r.data.spend ?? 0).toFixed(2)}` },
-      { label: "Clicks",       value: fmt(r.data.clicks) },
-      { label: "Impressions",  value: fmt(r.data.impressions) },
-      { label: "Conversions",  value: fmt(r.data.conversions) },
+      { label: "Spend",        value: `$${(r.data.spend ?? 0).toFixed(2)}`,  raw: r.data.spend },
+      { label: "Clicks",       value: fmt(r.data.clicks),                    raw: r.data.clicks },
+      { label: "Impressions",  value: fmt(r.data.impressions),               raw: r.data.impressions },
+      { label: "Conversions",  value: fmt(r.data.conversions),               raw: r.data.conversions },
     ],
   }));
+  const googleAdsInsights = buildInsights({
+    primary: { label: "Spend", values: spends, isCurrency: true },
+    secondary: [{ label: "Conversions", values: conversions }, { label: "Clicks", values: clicks }],
+    rateMetrics: totalClicks > 0 ? [
+      { label: "CTR", numerator: totalClicks, denominator: totalImpr || 1, suffix: "%", goodThreshold: 3, badThreshold: 1, lowerIsBetter: false },
+      { label: "Conv rate", numerator: totalConv, denominator: totalClicks, suffix: "%", goodThreshold: 3, badThreshold: 1, lowerIsBetter: false },
+    ] : [],
+  });
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#4285F4]/15 bg-[#4285F4]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#4285F4]/15 font-mono text-[10px] font-bold text-[#4285F4]">GA</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Google Ads</h3>
       </div>
+      <RunRateStrip snapshots={snapshots} field="spend" currency="USD" label="Ad Spend" />
+      <PeriodCompare values={spends} label="Ad Spend" isCurrency />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Spend"       value={`$${totalSpend.toFixed(2)}`} values={spends}      color="#4285F4" />
         <StatCard label="Clicks"      value={fmt(totalClicks)}            values={clicks}      color="#34A853" />
@@ -1802,6 +2352,7 @@ function GoogleAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
         <StatCard label="Conversions" value={fmt(totalConv)}              values={conversions} color="#EA4335" />
       </div>
       <DataTable rows={tableRows} />
+      <PlatformInsights insights={googleAdsInsights} />
     </div>
   );
 }
@@ -1819,18 +2370,25 @@ function TikTokAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
   const tableRows = grouped.map((r) => ({
     period: fmtPeriod(r.period, granularity),
     cells: [
-      { label: "Spend",       value: `$${(r.data.spend ?? 0).toFixed(2)}` },
-      { label: "Impressions", value: fmt(r.data.impressions) },
-      { label: "Clicks",      value: fmt(r.data.clicks) },
-      { label: "Conversions", value: fmt(r.data.conversions) },
+      { label: "Spend",       value: `$${(r.data.spend ?? 0).toFixed(2)}`,  raw: r.data.spend },
+      { label: "Impressions", value: fmt(r.data.impressions),               raw: r.data.impressions },
+      { label: "Clicks",      value: fmt(r.data.clicks),                    raw: r.data.clicks },
+      { label: "Conversions", value: fmt(r.data.conversions),               raw: r.data.conversions },
     ],
   }));
+  const tiktokAdsInsights = buildInsights({
+    primary: { label: "Spend", values: spends, isCurrency: true },
+    secondary: [{ label: "Conversions", values: conversions }],
+    rateMetrics: totalClicks > 0 ? [{ label: "CTR", numerator: totalClicks, denominator: totalImpr || 1, suffix: "%", goodThreshold: 1.5, badThreshold: 0.5, lowerIsBetter: false }] : [],
+  });
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#69C9D0]/15 bg-[#69C9D0]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#69C9D0]/15 font-mono text-[10px] font-bold text-[#69C9D0]">TT</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">TikTok Ads</h3>
       </div>
+      <RunRateStrip snapshots={snapshots} field="spend" currency="USD" label="Ad Spend" />
+      <PeriodCompare values={spends} label="Ad Spend" isCurrency />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Spend"       value={`$${totalSpend.toFixed(2)}`} values={spends}      color="#69C9D0" />
         <StatCard label="Impressions" value={fmt(totalImpr)}              values={impressions} color="#ee1d52" />
@@ -1838,6 +2396,7 @@ function TikTokAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
         <StatCard label="Conversions" value={fmt(totalConv)}              values={conversions} color="#00d4aa" />
       </div>
       <DataTable rows={tableRows} />
+      <PlatformInsights insights={tiktokAdsInsights} />
     </div>
   );
 }
@@ -1855,18 +2414,25 @@ function TwitterAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; 
   const tableRows = grouped.map((r) => ({
     period: fmtPeriod(r.period, granularity),
     cells: [
-      { label: "Spend",       value: `$${(r.data.spend ?? 0).toFixed(2)}` },
-      { label: "Impressions", value: fmt(r.data.impressions) },
-      { label: "Clicks",      value: fmt(r.data.clicks) },
-      { label: "Conversions", value: fmt(r.data.conversions) },
+      { label: "Spend",       value: `$${(r.data.spend ?? 0).toFixed(2)}`,  raw: r.data.spend },
+      { label: "Impressions", value: fmt(r.data.impressions),               raw: r.data.impressions },
+      { label: "Clicks",      value: fmt(r.data.clicks),                    raw: r.data.clicks },
+      { label: "Conversions", value: fmt(r.data.conversions),               raw: r.data.conversions },
     ],
   }));
+  const twitterAdsInsights = buildInsights({
+    primary: { label: "Spend", values: spends, isCurrency: true },
+    secondary: [{ label: "Conversions", values: conversions }],
+    rateMetrics: totalClicks > 0 ? [{ label: "CTR", numerator: totalClicks, denominator: totalImpr || 1, suffix: "%", goodThreshold: 1, badThreshold: 0.3, lowerIsBetter: false }] : [],
+  });
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#1d9bf0]/15 bg-[#1d9bf0]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1d9bf0]/15 font-mono text-[10px] font-bold text-[#1d9bf0]">XA</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">X (Twitter) Ads</h3>
       </div>
+      <RunRateStrip snapshots={snapshots} field="spend" currency="USD" label="Ad Spend" />
+      <PeriodCompare values={spends} label="Ad Spend" isCurrency />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Spend"       value={`$${totalSpend.toFixed(2)}`} values={spends}      color="#1d9bf0" />
         <StatCard label="Impressions" value={fmt(totalImpr)}              values={impressions} color="#60a5fa" />
@@ -1874,6 +2440,7 @@ function TwitterAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; 
         <StatCard label="Conversions" value={fmt(totalConv)}              values={conversions} color="#f59e0b" />
       </div>
       <DataTable rows={tableRows} />
+      <PlatformInsights insights={twitterAdsInsights} />
     </div>
   );
 }
@@ -1891,18 +2458,25 @@ function LinkedInAdsSection({ snapshots, granularity }: { snapshots: Snapshot[];
   const tableRows = grouped.map((r) => ({
     period: fmtPeriod(r.period, granularity),
     cells: [
-      { label: "Spend",       value: `$${(r.data.spend ?? 0).toFixed(2)}` },
-      { label: "Impressions", value: fmt(r.data.impressions) },
-      { label: "Clicks",      value: fmt(r.data.clicks) },
-      { label: "Conversions", value: fmt(r.data.conversions) },
+      { label: "Spend",       value: `$${(r.data.spend ?? 0).toFixed(2)}`,  raw: r.data.spend },
+      { label: "Impressions", value: fmt(r.data.impressions),               raw: r.data.impressions },
+      { label: "Clicks",      value: fmt(r.data.clicks),                    raw: r.data.clicks },
+      { label: "Conversions", value: fmt(r.data.conversions),               raw: r.data.conversions },
     ],
   }));
+  const linkedInAdsInsights = buildInsights({
+    primary: { label: "Spend", values: spends, isCurrency: true },
+    secondary: [{ label: "Conversions", values: conversions }],
+    rateMetrics: totalClicks > 0 ? [{ label: "CTR", numerator: totalClicks, denominator: totalImpr || 1, suffix: "%", goodThreshold: 0.6, badThreshold: 0.2, lowerIsBetter: false }] : [],
+  });
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#0a66c2]/15 bg-[#0a66c2]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0a66c2]/15 font-mono text-[10px] font-bold text-[#0a66c2]">LI</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">LinkedIn Ads</h3>
       </div>
+      <RunRateStrip snapshots={snapshots} field="spend" currency="USD" label="Ad Spend" />
+      <PeriodCompare values={spends} label="Ad Spend" isCurrency />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Spend"       value={`$${totalSpend.toFixed(2)}`} values={spends}      color="#0a66c2" />
         <StatCard label="Impressions" value={fmt(totalImpr)}              values={impressions} color="#3b82f6" />
@@ -1910,6 +2484,7 @@ function LinkedInAdsSection({ snapshots, granularity }: { snapshots: Snapshot[];
         <StatCard label="Conversions" value={fmt(totalConv)}              values={conversions} color="#f59e0b" />
       </div>
       <DataTable rows={tableRows} />
+      <PlatformInsights insights={linkedInAdsInsights} />
     </div>
   );
 }
@@ -1927,18 +2502,24 @@ function SnapchatAdsSection({ snapshots, granularity }: { snapshots: Snapshot[];
   const tableRows = grouped.map((r) => ({
     period: fmtPeriod(r.period, granularity),
     cells: [
-      { label: "Spend",       value: `$${(r.data.spend ?? 0).toFixed(2)}` },
-      { label: "Impressions", value: fmt(r.data.impressions) },
-      { label: "Swipes",      value: fmt(r.data.swipes) },
-      { label: "Conversions", value: fmt(r.data.conversions) },
+      { label: "Spend",       value: `$${(r.data.spend ?? 0).toFixed(2)}`,  raw: r.data.spend },
+      { label: "Impressions", value: fmt(r.data.impressions),               raw: r.data.impressions },
+      { label: "Swipes",      value: fmt(r.data.swipes),                    raw: r.data.swipes },
+      { label: "Conversions", value: fmt(r.data.conversions),               raw: r.data.conversions },
     ],
   }));
+  const snapchatAdsInsights = buildInsights({
+    primary: { label: "Spend", values: spends, isCurrency: true },
+    secondary: [{ label: "Conversions", values: conversions }],
+  });
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#f5c518]/15 bg-[#f5c518]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f5c518]/15 font-mono text-[10px] font-bold text-[#f5c518]">SC</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Snapchat Ads</h3>
       </div>
+      <RunRateStrip snapshots={snapshots} field="spend" currency="USD" label="Ad Spend" />
+      <PeriodCompare values={spends} label="Ad Spend" isCurrency />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Spend"       value={`$${totalSpend.toFixed(2)}`} values={spends}      color="#f5c518" />
         <StatCard label="Impressions" value={fmt(totalImpr)}              values={impressions} color="#fbbf24" />
@@ -1946,6 +2527,7 @@ function SnapchatAdsSection({ snapshots, granularity }: { snapshots: Snapshot[];
         <StatCard label="Conversions" value={fmt(totalConv)}              values={conversions} color="#f87171" />
       </div>
       <DataTable rows={tableRows} />
+      <PlatformInsights insights={snapchatAdsInsights} />
     </div>
   );
 }
@@ -1963,18 +2545,25 @@ function PinterestAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]
   const tableRows = grouped.map((r) => ({
     period: fmtPeriod(r.period, granularity),
     cells: [
-      { label: "Spend",       value: `$${(r.data.spend ?? 0).toFixed(2)}` },
-      { label: "Impressions", value: fmt(r.data.impressions) },
-      { label: "Clicks",      value: fmt(r.data.clicks) },
-      { label: "Conversions", value: fmt(r.data.conversions) },
+      { label: "Spend",       value: `$${(r.data.spend ?? 0).toFixed(2)}`,  raw: r.data.spend },
+      { label: "Impressions", value: fmt(r.data.impressions),               raw: r.data.impressions },
+      { label: "Clicks",      value: fmt(r.data.clicks),                    raw: r.data.clicks },
+      { label: "Conversions", value: fmt(r.data.conversions),               raw: r.data.conversions },
     ],
   }));
+  const pinterestAdsInsights = buildInsights({
+    primary: { label: "Spend", values: spends, isCurrency: true },
+    secondary: [{ label: "Conversions", values: conversions }],
+    rateMetrics: totalClicks > 0 ? [{ label: "CTR", numerator: totalClicks, denominator: totalImpr || 1, suffix: "%", goodThreshold: 0.5, badThreshold: 0.2, lowerIsBetter: false }] : [],
+  });
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#E60023]/15 bg-[#E60023]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#E60023]/15 font-mono text-[10px] font-bold text-[#E60023]">PT</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Pinterest Ads</h3>
       </div>
+      <RunRateStrip snapshots={snapshots} field="spend" currency="USD" label="Ad Spend" />
+      <PeriodCompare values={spends} label="Ad Spend" isCurrency />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Spend"       value={`$${totalSpend.toFixed(2)}`} values={spends}      color="#E60023" />
         <StatCard label="Impressions" value={fmt(totalImpr)}              values={impressions} color="#f87171" />
@@ -1982,6 +2571,7 @@ function PinterestAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]
         <StatCard label="Conversions" value={fmt(totalConv)}              values={conversions} color="#00d4aa" />
       </div>
       <DataTable rows={tableRows} />
+      <PlatformInsights insights={pinterestAdsInsights} />
     </div>
   );
 }
@@ -1999,18 +2589,27 @@ function MailchimpSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
   const tableRows = grouped.map((r) => ({
     period: fmtPeriod(r.period, granularity),
     cells: [
-      { label: "Sent",         value: fmt(r.data.emailsSent) },
-      { label: "Opens",        value: fmt(r.data.opens) },
-      { label: "Clicks",       value: fmt(r.data.clicks) },
-      { label: "Subscribers",  value: fmt(r.data.subscribers) },
+      { label: "Sent",         value: fmt(r.data.emailsSent),    raw: r.data.emailsSent },
+      { label: "Opens",        value: fmt(r.data.opens),         raw: r.data.opens },
+      { label: "Clicks",       value: fmt(r.data.clicks),        raw: r.data.clicks },
+      { label: "Subscribers",  value: fmt(r.data.subscribers),   raw: r.data.subscribers },
     ],
   }));
+  const mailchimpInsights = buildInsights({
+    primary: { label: "Subscribers", values: subs },
+    secondary: [{ label: "Opens", values: opens }],
+    rateMetrics: totalSent > 0 ? [
+      { label: "Open rate", numerator: totalOpens, denominator: totalSent, suffix: "%", goodThreshold: 25, badThreshold: 15, lowerIsBetter: false },
+      { label: "Click rate", numerator: totalClicks, denominator: totalSent, suffix: "%", goodThreshold: 3, badThreshold: 1, lowerIsBetter: false },
+    ] : [],
+  });
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#f59e0b]/15 bg-[#f59e0b]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f59e0b]/15 font-mono text-[10px] font-bold text-[#f59e0b]">MC</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Mailchimp</h3>
       </div>
+      <PeriodCompare values={subs} label="Subscribers" />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Emails Sent" value={fmt(totalSent)}   values={sent}   color="#f59e0b" />
         <StatCard label="Opens"       value={fmt(totalOpens)}  values={opens}  color="#fbbf24" />
@@ -2018,6 +2617,7 @@ function MailchimpSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
         <StatCard label="Subscribers" value={fmt(lastSubs)}    values={subs}   color="#a78bfa" />
       </div>
       <DataTable rows={tableRows} />
+      <PlatformInsights insights={mailchimpInsights} />
     </div>
   );
 }
@@ -2035,18 +2635,28 @@ function KlaviyoSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
   const tableRows = grouped.map((r) => ({
     period: fmtPeriod(r.period, granularity),
     cells: [
-      { label: "Sent",    value: fmt(r.data.emailsSent) },
-      { label: "Opens",   value: fmt(r.data.opens) },
-      { label: "Clicks",  value: fmt(r.data.clicks) },
-      { label: "Revenue", value: `$${(r.data.revenue ?? 0).toFixed(2)}` },
+      { label: "Sent",    value: fmt(r.data.emailsSent),                       raw: r.data.emailsSent },
+      { label: "Opens",   value: fmt(r.data.opens),                           raw: r.data.opens },
+      { label: "Clicks",  value: fmt(r.data.clicks),                          raw: r.data.clicks },
+      { label: "Revenue", value: `$${(r.data.revenue ?? 0).toFixed(2)}`,      raw: r.data.revenue },
     ],
   }));
+  const klaviyoInsights = buildInsights({
+    primary: { label: "Revenue", values: revenues, isCurrency: true },
+    secondary: [{ label: "Opens", values: opens }],
+    rateMetrics: totalSent > 0 ? [
+      { label: "Open rate", numerator: totalOpens, denominator: totalSent, suffix: "%", goodThreshold: 30, badThreshold: 20, lowerIsBetter: false },
+      { label: "Click rate", numerator: totalClicks, denominator: totalSent, suffix: "%", goodThreshold: 4, badThreshold: 2, lowerIsBetter: false },
+    ] : [],
+  });
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#6366f1]/15 bg-[#6366f1]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#6366f1]/15 font-mono text-[10px] font-bold text-[#6366f1]">KL</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Klaviyo</h3>
       </div>
+      <RunRateStrip snapshots={snapshots} field="revenue" currency="USD" label="Revenue" />
+      <PeriodCompare values={revenues} label="Revenue" isCurrency />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Emails Sent" value={fmt(totalSent)}           values={sent}     color="#6366f1" />
         <StatCard label="Opens"       value={fmt(totalOpens)}          values={opens}    color="#818cf8" />
@@ -2054,6 +2664,7 @@ function KlaviyoSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
         <StatCard label="Revenue"     value={`$${totalRev.toFixed(2)}`} values={revenues} color="#f59e0b" />
       </div>
       <DataTable rows={tableRows} />
+      <PlatformInsights insights={klaviyoInsights} />
     </div>
   );
 }
@@ -2069,23 +2680,29 @@ function ConvertKitSection({ snapshots, granularity }: { snapshots: Snapshot[]; 
   const tableRows = grouped.map((r) => ({
     period: fmtPeriod(r.period, granularity),
     cells: [
-      { label: "Subscribers",      value: fmt(r.data.totalSubscribers) },
-      { label: "New Subscribers",  value: fmt(r.data.newSubscribers) },
-      { label: "Broadcasts Sent",  value: fmt(r.data.broadcastsSent) },
+      { label: "Subscribers",      value: fmt(r.data.totalSubscribers),  raw: r.data.totalSubscribers },
+      { label: "New Subscribers",  value: fmt(r.data.newSubscribers),    raw: r.data.newSubscribers },
+      { label: "Broadcasts Sent",  value: fmt(r.data.broadcastsSent),    raw: r.data.broadcastsSent },
     ],
   }));
+  const convertkitInsights = buildInsights({
+    primary: { label: "Subscribers", values: totals },
+    secondary: [{ label: "New Subscribers", values: newSubs }],
+  });
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#FB6970]/15 bg-[#FB6970]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FB6970]/15 font-mono text-[10px] font-bold text-[#FB6970]">CK</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">ConvertKit</h3>
       </div>
+      <PeriodCompare values={totals} label="Subscribers" />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <StatCard label="Subscribers"     value={fmt(lastTotal)}  values={totals}     color="#FB6970" />
         <StatCard label="New Subscribers" value={fmt(totalNew)}   values={newSubs}    color="#f87171" />
         <StatCard label="Broadcasts Sent" value={fmt(totalBcast)} values={broadcasts} color="#00d4aa" />
       </div>
       <DataTable rows={tableRows} />
+      <PlatformInsights insights={convertkitInsights} />
     </div>
   );
 }
@@ -2100,18 +2717,24 @@ function ActiveCampaignSection({ snapshots, granularity }: { snapshots: Snapshot
   const tableRows  = grouped.map((r) => ({
     period: fmtPeriod(r.period, granularity),
     cells: [
-      { label: "Emails Sent",  value: fmt(r.data.emailsSent) },
-      { label: "Opens",        value: fmt(r.data.opens) },
-      { label: "Clicks",       value: fmt(r.data.clicks) },
-      { label: "New Contacts", value: fmt(r.data.newContacts) },
+      { label: "Emails Sent",  value: fmt(r.data.emailsSent),   raw: r.data.emailsSent },
+      { label: "Opens",        value: fmt(r.data.opens),        raw: r.data.opens },
+      { label: "Clicks",       value: fmt(r.data.clicks),       raw: r.data.clicks },
+      { label: "New Contacts", value: fmt(r.data.newContacts),  raw: r.data.newContacts },
     ],
   }));
+  const acInsights = buildInsights({
+    primary: { label: "New Contacts", values: newContacts },
+    secondary: [{ label: "Opens", values: opens }],
+    rateMetrics: sent.reduce((a,b)=>a+b,0) > 0 ? [{ label: "Open rate", numerator: opens.reduce((a,b)=>a+b,0), denominator: sent.reduce((a,b)=>a+b,0), suffix: "%", goodThreshold: 25, badThreshold: 15, lowerIsBetter: false }] : [],
+  });
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#356AE6]/15 bg-[#356AE6]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#356AE6]/15 font-mono text-[10px] font-bold text-[#356AE6]">AC</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">ActiveCampaign</h3>
       </div>
+      <PeriodCompare values={newContacts} label="New Contacts" />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Emails Sent"  value={fmt(sent.reduce((a,b)=>a+b,0))}       values={sent}       color="#356AE6" />
         <StatCard label="Opens"        value={fmt(opens.reduce((a,b)=>a+b,0))}      values={opens}      color="#60a5fa" />
@@ -2119,6 +2742,7 @@ function ActiveCampaignSection({ snapshots, granularity }: { snapshots: Snapshot
         <StatCard label="New Contacts" value={fmt(newContacts.reduce((a,b)=>a+b,0))} values={newContacts} color="#a78bfa" />
       </div>
       <DataTable rows={tableRows} />
+      <PlatformInsights insights={acInsights} />
     </div>
   );
 }
@@ -2133,18 +2757,24 @@ function BrevoSection({ snapshots, granularity }: { snapshots: Snapshot[]; granu
   const tableRows  = grouped.map((r) => ({
     period: fmtPeriod(r.period, granularity),
     cells: [
-      { label: "Emails Sent",  value: fmt(r.data.emailsSent) },
-      { label: "Opens",        value: fmt(r.data.opens) },
-      { label: "Clicks",       value: fmt(r.data.clicks) },
-      { label: "New Contacts", value: fmt(r.data.newContacts) },
+      { label: "Emails Sent",  value: fmt(r.data.emailsSent),   raw: r.data.emailsSent },
+      { label: "Opens",        value: fmt(r.data.opens),        raw: r.data.opens },
+      { label: "Clicks",       value: fmt(r.data.clicks),       raw: r.data.clicks },
+      { label: "New Contacts", value: fmt(r.data.newContacts),  raw: r.data.newContacts },
     ],
   }));
+  const brevoInsights = buildInsights({
+    primary: { label: "New Contacts", values: newContacts },
+    secondary: [{ label: "Opens", values: opens }],
+    rateMetrics: sent.reduce((a,b)=>a+b,0) > 0 ? [{ label: "Open rate", numerator: opens.reduce((a,b)=>a+b,0), denominator: sent.reduce((a,b)=>a+b,0), suffix: "%", goodThreshold: 25, badThreshold: 15, lowerIsBetter: false }] : [],
+  });
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#0092FF]/15 bg-[#0092FF]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0092FF]/15 font-mono text-[10px] font-bold text-[#0092FF]">BR</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Brevo</h3>
       </div>
+      <PeriodCompare values={newContacts} label="New Contacts" />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Emails Sent"  value={fmt(sent.reduce((a,b)=>a+b,0))}        values={sent}        color="#0092FF" />
         <StatCard label="Opens"        value={fmt(opens.reduce((a,b)=>a+b,0))}       values={opens}       color="#38bdf8" />
@@ -2152,6 +2782,7 @@ function BrevoSection({ snapshots, granularity }: { snapshots: Snapshot[]; granu
         <StatCard label="New Contacts" value={fmt(newContacts.reduce((a,b)=>a+b,0))} values={newContacts} color="#a78bfa" />
       </div>
       <DataTable rows={tableRows} />
+      <PlatformInsights insights={brevoInsights} />
     </div>
   );
 }
@@ -2168,18 +2799,23 @@ function BeehiivSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
   const tableRows  = grouped.map((r) => ({
     period: fmtPeriod(r.period, granularity),
     cells: [
-      { label: "Subscribers",        value: fmt(r.data.totalSubscribers) },
-      { label: "New Subscribers",    value: fmt(r.data.newSubscribers) },
-      { label: "Posts Published",    value: fmt(r.data.postsPublished) },
-      { label: "Premium Subscribers",value: fmt(r.data.premiumSubscribers) },
+      { label: "Subscribers",         value: fmt(r.data.totalSubscribers),    raw: r.data.totalSubscribers },
+      { label: "New Subscribers",     value: fmt(r.data.newSubscribers),      raw: r.data.newSubscribers },
+      { label: "Posts Published",     value: fmt(r.data.postsPublished),      raw: r.data.postsPublished },
+      { label: "Premium Subscribers", value: fmt(r.data.premiumSubscribers),  raw: r.data.premiumSubscribers },
     ],
   }));
+  const beehiivInsights = buildInsights({
+    primary: { label: "Subscribers", values: totals },
+    secondary: [{ label: "New Subscribers", values: newSubs }, { label: "Premium", values: premium }],
+  });
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#FF6B35]/15 bg-[#FF6B35]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FF6B35]/15 font-mono text-[10px] font-bold text-[#FF6B35]">BH</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Beehiiv</h3>
       </div>
+      <PeriodCompare values={totals} label="Subscribers" />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Subscribers"  value={fmt(lastTotal)}                         values={totals}  color="#FF6B35" />
         <StatCard label="New Subs"     value={fmt(newSubs.reduce((a,b)=>a+b,0))}     values={newSubs} color="#fb923c" />
@@ -2187,6 +2823,7 @@ function BeehiivSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
         <StatCard label="Premium"      value={fmt(lastPrem)}                          values={premium} color="#a78bfa" />
       </div>
       <DataTable rows={tableRows} />
+      <PlatformInsights insights={beehiivInsights} />
     </div>
   );
 }
@@ -2201,18 +2838,27 @@ function ShopifySection({ snapshots, granularity, currency = "USD" }: { snapshot
   const tableRows = grouped.map((r) => ({
     period: fmtPeriod(r.period, granularity),
     cells: [
-      { label: "Revenue",       value: fmt(r.data.revenue, "currency", currency) },
-      { label: "Orders",        value: fmt(r.data.orders) },
-      { label: "Refunds",       value: fmt(r.data.refunds) },
-      { label: "New Customers", value: fmt(r.data.newCustomers) },
+      { label: "Revenue",       value: fmt(r.data.revenue, "currency", currency),  raw: r.data.revenue },
+      { label: "Orders",        value: fmt(r.data.orders),                          raw: r.data.orders },
+      { label: "Refunds",       value: fmt(r.data.refunds),                         raw: r.data.refunds },
+      { label: "New Customers", value: fmt(r.data.newCustomers),                    raw: r.data.newCustomers },
     ],
   }));
+  const totalRevenue  = revenue.reduce((a, b) => a + b, 0);
+  const totalRefunds  = refunds.reduce((a, b) => a + b, 0);
+  const shopifyInsights = buildInsights({
+    primary: { label: "Revenue", values: revenue, isCurrency: true, currency },
+    secondary: [{ label: "Orders", values: orders }, { label: "New Customers", values: customers }],
+    rateMetrics: totalRevenue > 0 ? [{ label: "Refund rate", numerator: totalRefunds, denominator: totalRevenue, suffix: "%", goodThreshold: 2, badThreshold: 5, lowerIsBetter: true }] : [],
+  });
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#96bf48]/15 bg-[#96bf48]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#96bf48]/15 font-mono text-[10px] font-bold text-[#96bf48]">SH</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Shopify</h3>
       </div>
+      <RunRateStrip snapshots={snapshots} field="revenue" currency={currency} label="Revenue" />
+      <PeriodCompare values={revenue} label="Revenue" isCurrency currency={currency} />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Revenue"       value={fmt(revenue.reduce((a,b)=>a+b,0), "currency", currency)}   values={revenue}   color="#96bf48" />
         <StatCard label="Orders"        value={fmt(orders.reduce((a,b)=>a+b,0))}          values={orders}    color="#a3e635" />
@@ -2220,6 +2866,7 @@ function ShopifySection({ snapshots, granularity, currency = "USD" }: { snapshot
         <StatCard label="New Customers" value={fmt(customers.reduce((a,b)=>a+b,0))}       values={customers} color="#00d4aa" />
       </div>
       <DataTable rows={tableRows} />
+      <PlatformInsights insights={shopifyInsights} />
     </div>
   );
 }
@@ -2246,6 +2893,8 @@ function WooCommerceSection({ snapshots, granularity, currency = "USD" }: { snap
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#7f54b3]/15 font-mono text-[10px] font-bold text-[#7f54b3]">WC</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">WooCommerce</h3>
       </div>
+      <RunRateStrip snapshots={snapshots} field="revenue" currency={currency} label="Revenue" />
+      <PeriodCompare values={revenue} label="Revenue" isCurrency currency={currency} />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Revenue"       value={fmt(revenue.reduce((a,b)=>a+b,0), "currency", currency)}   values={revenue}   color="#7f54b3" />
         <StatCard label="Orders"        value={fmt(orders.reduce((a,b)=>a+b,0))}          values={orders}    color="#a78bfa" />
@@ -2279,6 +2928,8 @@ function BigCommerceSection({ snapshots, granularity, currency = "USD" }: { snap
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#34313F]/30 font-mono text-[10px] font-bold text-[#bcbcd8]">BC</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">BigCommerce</h3>
       </div>
+      <RunRateStrip snapshots={snapshots} field="revenue" currency={currency} label="Revenue" />
+      <PeriodCompare values={revenue} label="Revenue" isCurrency currency={currency} />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Revenue"       value={fmt(revenue.reduce((a,b)=>a+b,0), "currency", currency)}   values={revenue}   color="#bcbcd8" />
         <StatCard label="Orders"        value={fmt(orders.reduce((a,b)=>a+b,0))}          values={orders}    color="#a78bfa" />
@@ -2312,6 +2963,8 @@ function AmazonSellerSection({ snapshots, granularity, currency = "USD" }: { sna
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FF9900]/15 font-mono text-[10px] font-bold text-[#FF9900]">AMZ</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Amazon Seller</h3>
       </div>
+      <RunRateStrip snapshots={snapshots} field="revenue" currency={currency} label="Revenue" />
+      <PeriodCompare values={revenue} label="Revenue" isCurrency currency={currency} />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Revenue" value={fmt(revenue.reduce((a,b)=>a+b,0), "currency", currency)} values={revenue} color="#FF9900" />
         <StatCard label="Orders"  value={fmt(orders.reduce((a,b)=>a+b,0))}       values={orders}  color="#fbbf24" />
@@ -2345,6 +2998,8 @@ function EtsySection({ snapshots, granularity, currency = "USD" }: { snapshots: 
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F56400]/15 font-mono text-[10px] font-bold text-[#F56400]">ET</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Etsy</h3>
       </div>
+      <RunRateStrip snapshots={snapshots} field="revenue" currency={currency} label="Revenue" />
+      <PeriodCompare values={revenue} label="Revenue" isCurrency currency={currency} />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Revenue"       value={fmt(revenue.reduce((a,b)=>a+b,0), "currency", currency)}   values={revenue}   color="#F56400" />
         <StatCard label="Orders"        value={fmt(orders.reduce((a,b)=>a+b,0))}          values={orders}    color="#fb923c" />
@@ -2379,6 +3034,8 @@ function HubSpotSection({ snapshots, granularity, currency = "USD" }: { snapshot
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#ff7a59]/15 font-mono text-[10px] font-bold text-[#ff7a59]">HS</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">HubSpot</h3>
       </div>
+      <RunRateStrip snapshots={snapshots} field="closedRevenue" currency={currency} label="Closed Revenue" />
+      <PeriodCompare values={closedRev} label="Closed Revenue" isCurrency currency={currency} />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Deals Won"      value={fmt(dealsWon.reduce((a,b)=>a+b,0))}        values={dealsWon}    color="#ff7a59" />
         <StatCard label="Closed Revenue" value={fmt(closedRev.reduce((a,b)=>a+b,0), "currency", currency)} values={closedRev}   color="#fb923c" />
@@ -2415,6 +3072,8 @@ function SalesforceSection({ snapshots, granularity, currency = "USD" }: { snaps
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#00A1E0]/15 font-mono text-[10px] font-bold text-[#00A1E0]">SF</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Salesforce</h3>
       </div>
+      <RunRateStrip snapshots={snapshots} field="closedRevenue" currency={currency} label="Closed Revenue" />
+      <PeriodCompare values={closedRev} label="Closed Revenue" isCurrency currency={currency} />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Deals Won"      value={fmt(dealsWon.reduce((a,b)=>a+b,0))}        values={dealsWon}  color="#00A1E0" />
         <StatCard label="Closed Revenue" value={fmt(closedRev.reduce((a,b)=>a+b,0), "currency", currency)} values={closedRev} color="#38bdf8" />
@@ -2448,6 +3107,8 @@ function PipedriveSection({ snapshots, granularity, currency = "USD" }: { snapsh
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#30a04c]/15 font-mono text-[10px] font-bold text-[#30a04c]">PD</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Pipedrive</h3>
       </div>
+      <RunRateStrip snapshots={snapshots} field="closedRevenue" currency={currency} label="Closed Revenue" />
+      <PeriodCompare values={closedRev} label="Closed Revenue" isCurrency currency={currency} />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Deals Won"      value={fmt(dealsWon.reduce((a,b)=>a+b,0))}             values={dealsWon}    color="#30a04c" />
         <StatCard label="Closed Revenue" value={fmt(closedRev.reduce((a,b)=>a+b,0), "currency", currency)} values={closedRev}   color="#4ade80" />

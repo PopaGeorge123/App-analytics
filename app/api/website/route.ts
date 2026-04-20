@@ -11,7 +11,7 @@ export async function GET() {
   const db = createServiceClient();
   const { data, error } = await db
     .from("website_profiles")
-    .select("id, url, title, description, score, report, last_scanned_at, created_at, updated_at")
+    .select("id, url, title, description, score, report, analysis_status, analysis_error, last_scanned_at, created_at, updated_at")
     .eq("user_id", user.id)
     .maybeSingle();
 
