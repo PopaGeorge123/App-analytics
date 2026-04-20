@@ -207,7 +207,7 @@ export async function sendTrialWelcomeEmail(email: string): Promise<void> {
         </tr>
         <tr>
           <td style="padding:40px 40px 32px;">
-            <p style="margin:0 0 8px;font-size:13px;color:#00d4aa;font-family:'Courier New',monospace;letter-spacing:1px;">YOUR 3-DAY TRIAL IS ACTIVE</p>
+            <p style="margin:0 0 8px;font-size:13px;color:#00d4aa;font-family:'Courier New',monospace;letter-spacing:1px;">YOUR 7-DAY TRIAL IS ACTIVE</p>
             <h1 style="margin:0 0 24px;font-size:26px;font-weight:700;color:#f0f0f5;line-height:1.3;">One step to see your real numbers.</h1>
             <p style="margin:0 0 16px;font-size:16px;color:#8888aa;line-height:1.7;">
               Your Fold dashboard is ready — but it needs data. Connect at least one integration and you'll instantly see your revenue, traffic, and key metrics in one place.
@@ -239,7 +239,7 @@ export async function sendTrialWelcomeEmail(email: string): Promise<void> {
             </table>
 
             <p style="margin:0;font-size:13px;color:#4a4a6a;line-height:1.6;">
-              You have 3 days of full access. After that, upgrade for $29/month or your data stops syncing. Questions? Reply to this email.
+              You have 7 days of full access. After that, upgrade for $29/month or your data stops syncing. Questions? Reply to this email.
             </p>
           </td>
         </tr>

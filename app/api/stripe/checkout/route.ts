@@ -37,8 +37,8 @@ async function createCheckoutSession() {
     customer: customerId,
     payment_method_types: ["card"],
     mode: "subscription",
-    // Card is always required — collected upfront even during the trial.
-    // Stripe will not charge until the trial ends (day 4).
+    // Card is collected here at upgrade time (after the free trial ends).
+    // The 7-day trial is entirely in-app (DB flag) — no Stripe involvement during trial.
     payment_method_collection: "always",
     line_items: [
       {
@@ -50,7 +50,7 @@ async function createCheckoutSession() {
     cancel_url: `${baseUrl}/dashboard?tab=overview`,
     metadata: { supabase_user_id: user.id },
     subscription_data: {
-      // No trial period here — the 3-day free trial is handled in-app (DB flag),
+      // No trial period here — the 7-day free trial is handled in-app (DB flag),
       // completely separate from Stripe. Checkout goes straight to paid.
       metadata: { supabase_user_id: user.id },
     },

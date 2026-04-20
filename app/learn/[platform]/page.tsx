@@ -600,7 +600,7 @@ export default async function PlatformDetailPage({
               Start your free trial — no credit card
             </h2>
             <p className="text-sm text-[#bcbcd8] mb-6 max-w-md mx-auto">
-              3 days full access. Connect {detail.name} and every other live integration.
+              7 days full access. Connect {detail.name} and every other live integration.
               Cancel anytime. Your data deleted on request, immediately.
             </p>
             <div className="flex flex-wrap justify-center gap-3">

@@ -102,7 +102,7 @@ function PricingCard({
             <div className="mb-3">
               <div className="inline-flex items-baseline gap-1.5 rounded-xl border border-[#00d4aa]/25 bg-[#00d4aa]/8 px-3.5 py-2 mb-2">
                 <span className="font-mono text-4xl font-bold text-[#00d4aa]">$0</span>
-                <span className="font-mono text-sm text-[#00d4aa]/70">/ 3 days</span>
+                <span className="font-mono text-sm text-[#00d4aa]/70">/ 7 days</span>
               </div>
               <div className="flex items-center gap-2 mt-1.5">
                 <svg className="h-3 w-3 text-[#8585aa]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -285,8 +285,8 @@ export default function Home() {
               {/* Risk-zero pills */}
               <div className="flex flex-wrap gap-2">
                 {[
-                  { icon: "✓", text: "3-day free trial" },
-                  { icon: "✓", text: "Card required" },
+                  { icon: "✓", text: "7-day free trial" },
+                  { icon: "✓", text: "No card required" },
                   { icon: "✓", text: "Connect in 90 seconds" },
                   { icon: "✓", text: "Cancel anytime" },
                 ].map((pill) => (
@@ -647,8 +647,8 @@ export default function Home() {
               },
               {
                 icon: <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>,
-                title: "3-Day Free Trial", color: "#a78bfa",
-                description: "Try every feature fully unlocked for 3 days. Card required — you're not charged until day 4. Cancel any time before then and you'll never pay a cent.",
+                title: "7-Day Free Trial", color: "#a78bfa",
+                description: "Try every feature fully unlocked for 7 days. No card required — just sign up and you're in. Cancel any time and you'll never pay a cent.",
               },
               {
                 icon: <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 010 1.9A3.745 3.745 0 0117.34 19.06a3.745 3.745 0 01-1.9 0A3.745 3.745 0 0112 21a3.745 3.745 0 01-3.068-1.593 3.745 3.745 0 010-1.9A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 010-1.9A3.745 3.745 0 017.661 4.94a3.745 3.745 0 011.9 0A3.746 3.746 0 0112 3a3.746 3.746 0 013.068 1.593 3.746 3.746 0 011.9 0 3.745 3.745 0 013.068 3.068 3.746 3.746 0 010 1.9A3.745 3.745 0 0121 12z" /></svg>,
@@ -671,7 +671,7 @@ export default function Home() {
           <div className="mb-16 text-center">
             <p className="mb-3 font-mono text-xs font-semibold uppercase tracking-widest text-[#00d4aa]">Pricing</p>
             <h2 className="font-mono text-3xl font-bold text-[#f8f8fc] sm:text-4xl">Simple, transparent pricing</h2>
-            <p className="mx-auto mt-4 max-w-xl text-[#bcbcd8]">Try every feature free for 3 days. Card required — you won&apos;t be charged until day 4. Cancel anytime.</p>
+            <p className="mx-auto mt-4 max-w-xl text-[#bcbcd8]">Try every feature free for 7 days. No card required — upgrade to Pro when you&apos;re ready. Cancel anytime.</p>
           </div>
           <div className="grid gap-6 sm:grid-cols-2 max-w-3xl mx-auto">
             {/* Free Trial card */}
@@ -683,9 +683,9 @@ export default function Home() {
                 <p className="font-mono text-xs font-semibold uppercase tracking-widest text-[#8585aa] mb-2">Free Trial</p>
                 <div className="inline-flex items-baseline gap-1.5 rounded-xl border border-[#a78bfa]/25 bg-[#a78bfa]/8 px-3.5 py-2 mb-3">
                   <span className="font-mono text-4xl font-bold text-[#a78bfa]">$0</span>
-                  <span className="font-mono text-sm text-[#a78bfa]/70">/ 3 days</span>
+                  <span className="font-mono text-sm text-[#a78bfa]/70">/ 7 days</span>
                 </div>
-                <p className="text-sm text-[#bcbcd8]">Every Premium feature. Fully unlocked. No restrictions — card required, cancel before day 4 and you owe nothing.</p>
+                <p className="text-sm text-[#bcbcd8]">Every Premium feature. Fully unlocked. No restrictions — no card required for the trial, upgrade to $29/mo whenever you&apos;re ready.</p>
               </div>
               <ul className="flex-1 space-y-3 mb-8">
                 {[
@@ -713,7 +713,7 @@ export default function Home() {
             <PricingCard
               name="Premium"
               price="$29"
-              description="Full access to every feature. Starts with a 3-day free trial — card required, charged $29/month after the trial unless you cancel."
+              description="Full access to every feature. Starts with a 7-day free trial — no card required. $29/month after the trial, cancel anytime."
               features={[
                 "Unified KPI dashboard with 7-day trends",
                 "Full 30-day analytics per platform",
@@ -722,9 +722,9 @@ export default function Home() {
                 "Website health score & full task list",
                 "Anomaly detection & alerts",
                 "Priority support",
-                "3-day free trial · cancel before day 4",
+                "7-day free trial · cancel before day 8",
               ]}
-              cta="Start 3-day free trial"
+              cta="Start 7-day free trial"
               highlight
             />
           </div>
@@ -793,7 +793,7 @@ export default function Home() {
         <div className="relative mx-auto max-w-2xl text-center">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#00d4aa]/25 bg-[#00d4aa]/8 px-3 py-1.5">
             <span className="h-1.5 w-1.5 rounded-full bg-[#00d4aa] animate-pulse" />
-            <span className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#00d4aa]">3-day free trial · Card required · $29/mo after</span>
+            <span className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#00d4aa]">7-day free trial · No card required · $29/mo after</span>
           </div>
           <h2 className="mb-4 font-mono text-4xl font-bold text-[#f8f8fc] sm:text-5xl leading-tight">
             Stop guessing.
@@ -805,14 +805,14 @@ export default function Home() {
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <a href="/api/stripe/checkout" className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-8 py-4 font-mono text-sm font-bold uppercase tracking-wider text-[#13131f] transition-all hover:bg-[#00bfa0] hover:shadow-[0_0_40px_rgba(0,212,170,0.35)]">
-              Start 3-day free trial
+              Start 7-day free trial
               <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
             </a>
             <a href="/login" className="font-mono text-sm text-[#8585aa] uppercase tracking-widest hover:text-[#f8f8fc] transition-colors">
               Already have an account? Sign in →
             </a>
           </div>
-          <p className="mt-6 font-mono text-[10px] text-[#8585aa]">3 days free · card required · $29/month after · cancel anytime</p>
+          <p className="mt-6 font-mono text-[10px] text-[#8585aa]">7 days free · no card required · $29/month after · cancel anytime</p>
         </div>
       </section>
 
@@ -837,7 +837,7 @@ export default function Home() {
             <div>
               <p className="font-mono text-[10px] uppercase tracking-widest text-[#8585aa] mb-4">Product</p>
               <ul className="space-y-3">
-                {[{ l: "Features", h: "#features" }, { l: "How it works", h: "#how-it-works" }, { l: "Pricing", h: "#pricing" }, { l: "FAQ", h: "#faq" }, { l: "Sign in", h: "/login" }, { l: "Get started free", h: "/register" }].map((item) => (
+                {[{ l: "Features", h: "#features" }, { l: "How it works", h: "#how-it-works" }, { l: "Pricing", h: "#pricing" }, { l: "FAQ", h: "#faq" }, { l: "Sign in", h: "/login" }, { l: "Get started free", h: "/signup" }].map((item) => (
                   <li key={item.l}><a href={item.h} className="text-sm text-[#8585aa] hover:text-[#f8f8fc] transition-colors">{item.l}</a></li>
                 ))}
               </ul>

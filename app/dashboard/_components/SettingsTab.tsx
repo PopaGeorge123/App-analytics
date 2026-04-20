@@ -1214,7 +1214,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
                     <p className="mt-0.5 text-xs text-[#bcbcd8]">Analytics, AI advisor, website optimizer & all integrations.</p>
                     <p className="mt-1 font-mono text-xs font-bold text-[#f8f8fc]">
                       $29<span className="font-normal text-[#8585aa]">/month</span>
-                      <span className="ml-2 rounded-full bg-[#00d4aa]/10 px-2 py-0.5 font-mono text-[9px] font-semibold text-[#00d4aa]">3-day free trial</span>
+                      <span className="ml-2 rounded-full bg-[#00d4aa]/10 px-2 py-0.5 font-mono text-[9px] font-semibold text-[#00d4aa]">7-day free trial</span>
                     </p>
                   </div>
                 </div>

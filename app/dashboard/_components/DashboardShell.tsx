@@ -470,7 +470,7 @@ function UpgradeModal({ tab, onClose }: { tab: Tab; onClose: () => void }) {
           href="/api/stripe/checkout"
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#00d4aa] py-3 font-mono text-sm font-bold text-[#13131f] transition hover:bg-[#00bfa0] hover:shadow-[0_0_24px_rgba(0,212,170,0.3)]"
         >
-          Start 3-day free trial →
+          Start 7-day free trial →
         </a>
         <p className="mt-2.5 text-center font-mono text-[10px] text-[#8585aa]">$29/mo after trial · Cancel anytime</p>
       </div>

@@ -274,7 +274,7 @@ export default function LearnPage() {
               href="/signup"
               className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-6 py-3 font-mono text-sm font-semibold uppercase tracking-wider text-[#13131f] transition-all hover:bg-[#00bfa0] hover:shadow-[0_0_30px_rgba(0,212,170,0.3)]"
             >
-              Start free — 3 day trial
+              Start free — 7 day trial
               <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
               </svg>
@@ -1005,7 +1005,7 @@ export default function LearnPage() {
               </p>
               <div className="flex items-end gap-1.5 mb-4">
                 <span className="font-mono text-5xl font-bold text-[#f8f8fc]">$0</span>
-                <span className="font-mono text-sm text-[#8585aa] mb-1.5">/ 3 days</span>
+                <span className="font-mono text-sm text-[#8585aa] mb-1.5">/ 7 days</span>
               </div>
               <p className="text-sm text-[#bcbcd8] mb-6">
                 Full access to everything — all integrations, AI insights, web analytics. No credit
@@ -1115,7 +1115,7 @@ export default function LearnPage() {
               },
               {
                 q: "Is the AI included in the free trial?",
-                a: "Yes. The full AI module — including daily insights, ask-anything chat, and web page analysis — is available during the 3-day trial at no charge.",
+                a: "Yes. The full AI module — including daily insights, ask-anything chat, and web page analysis — is available during the 7-day trial at no charge.",
               },
               {
                 q: "Do you sell or share my business data?",
@@ -1161,7 +1161,7 @@ export default function LearnPage() {
                 Start your free trial today
               </h2>
               <p className="text-[#bcbcd8] mb-8 max-w-lg mx-auto">
-                3 days free. Full access. No credit card required. Connect your first integration in
+                7 days free. Full access. No credit card required. Connect your first integration in
                 under 2 minutes and see your data in a new light.
               </p>
               <div className="flex flex-wrap justify-center gap-4">

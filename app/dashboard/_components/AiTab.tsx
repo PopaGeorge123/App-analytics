@@ -800,7 +800,7 @@ export default function AiTab({ isPremium, isDemo = false }: AiTabProps) {
             href="/api/stripe/checkout"
             className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-7 py-3 font-mono text-sm font-bold text-[#13131f] hover:bg-[#00bfa0] transition"
           >
-            Start 3-day free trial →
+            Start 7-day free trial →
           </a>
           <p className="mt-3 font-mono text-[10px] text-[#8585aa]">$29/mo after trial · Cancel anytime</p>
         </div>
