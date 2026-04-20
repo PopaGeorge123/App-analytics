@@ -18,7 +18,11 @@ const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "https://usefold.io/";
 
 export const metadata: Metadata = {
   icons: {
-    icon: "/fold-icon.svg",
+    icon: [
+      { url: "/fold-icon.svg", type: "image/svg+xml" },
+    ],
+    shortcut: "/fold-icon.svg",
+    apple: "/fold-icon.svg",
   },
   title: "Fold — AI Business Intelligence for Founders",
   description:
