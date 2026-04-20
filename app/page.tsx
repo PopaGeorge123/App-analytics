@@ -1,6 +1,7 @@
 import { AnimatedCounter, DashboardMockup, FaqSection, Nav } from "./_components/PageClientIslands";
 import { LIVE_INTEGRATIONS } from "@/lib/integrations/catalog";
 import type { ReactNode } from "react";
+import Link from "next/link";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Integration pill
@@ -396,9 +397,13 @@ export default function Home() {
             return (
               <div className="mt-12 flex flex-wrap justify-center items-center gap-6 sm:gap-8">
                 {LIVE_INTEGRATIONS.map((p) => (
-                  <div key={p.id} className="flex items-center gap-3">
+                  <Link
+                    key={p.id}
+                    href={`/learn/${p.id}`}
+                    className="flex items-center gap-3 group rounded-xl px-3 py-2 transition-colors hover:bg-[#1c1c2a] border border-transparent hover:border-[#363650]"
+                  >
                     <div
-                      className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#363650] bg-[#1c1c2a] overflow-hidden"
+                      className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#363650] bg-[#1c1c2a] overflow-hidden transition-colors group-hover:border-[#00d4aa]/40"
                       style={{ backgroundColor: `${p.color}12` }}
                     >
                       <img
@@ -410,10 +415,10 @@ export default function Home() {
                       />
                     </div>
                     <div>
-                      <p className="font-mono text-xs font-semibold text-[#f8f8fc]">{p.name}</p>
+                      <p className="font-mono text-xs font-semibold text-[#f8f8fc] group-hover:text-[#00d4aa] transition-colors">{p.name}</p>
                       <p className="font-mono text-[9px] text-[#8585aa]">{subs[p.id] ?? p.description}</p>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             );
