@@ -1,5 +1,5 @@
 export const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? "";
-export const AW_CONVERSION_ID  = process.env.NEXT_PUBLIC_AW_CONVERSION_ID  ?? ""; // e.g. AW-123456789
+export const AW_CONVERSION_ID  = process.env.NEXT_PUBLIC_AW_CONVERSION_ID  ?? "";
 
 /** Fire a Google Ads conversion event */
 export function gtagConversion(label: string, value?: number) {
