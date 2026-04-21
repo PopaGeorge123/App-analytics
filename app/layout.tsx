@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { PostHogProvider } from "./providers";
 import Script from "next/script";
+import { GA_MEASUREMENT_ID, GADS_CONVERSION_ID } from "@/lib/analytics/gtag";
+import GoogleAdsScript from "@/components/GoogleAdsScript";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -106,7 +108,26 @@ export default function RootLayout({
           />
         </noscript>
 
+        {/* Google tag — fires on every page */}
+        {GA_MEASUREMENT_ID && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+              strategy="afterInteractive"
+            />
+            <Script id="gtag-init" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${GA_MEASUREMENT_ID}');
+                ${GADS_CONVERSION_ID ? `gtag('config', '${GADS_CONVERSION_ID}');` : ""}
+              `}
+            </Script>
+          </>
+        )}
 
+        <GoogleAdsScript />
       </head>
       <body className="min-h-full flex flex-col bg-[#13131f]">
         <PostHogProvider>

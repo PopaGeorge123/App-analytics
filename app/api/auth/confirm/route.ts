@@ -201,3 +201,8 @@ export default async function DashboardPage({
     </div>
   );
 }
+
+// Change your post-signup redirect from:
+// redirect("/dashboard")
+// To:
+redirect("/dashboard?signup=1")
