@@ -115,10 +115,10 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
-      // Check if this is a new user (first sign-in via Google)
+      // Detect new user — created within the last 10 seconds
       const isNewUser =
         data.user?.created_at &&
-        Date.now() - new Date(data.user.created_at).getTime() < 10_000; // created in last 10s
+        Date.now() - new Date(data.user.created_at).getTime() < 10_000;
 
       const redirectTo = isNewUser
         ? `${origin}/dashboard?signup=1`
