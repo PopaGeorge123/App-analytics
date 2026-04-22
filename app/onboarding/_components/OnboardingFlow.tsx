@@ -459,7 +459,7 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
             Connect your first integration
           </h1>
           <p className="mx-auto max-w-xl text-sm text-[#8585aa]">
-            Fold pulls <strong className="text-[#bcbcd8]">aggregated metrics only</strong> — revenue totals,
+            Fold pulls <strong className="text-[#bcbcd8]">aggregated metrics only</strong>, revenue totals,
             traffic counts, subscriber growth. No customer data. No personal info.
             Click any integration to see exactly what we read.
           </p>
