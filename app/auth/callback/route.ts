@@ -94,6 +94,11 @@ export async function GET(request: NextRequest) {
             console.error("[auth/callback] Failed to send trial welcome email:", emailError);
           }
         }
+
+        // ← redirect new users cu ?signup=1 pentru ConversionTracker
+        if (isNewUser) {
+          return NextResponse.redirect(`${origin}/dashboard?signup=1`);
+        }
       }
 
       return NextResponse.redirect(`${origin}${next}`);
@@ -102,31 +107,4 @@ export async function GET(request: NextRequest) {
 
   // Something went wrong — redirect to login with error
   return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`);
-}
-
-// Google OAuth specific handling
-export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url);
-  const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/dashboard";
-
-  if (code) {
-    const supabase = await createClient();
-    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-
-    if (!error) {
-      // Detect new user — created within the last 10 seconds
-      const isNewUser =
-        data.user?.created_at &&
-        Date.now() - new Date(data.user.created_at).getTime() < 10_000;
-
-      const redirectTo = isNewUser
-        ? `${origin}/dashboard?signup=1`
-        : `${origin}${next}`;
-
-      return NextResponse.redirect(redirectTo);
-    }
-  }
-
-  return NextResponse.redirect(`${origin}/auth/auth-code-error`);
 }
