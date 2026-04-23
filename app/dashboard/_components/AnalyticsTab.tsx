@@ -238,162 +238,28 @@ function Sparkline({ values, color = "#00d4aa", formatter }: {
 // ── Shared periods context — sections provide, StatCard reads ──────────────
 const PeriodsCtx = createContext<string[]>([]);
 
-// ── Expanded metric modal ─────────────────────────────────────────────────
+// ── Expanded-card context — StatCardGroup provides, StatCard reads ─────────
+const ExpandedCtx = createContext<{
+  active: string | null;
+  setActive: (v: string | null) => void;
+}>({ active: null, setActive: () => {} });
 
-function ExpandedMetricModal({
-  label, periods, values, color, formatter, onClose,
+/** Wrap a set of <StatCard>s with this instead of a plain grid div so that
+ *  clicking one card expands it in-place while the others shrink. */
+function StatCardGroup({
+  className,
+  children,
 }: {
-  label: string;
-  periods: string[];
-  values: number[];
-  color: string;
-  formatter?: (v: number) => string;
-  onClose: () => void;
+  className?: string;
+  children: React.ReactNode;
 }) {
-  const fmtVal = (v: number) =>
-    formatter
-      ? formatter(v)
-      : v.toLocaleString("en-US", { maximumFractionDigits: 1 });
-
-  const total   = values.reduce((a, b) => a + b, 0);
-  const avg     = values.length ? total / values.length : 0;
-  const peak    = Math.max(...values, 0);
-  const nonZero = values.filter((v) => v > 0);
-
-  // Thinning: never show more than ~8 x-axis ticks
-  const maxTicks = 8;
-  const tickStep = Math.max(1, Math.ceil(periods.length / maxTicks));
-
-  const chartData = periods.map((lbl, i) => ({ lbl, v: values[i] ?? 0 }));
-  const gradId    = `em-${label.replace(/\W/g, "")}-${color.replace(/\W/g, "")}`;
-
-  // Close on Escape
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [onClose]);
-
-  // Lock body scroll while modal is open
-  useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = prev; };
-  }, []);
-
+  const [active, setActive] = useState<string | null>(null);
   return (
-    <div
-      className="fixed inset-0 z-[9998] flex items-center justify-center p-4 sm:p-8"
-      onClick={onClose}
-    >
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
-
-      {/* Modal */}
-      <div
-        className="relative z-10 w-full max-w-2xl rounded-2xl border border-[#363650] bg-[#13131f] shadow-2xl overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e1e2e]">
-          <div className="flex items-center gap-3">
-            <div className="w-1 h-6 rounded-full shrink-0" style={{ backgroundColor: color }} />
-            <h2 className="font-mono text-sm font-bold text-[#f8f8fc]">{label}</h2>
-            <span className="font-mono text-[10px] text-[#5a5a7a]">{periods.length} periods</span>
-          </div>
-          <button
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-[#5a5a7a] hover:text-[#bcbcd8] hover:bg-[#222235] transition-colors"
-          >
-            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Stats strip */}
-        <div className="grid grid-cols-4 border-b border-[#1e1e2e]">
-          {[
-            { lbl: "Total",    val: fmtVal(total) },
-            { lbl: "Average",  val: fmtVal(avg) },
-            { lbl: "Peak",     val: fmtVal(peak) },
-            { lbl: "Periods",  val: String(periods.length) },
-          ].map((s) => (
-            <div key={s.lbl} className="px-5 py-3 border-r border-[#1e1e2e] last:border-r-0">
-              <p className="font-mono text-[9px] uppercase tracking-widest text-[#5a5a7a]">{s.lbl}</p>
-              <p className="font-mono text-sm font-bold text-[#f8f8fc] mt-0.5">{s.val}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* Chart */}
-        <div className="px-4 pt-6 pb-4">
-          <ResponsiveContainer width="100%" height={220}>
-            <AreaChart data={chartData} margin={{ top: 5, right: 12, left: 0, bottom: 5 }}>
-              <defs>
-                <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={color} stopOpacity={0.3} />
-                  <stop offset="100%" stopColor={color} stopOpacity={0.02} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e1e2e" vertical={false} />
-              <XAxis
-                dataKey="lbl"
-                tick={{ fill: "#5a5a7a", fontSize: 10, fontFamily: "monospace" }}
-                axisLine={false}
-                tickLine={false}
-                interval={tickStep - 1}
-                tickMargin={8}
-              />
-              <YAxis
-                tick={{ fill: "#5a5a7a", fontSize: 10, fontFamily: "monospace" }}
-                axisLine={false}
-                tickLine={false}
-                width={64}
-                tickFormatter={fmtVal}
-              />
-              <Tooltip
-                content={({ active, payload, label: lbl }) => {
-                  if (!active || !payload?.length) return null;
-                  return (
-                    <div className="rounded-lg border border-[#363650] bg-[#13131f] px-3 py-2 shadow-2xl">
-                      <p className="font-mono text-[10px] text-[#8585aa] mb-0.5">{lbl}</p>
-                      <p className="font-mono text-sm font-bold" style={{ color }}>
-                        {fmtVal(payload[0].value as number)}
-                      </p>
-                    </div>
-                  );
-                }}
-                cursor={{ stroke: `${color}30`, strokeWidth: 1 }}
-              />
-              <Area
-                type="monotone"
-                dataKey="v"
-                stroke={color}
-                strokeWidth={2}
-                fill={`url(#${gradId})`}
-                dot={chartData.length <= 45 ? { fill: color, r: 3, strokeWidth: 0 } : false}
-                activeDot={{ r: 5, fill: color, strokeWidth: 0 }}
-                isAnimationActive
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-between px-6 pb-4">
-          <p className="font-mono text-[10px] text-[#3a3a5a]">
-            Click outside or press <kbd className="rounded px-1 py-0.5 bg-[#1e1e2e] text-[#5a5a7a]">Esc</kbd> to close
-          </p>
-          {nonZero.length < values.length && (
-            <p className="font-mono text-[10px] text-[#3a3a5a]">
-              {values.length - nonZero.length} period{values.length - nonZero.length !== 1 ? "s" : ""} with no data
-            </p>
-          )}
-        </div>
+    <ExpandedCtx.Provider value={{ active, setActive }}>
+      <div className={className ?? "grid grid-cols-2 gap-3 sm:grid-cols-4"}>
+        {children}
       </div>
-    </div>
+    </ExpandedCtx.Provider>
   );
 }
 
@@ -408,63 +274,173 @@ function StatCard({
   values: number[];
   color?: string;
   sparkFormatter?: (v: number) => string;
-  /** Optional: formatted period labels (e.g. "Jan 3", "W Jan 6") — used in the expanded chart x-axis */
   periods?: string[];
 }) {
-  const [expanded, setExpanded] = useState(false);
-  const t      = trend(values);
-  const accent = color ?? "#00d4aa";
+  const { active, setActive } = useContext(ExpandedCtx);
+  const ctxPeriods  = useContext(PeriodsCtx);
+  const effectivePeriods =
+    periods ??
+    (ctxPeriods.length === values.length && ctxPeriods.length > 0
+      ? ctxPeriods
+      : values.map((_, i) => `#${i + 1}`));
 
-  // Fall back: read from nearest PeriodsCtx provider, then generic index labels
-  const ctxPeriods = useContext(PeriodsCtx);
-  const effectivePeriods = periods ?? (ctxPeriods.length === values.length && ctxPeriods.length > 0 ? ctxPeriods : values.map((_, i) => `#${i + 1}`));
-  const canExpand = values.length >= 2;
+  const isExpanded      = active === label;
+  const isOtherExpanded = active !== null && !isExpanded;
+  const canExpand       = values.length >= 2;
+  const accent          = color ?? "#00d4aa";
+  const t               = trend(values);
+
+  // Escape collapses
+  useEffect(() => {
+    if (!isExpanded) return;
+    const h = (e: KeyboardEvent) => { if (e.key === "Escape") setActive(null); };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [isExpanded, setActive]);
+
+  // ── chart data (only computed when about to show) ──
+  const fmtVal = (v: number) =>
+    sparkFormatter
+      ? sparkFormatter(v)
+      : v.toLocaleString("en-US", { maximumFractionDigits: 1 });
+
+  const total    = values.reduce((a, b) => a + b, 0);
+  const avg      = values.length ? total / values.length : 0;
+  const peak     = Math.max(...values, 0);
+  const tickStep = Math.max(1, Math.ceil(effectivePeriods.length / 8));
+  const chartData = effectivePeriods.map((lbl, i) => ({ lbl, v: values[i] ?? 0 }));
+  const gradId    = `sc-${label.replace(/\W/g, "")}-${accent.replace(/\W/g, "")}`;
 
   return (
-    <>
-      <div
-        onClick={() => canExpand && setExpanded(true)}
-        className={`relative overflow-hidden rounded-xl border border-[#363650] bg-[#222235] p-5 flex flex-col gap-3 transition-all hover:border-[#454560] hover:bg-[#1c1c2a]${canExpand ? " cursor-pointer group" : ""}`}
-      >
-        <div className="absolute left-0 top-0 bottom-0 w-0.5 rounded-l-xl opacity-60" style={{ backgroundColor: accent }} />
-        <div className="flex items-start justify-between">
-          <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">{label}</p>
-          <div className="flex items-center gap-1.5">
-            {t && (
-              <span className={`inline-flex items-center gap-0.5 font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-md ${t.up ? "text-[#00d4aa] bg-[#00d4aa]/10" : "text-red-400 bg-red-400/10"}`}>
-                {t.up ? "▲" : "▼"} {t.pct.toFixed(1)}%
-              </span>
-            )}
-            {canExpand && (
-              <span
-                className="opacity-0 group-hover:opacity-100 transition-opacity text-[#5a5a7a]"
-                title="Expand chart"
-              >
-                <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
-                </svg>
-              </span>
-            )}
-          </div>
+    <div
+      onClick={() => canExpand && setActive(isExpanded ? null : label)}
+      className={[
+        "relative overflow-hidden rounded-xl border bg-[#222235] flex flex-col transition-all duration-300 ease-in-out",
+        isExpanded
+          ? "col-span-full border-[#454560] bg-[#1a1a2e] p-5 gap-4"
+          : "p-5 gap-3 border-[#363650]",
+        !isExpanded && !isOtherExpanded
+          ? "hover:border-[#454560] hover:bg-[#1c1c2a]"
+          : "",
+        isOtherExpanded
+          ? "opacity-40 scale-[0.97] pointer-events-none"
+          : "",
+        canExpand && !isOtherExpanded ? "cursor-pointer group" : "",
+      ].join(" ")}
+    >
+      {/* left accent bar */}
+      <div className="absolute left-0 top-0 bottom-0 w-0.5 rounded-l-xl opacity-60" style={{ backgroundColor: accent }} />
+
+      {/* header row */}
+      <div className="flex items-start justify-between">
+        <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">{label}</p>
+        <div className="flex items-center gap-1.5">
+          {t && (
+            <span className={`inline-flex items-center gap-0.5 font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-md ${t.up ? "text-[#00d4aa] bg-[#00d4aa]/10" : "text-red-400 bg-red-400/10"}`}>
+              {t.up ? "▲" : "▼"} {t.pct.toFixed(1)}%
+            </span>
+          )}
+          {canExpand && !isExpanded && (
+            <span className="opacity-0 group-hover:opacity-100 transition-opacity text-[#5a5a7a]" title="Expand">
+              <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+              </svg>
+            </span>
+          )}
+          {isExpanded && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setActive(null); }}
+              className="rounded-lg p-1 text-[#5a5a7a] hover:text-[#bcbcd8] hover:bg-[#222235] transition-colors"
+              title="Collapse"
+            >
+              <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          )}
         </div>
-        <div>
-          <p className="font-mono text-2xl font-bold text-[#f8f8fc]">{value}</p>
-          {sub && <p className="mt-0.5 font-mono text-[10px] text-[#8585aa]">{sub}</p>}
-        </div>
-        <Sparkline values={values} color={accent} formatter={sparkFormatter} />
       </div>
 
-      {expanded && (
-        <ExpandedMetricModal
-          label={label}
-          periods={effectivePeriods}
-          values={values}
-          color={accent}
-          formatter={sparkFormatter}
-          onClose={() => setExpanded(false)}
-        />
+      {/* value */}
+      <div>
+        <p className="font-mono text-2xl font-bold text-[#f8f8fc]">{value}</p>
+        {sub && <p className="mt-0.5 font-mono text-[10px] text-[#8585aa]">{sub}</p>}
+      </div>
+
+      {/* sparkline OR expanded chart */}
+      {isExpanded ? (
+        <div
+          className="overflow-hidden transition-all duration-300"
+          style={{ maxHeight: isExpanded ? 380 : 0, opacity: isExpanded ? 1 : 0 }}
+        >
+          {/* stats strip */}
+          <div className="grid grid-cols-3 sm:grid-cols-4 mb-4 rounded-lg border border-[#1e1e2e] divide-x divide-[#1e1e2e] overflow-hidden">
+            {[
+              { lbl: "Total",   val: fmtVal(total) },
+              { lbl: "Average", val: fmtVal(avg) },
+              { lbl: "Peak",    val: fmtVal(peak) },
+              { lbl: "Periods", val: String(effectivePeriods.length) },
+            ].map((s) => (
+              <div key={s.lbl} className="px-4 py-2.5 hidden sm:block last:block first:block nth-3:block">
+                <p className="font-mono text-[9px] uppercase tracking-widest text-[#5a5a7a]">{s.lbl}</p>
+                <p className="font-mono text-sm font-bold text-[#f8f8fc] mt-0.5">{s.val}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* full chart */}
+          <ResponsiveContainer width="100%" height={220}>
+            <AreaChart data={chartData} margin={{ top: 4, right: 12, left: 0, bottom: 4 }}>
+              <defs>
+                <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%"   stopColor={accent} stopOpacity={0.35} />
+                  <stop offset="100%" stopColor={accent} stopOpacity={0.03} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e1e2e" vertical={false} />
+              <XAxis
+                dataKey="lbl"
+                tick={{ fill: "#5a5a7a", fontSize: 10, fontFamily: "monospace" }}
+                axisLine={false} tickLine={false}
+                interval={tickStep - 1} tickMargin={8}
+              />
+              <YAxis
+                tick={{ fill: "#5a5a7a", fontSize: 10, fontFamily: "monospace" }}
+                axisLine={false} tickLine={false}
+                width={64} tickFormatter={fmtVal}
+              />
+              <Tooltip
+                content={({ active: a, payload, label: lbl }) => {
+                  if (!a || !payload?.length) return null;
+                  return (
+                    <div className="rounded-lg border border-[#363650] bg-[#13131f] px-3 py-2 shadow-2xl">
+                      <p className="font-mono text-[10px] text-[#8585aa] mb-0.5">{lbl}</p>
+                      <p className="font-mono text-sm font-bold" style={{ color: accent }}>
+                        {fmtVal(payload[0].value as number)}
+                      </p>
+                    </div>
+                  );
+                }}
+                cursor={{ stroke: `${accent}30`, strokeWidth: 1 }}
+              />
+              <Area
+                type="monotone" dataKey="v"
+                stroke={accent} strokeWidth={2}
+                fill={`url(#${gradId})`}
+                dot={chartData.length <= 45 ? { fill: accent, r: 3, strokeWidth: 0 } : false}
+                activeDot={{ r: 5, fill: accent, strokeWidth: 0 }}
+                isAnimationActive
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+          <p className="mt-2 font-mono text-[10px] text-[#3a3a5a] text-right">
+            click card or press <kbd className="rounded px-1 py-0.5 bg-[#1e1e2e] text-[#5a5a7a]">Esc</kbd> to collapse
+          </p>
+        </div>
+      ) : (
+        <Sparkline values={values} color={accent} formatter={sparkFormatter} />
       )}
-    </>
+    </div>
   );
 }
   function YouTubeSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
@@ -491,10 +467,10 @@ function StatCard({
           <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">YouTube</h3>
         </div>
         <PeriodCompare values={subs} label="Subscribers" />
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <StatCard label="Subscribers" value={fmt(lastSubs)} values={subs} color="#FF0000" />
           <StatCard label="Total Views" value={fmt(views.reduce((a,b)=>a+b,0))} values={views} color="#f87171" />
-        </div>
+        </StatCardGroup>
         <DataTable rows={tableRows} />
         <PlatformInsights insights={youtubeInsights} />
       </div>
@@ -525,10 +501,10 @@ function StatCard({
           <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">X (Twitter)</h3>
         </div>
         <PeriodCompare values={followers} label="Followers" />
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <StatCard label="Followers" value={fmt(lastFollowers)} values={followers} color="#1d9bf0" />
           <StatCard label="Tweets" value={fmt(tweets.reduce((a,b)=>a+b,0))} values={tweets} color="#60a5fa" />
-        </div>
+        </StatCardGroup>
         <DataTable rows={tableRows} />
         <PlatformInsights insights={twitterInsights} />
       </div>
@@ -1675,12 +1651,12 @@ function StripeSection({ snapshots, granularity, currency = "USD" }: { snapshots
       {/* ── Revenue row ── */}
       <RunRateStrip snapshots={snapshots} field="revenue" currency={currency} label="Revenue" />
       <PeriodCompare values={revenue} label="Revenue" isCurrency currency={currency} />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Total Revenue"   value={fmt(totalRevenue, "currency", currency)} values={revenue}      color="#635bff" sparkFormatter={(v) => fmt(v, "currency", currency)} periods={periods} />
         <StatCard label="Transactions"    value={fmt(totalTx)}                  values={txCount}      color="#635bff" periods={periods} />
         <StatCard label="New Customers"   value={fmt(totalNew)}                 values={newCustomers} color="#00d4aa" periods={periods} />
         <StatCard label="Avg Order Val"   value={fmt(avgOrderVal, "currency", currency)}  sub={`${fmt(totalRefunds, "currency", currency)} refunds`} values={revenue.length ? [avgOrderVal] : []} color="#f59e0b" sparkFormatter={(v) => fmt(v, "currency", currency)} />
-      </div>
+      </StatCardGroup>
 
       {/* ── Subscription health row (only when subscription data exists) ── */}
       {hasSubscriptions && (
@@ -1690,7 +1666,7 @@ function StripeSection({ snapshots, granularity, currency = "USD" }: { snapshots
             <span className="font-mono text-[10px] text-[#8585aa] uppercase tracking-widest">Subscription Health</span>
             <div className="h-px flex-1 bg-[#363650]" />
           </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <StatCard
               label="MRR"
               value={fmt(currentMRR, "currency", currency)}
@@ -1725,7 +1701,7 @@ function StripeSection({ snapshots, granularity, currency = "USD" }: { snapshots
               color={churnRate > 5 ? "#f87171" : "#f59e0b"}
               periods={periods}
             />
-          </div>
+          </StatCardGroup>
         </>
       )}
 
@@ -2021,12 +1997,12 @@ function GA4Section({ snapshots, granularity }: { snapshots: Snapshot[]; granula
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Google Analytics 4</h3>
       </div>
       <PeriodCompare values={sessions} label="Sessions" />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Sessions"        value={fmt(totalSessions)}    values={sessions}    color="#f59e0b" periods={periods} />
         <StatCard label="Users"           value={fmt(totalUsers)}       values={users}       color="#f59e0b" periods={periods} />
         <StatCard label="Conversions"     value={fmt(totalConversions)} sub={`${convRate.toFixed(1)}% conv rate`} values={conversions} color="#00d4aa" periods={periods} />
         <StatCard label="Avg Bounce Rate" value={fmt(avgBounce, "percent")} values={bounceRates} color="#f87171" periods={periods} />
-      </div>
+      </StatCardGroup>
       <DataTable rows={tableRows} />
       <PlatformInsights insights={ga4Insights} />
     </div>
@@ -2109,12 +2085,12 @@ function MetaSection({ snapshots, granularity }: { snapshots: Snapshot[]; granul
       </div>
       <RunRateStrip snapshots={snapshots} field="spend" currency={currency} label="Ad Spend" />
       <PeriodCompare values={spend} label="Ad Spend" isCurrency currency={currency} />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Ad Spend"    value={fmtSpend(totalSpend)}  values={spend}       color="#1877f2" />
         <StatCard label="Impressions" value={fmt(totalImpressions)}  values={impressions} color="#1877f2" />
         <StatCard label="Clicks"      value={fmt(totalClicks)}       sub={`${ctr.toFixed(2)}% CTR`} values={clicks} color="#00d4aa" />
         <StatCard label="CPC"         value={fmtSpend(cpc)}          sub={`${fmt(totalConversions)} conversions`} values={spend.length ? [cpc] : []} color="#f59e0b" />
-      </div>
+      </StatCardGroup>
       <DataTable rows={tableRows} />
       <PlatformInsights insights={metaInsights} />
     </div>
@@ -2168,12 +2144,12 @@ function PayPalSection({ snapshots, granularity, currency = "USD" }: { snapshots
       </div>
       <RunRateStrip snapshots={snapshots} field="revenue" currency={currency} label="Revenue" />
       <PeriodCompare values={revenues} label="Revenue" isCurrency currency={currency} />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Revenue"     value={fmt(totalRevenue,  "currency", currency)} values={revenues}    color="#009cde" />
         <StatCard label="Net Revenue" value={fmt(totalNet,      "currency", currency)} values={netRevenues} color="#00d4aa" />
         <StatCard label="Fees Paid"   value={fmt(totalFees,     "currency", currency)} values={fees}        color="#f87171" />
         <StatCard label="Avg Order"   value={fmt(avgOrderValue, "currency", currency)} sub={`${fmt(totalTx)} tx`} values={txCounts} color="#f59e0b" />
-      </div>
+      </StatCardGroup>
       <DataTable rows={tableRows} />
       <PlatformInsights insights={paypalInsights} />
     </div>
@@ -2226,12 +2202,12 @@ function PaddleSection({ snapshots, granularity, currency = "USD" }: { snapshots
       </div>
       <RunRateStrip snapshots={snapshots} field="revenue" currency={currency} label="Revenue" />
       <PeriodCompare values={revenues} label="Revenue" isCurrency currency={currency} />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Revenue"     value={fmt(totalRevenue,  "currency", currency)} values={revenues}    color="#3ddc97" />
         <StatCard label="Net Revenue" value={fmt(totalNet,      "currency", currency)} values={netRevenues} color="#00d4aa" />
         <StatCard label="Fees Paid"   value={fmt(totalFees,     "currency", currency)} values={fees}        color="#f87171" />
         <StatCard label="Avg Order"   value={fmt(avgOrderValue, "currency", currency)} sub={`${fmt(totalTx)} tx`} values={txCounts} color="#f59e0b" />
-      </div>
+      </StatCardGroup>
       <DataTable rows={tableRows} />
       <PlatformInsights insights={paddleInsights} />
     </div>
@@ -2284,12 +2260,12 @@ function LemonSqueezySection({ snapshots, granularity, currency = "USD" }: { sna
       </div>
       <RunRateStrip snapshots={snapshots} field="revenue" currency={currency} label="Revenue" />
       <PeriodCompare values={revenues} label="Revenue" isCurrency currency={currency} />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Revenue"     value={fmt(totalRevenue,  "currency", currency)} values={revenues}    color="#FFC233" />
         <StatCard label="Net Revenue" value={fmt(totalNet,      "currency", currency)} values={netRevenues} color="#f59e0b" />
         <StatCard label="Fees Paid"   value={fmt(totalFees,     "currency", currency)} values={fees}        color="#f87171" />
         <StatCard label="Avg Order"   value={fmt(avgOrderValue, "currency", currency)} sub={`${fmt(totalTx)} tx`} values={txCounts} color="#00d4aa" />
-      </div>
+      </StatCardGroup>
       <DataTable rows={tableRows} />
       <PlatformInsights insights={lemonInsights} />
     </div>
@@ -2332,12 +2308,12 @@ function GumroadSection({ snapshots, granularity, currency = "USD" }: { snapshot
       </div>
       <RunRateStrip snapshots={snapshots} field="revenue" currency={currency} label="Revenue" />
       <PeriodCompare values={revenues} label="Revenue" isCurrency currency={currency} />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Revenue"     value={fmt(totalRevenue,  "currency", currency)} values={revenues}    color="#ff90e8" />
         <StatCard label="Net Revenue" value={fmt(totalNet,      "currency", currency)} values={netRevenues} color="#f59e0b" />
         <StatCard label="Fees Paid"   value={fmt(totalFees,     "currency", currency)} values={fees}        color="#f87171" />
         <StatCard label="Avg Order"   value={fmt(avgOrderValue, "currency", currency)} sub={`${fmt(totalTx)} tx`} values={txCounts} color="#00d4aa" />
-      </div>
+      </StatCardGroup>
       <DataTable rows={tableRows} />
       <PlatformInsights insights={gumroadInsights} />
     </div>
@@ -2380,12 +2356,12 @@ function PlausibleSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Plausible</h3>
       </div>
       <PeriodCompare values={visitors} label="Visitors" />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Visitors"    value={fmt(totalVisitors)}                            values={visitors}    color="#5850ec" />
         <StatCard label="Pageviews"   value={fmt(totalPageviews)}                           values={pageviews}   color="#818cf8" />
         <StatCard label="Bounce Rate" value={`${avgBounce.toFixed(1)}%`}                   values={bounceRates} color="#f87171" />
         <StatCard label="Avg Duration" value={`${Math.round(avgDuration)}s`}               values={durations}   color="#f59e0b" />
-      </div>
+      </StatCardGroup>
       <DataTable rows={tableRows} />
       <PlatformInsights insights={plausibleInsights} />
     </div>
@@ -2419,10 +2395,10 @@ function MixpanelSection({ snapshots, granularity }: { snapshots: Snapshot[]; gr
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Mixpanel</h3>
       </div>
       <PeriodCompare values={events} label="Events" />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
+      <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-2">
         <StatCard label="Total Events"  value={fmt(totalEvents)} values={events} color="#7856ff" />
         <StatCard label="Unique Users"  value={fmt(totalUsers)}  values={users}  color="#a78bfa" />
-      </div>
+      </StatCardGroup>
       <DataTable rows={tableRows} />
       <PlatformInsights insights={mixpanelInsights} />
     </div>
@@ -2459,11 +2435,11 @@ function AmplitudeSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Amplitude</h3>
       </div>
       <PeriodCompare values={activeUsers} label="Active Users" />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <StatCard label="Active Users" value={fmt(totalActive)} values={activeUsers} color="#1e73be" />
         <StatCard label="Total Events" value={fmt(totalEvents)} values={events}      color="#3b82f6" />
         <StatCard label="New Users"    value={fmt(totalNew)}    values={newUsers}    color="#00d4aa" />
-      </div>
+      </StatCardGroup>
       <DataTable rows={tableRows} />
       <PlatformInsights insights={amplitudeInsights} />
     </div>
@@ -2500,11 +2476,11 @@ function PostHogSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">PostHog</h3>
       </div>
       <PeriodCompare values={pageviews} label="Pageviews" />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <StatCard label="Pageviews"    value={fmt(totalPV)}    values={pageviews} color="#f76300" />
         <StatCard label="Unique Users" value={fmt(totalUsers)} values={users}     color="#fb923c" />
         <StatCard label="Sessions"     value={fmt(totalSess)}  values={sessions}  color="#f59e0b" />
-      </div>
+      </StatCardGroup>
       <DataTable rows={tableRows} />
       <PlatformInsights insights={posthogInsights} />
     </div>
@@ -2545,12 +2521,12 @@ function FathomSection({ snapshots, granularity }: { snapshots: Snapshot[]; gran
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Fathom</h3>
       </div>
       <PeriodCompare values={pageviews} label="Pageviews" />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Pageviews"    value={fmt(totalPV)}            values={pageviews}   color="#9333ea" />
         <StatCard label="Uniques"      value={fmt(totalUniq)}          values={uniques}     color="#c084fc" />
         <StatCard label="Bounce Rate"  value={`${avgBounce.toFixed(1)}%`} values={bounceRates} color="#f87171" />
         <StatCard label="Avg Duration" value={`${Math.round(avgDur)}s`}   values={durations}   color="#f59e0b" />
-      </div>
+      </StatCardGroup>
       <DataTable rows={tableRows} />
       <PlatformInsights insights={fathomInsights} />
     </div>
@@ -2595,12 +2571,12 @@ function GoogleAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
       </div>
       <RunRateStrip snapshots={snapshots} field="spend" currency="USD" label="Ad Spend" />
       <PeriodCompare values={spends} label="Ad Spend" isCurrency />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Spend"       value={`$${totalSpend.toFixed(2)}`} values={spends}      color="#4285F4" />
         <StatCard label="Clicks"      value={fmt(totalClicks)}            values={clicks}      color="#34A853" />
         <StatCard label="Impressions" value={fmt(totalImpr)}              values={impressions} color="#FBBC05" />
         <StatCard label="Conversions" value={fmt(totalConv)}              values={conversions} color="#EA4335" />
-      </div>
+      </StatCardGroup>
       <DataTable rows={tableRows} />
       <PlatformInsights insights={googleAdsInsights} />
     </div>
@@ -2642,12 +2618,12 @@ function TikTokAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
       </div>
       <RunRateStrip snapshots={snapshots} field="spend" currency="USD" label="Ad Spend" />
       <PeriodCompare values={spends} label="Ad Spend" isCurrency />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Spend"       value={`$${totalSpend.toFixed(2)}`} values={spends}      color="#69C9D0" />
         <StatCard label="Impressions" value={fmt(totalImpr)}              values={impressions} color="#ee1d52" />
         <StatCard label="Clicks"      value={fmt(totalClicks)}            values={clicks}      color="#f59e0b" />
         <StatCard label="Conversions" value={fmt(totalConv)}              values={conversions} color="#00d4aa" />
-      </div>
+      </StatCardGroup>
       <DataTable rows={tableRows} />
       <PlatformInsights insights={tiktokAdsInsights} />
     </div>
@@ -2689,12 +2665,12 @@ function TwitterAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; 
       </div>
       <RunRateStrip snapshots={snapshots} field="spend" currency="USD" label="Ad Spend" />
       <PeriodCompare values={spends} label="Ad Spend" isCurrency />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Spend"       value={`$${totalSpend.toFixed(2)}`} values={spends}      color="#1d9bf0" />
         <StatCard label="Impressions" value={fmt(totalImpr)}              values={impressions} color="#60a5fa" />
         <StatCard label="Clicks"      value={fmt(totalClicks)}            values={clicks}      color="#00d4aa" />
         <StatCard label="Conversions" value={fmt(totalConv)}              values={conversions} color="#f59e0b" />
-      </div>
+      </StatCardGroup>
       <DataTable rows={tableRows} />
       <PlatformInsights insights={twitterAdsInsights} />
     </div>
@@ -2736,12 +2712,12 @@ function LinkedInAdsSection({ snapshots, granularity }: { snapshots: Snapshot[];
       </div>
       <RunRateStrip snapshots={snapshots} field="spend" currency="USD" label="Ad Spend" />
       <PeriodCompare values={spends} label="Ad Spend" isCurrency />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Spend"       value={`$${totalSpend.toFixed(2)}`} values={spends}      color="#0a66c2" />
         <StatCard label="Impressions" value={fmt(totalImpr)}              values={impressions} color="#3b82f6" />
         <StatCard label="Clicks"      value={fmt(totalClicks)}            values={clicks}      color="#00d4aa" />
         <StatCard label="Conversions" value={fmt(totalConv)}              values={conversions} color="#f59e0b" />
-      </div>
+      </StatCardGroup>
       <DataTable rows={tableRows} />
       <PlatformInsights insights={linkedInAdsInsights} />
     </div>
@@ -2782,12 +2758,12 @@ function SnapchatAdsSection({ snapshots, granularity }: { snapshots: Snapshot[];
       </div>
       <RunRateStrip snapshots={snapshots} field="spend" currency="USD" label="Ad Spend" />
       <PeriodCompare values={spends} label="Ad Spend" isCurrency />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Spend"       value={`$${totalSpend.toFixed(2)}`} values={spends}      color="#f5c518" />
         <StatCard label="Impressions" value={fmt(totalImpr)}              values={impressions} color="#fbbf24" />
         <StatCard label="Swipes"      value={fmt(totalSwipes)}            values={swipes}      color="#00d4aa" />
         <StatCard label="Conversions" value={fmt(totalConv)}              values={conversions} color="#f87171" />
-      </div>
+      </StatCardGroup>
       <DataTable rows={tableRows} />
       <PlatformInsights insights={snapchatAdsInsights} />
     </div>
@@ -2829,12 +2805,12 @@ function PinterestAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]
       </div>
       <RunRateStrip snapshots={snapshots} field="spend" currency="USD" label="Ad Spend" />
       <PeriodCompare values={spends} label="Ad Spend" isCurrency />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Spend"       value={`$${totalSpend.toFixed(2)}`} values={spends}      color="#E60023" />
         <StatCard label="Impressions" value={fmt(totalImpr)}              values={impressions} color="#f87171" />
         <StatCard label="Clicks"      value={fmt(totalClicks)}            values={clicks}      color="#f59e0b" />
         <StatCard label="Conversions" value={fmt(totalConv)}              values={conversions} color="#00d4aa" />
-      </div>
+      </StatCardGroup>
       <DataTable rows={tableRows} />
       <PlatformInsights insights={pinterestAdsInsights} />
     </div>
@@ -2878,12 +2854,12 @@ function MailchimpSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Mailchimp</h3>
       </div>
       <PeriodCompare values={subs} label="Subscribers" />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Emails Sent" value={fmt(totalSent)}   values={sent}   color="#f59e0b" />
         <StatCard label="Opens"       value={fmt(totalOpens)}  values={opens}  color="#fbbf24" />
         <StatCard label="Clicks"      value={fmt(totalClicks)} values={clicks} color="#00d4aa" />
         <StatCard label="Subscribers" value={fmt(lastSubs)}    values={subs}   color="#a78bfa" />
-      </div>
+      </StatCardGroup>
       <DataTable rows={tableRows} />
       <PlatformInsights insights={mailchimpInsights} />
     </div>
@@ -2928,12 +2904,12 @@ function KlaviyoSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
       </div>
       <RunRateStrip snapshots={snapshots} field="revenue" currency="USD" label="Revenue" />
       <PeriodCompare values={revenues} label="Revenue" isCurrency />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Emails Sent" value={fmt(totalSent)}           values={sent}     color="#6366f1" />
         <StatCard label="Opens"       value={fmt(totalOpens)}          values={opens}    color="#818cf8" />
         <StatCard label="Clicks"      value={fmt(totalClicks)}         values={clicks}   color="#00d4aa" />
         <StatCard label="Revenue"     value={`$${totalRev.toFixed(2)}`} values={revenues} color="#f59e0b" />
-      </div>
+      </StatCardGroup>
       <DataTable rows={tableRows} />
       <PlatformInsights insights={klaviyoInsights} />
     </div>
@@ -2970,11 +2946,11 @@ function ConvertKitSection({ snapshots, granularity }: { snapshots: Snapshot[]; 
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">ConvertKit</h3>
       </div>
       <PeriodCompare values={totals} label="Subscribers" />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <StatCard label="Subscribers"     value={fmt(lastTotal)}  values={totals}     color="#FB6970" />
         <StatCard label="New Subscribers" value={fmt(totalNew)}   values={newSubs}    color="#f87171" />
         <StatCard label="Broadcasts Sent" value={fmt(totalBcast)} values={broadcasts} color="#00d4aa" />
-      </div>
+      </StatCardGroup>
       <DataTable rows={tableRows} />
       <PlatformInsights insights={convertkitInsights} />
     </div>
@@ -3012,12 +2988,12 @@ function ActiveCampaignSection({ snapshots, granularity }: { snapshots: Snapshot
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">ActiveCampaign</h3>
       </div>
       <PeriodCompare values={newContacts} label="New Contacts" />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Emails Sent"  value={fmt(sent.reduce((a,b)=>a+b,0))}       values={sent}       color="#356AE6" />
         <StatCard label="Opens"        value={fmt(opens.reduce((a,b)=>a+b,0))}      values={opens}      color="#60a5fa" />
         <StatCard label="Clicks"       value={fmt(clicks.reduce((a,b)=>a+b,0))}     values={clicks}     color="#00d4aa" />
         <StatCard label="New Contacts" value={fmt(newContacts.reduce((a,b)=>a+b,0))} values={newContacts} color="#a78bfa" />
-      </div>
+      </StatCardGroup>
       <DataTable rows={tableRows} />
       <PlatformInsights insights={acInsights} />
     </div>
@@ -3055,12 +3031,12 @@ function BrevoSection({ snapshots, granularity }: { snapshots: Snapshot[]; granu
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Brevo</h3>
       </div>
       <PeriodCompare values={newContacts} label="New Contacts" />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Emails Sent"  value={fmt(sent.reduce((a,b)=>a+b,0))}        values={sent}        color="#0092FF" />
         <StatCard label="Opens"        value={fmt(opens.reduce((a,b)=>a+b,0))}       values={opens}       color="#38bdf8" />
         <StatCard label="Clicks"       value={fmt(clicks.reduce((a,b)=>a+b,0))}      values={clicks}      color="#00d4aa" />
         <StatCard label="New Contacts" value={fmt(newContacts.reduce((a,b)=>a+b,0))} values={newContacts} color="#a78bfa" />
-      </div>
+      </StatCardGroup>
       <DataTable rows={tableRows} />
       <PlatformInsights insights={brevoInsights} />
     </div>
@@ -3099,12 +3075,12 @@ function BeehiivSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Beehiiv</h3>
       </div>
       <PeriodCompare values={totals} label="Subscribers" />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Subscribers"  value={fmt(lastTotal)}                         values={totals}  color="#FF6B35" />
         <StatCard label="New Subs"     value={fmt(newSubs.reduce((a,b)=>a+b,0))}     values={newSubs} color="#fb923c" />
         <StatCard label="Posts"        value={fmt(posts.reduce((a,b)=>a+b,0))}       values={posts}   color="#00d4aa" />
         <StatCard label="Premium"      value={fmt(lastPrem)}                          values={premium} color="#a78bfa" />
-      </div>
+      </StatCardGroup>
       <DataTable rows={tableRows} />
       <PlatformInsights insights={beehiivInsights} />
     </div>
@@ -3145,12 +3121,12 @@ function ShopifySection({ snapshots, granularity, currency = "USD" }: { snapshot
       </div>
       <RunRateStrip snapshots={snapshots} field="revenue" currency={currency} label="Revenue" />
       <PeriodCompare values={revenue} label="Revenue" isCurrency currency={currency} />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Revenue"       value={fmt(revenue.reduce((a,b)=>a+b,0), "currency", currency)}   values={revenue}   color="#96bf48" />
         <StatCard label="Orders"        value={fmt(orders.reduce((a,b)=>a+b,0))}          values={orders}    color="#a3e635" />
         <StatCard label="Refunds"       value={fmt(refunds.reduce((a,b)=>a+b,0))}         values={refunds}   color="#f87171" />
         <StatCard label="New Customers" value={fmt(customers.reduce((a,b)=>a+b,0))}       values={customers} color="#00d4aa" />
-      </div>
+      </StatCardGroup>
       <DataTable rows={tableRows} />
       <PlatformInsights insights={shopifyInsights} />
     </div>
@@ -3184,12 +3160,12 @@ function WooCommerceSection({ snapshots, granularity, currency = "USD" }: { snap
       </div>
       <RunRateStrip snapshots={snapshots} field="revenue" currency={currency} label="Revenue" />
       <PeriodCompare values={revenue} label="Revenue" isCurrency currency={currency} />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Revenue"       value={fmt(revenue.reduce((a,b)=>a+b,0), "currency", currency)}   values={revenue}   color="#7f54b3" />
         <StatCard label="Orders"        value={fmt(orders.reduce((a,b)=>a+b,0))}          values={orders}    color="#a78bfa" />
         <StatCard label="Refunds"       value={fmt(refunds.reduce((a,b)=>a+b,0))}         values={refunds}   color="#f87171" />
         <StatCard label="New Customers" value={fmt(customers.reduce((a,b)=>a+b,0))}       values={customers} color="#00d4aa" />
-      </div>
+      </StatCardGroup>
       <DataTable rows={tableRows} />
     </div>
     </PeriodsCtx.Provider>
@@ -3222,12 +3198,12 @@ function BigCommerceSection({ snapshots, granularity, currency = "USD" }: { snap
       </div>
       <RunRateStrip snapshots={snapshots} field="revenue" currency={currency} label="Revenue" />
       <PeriodCompare values={revenue} label="Revenue" isCurrency currency={currency} />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Revenue"       value={fmt(revenue.reduce((a,b)=>a+b,0), "currency", currency)}   values={revenue}   color="#bcbcd8" />
         <StatCard label="Orders"        value={fmt(orders.reduce((a,b)=>a+b,0))}          values={orders}    color="#a78bfa" />
         <StatCard label="Refunds"       value={fmt(refunds.reduce((a,b)=>a+b,0))}         values={refunds}   color="#f87171" />
         <StatCard label="New Customers" value={fmt(customers.reduce((a,b)=>a+b,0))}       values={customers} color="#00d4aa" />
-      </div>
+      </StatCardGroup>
       <DataTable rows={tableRows} />
     </div>
     </PeriodsCtx.Provider>
@@ -3260,12 +3236,12 @@ function AmazonSellerSection({ snapshots, granularity, currency = "USD" }: { sna
       </div>
       <RunRateStrip snapshots={snapshots} field="revenue" currency={currency} label="Revenue" />
       <PeriodCompare values={revenue} label="Revenue" isCurrency currency={currency} />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Revenue" value={fmt(revenue.reduce((a,b)=>a+b,0), "currency", currency)} values={revenue} color="#FF9900" />
         <StatCard label="Orders"  value={fmt(orders.reduce((a,b)=>a+b,0))}       values={orders}  color="#fbbf24" />
         <StatCard label="Units"   value={fmt(units.reduce((a,b)=>a+b,0))}        values={units}   color="#00d4aa" />
         <StatCard label="Refunds" value={fmt(refunds.reduce((a,b)=>a+b,0))}      values={refunds} color="#f87171" />
-      </div>
+      </StatCardGroup>
       <DataTable rows={tableRows} />
     </div>
     </PeriodsCtx.Provider>
@@ -3298,12 +3274,12 @@ function EtsySection({ snapshots, granularity, currency = "USD" }: { snapshots: 
       </div>
       <RunRateStrip snapshots={snapshots} field="revenue" currency={currency} label="Revenue" />
       <PeriodCompare values={revenue} label="Revenue" isCurrency currency={currency} />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Revenue"       value={fmt(revenue.reduce((a,b)=>a+b,0), "currency", currency)}   values={revenue}   color="#F56400" />
         <StatCard label="Orders"        value={fmt(orders.reduce((a,b)=>a+b,0))}          values={orders}    color="#fb923c" />
         <StatCard label="Views"         value={fmt(views.reduce((a,b)=>a+b,0))}           values={views}     color="#60a5fa" />
         <StatCard label="New Customers" value={fmt(customers.reduce((a,b)=>a+b,0))}       values={customers} color="#00d4aa" />
-      </div>
+      </StatCardGroup>
       <DataTable rows={tableRows} />
     </div>
     </PeriodsCtx.Provider>
@@ -3337,12 +3313,12 @@ function HubSpotSection({ snapshots, granularity, currency = "USD" }: { snapshot
       </div>
       <RunRateStrip snapshots={snapshots} field="closedRevenue" currency={currency} label="Closed Revenue" />
       <PeriodCompare values={closedRev} label="Closed Revenue" isCurrency currency={currency} />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Deals Won"      value={fmt(dealsWon.reduce((a,b)=>a+b,0))}        values={dealsWon}    color="#ff7a59" />
         <StatCard label="Closed Revenue" value={fmt(closedRev.reduce((a,b)=>a+b,0), "currency", currency)} values={closedRev}   color="#fb923c" />
         <StatCard label="New Contacts"   value={fmt(newContacts.reduce((a,b)=>a+b,0))}     values={newContacts} color="#00d4aa" />
         <StatCard label="Pipeline"       value={fmt(lastPipeline, "currency", currency)}                    values={pipeline}    color="#a78bfa" />
-      </div>
+      </StatCardGroup>
       <DataTable rows={tableRows} />
     </div>
     </PeriodsCtx.Provider>
@@ -3378,12 +3354,12 @@ function SalesforceSection({ snapshots, granularity, currency = "USD" }: { snaps
       </div>
       <RunRateStrip snapshots={snapshots} field="closedRevenue" currency={currency} label="Closed Revenue" />
       <PeriodCompare values={closedRev} label="Closed Revenue" isCurrency currency={currency} />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Deals Won"      value={fmt(dealsWon.reduce((a,b)=>a+b,0))}        values={dealsWon}  color="#00A1E0" />
         <StatCard label="Closed Revenue" value={fmt(closedRev.reduce((a,b)=>a+b,0), "currency", currency)} values={closedRev} color="#38bdf8" />
         <StatCard label="New Leads"      value={fmt(newLeads.reduce((a,b)=>a+b,0))}        values={newLeads}  color="#00d4aa" />
         <StatCard label="Pipeline"       value={fmt(lastPipeline, "currency", currency)}                    values={pipeline}  color="#a78bfa" />
-      </div>
+      </StatCardGroup>
       <DataTable rows={tableRows} />
     </div>
     </PeriodsCtx.Provider>
@@ -3416,12 +3392,12 @@ function PipedriveSection({ snapshots, granularity, currency = "USD" }: { snapsh
       </div>
       <RunRateStrip snapshots={snapshots} field="closedRevenue" currency={currency} label="Closed Revenue" />
       <PeriodCompare values={closedRev} label="Closed Revenue" isCurrency currency={currency} />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Deals Won"      value={fmt(dealsWon.reduce((a,b)=>a+b,0))}             values={dealsWon}    color="#30a04c" />
         <StatCard label="Closed Revenue" value={fmt(closedRev.reduce((a,b)=>a+b,0), "currency", currency)} values={closedRev}   color="#4ade80" />
         <StatCard label="New Contacts"   value={fmt(newContacts.reduce((a,b)=>a+b,0))}           values={newContacts} color="#00d4aa" />
         <StatCard label="Pipeline"       value={fmt(lastPipe, "currency", currency)}                        values={pipeline}    color="#a78bfa" />
-      </div>
+      </StatCardGroup>
       <DataTable rows={tableRows} />
     </div>
     </PeriodsCtx.Provider>
@@ -3450,11 +3426,11 @@ function NotionSection({ snapshots, granularity }: { snapshots: Snapshot[]; gran
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 font-mono text-[10px] font-bold text-white">NO</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Notion</h3>
       </div>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <StatCard label="New Rows"     value={fmt(newRows.reduce((a,b)=>a+b,0))}   values={newRows}   color="#e5e5e5" />
         <StatCard label="Updated Rows" value={fmt(updated.reduce((a,b)=>a+b,0))}   values={updated}   color="#a3a3a3" />
         <StatCard label="Total Rows"   value={fmt(lastTotal)}                       values={totalRows} color="#737373" />
-      </div>
+      </StatCardGroup>
       <DataTable rows={tableRows} />
     </div>
     </PeriodsCtx.Provider>
@@ -3485,12 +3461,12 @@ function IntercomSection({ snapshots, granularity }: { snapshots: Snapshot[]; gr
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1f8ded]/15 font-mono text-[10px] font-bold text-[#1f8ded]">IC</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Intercom</h3>
       </div>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="New Convos"   value={fmt(newConvos.reduce((a,b)=>a+b,0))} values={newConvos} color="#1f8ded" />
         <StatCard label="Resolved"     value={fmt(resolved.reduce((a,b)=>a+b,0))}  values={resolved}  color="#38bdf8" />
         <StatCard label="New Contacts" value={fmt(contacts.reduce((a,b)=>a+b,0))}  values={contacts}  color="#00d4aa" />
         <StatCard label="CSAT"         value={`${lastCsat.toFixed(1)}%`}            values={csat}      color="#a78bfa" />
-      </div>
+      </StatCardGroup>
       <DataTable rows={tableRows} />
     </div>
     </PeriodsCtx.Provider>
@@ -3519,11 +3495,11 @@ function ZendeskSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#03363D]/40 font-mono text-[10px] font-bold text-[#2ECC71]">ZD</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Zendesk</h3>
       </div>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <StatCard label="New Tickets"    value={fmt(newT.reduce((a,b)=>a+b,0))}    values={newT}   color="#2ECC71" />
         <StatCard label="Solved Tickets" value={fmt(solved.reduce((a,b)=>a+b,0))}  values={solved} color="#00d4aa" />
         <StatCard label="CSAT"           value={`${lastCsat.toFixed(1)}%`}          values={csat}   color="#a78bfa" />
-      </div>
+      </StatCardGroup>
       <DataTable rows={tableRows} />
     </div>
     </PeriodsCtx.Provider>
@@ -3554,12 +3530,12 @@ function FreshdeskSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#25C16F]/15 font-mono text-[10px] font-bold text-[#25C16F]">FD</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Freshdesk</h3>
       </div>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="New Tickets"  value={fmt(newT.reduce((a,b)=>a+b,0))}     values={newT}     color="#25C16F" />
         <StatCard label="Resolved"     value={fmt(resolved.reduce((a,b)=>a+b,0))} values={resolved} color="#4ade80" />
         <StatCard label="Open"         value={fmt(open.reduce((a,b)=>a+b,0))}     values={open}     color="#fbbf24" />
         <StatCard label="CSAT"         value={`${lastCsat.toFixed(1)}%`}           values={csat}     color="#a78bfa" />
-      </div>
+      </StatCardGroup>
       <DataTable rows={tableRows} />
     </div>
     </PeriodsCtx.Provider>
@@ -3587,11 +3563,11 @@ function SegmentSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#52BD94]/15 font-mono text-[10px] font-bold text-[#52BD94]">SG</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Segment</h3>
       </div>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <StatCard label="Delivered" value={fmt(delivered.reduce((a,b)=>a+b,0))} values={delivered} color="#52BD94" />
         <StatCard label="Failed"    value={fmt(failed.reduce((a,b)=>a+b,0))}    values={failed}    color="#f87171" />
         <StatCard label="Sources"   value={fmt(sources.length > 0 ? sources[sources.length - 1] : 0)} values={sources} color="#a78bfa" />
-      </div>
+      </StatCardGroup>
       <DataTable rows={tableRows} />
     </div>
     </PeriodsCtx.Provider>
@@ -3621,12 +3597,12 @@ function HeapSection({ snapshots, granularity }: { snapshots: Snapshot[]; granul
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FF5B5B]/15 font-mono text-[10px] font-bold text-[#FF5B5B]">HP</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Heap</h3>
       </div>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Sessions"     value={fmt(sessions.reduce((a,b)=>a+b,0))} values={sessions} color="#FF5B5B" />
         <StatCard label="Unique Users" value={fmt(users.reduce((a,b)=>a+b,0))}    values={users}    color="#fb923c" />
         <StatCard label="Page Views"   value={fmt(pv.reduce((a,b)=>a+b,0))}       values={pv}       color="#00d4aa" />
         <StatCard label="Events"       value={fmt(events.reduce((a,b)=>a+b,0))}   values={events}   color="#a78bfa" />
-      </div>
+      </StatCardGroup>
       <DataTable rows={tableRows} />
     </div>
     </PeriodsCtx.Provider>
@@ -3656,12 +3632,12 @@ function FullStorySection({ snapshots, granularity }: { snapshots: Snapshot[]; g
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#3B1D8E]/30 font-mono text-[10px] font-bold text-[#a78bfa]">FS</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">FullStory</h3>
       </div>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Sessions"    value={fmt(sessions.reduce((a,b)=>a+b,0))} values={sessions} color="#7c3aed" />
         <StatCard label="Page Views"  value={fmt(pv.reduce((a,b)=>a+b,0))}       values={pv}       color="#a78bfa" />
         <StatCard label="Frustration" value={fmt(frust.reduce((a,b)=>a+b,0))}    values={frust}    color="#f87171" />
         <StatCard label="Error Clicks" value={fmt(errors.reduce((a,b)=>a+b,0))}  values={errors}   color="#fb923c" />
-      </div>
+      </StatCardGroup>
       <DataTable rows={tableRows} />
     </div>
     </PeriodsCtx.Provider>
@@ -3691,12 +3667,12 @@ function HotjarSection({ snapshots, granularity }: { snapshots: Snapshot[]; gran
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FD3A5C]/15 font-mono text-[10px] font-bold text-[#FD3A5C]">HJ</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Hotjar</h3>
       </div>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Sessions"   value={fmt(sessions.reduce((a,b)=>a+b,0))} values={sessions} color="#FD3A5C" />
         <StatCard label="Recordings" value={fmt(recs.reduce((a,b)=>a+b,0))}     values={recs}     color="#f87171" />
         <StatCard label="Heatmaps"   value={fmt(heatmaps.reduce((a,b)=>a+b,0))} values={heatmaps} color="#fbbf24" />
         <StatCard label="Feedback"   value={fmt(feedback.reduce((a,b)=>a+b,0))} values={feedback} color="#a78bfa" />
-      </div>
+      </StatCardGroup>
       <DataTable rows={tableRows} />
     </div>
     </PeriodsCtx.Provider>
@@ -3727,12 +3703,12 @@ function InstagramSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#E1306C]/15 font-mono text-[10px] font-bold text-[#E1306C]">IG</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Instagram</h3>
       </div>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Followers"      value={fmt(lastFollows)}                          values={followers}   color="#E1306C" />
         <StatCard label="Reach"          value={fmt(reach.reduce((a,b)=>a+b,0))}           values={reach}       color="#f472b6" />
         <StatCard label="Impressions"    value={fmt(impressions.reduce((a,b)=>a+b,0))}     values={impressions} color="#fb923c" />
         <StatCard label="Profile Visits" value={fmt(visits.reduce((a,b)=>a+b,0))}          values={visits}      color="#a78bfa" />
-      </div>
+      </StatCardGroup>
       <DataTable rows={tableRows} />
     </div>
     </PeriodsCtx.Provider>
