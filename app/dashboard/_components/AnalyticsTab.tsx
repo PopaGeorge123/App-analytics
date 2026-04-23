@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   AreaChart, Area, Tooltip, ResponsiveContainer,
+  XAxis, YAxis, CartesianGrid,
 } from "recharts";
 import type { Snapshot } from "./DashboardShell";
 import OverviewSection from "./OverviewSection";
@@ -234,34 +235,241 @@ function Sparkline({ values, color = "#00d4aa", formatter }: {
   );
 }
 
+// ── Shared periods context — sections provide, StatCard reads ──────────────
+const PeriodsCtx = createContext<string[]>([]);
+
+// ── Expanded metric modal ─────────────────────────────────────────────────
+
+function ExpandedMetricModal({
+  label, periods, values, color, formatter, onClose,
+}: {
+  label: string;
+  periods: string[];
+  values: number[];
+  color: string;
+  formatter?: (v: number) => string;
+  onClose: () => void;
+}) {
+  const fmtVal = (v: number) =>
+    formatter
+      ? formatter(v)
+      : v.toLocaleString("en-US", { maximumFractionDigits: 1 });
+
+  const total   = values.reduce((a, b) => a + b, 0);
+  const avg     = values.length ? total / values.length : 0;
+  const peak    = Math.max(...values, 0);
+  const nonZero = values.filter((v) => v > 0);
+
+  // Thinning: never show more than ~8 x-axis ticks
+  const maxTicks = 8;
+  const tickStep = Math.max(1, Math.ceil(periods.length / maxTicks));
+
+  const chartData = periods.map((lbl, i) => ({ lbl, v: values[i] ?? 0 }));
+  const gradId    = `em-${label.replace(/\W/g, "")}-${color.replace(/\W/g, "")}`;
+
+  // Close on Escape
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  // Lock body scroll while modal is open
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
+  return (
+    <div
+      className="fixed inset-0 z-[9998] flex items-center justify-center p-4 sm:p-8"
+      onClick={onClose}
+    >
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+
+      {/* Modal */}
+      <div
+        className="relative z-10 w-full max-w-2xl rounded-2xl border border-[#363650] bg-[#13131f] shadow-2xl overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e1e2e]">
+          <div className="flex items-center gap-3">
+            <div className="w-1 h-6 rounded-full shrink-0" style={{ backgroundColor: color }} />
+            <h2 className="font-mono text-sm font-bold text-[#f8f8fc]">{label}</h2>
+            <span className="font-mono text-[10px] text-[#5a5a7a]">{periods.length} periods</span>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-lg p-1.5 text-[#5a5a7a] hover:text-[#bcbcd8] hover:bg-[#222235] transition-colors"
+          >
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Stats strip */}
+        <div className="grid grid-cols-4 border-b border-[#1e1e2e]">
+          {[
+            { lbl: "Total",    val: fmtVal(total) },
+            { lbl: "Average",  val: fmtVal(avg) },
+            { lbl: "Peak",     val: fmtVal(peak) },
+            { lbl: "Periods",  val: String(periods.length) },
+          ].map((s) => (
+            <div key={s.lbl} className="px-5 py-3 border-r border-[#1e1e2e] last:border-r-0">
+              <p className="font-mono text-[9px] uppercase tracking-widest text-[#5a5a7a]">{s.lbl}</p>
+              <p className="font-mono text-sm font-bold text-[#f8f8fc] mt-0.5">{s.val}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Chart */}
+        <div className="px-4 pt-6 pb-4">
+          <ResponsiveContainer width="100%" height={220}>
+            <AreaChart data={chartData} margin={{ top: 5, right: 12, left: 0, bottom: 5 }}>
+              <defs>
+                <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={color} stopOpacity={0.3} />
+                  <stop offset="100%" stopColor={color} stopOpacity={0.02} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e1e2e" vertical={false} />
+              <XAxis
+                dataKey="lbl"
+                tick={{ fill: "#5a5a7a", fontSize: 10, fontFamily: "monospace" }}
+                axisLine={false}
+                tickLine={false}
+                interval={tickStep - 1}
+                tickMargin={8}
+              />
+              <YAxis
+                tick={{ fill: "#5a5a7a", fontSize: 10, fontFamily: "monospace" }}
+                axisLine={false}
+                tickLine={false}
+                width={64}
+                tickFormatter={fmtVal}
+              />
+              <Tooltip
+                content={({ active, payload, label: lbl }) => {
+                  if (!active || !payload?.length) return null;
+                  return (
+                    <div className="rounded-lg border border-[#363650] bg-[#13131f] px-3 py-2 shadow-2xl">
+                      <p className="font-mono text-[10px] text-[#8585aa] mb-0.5">{lbl}</p>
+                      <p className="font-mono text-sm font-bold" style={{ color }}>
+                        {fmtVal(payload[0].value as number)}
+                      </p>
+                    </div>
+                  );
+                }}
+                cursor={{ stroke: `${color}30`, strokeWidth: 1 }}
+              />
+              <Area
+                type="monotone"
+                dataKey="v"
+                stroke={color}
+                strokeWidth={2}
+                fill={`url(#${gradId})`}
+                dot={chartData.length <= 45 ? { fill: color, r: 3, strokeWidth: 0 } : false}
+                activeDot={{ r: 5, fill: color, strokeWidth: 0 }}
+                isAnimationActive
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between px-6 pb-4">
+          <p className="font-mono text-[10px] text-[#3a3a5a]">
+            Click outside or press <kbd className="rounded px-1 py-0.5 bg-[#1e1e2e] text-[#5a5a7a]">Esc</kbd> to close
+          </p>
+          {nonZero.length < values.length && (
+            <p className="font-mono text-[10px] text-[#3a3a5a]">
+              {values.length - nonZero.length} period{values.length - nonZero.length !== 1 ? "s" : ""} with no data
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Stat card ─────────────────────────────────────────────────────────────
 
-function StatCard({ label, value, sub, values, color, sparkFormatter }: {
-  label: string; value: string; sub?: string; values: number[]; color?: string; sparkFormatter?: (v: number) => string;
+function StatCard({
+  label, value, sub, values, color, sparkFormatter, periods,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  values: number[];
+  color?: string;
+  sparkFormatter?: (v: number) => string;
+  /** Optional: formatted period labels (e.g. "Jan 3", "W Jan 6") — used in the expanded chart x-axis */
+  periods?: string[];
 }) {
-  const t = trend(values);
+  const [expanded, setExpanded] = useState(false);
+  const t      = trend(values);
   const accent = color ?? "#00d4aa";
+
+  // Fall back: read from nearest PeriodsCtx provider, then generic index labels
+  const ctxPeriods = useContext(PeriodsCtx);
+  const effectivePeriods = periods ?? (ctxPeriods.length === values.length && ctxPeriods.length > 0 ? ctxPeriods : values.map((_, i) => `#${i + 1}`));
+  const canExpand = values.length >= 2;
+
   return (
-    <div className="relative overflow-hidden rounded-xl border border-[#363650] bg-[#222235] p-5 flex flex-col gap-3 transition-all hover:border-[#454560] hover:bg-[#1c1c2a]">
-      <div className="absolute left-0 top-0 bottom-0 w-0.5 rounded-l-xl opacity-60" style={{ backgroundColor: accent }} />
-      <div className="flex items-start justify-between">
-        <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">{label}</p>
-        {t && (
-          <span className={`inline-flex items-center gap-0.5 font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-md ${t.up ? "text-[#00d4aa] bg-[#00d4aa]/10" : "text-red-400 bg-red-400/10"}`}>
-            {t.up ? "▲" : "▼"} {t.pct.toFixed(1)}%
-          </span>
-        )}
+    <>
+      <div
+        onClick={() => canExpand && setExpanded(true)}
+        className={`relative overflow-hidden rounded-xl border border-[#363650] bg-[#222235] p-5 flex flex-col gap-3 transition-all hover:border-[#454560] hover:bg-[#1c1c2a]${canExpand ? " cursor-pointer group" : ""}`}
+      >
+        <div className="absolute left-0 top-0 bottom-0 w-0.5 rounded-l-xl opacity-60" style={{ backgroundColor: accent }} />
+        <div className="flex items-start justify-between">
+          <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">{label}</p>
+          <div className="flex items-center gap-1.5">
+            {t && (
+              <span className={`inline-flex items-center gap-0.5 font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-md ${t.up ? "text-[#00d4aa] bg-[#00d4aa]/10" : "text-red-400 bg-red-400/10"}`}>
+                {t.up ? "▲" : "▼"} {t.pct.toFixed(1)}%
+              </span>
+            )}
+            {canExpand && (
+              <span
+                className="opacity-0 group-hover:opacity-100 transition-opacity text-[#5a5a7a]"
+                title="Expand chart"
+              >
+                <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+                </svg>
+              </span>
+            )}
+          </div>
+        </div>
+        <div>
+          <p className="font-mono text-2xl font-bold text-[#f8f8fc]">{value}</p>
+          {sub && <p className="mt-0.5 font-mono text-[10px] text-[#8585aa]">{sub}</p>}
+        </div>
+        <Sparkline values={values} color={accent} formatter={sparkFormatter} />
       </div>
-      <div>
-        <p className="font-mono text-2xl font-bold text-[#f8f8fc]">{value}</p>
-        {sub && <p className="mt-0.5 font-mono text-[10px] text-[#8585aa]">{sub}</p>}
-      </div>
-      <Sparkline values={values} color={accent} formatter={sparkFormatter} />
-    </div>
+
+      {expanded && (
+        <ExpandedMetricModal
+          label={label}
+          periods={effectivePeriods}
+          values={values}
+          color={accent}
+          formatter={sparkFormatter}
+          onClose={() => setExpanded(false)}
+        />
+      )}
+    </>
   );
 }
   function YouTubeSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
     const grouped = groupSnapshots(snapshots, granularity, ["subscribers", "totalViews"], []);
+    const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
     const subs = grouped.map((r) => r.data.subscribers);
     const views = grouped.map((r) => r.data.totalViews);
     const lastSubs = subs.length > 0 ? subs[subs.length - 1] : 0;
@@ -295,6 +503,7 @@ function StatCard({ label, value, sub, values, color, sparkFormatter }: {
 
   function TwitterOrganicSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
     const grouped = groupSnapshots(snapshots, granularity, ["followers", "tweetCount"], []);
+    const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
     const followers = grouped.map((r) => r.data.followers);
     const tweets = grouped.map((r) => r.data.tweetCount);
     const lastFollowers = followers.length > 0 ? followers[followers.length - 1] : 0;
@@ -1392,6 +1601,7 @@ function StripeSection({ snapshots, granularity, currency = "USD" }: { snapshots
     [],
     ["mrr", "activeSubscriptions", "trialingSubscriptions", "arpu"]
   );
+  const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
 
   const revenue             = grouped.map((r) => r.data.revenue);
   const txCount             = grouped.map((r) => r.data.txCount);
@@ -1450,6 +1660,7 @@ function StripeSection({ snapshots, granularity, currency = "USD" }: { snapshots
   });
 
   return (
+    <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
       {/* ── Header ── */}
       <div className="flex items-center gap-3 rounded-xl border border-[#635bff]/15 bg-[#635bff]/5 px-4 py-3">
@@ -1465,9 +1676,9 @@ function StripeSection({ snapshots, granularity, currency = "USD" }: { snapshots
       <RunRateStrip snapshots={snapshots} field="revenue" currency={currency} label="Revenue" />
       <PeriodCompare values={revenue} label="Revenue" isCurrency currency={currency} />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard label="Total Revenue"   value={fmt(totalRevenue, "currency", currency)} values={revenue}      color="#635bff" sparkFormatter={(v) => fmt(v, "currency", currency)} />
-        <StatCard label="Transactions"    value={fmt(totalTx)}                  values={txCount}      color="#635bff" />
-        <StatCard label="New Customers"   value={fmt(totalNew)}                 values={newCustomers} color="#00d4aa" />
+        <StatCard label="Total Revenue"   value={fmt(totalRevenue, "currency", currency)} values={revenue}      color="#635bff" sparkFormatter={(v) => fmt(v, "currency", currency)} periods={periods} />
+        <StatCard label="Transactions"    value={fmt(totalTx)}                  values={txCount}      color="#635bff" periods={periods} />
+        <StatCard label="New Customers"   value={fmt(totalNew)}                 values={newCustomers} color="#00d4aa" periods={periods} />
         <StatCard label="Avg Order Val"   value={fmt(avgOrderVal, "currency", currency)}  sub={`${fmt(totalRefunds, "currency", currency)} refunds`} values={revenue.length ? [avgOrderVal] : []} color="#f59e0b" sparkFormatter={(v) => fmt(v, "currency", currency)} />
       </div>
 
@@ -1487,6 +1698,7 @@ function StripeSection({ snapshots, granularity, currency = "USD" }: { snapshots
               values={mrrSeries}
               color="#a78bfa"
               sparkFormatter={(v) => fmt(v, "currency", currency)}
+              periods={periods}
             />
             <StatCard
               label="Active Subs"
@@ -1494,6 +1706,7 @@ function StripeSection({ snapshots, granularity, currency = "USD" }: { snapshots
               sub={currentTrialingSubs > 0 ? `${currentTrialingSubs} trialing` : undefined}
               values={grouped.map((r) => r.data.activeSubscriptions)}
               color="#00d4aa"
+              periods={periods}
             />
             <StatCard
               label="ARPU"
@@ -1502,6 +1715,7 @@ function StripeSection({ snapshots, granularity, currency = "USD" }: { snapshots
               values={grouped.map((r) => r.data.arpu)}
               color="#635bff"
               sparkFormatter={(v) => fmt(v, "currency", currency)}
+              periods={periods}
             />
             <StatCard
               label="Churn"
@@ -1509,6 +1723,7 @@ function StripeSection({ snapshots, granularity, currency = "USD" }: { snapshots
               sub={churnRate > 0 ? `${churnRate.toFixed(1)}% rate` : "cancellations"}
               values={grouped.map((r) => r.data.churnedToday)}
               color={churnRate > 5 ? "#f87171" : "#f59e0b"}
+              periods={periods}
             />
           </div>
         </>
@@ -1518,6 +1733,7 @@ function StripeSection({ snapshots, granularity, currency = "USD" }: { snapshots
       <PlatformInsights insights={stripeInsights} />
       {hasSubscriptions && <MRRBenchmarks currentMRR={currentMRR} mrrSeries={mrrSeries} churnRate={churnRate} arpu={currentARPU} currency={currency} />}
     </div>
+    </PeriodsCtx.Provider>
   );
 }
 
@@ -1764,7 +1980,7 @@ function CohortSection({ snapshots }: { snapshots: Snapshot[] }) {
 function GA4Section({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
   const grouped = groupSnapshots(snapshots, granularity,
     ["sessions", "users", "newUsers", "conversions"], ["bounceRate", "avgSessionDuration"]);
-
+  const periods     = grouped.map((r) => fmtPeriod(r.period, granularity));
   const sessions    = grouped.map((r) => r.data.sessions);
   const users       = grouped.map((r) => r.data.users);
   const conversions = grouped.map((r) => r.data.conversions);
@@ -1796,6 +2012,7 @@ function GA4Section({ snapshots, granularity }: { snapshots: Snapshot[]; granula
   });
 
   return (
+    <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#f59e0b]/15 bg-[#f59e0b]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f59e0b]/15 text-[#f59e0b]">
@@ -1805,20 +2022,22 @@ function GA4Section({ snapshots, granularity }: { snapshots: Snapshot[]; granula
       </div>
       <PeriodCompare values={sessions} label="Sessions" />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard label="Sessions"        value={fmt(totalSessions)}    values={sessions}    color="#f59e0b" />
-        <StatCard label="Users"           value={fmt(totalUsers)}       values={users}       color="#f59e0b" />
-        <StatCard label="Conversions"     value={fmt(totalConversions)} sub={`${convRate.toFixed(1)}% conv rate`} values={conversions} color="#00d4aa" />
-        <StatCard label="Avg Bounce Rate" value={fmt(avgBounce, "percent")} values={bounceRates} color="#f87171" />
+        <StatCard label="Sessions"        value={fmt(totalSessions)}    values={sessions}    color="#f59e0b" periods={periods} />
+        <StatCard label="Users"           value={fmt(totalUsers)}       values={users}       color="#f59e0b" periods={periods} />
+        <StatCard label="Conversions"     value={fmt(totalConversions)} sub={`${convRate.toFixed(1)}% conv rate`} values={conversions} color="#00d4aa" periods={periods} />
+        <StatCard label="Avg Bounce Rate" value={fmt(avgBounce, "percent")} values={bounceRates} color="#f87171" periods={periods} />
       </div>
       <DataTable rows={tableRows} />
       <PlatformInsights insights={ga4Insights} />
     </div>
+    </PeriodsCtx.Provider>
   );
 }
 
 function MetaSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
   const grouped = groupSnapshots(snapshots, granularity,
     ["spend", "impressions", "clicks", "conversions"], []);
+  const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
 
   const spend       = grouped.map((r) => r.data.spend);
   const impressions = grouped.map((r) => r.data.impressions);
@@ -1875,6 +2094,7 @@ function MetaSection({ snapshots, granularity }: { snapshots: Snapshot[]; granul
   });
 
   return (
+    <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#1877f2]/15 bg-[#1877f2]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1877f2]/15 text-[#1877f2]">
@@ -1898,12 +2118,14 @@ function MetaSection({ snapshots, granularity }: { snapshots: Snapshot[]; granul
       <DataTable rows={tableRows} />
       <PlatformInsights insights={metaInsights} />
     </div>
+    </PeriodsCtx.Provider>
   );
 }
 
 function PayPalSection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
   const grouped = groupSnapshots(snapshots, granularity,
     ["revenue", "fees", "netRevenue", "txCount"], []);
+  const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
 
   const revenues    = grouped.map((r) => r.data.revenue);
   const fees        = grouped.map((r) => r.data.fees);
@@ -1933,6 +2155,7 @@ function PayPalSection({ snapshots, granularity, currency = "USD" }: { snapshots
   });
 
   return (
+    <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#003087]/20 bg-[#003087]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#003087]/15 text-[#009cde]">
@@ -1954,12 +2177,14 @@ function PayPalSection({ snapshots, granularity, currency = "USD" }: { snapshots
       <DataTable rows={tableRows} />
       <PlatformInsights insights={paypalInsights} />
     </div>
+    </PeriodsCtx.Provider>
   );
 }
 
 function PaddleSection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
   const grouped = groupSnapshots(snapshots, granularity,
     ["revenue", "fees", "netRevenue", "txCount"], []);
+  const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
 
   const revenues    = grouped.map((r) => r.data.revenue);
   const fees        = grouped.map((r) => r.data.fees);
@@ -1989,6 +2214,7 @@ function PaddleSection({ snapshots, granularity, currency = "USD" }: { snapshots
   });
 
   return (
+    <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#3ddc97]/15 bg-[#3ddc97]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#3ddc97]/15 text-[#3ddc97]">
@@ -2009,12 +2235,14 @@ function PaddleSection({ snapshots, granularity, currency = "USD" }: { snapshots
       <DataTable rows={tableRows} />
       <PlatformInsights insights={paddleInsights} />
     </div>
+    </PeriodsCtx.Provider>
   );
 }
 
 function LemonSqueezySection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
   const grouped = groupSnapshots(snapshots, granularity,
     ["revenue", "fees", "netRevenue", "txCount"], []);
+  const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
 
   const revenues    = grouped.map((r) => r.data.revenue);
   const fees        = grouped.map((r) => r.data.fees);
@@ -2044,6 +2272,7 @@ function LemonSqueezySection({ snapshots, granularity, currency = "USD" }: { sna
   });
 
   return (
+    <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#FFC233]/15 bg-[#FFC233]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FFC233]/15 text-[#FFC233]">
@@ -2064,11 +2293,13 @@ function LemonSqueezySection({ snapshots, granularity, currency = "USD" }: { sna
       <DataTable rows={tableRows} />
       <PlatformInsights insights={lemonInsights} />
     </div>
+    </PeriodsCtx.Provider>
   );
 }
 
 function GumroadSection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
   const grouped = groupSnapshots(snapshots, granularity, ["revenue", "fees", "netRevenue", "txCount"], []);
+  const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const revenues    = grouped.map((r) => r.data.revenue);
   const fees        = grouped.map((r) => r.data.fees);
   const netRevenues = grouped.map((r) => r.data.netRevenue);
@@ -2093,6 +2324,7 @@ function GumroadSection({ snapshots, granularity, currency = "USD" }: { snapshot
     rateMetrics: totalRevenue > 0 ? [{ label: "Fee rate", numerator: totalFees, denominator: totalRevenue, suffix: "%", goodThreshold: 8, badThreshold: 12, lowerIsBetter: true }] : [],
   });
   return (
+    <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#ff90e8]/15 bg-[#ff90e8]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#ff90e8]/15 font-mono text-sm font-bold text-[#ff90e8]">G</div>
@@ -2109,11 +2341,13 @@ function GumroadSection({ snapshots, granularity, currency = "USD" }: { snapshot
       <DataTable rows={tableRows} />
       <PlatformInsights insights={gumroadInsights} />
     </div>
+    </PeriodsCtx.Provider>
   );
 }
 
 function PlausibleSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
   const grouped = groupSnapshots(snapshots, granularity, ["visitors", "pageviews", "bounceRate", "visitDuration"], []);
+  const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const visitors     = grouped.map((r) => r.data.visitors);
   const pageviews    = grouped.map((r) => r.data.pageviews);
   const bounceRates  = grouped.map((r) => r.data.bounceRate);
@@ -2139,6 +2373,7 @@ function PlausibleSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
     ],
   });
   return (
+    <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#5850ec]/15 bg-[#5850ec]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#5850ec]/15 font-mono text-sm font-bold text-[#5850ec]">P</div>
@@ -2154,11 +2389,13 @@ function PlausibleSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
       <DataTable rows={tableRows} />
       <PlatformInsights insights={plausibleInsights} />
     </div>
+    </PeriodsCtx.Provider>
   );
 }
 
 function MixpanelSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
   const grouped    = groupSnapshots(snapshots, granularity, ["events", "uniqueUsers"], []);
+  const periods    = grouped.map((r) => fmtPeriod(r.period, granularity));
   const events     = grouped.map((r) => r.data.events);
   const users      = grouped.map((r) => r.data.uniqueUsers);
   const totalEvents = events.reduce((a, b) => a + b, 0);
@@ -2175,6 +2412,7 @@ function MixpanelSection({ snapshots, granularity }: { snapshots: Snapshot[]; gr
     secondary: [{ label: "Unique Users", values: users }],
   });
   return (
+    <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#7856ff]/15 bg-[#7856ff]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#7856ff]/15 font-mono text-[10px] font-bold text-[#7856ff]">MX</div>
@@ -2188,11 +2426,13 @@ function MixpanelSection({ snapshots, granularity }: { snapshots: Snapshot[]; gr
       <DataTable rows={tableRows} />
       <PlatformInsights insights={mixpanelInsights} />
     </div>
+    </PeriodsCtx.Provider>
   );
 }
 
 function AmplitudeSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
   const grouped     = groupSnapshots(snapshots, granularity, ["activeUsers", "totalEvents", "newUsers"], []);
+  const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const activeUsers = grouped.map((r) => r.data.activeUsers);
   const events      = grouped.map((r) => r.data.totalEvents);
   const newUsers    = grouped.map((r) => r.data.newUsers);
@@ -2212,6 +2452,7 @@ function AmplitudeSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
     secondary: [{ label: "New Users", values: newUsers }, { label: "Events", values: events }],
   });
   return (
+    <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#1e73be]/15 bg-[#1e73be]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1e73be]/15 font-mono text-sm font-bold text-[#1e73be]">A</div>
@@ -2226,11 +2467,13 @@ function AmplitudeSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
       <DataTable rows={tableRows} />
       <PlatformInsights insights={amplitudeInsights} />
     </div>
+    </PeriodsCtx.Provider>
   );
 }
 
 function PostHogSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
   const grouped     = groupSnapshots(snapshots, granularity, ["pageviews", "uniqueUsers", "sessions"], []);
+  const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const pageviews   = grouped.map((r) => r.data.pageviews);
   const users       = grouped.map((r) => r.data.uniqueUsers);
   const sessions    = grouped.map((r) => r.data.sessions);
@@ -2250,6 +2493,7 @@ function PostHogSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
     secondary: [{ label: "Unique Users", values: users }, { label: "Sessions", values: sessions }],
   });
   return (
+    <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#f76300]/15 bg-[#f76300]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f76300]/15 font-mono text-[10px] font-bold text-[#f76300]">PH</div>
@@ -2264,11 +2508,13 @@ function PostHogSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
       <DataTable rows={tableRows} />
       <PlatformInsights insights={posthogInsights} />
     </div>
+    </PeriodsCtx.Provider>
   );
 }
 
 function FathomSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
   const grouped     = groupSnapshots(snapshots, granularity, ["pageviews", "uniques", "visits", "bounceRate", "avgDuration"], []);
+  const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const pageviews   = grouped.map((r) => r.data.pageviews);
   const uniques     = grouped.map((r) => r.data.uniques);
   const bounceRates = grouped.map((r) => r.data.bounceRate);
@@ -2292,6 +2538,7 @@ function FathomSection({ snapshots, granularity }: { snapshots: Snapshot[]; gran
     rateMetrics: [{ label: "Bounce rate", numerator: avgBounce * bounceRates.length, denominator: bounceRates.length || 1, suffix: "%", goodThreshold: 40, badThreshold: 70, lowerIsBetter: true }],
   });
   return (
+    <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#9333ea]/15 bg-[#9333ea]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#9333ea]/15 font-mono text-[10px] font-bold text-[#9333ea]">FA</div>
@@ -2307,11 +2554,13 @@ function FathomSection({ snapshots, granularity }: { snapshots: Snapshot[]; gran
       <DataTable rows={tableRows} />
       <PlatformInsights insights={fathomInsights} />
     </div>
+    </PeriodsCtx.Provider>
   );
 }
 
 function GoogleAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
   const grouped     = groupSnapshots(snapshots, granularity, ["spend", "clicks", "impressions", "conversions", "ctr"], []);
+  const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const spends      = grouped.map((r) => r.data.spend);
   const clicks      = grouped.map((r) => r.data.clicks);
   const impressions = grouped.map((r) => r.data.impressions);
@@ -2338,6 +2587,7 @@ function GoogleAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
     ] : [],
   });
   return (
+    <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#4285F4]/15 bg-[#4285F4]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#4285F4]/15 font-mono text-[10px] font-bold text-[#4285F4]">GA</div>
@@ -2354,11 +2604,13 @@ function GoogleAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
       <DataTable rows={tableRows} />
       <PlatformInsights insights={googleAdsInsights} />
     </div>
+    </PeriodsCtx.Provider>
   );
 }
 
 function TikTokAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
   const grouped     = groupSnapshots(snapshots, granularity, ["spend", "impressions", "clicks", "conversions"], []);
+  const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const spends      = grouped.map((r) => r.data.spend);
   const impressions = grouped.map((r) => r.data.impressions);
   const clicks      = grouped.map((r) => r.data.clicks);
@@ -2382,6 +2634,7 @@ function TikTokAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
     rateMetrics: totalClicks > 0 ? [{ label: "CTR", numerator: totalClicks, denominator: totalImpr || 1, suffix: "%", goodThreshold: 1.5, badThreshold: 0.5, lowerIsBetter: false }] : [],
   });
   return (
+    <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#69C9D0]/15 bg-[#69C9D0]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#69C9D0]/15 font-mono text-[10px] font-bold text-[#69C9D0]">TT</div>
@@ -2398,11 +2651,13 @@ function TikTokAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
       <DataTable rows={tableRows} />
       <PlatformInsights insights={tiktokAdsInsights} />
     </div>
+    </PeriodsCtx.Provider>
   );
 }
 
 function TwitterAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
   const grouped     = groupSnapshots(snapshots, granularity, ["spend", "impressions", "clicks", "conversions"], []);
+  const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const spends      = grouped.map((r) => r.data.spend);
   const impressions = grouped.map((r) => r.data.impressions);
   const clicks      = grouped.map((r) => r.data.clicks);
@@ -2426,6 +2681,7 @@ function TwitterAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; 
     rateMetrics: totalClicks > 0 ? [{ label: "CTR", numerator: totalClicks, denominator: totalImpr || 1, suffix: "%", goodThreshold: 1, badThreshold: 0.3, lowerIsBetter: false }] : [],
   });
   return (
+    <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#1d9bf0]/15 bg-[#1d9bf0]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1d9bf0]/15 font-mono text-[10px] font-bold text-[#1d9bf0]">XA</div>
@@ -2442,11 +2698,13 @@ function TwitterAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; 
       <DataTable rows={tableRows} />
       <PlatformInsights insights={twitterAdsInsights} />
     </div>
+    </PeriodsCtx.Provider>
   );
 }
 
 function LinkedInAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
   const grouped     = groupSnapshots(snapshots, granularity, ["spend", "impressions", "clicks", "conversions"], []);
+  const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const spends      = grouped.map((r) => r.data.spend);
   const impressions = grouped.map((r) => r.data.impressions);
   const clicks      = grouped.map((r) => r.data.clicks);
@@ -2470,6 +2728,7 @@ function LinkedInAdsSection({ snapshots, granularity }: { snapshots: Snapshot[];
     rateMetrics: totalClicks > 0 ? [{ label: "CTR", numerator: totalClicks, denominator: totalImpr || 1, suffix: "%", goodThreshold: 0.6, badThreshold: 0.2, lowerIsBetter: false }] : [],
   });
   return (
+    <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#0a66c2]/15 bg-[#0a66c2]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0a66c2]/15 font-mono text-[10px] font-bold text-[#0a66c2]">LI</div>
@@ -2486,11 +2745,13 @@ function LinkedInAdsSection({ snapshots, granularity }: { snapshots: Snapshot[];
       <DataTable rows={tableRows} />
       <PlatformInsights insights={linkedInAdsInsights} />
     </div>
+    </PeriodsCtx.Provider>
   );
 }
 
 function SnapchatAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
   const grouped     = groupSnapshots(snapshots, granularity, ["spend", "impressions", "swipes", "conversions"], []);
+  const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const spends      = grouped.map((r) => r.data.spend);
   const impressions = grouped.map((r) => r.data.impressions);
   const swipes      = grouped.map((r) => r.data.swipes);
@@ -2513,6 +2774,7 @@ function SnapchatAdsSection({ snapshots, granularity }: { snapshots: Snapshot[];
     secondary: [{ label: "Conversions", values: conversions }],
   });
   return (
+    <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#f5c518]/15 bg-[#f5c518]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f5c518]/15 font-mono text-[10px] font-bold text-[#f5c518]">SC</div>
@@ -2529,11 +2791,13 @@ function SnapchatAdsSection({ snapshots, granularity }: { snapshots: Snapshot[];
       <DataTable rows={tableRows} />
       <PlatformInsights insights={snapchatAdsInsights} />
     </div>
+    </PeriodsCtx.Provider>
   );
 }
 
 function PinterestAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
   const grouped     = groupSnapshots(snapshots, granularity, ["spend", "impressions", "clicks", "conversions"], []);
+  const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const spends      = grouped.map((r) => r.data.spend);
   const impressions = grouped.map((r) => r.data.impressions);
   const clicks      = grouped.map((r) => r.data.clicks);
@@ -2557,6 +2821,7 @@ function PinterestAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]
     rateMetrics: totalClicks > 0 ? [{ label: "CTR", numerator: totalClicks, denominator: totalImpr || 1, suffix: "%", goodThreshold: 0.5, badThreshold: 0.2, lowerIsBetter: false }] : [],
   });
   return (
+    <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#E60023]/15 bg-[#E60023]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#E60023]/15 font-mono text-[10px] font-bold text-[#E60023]">PT</div>
@@ -2573,11 +2838,13 @@ function PinterestAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]
       <DataTable rows={tableRows} />
       <PlatformInsights insights={pinterestAdsInsights} />
     </div>
+    </PeriodsCtx.Provider>
   );
 }
 
 function MailchimpSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
   const grouped       = groupSnapshots(snapshots, granularity, ["emailsSent", "opens", "clicks", "subscribers", "unsubscribes"], []);
+  const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const sent          = grouped.map((r) => r.data.emailsSent);
   const opens         = grouped.map((r) => r.data.opens);
   const clicks        = grouped.map((r) => r.data.clicks);
@@ -2604,6 +2871,7 @@ function MailchimpSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
     ] : [],
   });
   return (
+    <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#f59e0b]/15 bg-[#f59e0b]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f59e0b]/15 font-mono text-[10px] font-bold text-[#f59e0b]">MC</div>
@@ -2619,11 +2887,13 @@ function MailchimpSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
       <DataTable rows={tableRows} />
       <PlatformInsights insights={mailchimpInsights} />
     </div>
+    </PeriodsCtx.Provider>
   );
 }
 
 function KlaviyoSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
   const grouped     = groupSnapshots(snapshots, granularity, ["emailsSent", "opens", "clicks", "revenue"], []);
+  const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const sent        = grouped.map((r) => r.data.emailsSent);
   const opens       = grouped.map((r) => r.data.opens);
   const clicks      = grouped.map((r) => r.data.clicks);
@@ -2650,6 +2920,7 @@ function KlaviyoSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
     ] : [],
   });
   return (
+    <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#6366f1]/15 bg-[#6366f1]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#6366f1]/15 font-mono text-[10px] font-bold text-[#6366f1]">KL</div>
@@ -2666,11 +2937,13 @@ function KlaviyoSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
       <DataTable rows={tableRows} />
       <PlatformInsights insights={klaviyoInsights} />
     </div>
+    </PeriodsCtx.Provider>
   );
 }
 
 function ConvertKitSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
   const grouped     = groupSnapshots(snapshots, granularity, ["totalSubscribers", "newSubscribers", "broadcastsSent"], []);
+  const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const totals      = grouped.map((r) => r.data.totalSubscribers);
   const newSubs     = grouped.map((r) => r.data.newSubscribers);
   const broadcasts  = grouped.map((r) => r.data.broadcastsSent);
@@ -2690,6 +2963,7 @@ function ConvertKitSection({ snapshots, granularity }: { snapshots: Snapshot[]; 
     secondary: [{ label: "New Subscribers", values: newSubs }],
   });
   return (
+    <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#FB6970]/15 bg-[#FB6970]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FB6970]/15 font-mono text-[10px] font-bold text-[#FB6970]">CK</div>
@@ -2704,12 +2978,14 @@ function ConvertKitSection({ snapshots, granularity }: { snapshots: Snapshot[]; 
       <DataTable rows={tableRows} />
       <PlatformInsights insights={convertkitInsights} />
     </div>
+    </PeriodsCtx.Provider>
   );
 }
 
 // ── ActiveCampaign ────────────────────────────────────────────────────────────
 function ActiveCampaignSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
   const grouped    = groupSnapshots(snapshots, granularity, ["emailsSent", "opens", "clicks", "unsubscribes", "newContacts"], []);
+  const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const sent       = grouped.map((r) => r.data.emailsSent);
   const opens      = grouped.map((r) => r.data.opens);
   const clicks     = grouped.map((r) => r.data.clicks);
@@ -2729,6 +3005,7 @@ function ActiveCampaignSection({ snapshots, granularity }: { snapshots: Snapshot
     rateMetrics: sent.reduce((a,b)=>a+b,0) > 0 ? [{ label: "Open rate", numerator: opens.reduce((a,b)=>a+b,0), denominator: sent.reduce((a,b)=>a+b,0), suffix: "%", goodThreshold: 25, badThreshold: 15, lowerIsBetter: false }] : [],
   });
   return (
+    <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#356AE6]/15 bg-[#356AE6]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#356AE6]/15 font-mono text-[10px] font-bold text-[#356AE6]">AC</div>
@@ -2744,12 +3021,14 @@ function ActiveCampaignSection({ snapshots, granularity }: { snapshots: Snapshot
       <DataTable rows={tableRows} />
       <PlatformInsights insights={acInsights} />
     </div>
+    </PeriodsCtx.Provider>
   );
 }
 
 // ── Brevo ─────────────────────────────────────────────────────────────────────
 function BrevoSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
   const grouped    = groupSnapshots(snapshots, granularity, ["emailsSent", "opens", "clicks", "unsubscribes", "newContacts"], []);
+  const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const sent       = grouped.map((r) => r.data.emailsSent);
   const opens      = grouped.map((r) => r.data.opens);
   const clicks     = grouped.map((r) => r.data.clicks);
@@ -2769,6 +3048,7 @@ function BrevoSection({ snapshots, granularity }: { snapshots: Snapshot[]; granu
     rateMetrics: sent.reduce((a,b)=>a+b,0) > 0 ? [{ label: "Open rate", numerator: opens.reduce((a,b)=>a+b,0), denominator: sent.reduce((a,b)=>a+b,0), suffix: "%", goodThreshold: 25, badThreshold: 15, lowerIsBetter: false }] : [],
   });
   return (
+    <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#0092FF]/15 bg-[#0092FF]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0092FF]/15 font-mono text-[10px] font-bold text-[#0092FF]">BR</div>
@@ -2784,12 +3064,14 @@ function BrevoSection({ snapshots, granularity }: { snapshots: Snapshot[]; granu
       <DataTable rows={tableRows} />
       <PlatformInsights insights={brevoInsights} />
     </div>
+    </PeriodsCtx.Provider>
   );
 }
 
 // ── Beehiiv ───────────────────────────────────────────────────────────────────
 function BeehiivSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
   const grouped    = groupSnapshots(snapshots, granularity, ["totalSubscribers", "newSubscribers", "postsPublished", "premiumSubscribers"], []);
+  const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const totals     = grouped.map((r) => r.data.totalSubscribers);
   const newSubs    = grouped.map((r) => r.data.newSubscribers);
   const posts      = grouped.map((r) => r.data.postsPublished);
@@ -2810,6 +3092,7 @@ function BeehiivSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
     secondary: [{ label: "New Subscribers", values: newSubs }, { label: "Premium", values: premium }],
   });
   return (
+    <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#FF6B35]/15 bg-[#FF6B35]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FF6B35]/15 font-mono text-[10px] font-bold text-[#FF6B35]">BH</div>
@@ -2825,12 +3108,14 @@ function BeehiivSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
       <DataTable rows={tableRows} />
       <PlatformInsights insights={beehiivInsights} />
     </div>
+    </PeriodsCtx.Provider>
   );
 }
 
 // ── Shopify ───────────────────────────────────────────────────────────────────
 function ShopifySection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
   const grouped   = groupSnapshots(snapshots, granularity, ["revenue", "orders", "refunds", "newCustomers"], []);
+  const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const revenue   = grouped.map((r) => r.data.revenue);
   const orders    = grouped.map((r) => r.data.orders);
   const refunds   = grouped.map((r) => r.data.refunds);
@@ -2852,6 +3137,7 @@ function ShopifySection({ snapshots, granularity, currency = "USD" }: { snapshot
     rateMetrics: totalRevenue > 0 ? [{ label: "Refund rate", numerator: totalRefunds, denominator: totalRevenue, suffix: "%", goodThreshold: 2, badThreshold: 5, lowerIsBetter: true }] : [],
   });
   return (
+    <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#96bf48]/15 bg-[#96bf48]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#96bf48]/15 font-mono text-[10px] font-bold text-[#96bf48]">SH</div>
@@ -2868,12 +3154,14 @@ function ShopifySection({ snapshots, granularity, currency = "USD" }: { snapshot
       <DataTable rows={tableRows} />
       <PlatformInsights insights={shopifyInsights} />
     </div>
+    </PeriodsCtx.Provider>
   );
 }
 
 // ── WooCommerce ───────────────────────────────────────────────────────────────
 function WooCommerceSection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
   const grouped   = groupSnapshots(snapshots, granularity, ["revenue", "orders", "refunds", "newCustomers"], []);
+  const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const revenue   = grouped.map((r) => r.data.revenue);
   const orders    = grouped.map((r) => r.data.orders);
   const refunds   = grouped.map((r) => r.data.refunds);
@@ -2888,6 +3176,7 @@ function WooCommerceSection({ snapshots, granularity, currency = "USD" }: { snap
     ],
   }));
   return (
+    <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#7f54b3]/15 bg-[#7f54b3]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#7f54b3]/15 font-mono text-[10px] font-bold text-[#7f54b3]">WC</div>
@@ -2903,12 +3192,14 @@ function WooCommerceSection({ snapshots, granularity, currency = "USD" }: { snap
       </div>
       <DataTable rows={tableRows} />
     </div>
+    </PeriodsCtx.Provider>
   );
 }
 
 // ── BigCommerce ───────────────────────────────────────────────────────────────
 function BigCommerceSection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
   const grouped   = groupSnapshots(snapshots, granularity, ["revenue", "orders", "refunds", "newCustomers"], []);
+  const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const revenue   = grouped.map((r) => r.data.revenue);
   const orders    = grouped.map((r) => r.data.orders);
   const refunds   = grouped.map((r) => r.data.refunds);
@@ -2923,6 +3214,7 @@ function BigCommerceSection({ snapshots, granularity, currency = "USD" }: { snap
     ],
   }));
   return (
+    <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#34313F]/40 bg-[#34313F]/10 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#34313F]/30 font-mono text-[10px] font-bold text-[#bcbcd8]">BC</div>
@@ -2938,12 +3230,14 @@ function BigCommerceSection({ snapshots, granularity, currency = "USD" }: { snap
       </div>
       <DataTable rows={tableRows} />
     </div>
+    </PeriodsCtx.Provider>
   );
 }
 
 // ── Amazon Seller ─────────────────────────────────────────────────────────────
 function AmazonSellerSection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
   const grouped  = groupSnapshots(snapshots, granularity, ["revenue", "orders", "units", "refunds"], []);
+  const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const revenue  = grouped.map((r) => r.data.revenue);
   const orders   = grouped.map((r) => r.data.orders);
   const units    = grouped.map((r) => r.data.units);
@@ -2958,6 +3252,7 @@ function AmazonSellerSection({ snapshots, granularity, currency = "USD" }: { sna
     ],
   }));
   return (
+    <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#FF9900]/15 bg-[#FF9900]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FF9900]/15 font-mono text-[10px] font-bold text-[#FF9900]">AMZ</div>
@@ -2973,12 +3268,14 @@ function AmazonSellerSection({ snapshots, granularity, currency = "USD" }: { sna
       </div>
       <DataTable rows={tableRows} />
     </div>
+    </PeriodsCtx.Provider>
   );
 }
 
 // ── Etsy ──────────────────────────────────────────────────────────────────────
 function EtsySection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
   const grouped  = groupSnapshots(snapshots, granularity, ["revenue", "orders", "views", "newCustomers"], []);
+  const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const revenue  = grouped.map((r) => r.data.revenue);
   const orders   = grouped.map((r) => r.data.orders);
   const views    = grouped.map((r) => r.data.views);
@@ -2993,6 +3290,7 @@ function EtsySection({ snapshots, granularity, currency = "USD" }: { snapshots: 
     ],
   }));
   return (
+    <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#F56400]/15 bg-[#F56400]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F56400]/15 font-mono text-[10px] font-bold text-[#F56400]">ET</div>
@@ -3008,12 +3306,14 @@ function EtsySection({ snapshots, granularity, currency = "USD" }: { snapshots: 
       </div>
       <DataTable rows={tableRows} />
     </div>
+    </PeriodsCtx.Provider>
   );
 }
 
 // ── HubSpot ───────────────────────────────────────────────────────────────────
 function HubSpotSection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
   const grouped       = groupSnapshots(snapshots, granularity, ["dealsWon", "closedRevenue", "newContacts", "pipelineValue"], []);
+  const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const dealsWon      = grouped.map((r) => r.data.dealsWon);
   const closedRev     = grouped.map((r) => r.data.closedRevenue);
   const newContacts   = grouped.map((r) => r.data.newContacts);
@@ -3029,6 +3329,7 @@ function HubSpotSection({ snapshots, granularity, currency = "USD" }: { snapshot
     ],
   }));
   return (
+    <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#ff7a59]/15 bg-[#ff7a59]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#ff7a59]/15 font-mono text-[10px] font-bold text-[#ff7a59]">HS</div>
@@ -3044,6 +3345,7 @@ function HubSpotSection({ snapshots, granularity, currency = "USD" }: { snapshot
       </div>
       <DataTable rows={tableRows} />
     </div>
+    </PeriodsCtx.Provider>
   );
 }
 
@@ -3052,6 +3354,7 @@ function HubSpotSection({ snapshots, granularity, currency = "USD" }: { snapshot
 
 function SalesforceSection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
   const grouped      = groupSnapshots(snapshots, granularity, ["dealsWon", "closedRevenue", "newLeads", "pipelineValue"], []);
+  const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const dealsWon     = grouped.map((r) => r.data.dealsWon);
   const closedRev    = grouped.map((r) => r.data.closedRevenue);
   const newLeads     = grouped.map((r) => r.data.newLeads);
@@ -3067,6 +3370,7 @@ function SalesforceSection({ snapshots, granularity, currency = "USD" }: { snaps
     ],
   }));
   return (
+    <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#00A1E0]/15 bg-[#00A1E0]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#00A1E0]/15 font-mono text-[10px] font-bold text-[#00A1E0]">SF</div>
@@ -3082,11 +3386,13 @@ function SalesforceSection({ snapshots, granularity, currency = "USD" }: { snaps
       </div>
       <DataTable rows={tableRows} />
     </div>
+    </PeriodsCtx.Provider>
   );
 }
 
 function PipedriveSection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
   const grouped     = groupSnapshots(snapshots, granularity, ["dealsWon", "closedRevenue", "newContacts", "pipelineValue"], []);
+  const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const dealsWon    = grouped.map((r) => r.data.dealsWon);
   const closedRev   = grouped.map((r) => r.data.closedRevenue);
   const newContacts = grouped.map((r) => r.data.newContacts);
@@ -3102,6 +3408,7 @@ function PipedriveSection({ snapshots, granularity, currency = "USD" }: { snapsh
     ],
   }));
   return (
+    <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#30a04c]/15 bg-[#30a04c]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#30a04c]/15 font-mono text-[10px] font-bold text-[#30a04c]">PD</div>
@@ -3117,11 +3424,13 @@ function PipedriveSection({ snapshots, granularity, currency = "USD" }: { snapsh
       </div>
       <DataTable rows={tableRows} />
     </div>
+    </PeriodsCtx.Provider>
   );
 }
 
 function NotionSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
   const grouped    = groupSnapshots(snapshots, granularity, ["newRows", "updatedRows", "totalRows"], []);
+  const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const newRows    = grouped.map((r) => r.data.newRows);
   const updated    = grouped.map((r) => r.data.updatedRows);
   const totalRows  = grouped.map((r) => r.data.totalRows);
@@ -3135,6 +3444,7 @@ function NotionSection({ snapshots, granularity }: { snapshots: Snapshot[]; gran
     ],
   }));
   return (
+    <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#555]/20 bg-[#1a1a1a]/60 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 font-mono text-[10px] font-bold text-white">NO</div>
@@ -3147,11 +3457,13 @@ function NotionSection({ snapshots, granularity }: { snapshots: Snapshot[]; gran
       </div>
       <DataTable rows={tableRows} />
     </div>
+    </PeriodsCtx.Provider>
   );
 }
 
 function IntercomSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
   const grouped   = groupSnapshots(snapshots, granularity, ["newConversations", "resolvedConversations", "newContacts", "csatScore"], []);
+  const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const newConvos = grouped.map((r) => r.data.newConversations);
   const resolved  = grouped.map((r) => r.data.resolvedConversations);
   const contacts  = grouped.map((r) => r.data.newContacts);
@@ -3167,6 +3479,7 @@ function IntercomSection({ snapshots, granularity }: { snapshots: Snapshot[]; gr
     ],
   }));
   return (
+    <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#1f8ded]/15 bg-[#1f8ded]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1f8ded]/15 font-mono text-[10px] font-bold text-[#1f8ded]">IC</div>
@@ -3180,11 +3493,13 @@ function IntercomSection({ snapshots, granularity }: { snapshots: Snapshot[]; gr
       </div>
       <DataTable rows={tableRows} />
     </div>
+    </PeriodsCtx.Provider>
   );
 }
 
 function ZendeskSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
   const grouped    = groupSnapshots(snapshots, granularity, ["newTickets", "solvedTickets", "reopenedTickets", "csatScore"], []);
+  const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const newT       = grouped.map((r) => r.data.newTickets);
   const solved     = grouped.map((r) => r.data.solvedTickets);
   const csat       = grouped.map((r) => r.data.csatScore);
@@ -3198,6 +3513,7 @@ function ZendeskSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
     ],
   }));
   return (
+    <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#03363D]/40 bg-[#03363D]/10 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#03363D]/40 font-mono text-[10px] font-bold text-[#2ECC71]">ZD</div>
@@ -3210,11 +3526,13 @@ function ZendeskSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
       </div>
       <DataTable rows={tableRows} />
     </div>
+    </PeriodsCtx.Provider>
   );
 }
 
 function FreshdeskSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
   const grouped   = groupSnapshots(snapshots, granularity, ["newTickets", "resolvedTickets", "openTickets", "csatScore"], []);
+  const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const newT      = grouped.map((r) => r.data.newTickets);
   const resolved  = grouped.map((r) => r.data.resolvedTickets);
   const open      = grouped.map((r) => r.data.openTickets);
@@ -3230,6 +3548,7 @@ function FreshdeskSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
     ],
   }));
   return (
+    <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#25C16F]/15 bg-[#25C16F]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#25C16F]/15 font-mono text-[10px] font-bold text-[#25C16F]">FD</div>
@@ -3243,11 +3562,13 @@ function FreshdeskSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
       </div>
       <DataTable rows={tableRows} />
     </div>
+    </PeriodsCtx.Provider>
   );
 }
 
 function SegmentSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
   const grouped    = groupSnapshots(snapshots, granularity, ["eventsDelivered", "eventsFailed", "sourceCount"], []);
+  const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const delivered  = grouped.map((r) => r.data.eventsDelivered);
   const failed     = grouped.map((r) => r.data.eventsFailed);
   const sources    = grouped.map((r) => r.data.sourceCount);
@@ -3260,6 +3581,7 @@ function SegmentSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
     ],
   }));
   return (
+    <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#52BD94]/15 bg-[#52BD94]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#52BD94]/15 font-mono text-[10px] font-bold text-[#52BD94]">SG</div>
@@ -3272,11 +3594,13 @@ function SegmentSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
       </div>
       <DataTable rows={tableRows} />
     </div>
+    </PeriodsCtx.Provider>
   );
 }
 
 function HeapSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
   const grouped   = groupSnapshots(snapshots, granularity, ["sessions", "uniqueUsers", "pageViews", "events"], []);
+  const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const sessions  = grouped.map((r) => r.data.sessions);
   const users     = grouped.map((r) => r.data.uniqueUsers);
   const pv        = grouped.map((r) => r.data.pageViews);
@@ -3291,6 +3615,7 @@ function HeapSection({ snapshots, granularity }: { snapshots: Snapshot[]; granul
     ],
   }));
   return (
+    <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#FF5B5B]/15 bg-[#FF5B5B]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FF5B5B]/15 font-mono text-[10px] font-bold text-[#FF5B5B]">HP</div>
@@ -3304,11 +3629,13 @@ function HeapSection({ snapshots, granularity }: { snapshots: Snapshot[]; granul
       </div>
       <DataTable rows={tableRows} />
     </div>
+    </PeriodsCtx.Provider>
   );
 }
 
 function FullStorySection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
   const grouped    = groupSnapshots(snapshots, granularity, ["sessions", "pageViews", "frustrationSignals", "errorClicks"], []);
+  const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const sessions   = grouped.map((r) => r.data.sessions);
   const pv         = grouped.map((r) => r.data.pageViews);
   const frust      = grouped.map((r) => r.data.frustrationSignals);
@@ -3323,6 +3650,7 @@ function FullStorySection({ snapshots, granularity }: { snapshots: Snapshot[]; g
     ],
   }));
   return (
+    <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#3B1D8E]/30 bg-[#3B1D8E]/10 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#3B1D8E]/30 font-mono text-[10px] font-bold text-[#a78bfa]">FS</div>
@@ -3336,11 +3664,13 @@ function FullStorySection({ snapshots, granularity }: { snapshots: Snapshot[]; g
       </div>
       <DataTable rows={tableRows} />
     </div>
+    </PeriodsCtx.Provider>
   );
 }
 
 function HotjarSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
   const grouped    = groupSnapshots(snapshots, granularity, ["sessions", "recordings", "heatmapViews", "feedbackResponses"], []);
+  const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const sessions   = grouped.map((r) => r.data.sessions);
   const recs       = grouped.map((r) => r.data.recordings);
   const heatmaps   = grouped.map((r) => r.data.heatmapViews);
@@ -3355,6 +3685,7 @@ function HotjarSection({ snapshots, granularity }: { snapshots: Snapshot[]; gran
     ],
   }));
   return (
+    <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#FD3A5C]/15 bg-[#FD3A5C]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FD3A5C]/15 font-mono text-[10px] font-bold text-[#FD3A5C]">HJ</div>
@@ -3368,11 +3699,13 @@ function HotjarSection({ snapshots, granularity }: { snapshots: Snapshot[]; gran
       </div>
       <DataTable rows={tableRows} />
     </div>
+    </PeriodsCtx.Provider>
   );
 }
 
 function InstagramSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
   const grouped     = groupSnapshots(snapshots, granularity, ["followers", "reach", "impressions", "profileVisits"], []);
+  const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const followers   = grouped.map((r) => r.data.followers);
   const reach       = grouped.map((r) => r.data.reach);
   const impressions = grouped.map((r) => r.data.impressions);
@@ -3388,6 +3721,7 @@ function InstagramSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
     ],
   }));
   return (
+    <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#E1306C]/15 bg-[#E1306C]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#E1306C]/15 font-mono text-[10px] font-bold text-[#E1306C]">IG</div>
@@ -3401,6 +3735,7 @@ function InstagramSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
       </div>
       <DataTable rows={tableRows} />
     </div>
+    </PeriodsCtx.Provider>
   );
 }
 

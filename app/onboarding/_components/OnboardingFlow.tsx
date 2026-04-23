@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Integration } from "@/lib/integrations/catalog";
+
+const POPULAR_IDS = new Set(["stripe", "ga4", "shopify", "mailchimp"]);
 
 // ── Privacy data per integration ──────────────────────────────────────────────
 // Addresses the Reddit comment: "what gets sent, what gets stored, who has access"
@@ -344,6 +346,17 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
       : ""
   );
   const [success, setSuccess] = useState("");
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  // Lock body scroll when mobile sheet is open
+  useEffect(() => {
+    if (sheetOpen && window.innerWidth < 1024) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [sheetOpen]);
 
   // Set a short-lived cookie so the middleware lets the user through to /dashboard
   // even if they have 0 integrations (explicit skip — expires after 24 hours)
@@ -369,6 +382,7 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
     setError("");
     setSuccess("");
     setConnecting(false);
+    setSheetOpen(true);
   }
 
   function handleOAuthConnect() {
@@ -446,17 +460,29 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
   return (
     <div className="min-h-screen bg-[#090911] text-[#f8f8fc]">
       {/* ── Top bar ───────────────────────────────────────────────────────── */}
-      <header className="border-b border-[#1e1e30] bg-[#0d0d1a]/80 px-6 py-4">
+      <header className="border-b border-[#1e1e30] bg-[#0d0d1a]/90 backdrop-blur-sm px-6 py-3.5 sticky top-0 z-30">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
           <div className="flex items-center gap-3">
             <img src="/fold-primary-dark.svg" alt="Fold" className="h-7 w-auto" />
-            <span className="hidden font-mono text-xs text-[#58588a] sm:block">/ Setup</span>
+            <span className="hidden font-mono text-xs text-[#2d2d44] sm:block select-none">/</span>
+            {/* Step indicator */}
+            <div className="hidden sm:flex items-center gap-1.5">
+              <span className="flex items-center gap-1.5 font-mono text-[11px] text-[#00d4aa]">
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#00d4aa] text-[8px] font-bold text-[#090911]">1</span>
+                Choose integration
+              </span>
+              <span className="font-mono text-[11px] text-[#2d2d44]">→</span>
+              <span className={`flex items-center gap-1.5 font-mono text-[11px] transition-colors ${selected ? "text-[#8585aa]" : "text-[#3a3a55]"}`}>
+                <span className={`flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-bold transition-colors ${selected ? "bg-[#363650] text-[#8585aa]" : "border border-[#2d2d44] text-[#3a3a55]"}`}>2</span>
+                Connect
+              </span>
+            </div>
           </div>
-          <div className="flex items-center gap-4">
-            <span className="hidden font-mono text-[11px] text-[#58588a] sm:block">{userEmail}</span>
+          <div className="flex items-center gap-3">
+            <span className="hidden font-mono text-[11px] text-[#3a3a55] sm:block truncate max-w-45">{userEmail}</span>
             <button
               onClick={skipToDashboard}
-              className="rounded-lg border border-[#363650] px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#8585aa] transition hover:text-[#bcbcd8]"
+              className="rounded-lg border border-[#2a2a40] px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#4a4a6a] transition hover:border-[#363650] hover:text-[#8585aa]"
             >
               Skip for now
             </button>
@@ -464,7 +490,7 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
         </div>
       </header>
 
-      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
         {/* ── OAuth error banner ───────────────────────────────────────── */}
         {oauthError && (
           <div className="mb-6 flex items-center gap-3 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3">
@@ -478,14 +504,18 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
         )}
 
         {/* ── Hero ──────────────────────────────────────────────────────── */}
-        <div className="mb-10 text-center">
-          <h1 className="mb-3 font-mono text-3xl font-bold text-[#f8f8fc] sm:text-4xl">
+        <div className="mb-8 text-center">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#1e1e30] bg-[#13131f] px-3 py-1.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#00d4aa] animate-pulse" />
+            <span className="font-mono text-[10px] text-[#8585aa]">{liveIntegrations.length} integrations available</span>
+          </div>
+          <h1 className="mb-3 font-mono text-2xl font-bold text-[#f8f8fc] sm:text-3xl">
             Connect your first integration
           </h1>
-          <p className="mx-auto max-w-xl text-sm text-[#8585aa]">
-            Fold pulls <strong className="text-[#bcbcd8]">aggregated metrics only</strong>, revenue totals,
-            traffic counts, subscriber growth. No customer data. No personal info.
-            Click any integration to see exactly what we read.
+          <p className="mx-auto max-w-lg text-sm text-[#58588a] leading-relaxed">
+            Fold reads <strong className="text-[#8585aa]">aggregated metrics only</strong>, revenue totals,
+            traffic counts, subscriber growth. No customer data. No personal info.{" "}
+            <span className="text-[#4a4a6a]">Click any integration to see exactly what we read.</span>
           </p>
         </div>
 
@@ -493,60 +523,70 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
         <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
 
           {/* LEFT — integration grid */}
-          <div className="space-y-8">
+          <div className="space-y-7">
             {grouped.map(({ category, integrations }) => (
               <div key={category}>
                 <div className="mb-3 flex items-center gap-2">
-                  <span className="text-[#8585aa]">{CATEGORY_ICONS[category] ?? (
+                  <span className="text-[#58588a]">{CATEGORY_ICONS[category] ?? (
                     <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
                     </svg>
                   )}</span>
-                  <h2 className="font-mono text-xs font-semibold uppercase tracking-widest text-[#8585aa]">
+                  <h2 className="font-mono text-[11px] font-semibold uppercase tracking-widest text-[#58588a]">
                     {category}
                   </h2>
+                  <span className="font-mono text-[10px] text-[#2d2d44]">({integrations.length})</span>
                 </div>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
                   {integrations.map((integration) => {
                     const isSelected = selected?.id === integration.id;
+                    const isPopular = POPULAR_IDS.has(integration.id);
                     return (
                       <button
                         key={integration.id}
                         onClick={() => handleSelect(integration)}
-                        className={`group relative flex flex-col items-start gap-3 rounded-xl border p-4 text-left transition-all ${
+                        className={`group relative flex flex-col items-start gap-2.5 rounded-xl border p-3.5 text-left transition-all duration-150 ${
                           isSelected
-                            ? "border-[#00d4aa]/50 bg-[#00d4aa]/8 shadow-[0_0_0_1px_rgba(0,212,170,0.2)]"
-                            : "border-[#363650] bg-[#1c1c2a]/60 hover:border-[#454560] hover:bg-[#222235]"
+                            ? "border-[#00d4aa]/50 bg-[#00d4aa]/8 shadow-[0_0_0_1px_rgba(0,212,170,0.15),0_4px_20px_rgba(0,212,170,0.06)]"
+                            : "border-[#222233] bg-[#0f0f1a] hover:border-[#363650] hover:bg-[#13131f]"
                         }`}
                       >
+                        {/* Popular badge */}
+                        {isPopular && !isSelected && (
+                          <span className="absolute right-2.5 top-2.5 rounded-full bg-[#1a1a2e] border border-[#2d2d44] px-1.5 py-0.5 font-mono text-[8px] font-semibold text-[#58588a] uppercase tracking-wider">
+                            Popular
+                          </span>
+                        )}
+                        {/* Selected check */}
+                        {isSelected && (
+                          <span className="absolute right-2.5 top-2.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#00d4aa]">
+                            <svg width="8" height="8" fill="none" viewBox="0 0 24 24" stroke="#090911" strokeWidth={3}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                            </svg>
+                          </span>
+                        )}
                         <div
-                          className="flex h-10 w-10 items-center justify-center rounded-xl"
+                          className="flex h-9 w-9 items-center justify-center rounded-lg transition-all"
                           style={{
-                            backgroundColor: isSelected ? `${integration.color}20` : `${integration.color}12`,
+                            backgroundColor: isSelected ? `${integration.color}25` : `${integration.color}10`,
                           }}
                         >
                           <img
                             src={integration.icon}
                             alt={integration.name}
-                            width={22}
-                            height={22}
+                            width={20}
+                            height={20}
                             className="object-contain"
                           />
                         </div>
-                        <div>
-                          <p className="font-mono text-[13px] font-semibold leading-snug text-[#f8f8fc]">
+                        <div className="pr-5">
+                          <p className="font-mono text-[12px] font-semibold leading-snug text-[#e8e8f8]">
                             {integration.name}
                           </p>
-                          <p className="mt-0.5 text-[11px] leading-snug text-[#8585aa]">
+                          <p className="mt-0.5 text-[10px] leading-snug text-[#58588a]">
                             {integration.description}
                           </p>
                         </div>
-                        {isSelected && (
-                          <span
-                            className="absolute right-3 top-3 h-2 w-2 rounded-full"
-                            style={{ backgroundColor: "#00d4aa" }}
-                          />
-                        )}
                       </button>
                     );
                   })}
@@ -555,182 +595,317 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
             ))}
           </div>
 
-          {/* RIGHT — detail panel */}
-          <div className="lg:sticky lg:top-8 lg:self-start">
+          {/* RIGHT — detail panel (desktop only) */}
+          <div className="hidden lg:block lg:sticky lg:top-20 lg:self-start">
             {!selected ? (
               /* Empty state */
-              <div className="flex h-80 flex-col items-center justify-center rounded-2xl border border-dashed border-[#363650] bg-[#13131f] p-8 text-center lg:h-full lg:min-h-125">
-                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-[#363650] bg-[#1c1c2a] opacity-40">
-                  <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="#8585aa" strokeWidth={1.5}>
+              <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#1e1e30] bg-[#0d0d18] p-8 text-center min-h-110">
+                <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-[#1e1e30] bg-[#13131f]">
+                  <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="#3a3a55" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
                   </svg>
                 </div>
-                <p className="font-mono text-sm font-semibold text-[#f8f8fc] opacity-50">
-                  Select an integration
+                <p className="font-mono text-sm font-semibold text-[#4a4a6a] mb-1">
+                  Pick an integration
                 </p>
-                <p className="mt-2 text-xs text-[#58588a]">
-                  Click any card on the left to see what data we read and how to connect.
+                <p className="text-xs text-[#2d2d44] mb-6">
+                  We&apos;ll show you exactly what we read before you connect.
                 </p>
+                <div className="w-full space-y-2 text-left">
+                  {[
+                    { icon: "🔒", text: "Aggregated data only — never personal info" },
+                    { icon: "⚡", text: "Daily snapshots synced automatically" },
+                    { icon: "🔌", text: "Revoke access any time from the provider" },
+                  ].map(({ icon, text }) => (
+                    <div key={text} className="flex items-center gap-2.5 rounded-lg border border-[#1a1a28] bg-[#111120] px-3 py-2">
+                      <span className="text-sm">{icon}</span>
+                      <span className="text-[11px] text-[#4a4a6a]">{text}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             ) : (
-              /* Detail panel */
-              <div className="rounded-2xl border border-[#363650] bg-[#13131f] overflow-hidden">
-                {/* Header */}
-                <div
-                  className="flex items-center gap-4 p-5"
-                  style={{ background: `linear-gradient(135deg, ${selected.color}12 0%, transparent 100%)` }}
-                >
-                  <div
-                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
-                    style={{ backgroundColor: `${selected.color}20` }}
-                  >
-                    <img
-                      src={selected.icon}
-                      alt={selected.name}
-                      width={28}
-                      height={28}
-                      className="object-contain"
-                    />
-                  </div>
-                  <div>
-                    <h2 className="font-mono text-base font-bold text-[#f8f8fc]">{selected.name}</h2>
-                    <p className="text-xs text-[#8585aa]">{selected.description}</p>
-                  </div>
-                </div>
-
-                <div className="p-5 space-y-5">
-                  {/* Privacy breakdown */}
-                  {privacy && (
-                    <>
-                      <PrivacyBlock
-                        icon={
-                          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="#3b82f6" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-                          </svg>
-                        }
-                        title="What we read"
-                        color="#3b82f6"
-                        items={privacy.reads}
-                      />
-                      <PrivacyBlock
-                        icon={
-                          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="#8b5cf6" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 2.625c0 2.278-3.694 4.125-8.25 4.125S3.75 11.278 3.75 9m16.5 2.625c0 2.278-3.694 4.125-8.25 4.125S3.75 13.903 3.75 11.625" />
-                          </svg>
-                        }
-                        title="What we store"
-                        color="#8b5cf6"
-                        items={privacy.stores}
-                      />
-                      <PrivacyBlock
-                        icon={
-                          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="#ef4444" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                          </svg>
-                        }
-                        title="What we never access"
-                        color="#ef4444"
-                        items={privacy.never}
-                      />
-                      {privacy.docsUrl && (
-                        <a
-                          href={privacy.docsUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block text-center font-mono text-[10px] text-[#58588a] underline-offset-2 hover:text-[#8585aa] hover:underline"
-                        >
-                          {selected.name} privacy policy →
-                        </a>
-                      )}
-                    </>
-                  )}
-
-                  <div className="border-t border-[#1e1e30]" />
-
-                  {/* Connect area */}
-                  {success ? (
-                    <div className="rounded-xl border border-[#00d4aa]/30 bg-[#00d4aa]/10 px-4 py-3 text-center font-mono text-sm text-[#00d4aa]">
-                      ✓ {success}
-                    </div>
-                  ) : isApiKey ? (
-                    <ApiKeyForm
-                      integration={selected}
-                      fields={API_KEY_PLATFORMS[selected.id].fields}
-                      values={apiKeyFields}
-                      onChange={(name, val) =>
-                        setApiKeyFields((prev) => ({ ...prev, [name]: val }))
-                      }
-                      onSubmit={handleApiKeyConnect}
-                      loading={connecting}
-                      error={error}
-                    />
-                  ) : isParamRequired ? (
-                    <ShopifyForm
-                      integration={selected}
-                      value={shopDomain}
-                      onChange={setShopDomain}
-                      onSubmit={handleOAuthConnect}
-                      error={error}
-                    />
-                  ) : (
-                    <OAuthConnect
-                      integration={selected}
-                      onConnect={handleOAuthConnect}
-                      error={error}
-                    />
-                  )}
-                </div>
-              </div>
+              <DetailPanel
+                selected={selected}
+                privacy={privacy}
+                isApiKey={isApiKey}
+                isParamRequired={isParamRequired}
+                success={success}
+                error={error}
+                connecting={connecting}
+                apiKeyFields={apiKeyFields}
+                shopDomain={shopDomain}
+                setApiKeyFields={setApiKeyFields}
+                setShopDomain={setShopDomain}
+                handleApiKeyConnect={handleApiKeyConnect}
+                handleOAuthConnect={handleOAuthConnect}
+                onClose={() => { setSelected(null); }}
+              />
             )}
           </div>
         </div>
 
         {/* ── Footer note ─────────────────────────────────────────────── */}
-        <p className="mt-12 text-center font-mono text-[10px] text-[#3a3a55]">
-          Fold is SOC 2-aligned. All data is encrypted at rest and in transit. We never sell or share your data.
+        <p className="mt-10 text-center font-mono text-[10px] text-[#252535]">
+          Fold is SOC 2-aligned · All data encrypted at rest and in transit · We never sell or share your data
           <button
             onClick={skipToDashboard}
-            className="ml-2 text-[#58588a] underline underline-offset-2 hover:text-[#8585aa]"
+            className="ml-2 text-[#3a3a55] underline underline-offset-2 hover:text-[#58588a]"
           >
             Skip setup
           </button>
         </p>
       </div>
+
+      {/* ── Mobile bottom sheet ───────────────────────────────────────────── */}
+      {sheetOpen && selected && (
+        <div className="lg:hidden fixed inset-0 z-50 flex flex-col justify-end">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={() => setSheetOpen(false)}
+          />
+          {/* Sheet */}
+          <div className="relative z-10 max-h-[90dvh] overflow-y-auto rounded-t-3xl border-t border-[#1e1e30] bg-[#0d0d18]">
+            {/* Handle */}
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[#1a1a28] bg-[#0d0d18]/95 backdrop-blur-sm px-5 py-3.5">
+              <div className="flex items-center gap-2.5">
+                <div
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+                  style={{ backgroundColor: `${selected.color}18` }}
+                >
+                  <img src={selected.icon} alt={selected.name} width={18} height={18} className="object-contain" />
+                </div>
+                <span className="font-mono text-sm font-semibold text-[#e8e8f8]">{selected.name}</span>
+              </div>
+              <button
+                onClick={() => setSheetOpen(false)}
+                className="rounded-lg p-1.5 text-[#58588a] hover:bg-[#1e1e30] hover:text-[#8585aa] transition"
+              >
+                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-5">
+              <DetailPanel
+                selected={selected}
+                privacy={privacy}
+                isApiKey={isApiKey}
+                isParamRequired={isParamRequired}
+                success={success}
+                error={error}
+                connecting={connecting}
+                apiKeyFields={apiKeyFields}
+                shopDomain={shopDomain}
+                setApiKeyFields={setApiKeyFields}
+                setShopDomain={setShopDomain}
+                handleApiKeyConnect={handleApiKeyConnect}
+                handleOAuthConnect={handleOAuthConnect}
+                onClose={() => setSheetOpen(false)}
+                isMobile
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
+function DetailPanel({
+  selected,
+  privacy,
+  isApiKey,
+  isParamRequired,
+  success,
+  error,
+  connecting,
+  apiKeyFields,
+  shopDomain,
+  setApiKeyFields,
+  setShopDomain,
+  handleApiKeyConnect,
+  handleOAuthConnect,
+  onClose,
+  isMobile,
+}: {
+  selected: Integration;
+  privacy: PrivacyInfo | null;
+  isApiKey: boolean;
+  isParamRequired: boolean;
+  success: string;
+  error: string;
+  connecting: boolean;
+  apiKeyFields: Record<string, string>;
+  shopDomain: string;
+  setApiKeyFields: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  setShopDomain: (v: string) => void;
+  handleApiKeyConnect: (e: React.FormEvent) => void;
+  handleOAuthConnect: () => void;
+  onClose: () => void;
+  isMobile?: boolean;
+}) {
+  return (
+    <div className={`rounded-2xl border border-[#1e1e30] bg-[#0d0d18] overflow-hidden`}>
+      {/* Header */}
+      {!isMobile && (
+        <div
+          className="flex items-center gap-3 px-5 py-4 border-b border-[#1a1a28]"
+          style={{ background: `linear-gradient(135deg, ${selected.color}10 0%, transparent 70%)` }}
+        >
+          <div
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+            style={{ backgroundColor: `${selected.color}18` }}
+          >
+            <img src={selected.icon} alt={selected.name} width={24} height={24} className="object-contain" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="font-mono text-sm font-bold text-[#e8e8f8]">{selected.name}</h2>
+            <p className="text-[11px] text-[#4a4a6a] truncate">{selected.description}</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-lg p-1 text-[#3a3a55] hover:bg-[#1a1a28] hover:text-[#58588a] transition shrink-0"
+          >
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
+
+      <div className="p-5 space-y-4">
+        {/* Privacy breakdown */}
+        {privacy && (
+          <div className="space-y-1">
+            <PrivacyBlock
+              icon={<svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="#3b82f6" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>}
+              title="What we read"
+              color="#3b82f6"
+              items={privacy.reads}
+              defaultOpen
+            />
+            <PrivacyBlock
+              icon={<svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="#8b5cf6" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 2.625c0 2.278-3.694 4.125-8.25 4.125S3.75 11.278 3.75 9m16.5 2.625c0 2.278-3.694 4.125-8.25 4.125S3.75 13.903 3.75 11.625" /></svg>}
+              title="What we store"
+              color="#8b5cf6"
+              items={privacy.stores}
+            />
+            <PrivacyBlock
+              icon={<svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="#ef4444" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>}
+              title="Never accessed"
+              color="#ef4444"
+              items={privacy.never}
+            />
+            {privacy.docsUrl && (
+              <a
+                href={privacy.docsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block pt-1 text-center font-mono text-[10px] text-[#3a3a55] underline-offset-2 hover:text-[#58588a] hover:underline"
+              >
+                {selected.name} privacy policy →
+              </a>
+            )}
+          </div>
+        )}
+
+        <div className="border-t border-[#141420]" />
+
+        {/* Connect area */}
+        {success ? (
+          <div className="flex flex-col items-center gap-3 rounded-xl border border-[#00d4aa]/25 bg-[#00d4aa]/8 px-4 py-5 text-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#00d4aa]/20">
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#00d4aa" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+              </svg>
+            </div>
+            <p className="font-mono text-sm font-semibold text-[#00d4aa]">Connected!</p>
+            <p className="text-[11px] text-[#3d8c7a]">Redirecting to your dashboard…</p>
+          </div>
+        ) : isApiKey ? (
+          <ApiKeyForm
+            integration={selected}
+            fields={API_KEY_PLATFORMS[selected.id].fields}
+            values={apiKeyFields}
+            onChange={(name, val) => setApiKeyFields((prev) => ({ ...prev, [name]: val }))}
+            onSubmit={handleApiKeyConnect}
+            loading={connecting}
+            error={error}
+          />
+        ) : isParamRequired ? (
+          <ShopifyForm
+            integration={selected}
+            value={shopDomain}
+            onChange={setShopDomain}
+            onSubmit={handleOAuthConnect}
+            error={error}
+          />
+        ) : (
+          <OAuthConnect
+            integration={selected}
+            onConnect={handleOAuthConnect}
+            error={error}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
 function PrivacyBlock({
   icon,
   title,
   color,
   items,
+  defaultOpen = false,
 }: {
   icon: React.ReactNode;
   title: string;
   color: string;
   items: string[];
+  defaultOpen?: boolean;
 }) {
+  const [open, setOpen] = useState(defaultOpen);
   return (
-    <div>
-      <div className="mb-2 flex items-center gap-1.5">
-        <span className="flex shrink-0 items-center">{icon}</span>
-        <span className="font-mono text-[10px] font-semibold uppercase tracking-widest" style={{ color }}>
-          {title}
-        </span>
-      </div>
-      <ul className="space-y-1">
-        {items.map((item) => (
-          <li key={item} className="flex items-start gap-2 text-[12px] text-[#8585aa]">
-            <span className="mt-0.5 shrink-0 text-[10px]" style={{ color: `${color}99` }}>
-              ·
-            </span>
-            {item}
-          </li>
-        ))}
-      </ul>
+    <div className="rounded-lg border border-[#141420] bg-[#0a0a14] overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between px-3 py-2.5 hover:bg-[#111120] transition"
+      >
+        <div className="flex items-center gap-2">
+          <span className="flex shrink-0 items-center">{icon}</span>
+          <span className="font-mono text-[10px] font-semibold uppercase tracking-widest" style={{ color }}>
+            {title}
+          </span>
+          <span className="font-mono text-[9px] text-[#2d2d44]">({items.length})</span>
+        </div>
+        <svg
+          width="10"
+          height="10"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="#3a3a55"
+          strokeWidth={2.5}
+          className={`shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+        </svg>
+      </button>
+      {open && (
+        <ul className="px-3 pb-3 space-y-1.5 border-t border-[#141420]">
+          {items.map((item) => (
+            <li key={item} className="flex items-start gap-2 pt-1.5 text-[11px] text-[#58588a]">
+              <span className="mt-0.5 shrink-0 text-[9px]" style={{ color: `${color}80` }}>▸</span>
+              {item}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -746,31 +921,39 @@ function OAuthConnect({
 }) {
   return (
     <div className="space-y-3">
-      <p className="text-[11px] text-[#8585aa]">
-        You&apos;ll be redirected to <strong className="text-[#bcbcd8]">{integration.name}</strong> to
-        authorize read-only access. You can revoke it at any time.
+      <p className="text-[11px] text-[#4a4a6a] leading-relaxed">
+        You&apos;ll be redirected to <strong className="text-[#8585aa]">{integration.name}</strong> to
+        authorize read-only access. You can revoke it from {integration.name}&apos;s dashboard at any time.
       </p>
       {error && (
-        <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 font-mono text-[11px] text-red-400">
+        <p className="rounded-lg border border-red-500/30 bg-red-500/8 px-3 py-2 font-mono text-[11px] text-red-400">
           {error}
         </p>
       )}
       <button
         onClick={onConnect}
-        className="w-full rounded-xl border px-4 py-3 font-mono text-[12px] font-semibold uppercase tracking-wider transition-all"
+        className="group relative w-full overflow-hidden rounded-xl px-4 py-3.5 font-mono text-[12px] font-semibold uppercase tracking-wider transition-all duration-200"
         style={{
-          borderColor: `${integration.color}40`,
-          backgroundColor: `${integration.color}12`,
+          border: `1px solid ${integration.color}35`,
+          backgroundColor: `${integration.color}10`,
           color: integration.color,
         }}
         onMouseEnter={(e) => {
-          (e.currentTarget as HTMLButtonElement).style.backgroundColor = `${integration.color}20`;
+          (e.currentTarget as HTMLButtonElement).style.backgroundColor = `${integration.color}1e`;
+          (e.currentTarget as HTMLButtonElement).style.borderColor = `${integration.color}55`;
         }}
         onMouseLeave={(e) => {
-          (e.currentTarget as HTMLButtonElement).style.backgroundColor = `${integration.color}12`;
+          (e.currentTarget as HTMLButtonElement).style.backgroundColor = `${integration.color}10`;
+          (e.currentTarget as HTMLButtonElement).style.borderColor = `${integration.color}35`;
         }}
       >
-        Connect {integration.name} →
+        <span className="flex items-center justify-center gap-2">
+          <img src={integration.icon} alt="" width={14} height={14} className="object-contain opacity-80" />
+          Connect {integration.name}
+          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} className="transition-transform group-hover:translate-x-0.5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+          </svg>
+        </span>
       </button>
     </div>
   );
@@ -795,16 +978,16 @@ function ApiKeyForm({
 }) {
   return (
     <form onSubmit={onSubmit} className="space-y-3">
-      <p className="text-[11px] text-[#8585aa]">
-        Enter your <strong className="text-[#bcbcd8]">{integration.name}</strong> credentials below.
-        They are stored encrypted and never shared.
+      <p className="text-[11px] text-[#4a4a6a] leading-relaxed">
+        Enter your <strong className="text-[#8585aa]">{integration.name}</strong> credentials below.
+        They&apos;re stored encrypted and never logged or shared.
       </p>
       {fields.map((field) => (
         <div key={field.name}>
-          <label className="mb-1 flex items-center gap-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#8585aa]">
+          <label className="mb-1.5 flex items-center gap-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#58588a]">
             {field.label}
             {field.optional && (
-              <span className="normal-case tracking-normal font-normal text-[#3a3a55]">(optional)</span>
+              <span className="normal-case tracking-normal font-normal text-[#2d2d44]">(optional)</span>
             )}
           </label>
           <input
@@ -813,26 +996,49 @@ function ApiKeyForm({
             onChange={(e) => onChange(field.name, e.target.value)}
             placeholder={field.placeholder}
             autoComplete="off"
-            className="w-full rounded-lg border border-[#363650] bg-[#1c1c2a] px-3 py-2 font-mono text-[12px] text-[#f8f8fc] placeholder-[#3a3a55] outline-none transition focus:border-[#00d4aa]/40 focus:ring-1 focus:ring-[#00d4aa]/20"
+            className="w-full rounded-lg border border-[#1e1e30] bg-[#0a0a14] px-3 py-2.5 font-mono text-[12px] text-[#e8e8f8] placeholder-[#252535] outline-none transition focus:border-[#00d4aa]/35 focus:ring-1 focus:ring-[#00d4aa]/15"
           />
         </div>
       ))}
       {error && (
-        <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 font-mono text-[11px] text-red-400">
+        <p className="rounded-lg border border-red-500/25 bg-red-500/8 px-3 py-2 font-mono text-[11px] text-red-400">
           {error}
         </p>
       )}
       <button
         type="submit"
         disabled={loading}
-        className="w-full rounded-xl border px-4 py-3 font-mono text-[12px] font-semibold uppercase tracking-wider transition-all disabled:opacity-50"
+        className="group relative w-full overflow-hidden rounded-xl px-4 py-3.5 font-mono text-[12px] font-semibold uppercase tracking-wider transition-all duration-200 disabled:opacity-40"
         style={{
-          borderColor: `${integration.color}40`,
-          backgroundColor: loading ? `${integration.color}08` : `${integration.color}12`,
+          border: `1px solid ${integration.color}35`,
+          backgroundColor: loading ? `${integration.color}08` : `${integration.color}10`,
           color: integration.color,
         }}
+        onMouseEnter={(e) => {
+          if (!loading) (e.currentTarget as HTMLButtonElement).style.backgroundColor = `${integration.color}1e`;
+        }}
+        onMouseLeave={(e) => {
+          (e.currentTarget as HTMLButtonElement).style.backgroundColor = loading ? `${integration.color}08` : `${integration.color}10`;
+        }}
       >
-        {loading ? "Connecting…" : `Connect ${integration.name} →`}
+        <span className="flex items-center justify-center gap-2">
+          {loading ? (
+            <>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="animate-spin">
+                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+              </svg>
+              Connecting…
+            </>
+          ) : (
+            <>
+              <img src={integration.icon} alt="" width={14} height={14} className="object-contain opacity-80" />
+              Connect {integration.name}
+              <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} className="transition-transform group-hover:translate-x-0.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+              </svg>
+            </>
+          )}
+        </span>
       </button>
     </form>
   );
@@ -853,12 +1059,12 @@ function ShopifyForm({
 }) {
   return (
     <div className="space-y-3">
-      <p className="text-[11px] text-[#8585aa]">
+      <p className="text-[11px] text-[#4a4a6a] leading-relaxed">
         Enter your Shopify store domain to start the connection. You&apos;ll be redirected to
         Shopify to authorize read-only access.
       </p>
       <div>
-        <label className="mb-1 block font-mono text-[10px] font-semibold uppercase tracking-wider text-[#8585aa]">
+        <label className="mb-1.5 block font-mono text-[10px] font-semibold uppercase tracking-wider text-[#58588a]">
           Store domain
         </label>
         <input
@@ -866,25 +1072,37 @@ function ShopifyForm({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="yourstore.myshopify.com"
-          className="w-full rounded-lg border border-[#363650] bg-[#1c1c2a] px-3 py-2 font-mono text-[12px] text-[#f8f8fc] placeholder-[#3a3a55] outline-none transition focus:border-[#96bf48]/40 focus:ring-1 focus:ring-[#96bf48]/20"
+          className="w-full rounded-lg border border-[#1e1e30] bg-[#0a0a14] px-3 py-2.5 font-mono text-[12px] text-[#e8e8f8] placeholder-[#252535] outline-none transition focus:border-[#96bf48]/35 focus:ring-1 focus:ring-[#96bf48]/15"
           onKeyDown={(e) => e.key === "Enter" && onSubmit()}
         />
       </div>
       {error && (
-        <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 font-mono text-[11px] text-red-400">
+        <p className="rounded-lg border border-red-500/25 bg-red-500/8 px-3 py-2 font-mono text-[11px] text-red-400">
           {error}
         </p>
       )}
       <button
         onClick={onSubmit}
-        className="w-full rounded-xl border px-4 py-3 font-mono text-[12px] font-semibold uppercase tracking-wider transition-all"
+        className="group w-full rounded-xl px-4 py-3.5 font-mono text-[12px] font-semibold uppercase tracking-wider transition-all duration-200"
         style={{
-          borderColor: `${integration.color}40`,
-          backgroundColor: `${integration.color}12`,
+          border: `1px solid ${integration.color}35`,
+          backgroundColor: `${integration.color}10`,
           color: integration.color,
         }}
+        onMouseEnter={(e) => {
+          (e.currentTarget as HTMLButtonElement).style.backgroundColor = `${integration.color}1e`;
+        }}
+        onMouseLeave={(e) => {
+          (e.currentTarget as HTMLButtonElement).style.backgroundColor = `${integration.color}10`;
+        }}
       >
-        Connect Shopify →
+        <span className="flex items-center justify-center gap-2">
+          <img src={integration.icon} alt="" width={14} height={14} className="object-contain opacity-80" />
+          Connect Shopify
+          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} className="transition-transform group-hover:translate-x-0.5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+          </svg>
+        </span>
       </button>
     </div>
   );

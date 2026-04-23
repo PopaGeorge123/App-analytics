@@ -66,8 +66,9 @@ import { dirname, join } from 'path';
 // CONFIG
 // ─────────────────────────────────────────────────────────────────────────────
 const ENV_PATH          = join(dirname(fileURLToPath(import.meta.url)), '..', '.env');
-const USER_DELAY_MS     = 5_000;   // ms between each user (rate-limit buffer)
-const PLATFORM_DELAY_MS = 2_000;   // ms between platforms per user
+const USER_DELAY_MS     = 500;    // ms between user batches (soft rate-limit buffer)
+const PLATFORM_DELAY_MS = 300;    // ms between platforms (kept for sequential fallback only)
+const USER_CONCURRENCY  = 5;      // how many users to sync in parallel
 const MAX_RETRIES       = 3;       // retries on 429 / network errors
 const DAILY_UTC_HOUR    = 2;       // hour to run in --loop mode (02:00 UTC)
 
@@ -460,39 +461,84 @@ async function syncStripe(userId, accessToken) {
   return { date, ...r };
 }
 
-/** Full backfill — parallel batches of 10 days, from N days ago up to yesterday */
+/** Full backfill — paginate all transactions for the date range, group by date in JS */
 async function backfillStripe(userId, accessToken, days = BACKFILL_DAYS.stripe) {
-  log(`  [stripe backfill] ${days} days for user ${userId.slice(0, 8)} (batches of 10)`);
-  const BATCH = 10;
-  let ok = 0, skipped = 0;
+  log(`  [stripe backfill] ${days} days for user ${userId.slice(0, 8)} — bulk paginated fetch`);
+  const stripeHeaders = { Authorization: `Bearer ${accessToken}` };
+  const startTs = Math.floor(Date.now() / 1000) - days * 86400;
 
-  // Work from oldest → newest in batches
-  for (let batchStart = days; batchStart >= 1; batchStart -= BATCH) {
-    const offsets = [];
-    for (let k = 0; k < BATCH && (batchStart - k) >= 1; k++) {
-      offsets.push(batchStart - k);
-    }
-
-    const results = await Promise.allSettled(
-      offsets.map(offset => syncStripeDay(userId, accessToken, daysAgo(offset)))
-    );
-
-    for (let j = 0; j < results.length; j++) {
-      const res  = results[j];
-      const date = daysAgo(offsets[j]);
-      if (res.status === 'fulfilled') {
-        if (res.value.txCount > 0 || res.value.mrr > 0) logOk(`  stripe ${date} — $${(res.value.revenue / 100).toFixed(2)} | ${res.value.txCount} tx | MRR $${(res.value.mrr / 100).toFixed(0)} | ${res.value.activeSubscriptions} subs`);
-        ok++;
-      } else {
-        logFail(`  stripe ${date} — ${res.reason?.message ?? res.reason}`);
-        skipped++;
-      }
-    }
-
-    // Brief pause between batches to stay well under Stripe rate limits
-    if (batchStart - BATCH >= 1) await sleep(1_000);
+  // --- Fetch all successful PaymentIntents in range (paginated) ---
+  const allCharges = [];
+  let chargesUrl = `https://api.stripe.com/v1/charges?limit=100&status=succeeded&created[gte]=${startTs}`;
+  while (chargesUrl) {
+    const res = await fetchRetry('Stripe charges page', chargesUrl, { headers: stripeHeaders });
+    if (!res.ok) break;
+    const body = await res.json();
+    allCharges.push(...(body.data ?? []));
+    chargesUrl = body.has_more ? `https://api.stripe.com/v1/charges?limit=100&status=succeeded&created[gte]=${startTs}&starting_after=${body.data.at(-1).id}` : null;
+    if (chargesUrl) await sleep(200);
   }
-  log(`  [stripe backfill] done — ${ok} days saved, ${skipped} errors`);
+
+  // --- Fetch all refunds in range ---
+  const allRefunds = [];
+  let refundsUrl = `https://api.stripe.com/v1/refunds?limit=100&created[gte]=${startTs}`;
+  while (refundsUrl) {
+    const res = await fetchRetry('Stripe refunds page', refundsUrl, { headers: stripeHeaders });
+    if (!res.ok) break;
+    const body = await res.json();
+    allRefunds.push(...(body.data ?? []));
+    refundsUrl = body.has_more ? `https://api.stripe.com/v1/refunds?limit=100&created[gte]=${startTs}&starting_after=${body.data.at(-1).id}` : null;
+    if (refundsUrl) await sleep(200);
+  }
+
+  // --- Current MRR / active subscriptions (snapshot, not historic) ---
+  let mrr = 0, activeSubscriptions = 0;
+  try {
+    let subsUrl = `https://api.stripe.com/v1/subscriptions?limit=100&status=active`;
+    while (subsUrl) {
+      const res = await fetchRetry('Stripe subs page', subsUrl, { headers: stripeHeaders });
+      if (!res.ok) break;
+      const body = await res.json();
+      for (const s of (body.data ?? [])) {
+        activeSubscriptions++;
+        mrr += (s.plan?.amount ?? s.items?.data?.[0]?.plan?.amount ?? 0);
+      }
+      subsUrl = body.has_more ? `https://api.stripe.com/v1/subscriptions?limit=100&status=active&starting_after=${body.data.at(-1).id}` : null;
+      if (subsUrl) await sleep(200);
+    }
+  } catch { /* non-fatal */ }
+
+  // --- Group charges by date ---
+  const byDate = {};
+  for (const ch of allCharges) {
+    const date = new Date(ch.created * 1000).toISOString().slice(0, 10);
+    byDate[date] ??= { revenue: 0, txCount: 0, refunds: 0, newCustomers: 0 };
+    byDate[date].revenue  += ch.amount_captured ?? ch.amount ?? 0;
+    byDate[date].txCount  += 1;
+  }
+  for (const rf of allRefunds) {
+    const date = new Date(rf.created * 1000).toISOString().slice(0, 10);
+    byDate[date] ??= { revenue: 0, txCount: 0, refunds: 0, newCustomers: 0 };
+    byDate[date].refunds += rf.amount ?? 0;
+  }
+
+  // --- Upsert each day ---
+  let ok = 0;
+  for (const [date, vals] of Object.entries(byDate)) {
+    await SB.upsert('daily_snapshots',
+      { user_id: userId, provider: 'stripe', date, data: {
+        revenue:           vals.revenue,
+        txCount:           vals.txCount,
+        refunds:           vals.refunds,
+        newCustomers:      vals.newCustomers,
+        mrr,
+        activeSubscriptions,
+        churnedToday:      0,
+      }},
+      'user_id,provider,date');
+    ok++;
+  }
+  log(`  [stripe backfill] done — ${ok} days with data (${allCharges.length} charges fetched)`);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -660,52 +706,75 @@ async function syncMeta(userId, integration) {
 }
 
 /**
- * Full Meta backfill — parallel batches of 5 days.
- * Meta Ads Insights API supports per-day time_range but not a bulk date-dimension
- * breakdown the same way GA4 does, so we still call per day — but in parallel.
- * Batch size 5 is conservative given Meta's ~200 req/hour rate limit.
+ * Full Meta backfill — single Insights API call with time_increment=1.
+ * Meta returns one entry per day over the requested date range.
  */
 async function backfillMeta(userId, integration, days = BACKFILL_DAYS.meta) {
-  log(`  [meta backfill] ${days} days for user ${userId.slice(0, 8)} (batches of 5)`);
+  log(`  [meta backfill] ${days} days for user ${userId.slice(0, 8)} — single bulk request`);
   const freshToken  = await extendMetaToken(userId, integration.access_token);
   const adAccountId = integration.account_id;
   const currency    = integration.currency ?? 'USD';
-  const BATCH = 5;
+  const startDate   = daysAgo(days);
+  const endDate     = yesterday();
+
+  const timeRange = JSON.stringify({ since: startDate, until: endDate });
+  const url = `https://graph.facebook.com/v22.0/${adAccountId}/insights` +
+    `?fields=spend,reach,clicks,actions,date_start` +
+    `&time_increment=1` +
+    `&time_range=${encodeURIComponent(timeRange)}` +
+    `&limit=365` +
+    `&access_token=${encodeURIComponent(freshToken)}`;
+
   let ok = 0, skipped = 0;
+  let nextUrl = url;
 
-  for (let batchStart = days; batchStart >= 1; batchStart -= BATCH) {
-    const offsets = [];
-    for (let k = 0; k < BATCH && (batchStart - k) >= 1; k++) {
-      offsets.push(batchStart - k);
-    }
-
-    const results = await Promise.allSettled(
-      offsets.map(offset => fetchMetaDay(adAccountId, freshToken, daysAgo(offset), currency))
-    );
-
-    const rows = [];
-    for (let j = 0; j < results.length; j++) {
-      const res  = results[j];
-      const date = daysAgo(offsets[j]);
-      if (res.status === 'fulfilled') {
-        const d = res.value;
-        rows.push({ user_id: userId, provider: 'meta', date, data: d });
-        if (d.spend > 0) logOk(`  meta ${date} — ${currency} ${d.spend} spend | ${d.clicks} clicks`);
-        ok++;
-      } else {
-        logFail(`  meta ${date} — ${res.reason?.message ?? res.reason}`);
-        skipped++;
+  while (nextUrl) {
+    const res = await fetchRetry('Meta bulk insights', nextUrl);
+    if (!res.ok) {
+      logWarn(`  [meta backfill] bulk failed (${res.status}), falling back to per-day batches`);
+      // Fallback: 5-day parallel batches
+      const BATCH = 5;
+      for (let batchStart = days; batchStart >= 1; batchStart -= BATCH) {
+        const offsets = [];
+        for (let k = 0; k < BATCH && (batchStart - k) >= 1; k++) offsets.push(batchStart - k);
+        const results = await Promise.allSettled(
+          offsets.map(offset => fetchMetaDay(adAccountId, freshToken, daysAgo(offset), currency))
+        );
+        for (let j = 0; j < results.length; j++) {
+          const r = results[j]; const date = daysAgo(offsets[j]);
+          if (r.status === 'fulfilled') {
+            await SB.upsert('daily_snapshots', { user_id: userId, provider: 'meta', date, data: r.value }, 'user_id,provider,date');
+            ok++;
+          } else { logFail(`  meta ${date} — ${r.reason?.message}`); skipped++; }
+        }
+        if (batchStart - BATCH >= 1) await sleep(1_000);
       }
+      log(`  [meta backfill] fallback done — ${ok} days saved, ${skipped} errors`);
+      return;
     }
 
-    // Upsert the whole batch at once
-    for (const row of rows) {
-      await SB.upsert('daily_snapshots', row, 'user_id,provider,date');
+    const body = await res.json();
+    const entries = body.data ?? [];
+    for (const d of entries) {
+      const date = (d.date_start ?? '').slice(0, 10);
+      if (!date) continue;
+      const data = {
+        spend:       parseFloat(d.spend ?? '0'),
+        reach:       parseInt(d.reach   ?? '0', 10),
+        clicks:      parseInt(d.clicks  ?? '0', 10),
+        conversions: (d.actions ?? [])
+          .filter(a => ['purchase', 'offsite_conversion.fb_pixel_purchase'].includes(a.action_type))
+          .reduce((s, a) => s + parseInt(a.value ?? '0', 10), 0),
+        currency,
+      };
+      await SB.upsert('daily_snapshots', { user_id: userId, provider: 'meta', date, data }, 'user_id,provider,date');
+      ok++;
     }
-
-    // 1s between batches → well under Meta's rate limit
-    if (batchStart - BATCH >= 1) await sleep(1_000);
+    // Handle Meta pagination cursors
+    nextUrl = body.paging?.next ?? null;
+    if (nextUrl) await sleep(500);
   }
+
   log(`  [meta backfill] done — ${ok} days saved, ${skipped} errors`);
 }
 
@@ -909,23 +978,72 @@ async function syncPaddle(userId, integration) {
 }
 
 /** Full backfill — sequential per day */
+/** Full backfill — single paginated fetch for entire date range, grouped by date */
 async function backfillPaddle(userId, integration, days = BACKFILL_DAYS.paddle) {
-  log(`  [paddle backfill] ${days} days for user ${userId.slice(0, 8)}`);
-  let ok = 0, skipped = 0;
+  log(`  [paddle backfill] ${days} days for user ${userId.slice(0, 8)} — bulk paginated fetch`);
+  const apiKey    = integration.access_token;
+  const headers   = { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' };
+  const startDate = daysAgo(days);
+  const from      = `${startDate}T00:00:00Z`;
+  const to        = `${yesterday()}T23:59:59Z`;
 
-  for (let offset = days; offset >= 1; offset--) {
-    const date = daysAgo(offset);
-    try {
-      const r = await syncPaddleDay(userId, integration.access_token, date);
-      if (r.txCount > 0) logOk(`  paddle ${date} — $${r.revenue.toFixed(2)} revenue | ${r.txCount} tx`);
-      ok++;
-    } catch (err) {
-      logFail(`  paddle ${date} — ${err.message}`);
-      skipped++;
+  const byDate = {};
+  let after    = null;
+
+  while (true) {
+    const params = new URLSearchParams({
+      'billed_at[gte]': from,
+      'billed_at[lte]': to,
+      status:    'completed',
+      per_page:  '200',
+    });
+    if (after) params.set('after', after);
+
+    const res = await fetchRetry('Paddle bulk transactions', `https://api.paddle.com/transactions?${params}`, { headers });
+    if (!res.ok) {
+      logWarn(`  [paddle backfill] bulk failed (${res.status}), falling back to per-day`);
+      let ok = 0, skipped = 0;
+      for (let offset = days; offset >= 1; offset--) {
+        const date = daysAgo(offset);
+        try { await syncPaddleDay(userId, apiKey, date); ok++; }
+        catch (err) { logFail(`  paddle ${date} — ${err.message}`); skipped++; }
+        await sleep(100);
+      }
+      log(`  [paddle backfill] fallback done — ${ok} days saved, ${skipped} errors`);
+      return;
     }
-    await sleep(100); // Paddle rate limit is generous but let's be polite
+
+    const body  = await res.json();
+    const items = body.data ?? [];
+    for (const tx of items) {
+      const date       = (tx.billed_at ?? '').slice(0, 10);
+      if (!date) continue;
+      const totals     = tx.details?.totals ?? {};
+      const grandTotal = parseInt(totals.grand_total ?? '0', 10);
+      const earnings   = parseInt(totals.earnings   ?? '0', 10);
+      if (grandTotal > 0) {
+        byDate[date] ??= { revenue: 0, fees: 0, txCount: 0 };
+        byDate[date].revenue  += grandTotal / 100;
+        byDate[date].fees     += (grandTotal - earnings) / 100;
+        byDate[date].txCount  += 1;
+      }
+    }
+
+    const nextUrl = body.meta?.pagination?.next;
+    if (!nextUrl) break;
+    try { after = new URL(nextUrl).searchParams.get('after'); if (!after) break; } catch { break; }
+    await sleep(100);
   }
-  log(`  [paddle backfill] done — ${ok} days saved, ${skipped} errors`);
+
+  let ok = 0;
+  for (const [date, vals] of Object.entries(byDate)) {
+    const netRevenue = vals.revenue - vals.fees;
+    await SB.upsert('daily_snapshots',
+      { user_id: userId, provider: 'paddle', date, data: { revenue: vals.revenue, fees: vals.fees, netRevenue, txCount: vals.txCount } },
+      'user_id,provider,date');
+    ok++;
+  }
+  log(`  [paddle backfill] done — ${ok} days with data (bulk fetch)`);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1030,21 +1148,47 @@ async function syncLemonSqueezy(userId, integration) {
 }
 
 async function backfillLemonSqueezy(userId, integration, days = 365) {
-  log(`  [lemonsqueezy backfill] ${days} days for user ${userId.slice(0, 8)}`);
-  let ok = 0, skipped = 0;
-  for (let offset = days; offset >= 1; offset--) {
-    const date = daysAgo(offset);
-    try {
-      const r = await syncLemonSqueezyDay(userId, integration.access_token, integration.account_id, date);
-      if (r.txCount > 0) logOk(`  lemonsqueezy ${date} — $${r.revenue.toFixed(2)} | ${r.txCount} tx`);
-      ok++;
-    } catch (err) {
-      logFail(`  lemonsqueezy ${date} — ${err.message}`);
-      skipped++;
+  log(`  [lemonsqueezy backfill] ${days} days for user ${userId.slice(0, 8)} — bulk paginated fetch`);
+  const apiKey   = integration.access_token;
+  const storeId  = integration.account_id;
+  const startDate = daysAgo(days);
+  const headers  = { Authorization: `Bearer ${apiKey}`, Accept: 'application/vnd.api+json' };
+
+  // Fetch ALL orders for the date range (paginated)
+  const byDate = {};
+  let url = `https://api.lemonsqueezy.com/v1/orders?filter[store_id]=${storeId}&filter[status]=paid&page[size]=100&sort=created_at`;
+  while (url) {
+    const res = await fetchRetry('LemonSqueezy orders page', url, { headers });
+    if (!res.ok) break;
+    const body = await res.json();
+    for (const order of (body.data ?? [])) {
+      const date = (order.attributes?.created_at ?? '').slice(0, 10);
+      if (!date || date < startDate) { url = null; break; } // past the range
+      const total      = Number(order.attributes?.total          ?? 0) / 100;
+      const totalUSD   = Number(order.attributes?.total_usd      ?? total * 100) / 100;
+      const tax        = Number(order.attributes?.tax            ?? 0) / 100;
+      const setupFee   = Number(order.attributes?.setup_fee      ?? 0) / 100;
+      const revenue    = totalUSD;
+      const fees       = tax + setupFee;
+      byDate[date] ??= { revenue: 0, fees: 0, txCount: 0 };
+      byDate[date].revenue  += revenue;
+      byDate[date].fees     += fees;
+      byDate[date].txCount  += 1;
     }
-    await sleep(150);
+    const nextLink = body.links?.next;
+    url = (url !== null && nextLink) ? nextLink : null;
+    if (url) await sleep(150);
   }
-  log(`  [lemonsqueezy backfill] done — ${ok} days saved, ${skipped} errors`);
+
+  let ok = 0;
+  for (const [date, vals] of Object.entries(byDate)) {
+    const netRevenue = vals.revenue - vals.fees;
+    await SB.upsert('daily_snapshots',
+      { user_id: userId, provider: 'lemon-squeezy', date, data: { revenue: vals.revenue, fees: vals.fees, netRevenue, txCount: vals.txCount } },
+      'user_id,provider,date');
+    ok++;
+  }
+  log(`  [lemonsqueezy backfill] done — ${ok} days with data (bulk fetch)`);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1142,18 +1286,49 @@ async function syncGumroad(userId, integration) {
 }
 
 async function backfillGumroad(userId, integration, days = 365) {
-  log(`  [gumroad backfill] ${days} days for user ${userId.slice(0, 8)}`);
-  let ok = 0, skipped = 0;
-  for (let offset = days; offset >= 1; offset--) {
-    const date = daysAgo(offset);
-    try {
-      const r = await syncGumroadDay(userId, integration.access_token, date);
-      if (r.txCount > 0) logOk(`  gumroad ${date} — $${r.revenue.toFixed(2)} | ${r.txCount} tx`);
-      ok++;
-    } catch (err) { logFail(`  gumroad ${date} — ${err.message}`); skipped++; }
-    await sleep(200);
+  log(`  [gumroad backfill] ${days} days for user ${userId.slice(0, 8)} — bulk paginated fetch`);
+  const apiKey    = integration.access_token;
+  const startDate = daysAgo(days);
+  const endDate   = yesterday();
+
+  // Fetch ALL sales in date range (Gumroad supports before/after at the list level)
+  const byDate = {};
+  let page = 1;
+  while (true) {
+    const params = new URLSearchParams({ after: startDate, before: endDate, page: String(page) });
+    const res = await fetchRetry('Gumroad sales bulk', `https://api.gumroad.com/v2/sales?${params}`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+    if (!res.ok) break;
+    const body  = await res.json();
+    const sales = body.sales ?? [];
+    if (sales.length === 0) break;
+
+    for (const sale of sales) {
+      const date = (sale.created_at ?? '').split('T')[0];
+      if (!date) continue;
+      const price = typeof sale.price === 'number' ? sale.price / 100 : 0;
+      const gFee  = typeof sale.gumroad_fee === 'number' ? sale.gumroad_fee / 100 : 0;
+      byDate[date] ??= { revenue: 0, fees: 0, txCount: 0 };
+      byDate[date].revenue  += price;
+      byDate[date].fees     += gFee;
+      byDate[date].txCount  += 1;
+    }
+
+    if (!body.next_page_url) break;
+    page++;
+    await sleep(150);
   }
-  log(`  [gumroad backfill] done — ${ok} days saved, ${skipped} errors`);
+
+  let ok = 0;
+  for (const [date, vals] of Object.entries(byDate)) {
+    const netRevenue = vals.revenue - vals.fees;
+    await SB.upsert('daily_snapshots',
+      { user_id: userId, provider: 'gumroad', date, data: { revenue: vals.revenue, fees: vals.fees, netRevenue, txCount: vals.txCount } },
+      'user_id,provider,date');
+    ok++;
+  }
+  log(`  [gumroad backfill] done — ${ok} days with data (bulk fetch)`);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1193,17 +1368,60 @@ async function syncPlausible(userId, integration) {
 }
 
 async function backfillPlausible(userId, integration, days = 365) {
-  log(`  [plausible backfill] ${days} days for user ${userId.slice(0, 8)}`);
-  let ok = 0, skipped = 0;
-  for (let offset = days; offset >= 1; offset--) {
-    const date = daysAgo(offset);
-    try {
-      await syncPlausibleDay(userId, integration.access_token, integration.account_id, date);
-      ok++;
-    } catch (err) { logFail(`  plausible ${date} — ${err.message}`); skipped++; }
-    await sleep(300);
+  log(`  [plausible backfill] ${days} days for user ${userId.slice(0, 8)} — single bulk request`);
+  const apiKey  = integration.access_token;
+  const siteId  = integration.account_id;
+  const startDate = daysAgo(days);
+  const endDate   = yesterday();
+
+  const params = new URLSearchParams({
+    site_id:       siteId,
+    period:        'custom',
+    date:          `${startDate},${endDate}`,
+    metrics:       'visitors,pageviews,visits,bounce_rate,visit_duration',
+    dimensions:    'time:day',
+  });
+  const res = await fetchRetry('Plausible bulk', `https://plausible.io/api/v2/query`, {
+    method:  'POST',
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      site_id:    siteId,
+      metrics:    ['visitors', 'pageviews', 'visits', 'bounce_rate', 'visit_duration'],
+      date_range: [startDate, endDate],
+      dimensions: ['time:day'],
+    }),
+  });
+
+  if (!res.ok) {
+    logWarn(`  [plausible backfill] bulk API failed (${res.status}), falling back to per-day`);
+    let ok = 0, skipped = 0;
+    for (let offset = days; offset >= 1; offset--) {
+      const date = daysAgo(offset);
+      try { await syncPlausibleDay(userId, apiKey, siteId, date); ok++; }
+      catch (err) { logFail(`  plausible ${date} — ${err.message}`); skipped++; }
+      await sleep(200);
+    }
+    log(`  [plausible backfill] done — ${ok} days saved, ${skipped} errors`);
+    return;
   }
-  log(`  [plausible backfill] done — ${ok} days saved, ${skipped} errors`);
+
+  const body = await res.json();
+  const results = body.results ?? [];
+  let ok = 0;
+  for (const row of results) {
+    const date        = (row.dimensions?.[0] ?? '').slice(0, 10);
+    if (!date) continue;
+    const visitors    = Number(row.metrics?.[0] ?? 0);
+    const pageviews   = Number(row.metrics?.[1] ?? 0);
+    const sessions    = Number(row.metrics?.[2] ?? 0);
+    const bounceRate  = Number(row.metrics?.[3] ?? 0);
+    const visitDuration = Number(row.metrics?.[4] ?? 0);
+    await SB.upsert('daily_snapshots',
+      { user_id: userId, provider: 'plausible', date, data: { visitors, pageviews, sessions, bounceRate, visitDuration } },
+      'user_id,provider,date');
+    ok++;
+  }
+  log(`  [plausible backfill] done — ${ok} days saved (1 request)`);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1368,19 +1586,54 @@ async function syncPostHog(userId, integration) {
 }
 
 async function backfillPostHog(userId, integration, days = 365) {
-  log(`  [posthog backfill] ${days} days for user ${userId.slice(0, 8)}`);
-  let ok = 0, skipped = 0;
-  for (let offset = days; offset >= 1; offset--) {
-    const date = daysAgo(offset);
-    try {
-      await syncPostHogDay(userId, integration.access_token, integration.account_id, date);
-      ok++;
-    } catch (err) { logFail(`  posthog ${date} — ${err.message}`); skipped++; }
-    // 500ms between days — HogQL is 1 request per day (vs the old 3), so
-    // ~2 req/s is well within PostHog's rate limits.
-    await sleep(500);
+  log(`  [posthog backfill] ${days} days for user ${userId.slice(0, 8)} — single bulk HogQL query`);
+  const apiKey      = integration.access_token;
+  const rawAccountId = integration.account_id;
+  const isEU        = rawAccountId.startsWith('eu:');
+  const host        = isEU ? 'https://eu.posthog.com' : 'https://app.posthog.com';
+  const projectId   = isEU ? rawAccountId.slice(3) : rawAccountId;
+  const startDate   = daysAgo(days);
+  const endDate     = yesterday();
+
+  const res = await fetchRetry('PostHog bulk HogQL', `${host}/api/projects/${projectId}/query`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      query: {
+        kind: 'HogQLQuery',
+        query: `SELECT toDate(timestamp) AS date, count() AS pageviews, count(distinct person_id) AS unique_users, count(distinct properties.\`$session_id\`) AS sessions FROM events WHERE event = '$pageview' AND toDate(timestamp) >= '${startDate}' AND toDate(timestamp) <= '${endDate}' GROUP BY date ORDER BY date`,
+      },
+    }),
+  });
+
+  if (!res.ok) {
+    logWarn(`  [posthog backfill] bulk HogQL failed (${res.status}), falling back to per-day`);
+    let ok = 0, skipped = 0;
+    for (let offset = days; offset >= 1; offset--) {
+      const date = daysAgo(offset);
+      try { await syncPostHogDay(userId, apiKey, rawAccountId, date); ok++; }
+      catch (err) { logFail(`  posthog ${date} — ${err.message}`); skipped++; }
+      await sleep(500);
+    }
+    log(`  [posthog backfill] done — ${ok} days saved, ${skipped} errors`);
+    return;
   }
-  log(`  [posthog backfill] done — ${ok} days saved, ${skipped} errors`);
+
+  const body = await res.json();
+  const results = body.results ?? [];
+  let ok = 0;
+  for (const row of results) {
+    const date        = (row[0] ?? '').slice(0, 10);
+    if (!date) continue;
+    const pageviews   = Number(row[1]) || 0;
+    const uniqueUsers = Number(row[2]) || 0;
+    const sessions    = Number(row[3]) || 0;
+    await SB.upsert('daily_snapshots',
+      { user_id: userId, provider: 'posthog', date, data: { pageviews, uniqueUsers, sessions } },
+      'user_id,provider,date');
+    ok++;
+  }
+  log(`  [posthog backfill] done — ${ok} days saved (1 request)`);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1417,15 +1670,53 @@ async function syncFathom(userId, integration) {
 }
 
 async function backfillFathom(userId, integration, days = 365) {
-  log(`  [fathom backfill] ${days} days for user ${userId.slice(0, 8)}`);
-  let ok = 0, skipped = 0;
-  for (let offset = days; offset >= 1; offset--) {
-    const date = daysAgo(offset);
-    try { await syncFathomDay(userId, integration.access_token, integration.account_id, date); ok++; }
-    catch (err) { logFail(`  fathom ${date} — ${err.message}`); skipped++; }
-    await sleep(200);
+  log(`  [fathom backfill] ${days} days for user ${userId.slice(0, 8)} — single bulk request`);
+  const apiKey  = integration.access_token;
+  const siteId  = integration.account_id;
+  const startDate = daysAgo(days);
+  const endDate   = yesterday();
+
+  const params = new URLSearchParams({
+    entity:        'pageview',
+    entity_id:     siteId,
+    aggregates:    'pageviews,uniques,visits,bounce_rate,avg_duration',
+    date_grouping: 'day',
+    date_from:     startDate,
+    date_to:       endDate,
+  });
+  const res = await fetchRetry('Fathom bulk', `https://api.usefathom.com/v1/aggregations?${params}`, {
+    headers: { Authorization: `Bearer ${apiKey}` },
+  });
+
+  if (!res.ok) {
+    logWarn(`  [fathom backfill] bulk failed (${res.status}), falling back to per-day`);
+    let ok = 0, skipped = 0;
+    for (let offset = days; offset >= 1; offset--) {
+      const date = daysAgo(offset);
+      try { await syncFathomDay(userId, apiKey, siteId, date); ok++; }
+      catch (err) { logFail(`  fathom ${date} — ${err.message}`); skipped++; }
+      await sleep(200);
+    }
+    log(`  [fathom backfill] done — ${ok} days saved, ${skipped} errors`);
+    return;
   }
-  log(`  [fathom backfill] done — ${ok} days saved, ${skipped} errors`);
+
+  const rows = await res.json();
+  let ok = 0;
+  for (const row of (Array.isArray(rows) ? rows : [])) {
+    const date        = (row.date ?? '').slice(0, 10);
+    if (!date) continue;
+    const pageviews   = Number(row.pageviews   ?? 0);
+    const uniques     = Number(row.uniques      ?? 0);
+    const visits      = Number(row.visits       ?? 0);
+    const bounceRate  = Number(row.bounce_rate  ?? 0);
+    const avgDuration = Number(row.avg_duration ?? 0);
+    await SB.upsert('daily_snapshots',
+      { user_id: userId, provider: 'fathom', date, data: { pageviews, uniques, visits, bounceRate, avgDuration } },
+      'user_id,provider,date');
+    ok++;
+  }
+  log(`  [fathom backfill] done — ${ok} days saved (1 request)`);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1879,15 +2170,94 @@ async function syncKlaviyo(userId, integration) {
 }
 
 async function backfillKlaviyo(userId, integration, days = 365) {
-  log(`  [klaviyo backfill] ${days} days for user ${userId.slice(0, 8)}`);
-  let ok = 0, skipped = 0;
-  for (let offset = days; offset >= 1; offset--) {
-    const date = daysAgo(offset);
-    try { await syncKlaviyoDay(userId, integration.access_token, date); ok++; }
-    catch (err) { logFail(`  klaviyo ${date} — ${err.message}`); skipped++; }
-    await sleep(400); // Klaviyo has stricter rate limits
+  log(`  [klaviyo backfill] ${days} days for user ${userId.slice(0, 8)} — 4 bulk requests`);
+  const apiKey    = integration.access_token;
+  const startDate = daysAgo(days);
+  const endDate   = yesterday();
+  const startISO  = `${startDate}T00:00:00+00:00`;
+  const endISO    = `${endDate}T23:59:59+00:00`;
+
+  const headers = {
+    Authorization: `Klaviyo-API-Key ${apiKey}`,
+    revision: '2024-02-15',
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+  };
+
+  // Resolve metric ID by name
+  async function getMetricId(name) {
+    const res = await fetchRetry(`Klaviyo-metric-${name}`,
+      `https://a.klaviyo.com/api/metrics/?filter=equals(name,"${encodeURIComponent(name)}")`,
+      { headers });
+    if (!res.ok) return null;
+    return (await res.json())?.data?.[0]?.id ?? null;
   }
-  log(`  [klaviyo backfill] done — ${ok} days saved, ${skipped} errors`);
+
+  // Fetch full date-range aggregation for a metric (returns [{date, value}])
+  async function fetchBulkAggregate(metricId, measurement) {
+    const res = await fetchRetry(`Klaviyo-bulk-agg-${metricId}`, 'https://a.klaviyo.com/api/metric-aggregates/', {
+      method: 'POST', headers,
+      body: JSON.stringify({ data: { type: 'metric-aggregate', attributes: {
+        metric_id: metricId, measurements: [measurement], interval: 'day',
+        page_size: 500,
+        filter: [`greater-or-equal(datetime,${startISO})`, `less-than(datetime,${endISO})`],
+        timezone: 'UTC',
+      }}}),
+    });
+    if (!res.ok) return [];
+    const body = await res.json();
+    const dates  = body?.data?.attributes?.dates  ?? [];
+    const values = body?.data?.attributes?.values?.[0] ?? [];
+    return dates.map((d, i) => ({ date: d.slice(0, 10), value: values[i] ?? 0 }));
+  }
+
+  try {
+    const [sentId, openId, clickId, orderId] = await Promise.all([
+      getMetricId('Received Email'),
+      getMetricId('Opened Email'),
+      getMetricId('Clicked Email'),
+      getMetricId('Placed Order'),
+    ]);
+
+    const [sentRows, openRows, clickRows, revenueRows] = await Promise.all([
+      sentId    ? fetchBulkAggregate(sentId,    'count')     : Promise.resolve([]),
+      openId    ? fetchBulkAggregate(openId,    'count')     : Promise.resolve([]),
+      clickId   ? fetchBulkAggregate(clickId,   'count')     : Promise.resolve([]),
+      orderId   ? fetchBulkAggregate(orderId,   'sum_value') : Promise.resolve([]),
+    ]);
+
+    // Index by date
+    const byDate = {};
+    for (const r of sentRows)    { byDate[r.date] ??= {}; byDate[r.date].emailsSent = r.value; }
+    for (const r of openRows)    { byDate[r.date] ??= {}; byDate[r.date].opens      = r.value; }
+    for (const r of clickRows)   { byDate[r.date] ??= {}; byDate[r.date].clicks     = r.value; }
+    for (const r of revenueRows) { byDate[r.date] ??= {}; byDate[r.date].revenue    = r.value; }
+
+    let ok = 0;
+    for (const [date, vals] of Object.entries(byDate)) {
+      await SB.upsert('daily_snapshots',
+        { user_id: userId, provider: 'klaviyo', date, data: {
+          emailsSent:    vals.emailsSent    ?? 0,
+          opens:         vals.opens         ?? 0,
+          clicks:        vals.clicks        ?? 0,
+          revenue:       vals.revenue       ?? 0,
+          activeProfiles: 0,
+        }},
+        'user_id,provider,date');
+      ok++;
+    }
+    log(`  [klaviyo backfill] done — ${ok} days saved (4 requests)`);
+  } catch (err) {
+    logWarn(`  [klaviyo backfill] bulk failed (${err.message}), falling back to per-day`);
+    let ok = 0, skipped = 0;
+    for (let offset = days; offset >= 1; offset--) {
+      const date = daysAgo(offset);
+      try { await syncKlaviyoDay(userId, apiKey, date); ok++; }
+      catch (e) { logFail(`  klaviyo ${date} — ${e.message}`); skipped++; }
+      await sleep(400);
+    }
+    log(`  [klaviyo backfill] fallback done — ${ok} days saved, ${skipped} errors`);
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2032,15 +2402,56 @@ async function syncShopify(userId, integration) {
   return { ...r, date };
 }
 async function backfillShopify(userId, integration, days = 365) {
-  log(`  [shopify backfill] ${days} days for user ${userId.slice(0, 8)}`);
-  let ok = 0, skipped = 0;
-  for (let offset = days; offset >= 1; offset--) {
-    const date = daysAgo(offset);
-    try { await syncShopifyDay(userId, integration.account_id, integration.access_token, date); ok++; }
-    catch (err) { logFail(`  shopify ${date} — ${err.message}`); skipped++; }
-    await sleep(300);
+  log(`  [shopify backfill] ${days} days for user ${userId.slice(0, 8)} — bulk paginated fetch`);
+  const storeDomain = integration.account_id;
+  const accessToken = integration.access_token;
+  const startDate   = `${daysAgo(days)}T00:00:00-00:00`;
+  const headers     = { 'X-Shopify-Access-Token': accessToken, 'Content-Type': 'application/json' };
+
+  const byDate = {};
+  let url = `https://${storeDomain}/admin/api/2024-01/orders.json?status=any&created_at_min=${encodeURIComponent(startDate)}&limit=250&fields=id,created_at,total_price,total_tax,financial_status`;
+  while (url) {
+    const res = await fetchRetry('Shopify orders bulk', url, { headers });
+    if (!res.ok) { logWarn(`  [shopify backfill] bulk failed (${res.status}), falling back to per-day`); break; }
+    const body = await res.json();
+    const orders = body.orders ?? [];
+    if (orders.length === 0) break;
+    for (const order of orders) {
+      if (!['paid','partially_refunded','refunded'].includes(order.financial_status)) continue;
+      const date    = (order.created_at ?? '').slice(0, 10);
+      const revenue = parseFloat(order.total_price ?? '0');
+      byDate[date] ??= { revenue: 0, txCount: 0 };
+      byDate[date].revenue  += revenue;
+      byDate[date].txCount  += 1;
+    }
+    // Shopify pagination via Link header
+    const linkHeader = res.headers.get('Link') ?? '';
+    const nextMatch  = linkHeader.match(/<([^>]+)>;\s*rel="next"/);
+    url = nextMatch ? nextMatch[1] : null;
+    if (url) await sleep(200);
   }
-  log(`  [shopify backfill] done — ${ok} days saved, ${skipped} errors`);
+
+  if (Object.keys(byDate).length === 0) {
+    // Fallback to per-day
+    let ok = 0, skipped = 0;
+    for (let offset = days; offset >= 1; offset--) {
+      const date = daysAgo(offset);
+      try { await syncShopifyDay(userId, storeDomain, accessToken, date); ok++; }
+      catch (err) { logFail(`  shopify ${date} — ${err.message}`); skipped++; }
+      await sleep(300);
+    }
+    log(`  [shopify backfill] fallback done — ${ok} days saved, ${skipped} errors`);
+    return;
+  }
+
+  let ok = 0;
+  for (const [date, vals] of Object.entries(byDate)) {
+    await SB.upsert('daily_snapshots',
+      { user_id: userId, provider: 'shopify', date, data: { revenue: vals.revenue, txCount: vals.txCount, refunds: 0, newCustomers: 0 } },
+      'user_id,provider,date');
+    ok++;
+  }
+  log(`  [shopify backfill] done — ${ok} days with data (bulk fetch)`);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2056,15 +2467,53 @@ async function syncWooCommerce(userId, integration) {
   return { ...r, date };
 }
 async function backfillWooCommerce(userId, integration, days = 365) {
-  log(`  [woocommerce backfill] ${days} days for user ${userId.slice(0, 8)}`);
-  let ok = 0, skipped = 0;
-  for (let offset = days; offset >= 1; offset--) {
-    const date = daysAgo(offset);
-    try { await syncWooCommerceDay(userId, integration.access_token, integration.account_id, date); ok++; }
-    catch (err) { logFail(`  woocommerce ${date} — ${err.message}`); skipped++; }
-    await sleep(300);
+  log(`  [woocommerce backfill] ${days} days for user ${userId.slice(0, 8)} — bulk paginated fetch`);
+  const credentials = integration.access_token; // "consumerKey:consumerSecret"
+  const siteUrl     = integration.account_id;
+  const startDate   = `${daysAgo(days)}T00:00:00`;
+  const auth        = Buffer.from(credentials).toString('base64');
+  const headers     = { Authorization: `Basic ${auth}`, 'Content-Type': 'application/json' };
+
+  const byDate = {};
+  let page = 1;
+  while (true) {
+    const params = new URLSearchParams({ after: startDate, per_page: '100', page: String(page), status: 'completed,processing,refunded' });
+    const res = await fetchRetry('WooCommerce orders bulk', `${siteUrl}/wp-json/wc/v3/orders?${params}`, { headers });
+    if (!res.ok) { logWarn(`  [woocommerce backfill] bulk failed (${res.status}), falling back to per-day`); break; }
+    const orders = await res.json();
+    if (!Array.isArray(orders) || orders.length === 0) break;
+    for (const order of orders) {
+      const date    = (order.date_created ?? '').slice(0, 10);
+      const revenue = parseFloat(order.total ?? '0');
+      byDate[date] ??= { revenue: 0, txCount: 0 };
+      byDate[date].revenue  += revenue;
+      byDate[date].txCount  += 1;
+    }
+    if (orders.length < 100) break;
+    page++;
+    await sleep(200);
   }
-  log(`  [woocommerce backfill] done — ${ok} days saved, ${skipped} errors`);
+
+  if (Object.keys(byDate).length === 0) {
+    let ok = 0, skipped = 0;
+    for (let offset = days; offset >= 1; offset--) {
+      const date = daysAgo(offset);
+      try { await syncWooCommerceDay(userId, credentials, siteUrl, date); ok++; }
+      catch (err) { logFail(`  woocommerce ${date} — ${err.message}`); skipped++; }
+      await sleep(300);
+    }
+    log(`  [woocommerce backfill] fallback done — ${ok} days saved, ${skipped} errors`);
+    return;
+  }
+
+  let ok = 0;
+  for (const [date, vals] of Object.entries(byDate)) {
+    await SB.upsert('daily_snapshots',
+      { user_id: userId, provider: 'woocommerce', date, data: { revenue: vals.revenue, txCount: vals.txCount, refunds: 0, newCustomers: 0 } },
+      'user_id,provider,date');
+    ok++;
+  }
+  log(`  [woocommerce backfill] done — ${ok} days with data (bulk fetch)`);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2822,156 +3271,159 @@ async function runSync() {
 
   let ok = 0, fail = 0;
 
-  for (let i = 0; i < userIds.length; i++) {
-    const uid   = userIds[i];
-    const plats = byUser[uid];
-    log(`[${i + 1}/${userIds.length}] User ${uid.slice(0, 8)} (${Object.keys(plats).join(', ')})`);
+  // ── helper: sync all platforms for one user in parallel ──────────────────
+  async function syncUserPlatforms(uid, plats, userIdx) {
+    log(`[${userIdx}/${userIds.length}] User ${uid.slice(0, 8)} (${Object.keys(plats).join(', ')})`);
 
-    for (const platform of ['stripe', 'ga4', 'meta', 'paypal', 'paddle', 'lemon-squeezy', 'gumroad', 'plausible', 'mixpanel', 'amplitude', 'posthog', 'fathom', 'google-ads', 'tiktok-ads', 'twitter-ads', 'linkedin-ads', 'snapchat-ads', 'pinterest-ads', 'mailchimp', 'klaviyo', 'convertkit', 'activecampaign', 'brevo', 'beehiiv', 'shopify', 'woocommerce', 'bigcommerce', 'amazon-seller', 'etsy', 'hubspot', 'salesforce', 'pipedrive', 'notion', 'intercom', 'zendesk', 'freshdesk', 'segment', 'heap', 'fullstory', 'hotjar', 'instagram']) {
-      if (!plats[platform]) continue;
-      try {
-        if (platform === 'stripe') {
-          const r = await syncStripe(uid, plats.stripe.access_token);
-          logOk(`stripe — ${r.date} | $${(r.revenue / 100).toFixed(2)} revenue | ${r.txCount} tx | ${r.newCustomers} new customers`);
-        } else if (platform === 'ga4') {
-          const r = await syncGA4(uid, plats.ga4);
-          logOk(`ga4    — ${r.date} | ${r.sessions} sessions | ${r.totalUsers} users | ${(r.bounceRate * 100).toFixed(1)}% bounce`);
-        } else if (platform === 'meta') {
-          const r = await syncMeta(uid, plats.meta);
-          logOk(`meta   — ${r.date} | $${r.spend} spend | ${r.reach} reach | ${r.clicks} clicks`);
-        } else if (platform === 'paypal') {
-          const r = await syncPayPal(uid, plats.paypal);
-          logOk(`paypal — ${r.date} | $${r.revenue.toFixed(2)} revenue | ${r.txCount} tx`);
-        } else if (platform === 'paddle') {
-          const r = await syncPaddle(uid, plats.paddle);
-          logOk(`paddle — ${r.date} | $${r.revenue.toFixed(2)} revenue | ${r.txCount} tx`);
-        } else if (platform === 'lemon-squeezy') {
-          const r = await syncLemonSqueezy(uid, plats['lemon-squeezy']);
-          logOk(`lemonsqueezy — ${r.date} | $${r.revenue.toFixed(2)} revenue | ${r.txCount} tx`);
-        } else if (platform === 'gumroad') {
-          const r = await syncGumroad(uid, plats.gumroad);
-          logOk(`gumroad — ${r.date} | $${r.revenue.toFixed(2)} revenue | ${r.txCount} tx`);
-        } else if (platform === 'plausible') {
-          const r = await syncPlausible(uid, plats.plausible);
-          logOk(`plausible — ${r.date} | ${r.visitors} visitors | ${r.pageviews} pageviews`);
-        } else if (platform === 'mixpanel') {
-          const r = await syncMixpanel(uid, plats.mixpanel);
-          logOk(`mixpanel — ${r.date} | ${r.events} events | ${r.uniqueUsers} unique users`);
-        } else if (platform === 'amplitude') {
-          const r = await syncAmplitude(uid, plats.amplitude);
-          logOk(`amplitude — ${r.date} | ${r.activeUsers} active users | ${r.totalEvents} events`);
-        } else if (platform === 'posthog') {
-          const r = await syncPostHog(uid, plats.posthog);
-          logOk(`posthog — ${r.date} | ${r.pageviews} pageviews | ${r.uniqueUsers} unique users`);
-        } else if (platform === 'fathom') {
-          const r = await syncFathom(uid, plats.fathom);
-          logOk(`fathom — ${r.date} | ${r.pageviews} pageviews | ${r.uniques} unique visitors`);
-        } else if (platform === 'google-ads') {
-          const r = await syncGoogleAds(uid, plats['google-ads']);
-          logOk(`google-ads — ${r.date} | $${r.spend?.toFixed(2)} spend | ${r.clicks} clicks | ${r.impressions} impressions`);
-        } else if (platform === 'tiktok-ads') {
-          const r = await syncTikTokAds(uid, plats['tiktok-ads']);
-          logOk(`tiktok-ads — ${r.date} | $${r.spend?.toFixed(2)} spend | ${r.clicks} clicks`);
-        } else if (platform === 'twitter-ads') {
-          const r = await syncTwitterAds(uid, plats['twitter-ads']);
-          logOk(`twitter-ads — ${r.date} | $${r.spend?.toFixed(2)} spend | ${r.impressions} impressions`);
-        } else if (platform === 'linkedin-ads') {
-          const r = await syncLinkedInAds(uid, plats['linkedin-ads']);
-          logOk(`linkedin-ads — ${r.date} | $${r.spend?.toFixed(2)} spend | ${r.clicks} clicks`);
-        } else if (platform === 'snapchat-ads') {
-          const r = await syncSnapchatAds(uid, plats['snapchat-ads']);
-          logOk(`snapchat-ads — ${r.date} | $${r.spend?.toFixed(2)} spend | ${r.swipes} swipes`);
-        } else if (platform === 'pinterest-ads') {
-          const r = await syncPinterestAds(uid, plats['pinterest-ads']);
-          logOk(`pinterest-ads — ${r.date} | $${r.spend?.toFixed(2)} spend | ${r.clicks} clicks`);
-        } else if (platform === 'mailchimp') {
-          const r = await syncMailchimp(uid, plats.mailchimp);
-          logOk(`mailchimp — ${r.date} | ${r.emailsSent} sent | ${r.opens} opens | ${r.clicks} clicks`);
-        } else if (platform === 'klaviyo') {
-          const r = await syncKlaviyo(uid, plats.klaviyo);
-          logOk(`klaviyo — ${r.date} | ${r.emailsSent} sent | ${r.opens} opens | $${r.revenue?.toFixed(2)} revenue`);
-        } else if (platform === 'convertkit') {
-          const r = await syncConvertKit(uid, plats.convertkit);
-          logOk(`convertkit — ${r.date} | ${r.totalSubscribers} subscribers | ${r.newSubscribers} new | ${r.broadcastsSent} broadcasts`);
-        } else if (platform === 'activecampaign') {
-          const r = await syncActiveCampaign(uid, plats.activecampaign);
-          logOk(`activecampaign — ${r.date} | ${r.emailsSent} sent | ${r.opens} opens | ${r.newContacts} new contacts`);
-        } else if (platform === 'brevo') {
-          const r = await syncBrevo(uid, plats.brevo);
-          logOk(`brevo — ${r.date} | ${r.emailsSent} sent | ${r.opens} opens | ${r.newContacts} new contacts`);
-        } else if (platform === 'beehiiv') {
-          const r = await syncBeehiiv(uid, plats.beehiiv);
-          logOk(`beehiiv — ${r.date} | ${r.totalSubscribers} subscribers | ${r.newSubscribers} new | ${r.postsPublished} posts`);
-        } else if (platform === 'shopify') {
-          const r = await syncShopify(uid, plats.shopify);
-          logOk(`shopify — ${r.date} | $${r.revenue?.toFixed(2)} revenue | ${r.orders} orders | ${r.newCustomers} new customers`);
-        } else if (platform === 'woocommerce') {
-          const r = await syncWooCommerce(uid, plats.woocommerce);
-          logOk(`woocommerce — ${r.date} | $${r.revenue?.toFixed(2)} revenue | ${r.orders} orders | ${r.newCustomers} new customers`);
-        } else if (platform === 'bigcommerce') {
-          const r = await syncBigCommerce(uid, plats.bigcommerce);
-          logOk(`bigcommerce — ${r.date} | $${r.revenue?.toFixed(2)} revenue | ${r.orders} orders | ${r.newCustomers} new customers`);
-        } else if (platform === 'amazon-seller') {
-          const r = await syncAmazonSeller(uid, plats['amazon-seller']);
-          logOk(`amazon-seller — ${r.date} | $${r.revenue?.toFixed(2)} revenue | ${r.orders} orders | ${r.units} units`);
-        } else if (platform === 'etsy') {
-          const r = await syncEtsy(uid, plats.etsy);
-          logOk(`etsy — ${r.date} | $${r.revenue?.toFixed(2)} revenue | ${r.orders} orders | ${r.views} views`);
-        } else if (platform === 'hubspot') {
-          const r = await syncHubSpot(uid, plats.hubspot);
-          logOk(`hubspot — ${r.date} | ${r.dealsWon} deals won | $${r.closedRevenue?.toFixed(2)} closed | ${r.newContacts} new contacts`);
-        } else if (platform === 'salesforce') {
-          const r = await syncSalesforce(uid, plats.salesforce);
-          logOk(`salesforce — ${r.date} | ${r.dealsWon} deals won | $${r.closedRevenue?.toFixed(2)} closed | ${r.newLeads} new leads`);
-        } else if (platform === 'pipedrive') {
-          const r = await syncPipedrive(uid, plats.pipedrive);
-          logOk(`pipedrive — ${r.date} | ${r.dealsWon} deals won | $${r.closedRevenue?.toFixed(2)} closed | ${r.newContacts} new contacts`);
-        } else if (platform === 'notion') {
-          const r = await syncNotion(uid, plats.notion);
-          logOk(`notion — ${r.date} | ${r.newRows} new rows | ${r.updatedRows} updated | ${r.totalRows} total`);
-        } else if (platform === 'intercom') {
-          const r = await syncIntercom(uid, plats.intercom);
-          logOk(`intercom — ${r.date} | ${r.newConversations} new convos | ${r.resolvedConversations} resolved | ${r.newContacts} new contacts`);
-        } else if (platform === 'zendesk') {
-          const r = await syncZendesk(uid, plats.zendesk);
-          logOk(`zendesk — ${r.date} | ${r.newTickets} new tickets | ${r.solvedTickets} solved | ${r.csatScore?.toFixed(1)}% CSAT`);
-        } else if (platform === 'freshdesk') {
-          const r = await syncFreshdesk(uid, plats.freshdesk);
-          logOk(`freshdesk — ${r.date} | ${r.newTickets} new | ${r.resolvedTickets} resolved | ${r.openTickets} open`);
-        } else if (platform === 'segment') {
-          await syncSegment(uid, plats.segment);
-          logOk(`segment — ${yesterday()} synced`);
-        } else if (platform === 'heap') {
-          await syncHeap(uid, plats.heap);
-          logOk(`heap — ${yesterday()} synced`);
-        } else if (platform === 'fullstory') {
-          await syncFullStory(uid, plats.fullstory);
-          logOk(`fullstory — ${yesterday()} synced`);
-        } else if (platform === 'hotjar') {
-          await syncHotjar(uid, plats.hotjar);
-          logOk(`hotjar — ${yesterday()} synced`);
-        } else if (platform === 'instagram') {
-          const r = await syncInstagram(uid, plats.instagram);
-          logOk(`instagram — ${r.date} | ${r.followers} followers | ${r.reach} reach | ${r.impressions} impressions`);
-        } else if (platform === 'youtube') {
-          await syncYouTube(uid, plats.youtube);
-          logOk(`youtube — ${yesterday()} synced`);
-        } else if (platform === 'twitter-organic') {
-          await syncTwitterOrganic(uid, plats['twitter-organic']);
-          logOk(`twitter-organic — ${yesterday()} synced`);
-        }
-        ok++;
-      } catch (err) {
-        logFail(`${platform} — ${err.message}`);
-        fail++;
+    const platformOrder = ['stripe', 'ga4', 'meta', 'paypal', 'paddle', 'lemon-squeezy', 'gumroad', 'plausible', 'mixpanel', 'amplitude', 'posthog', 'fathom', 'google-ads', 'tiktok-ads', 'twitter-ads', 'linkedin-ads', 'snapchat-ads', 'pinterest-ads', 'mailchimp', 'klaviyo', 'convertkit', 'activecampaign', 'brevo', 'beehiiv', 'shopify', 'woocommerce', 'bigcommerce', 'amazon-seller', 'etsy', 'hubspot', 'salesforce', 'pipedrive', 'notion', 'intercom', 'zendesk', 'freshdesk', 'segment', 'heap', 'fullstory', 'hotjar', 'instagram', 'youtube', 'twitter-organic'];
+    const activePlatforms = platformOrder.filter(p => plats[p]);
+
+    const results = await Promise.allSettled(activePlatforms.map(async (platform) => {
+      if (platform === 'stripe') {
+        const r = await syncStripe(uid, plats.stripe.access_token);
+        logOk(`stripe — ${r.date} | $${(r.revenue / 100).toFixed(2)} revenue | ${r.txCount} tx | ${r.newCustomers} new customers`);
+      } else if (platform === 'ga4') {
+        const r = await syncGA4(uid, plats.ga4);
+        logOk(`ga4    — ${r.date} | ${r.sessions} sessions | ${r.totalUsers} users | ${(r.bounceRate * 100).toFixed(1)}% bounce`);
+      } else if (platform === 'meta') {
+        const r = await syncMeta(uid, plats.meta);
+        logOk(`meta   — ${r.date} | $${r.spend} spend | ${r.reach} reach | ${r.clicks} clicks`);
+      } else if (platform === 'paypal') {
+        const r = await syncPayPal(uid, plats.paypal);
+        logOk(`paypal — ${r.date} | $${r.revenue.toFixed(2)} revenue | ${r.txCount} tx`);
+      } else if (platform === 'paddle') {
+        const r = await syncPaddle(uid, plats.paddle);
+        logOk(`paddle — ${r.date} | $${r.revenue.toFixed(2)} revenue | ${r.txCount} tx`);
+      } else if (platform === 'lemon-squeezy') {
+        const r = await syncLemonSqueezy(uid, plats['lemon-squeezy']);
+        logOk(`lemonsqueezy — ${r.date} | $${r.revenue.toFixed(2)} revenue | ${r.txCount} tx`);
+      } else if (platform === 'gumroad') {
+        const r = await syncGumroad(uid, plats.gumroad);
+        logOk(`gumroad — ${r.date} | $${r.revenue.toFixed(2)} revenue | ${r.txCount} tx`);
+      } else if (platform === 'plausible') {
+        const r = await syncPlausible(uid, plats.plausible);
+        logOk(`plausible — ${r.date} | ${r.visitors} visitors | ${r.pageviews} pageviews`);
+      } else if (platform === 'mixpanel') {
+        const r = await syncMixpanel(uid, plats.mixpanel);
+        logOk(`mixpanel — ${r.date} | ${r.events} events | ${r.uniqueUsers} unique users`);
+      } else if (platform === 'amplitude') {
+        const r = await syncAmplitude(uid, plats.amplitude);
+        logOk(`amplitude — ${r.date} | ${r.activeUsers} active users | ${r.totalEvents} events`);
+      } else if (platform === 'posthog') {
+        const r = await syncPostHog(uid, plats.posthog);
+        logOk(`posthog — ${r.date} | ${r.pageviews} pageviews | ${r.uniqueUsers} unique users`);
+      } else if (platform === 'fathom') {
+        const r = await syncFathom(uid, plats.fathom);
+        logOk(`fathom — ${r.date} | ${r.pageviews} pageviews | ${r.uniques} unique visitors`);
+      } else if (platform === 'google-ads') {
+        const r = await syncGoogleAds(uid, plats['google-ads']);
+        logOk(`google-ads — ${r.date} | $${r.spend?.toFixed(2)} spend | ${r.clicks} clicks | ${r.impressions} impressions`);
+      } else if (platform === 'tiktok-ads') {
+        const r = await syncTikTokAds(uid, plats['tiktok-ads']);
+        logOk(`tiktok-ads — ${r.date} | $${r.spend?.toFixed(2)} spend | ${r.clicks} clicks`);
+      } else if (platform === 'twitter-ads') {
+        const r = await syncTwitterAds(uid, plats['twitter-ads']);
+        logOk(`twitter-ads — ${r.date} | $${r.spend?.toFixed(2)} spend | ${r.impressions} impressions`);
+      } else if (platform === 'linkedin-ads') {
+        const r = await syncLinkedInAds(uid, plats['linkedin-ads']);
+        logOk(`linkedin-ads — ${r.date} | $${r.spend?.toFixed(2)} spend | ${r.clicks} clicks`);
+      } else if (platform === 'snapchat-ads') {
+        const r = await syncSnapchatAds(uid, plats['snapchat-ads']);
+        logOk(`snapchat-ads — ${r.date} | $${r.spend?.toFixed(2)} spend | ${r.swipes} swipes`);
+      } else if (platform === 'pinterest-ads') {
+        const r = await syncPinterestAds(uid, plats['pinterest-ads']);
+        logOk(`pinterest-ads — ${r.date} | $${r.spend?.toFixed(2)} spend | ${r.clicks} clicks`);
+      } else if (platform === 'mailchimp') {
+        const r = await syncMailchimp(uid, plats.mailchimp);
+        logOk(`mailchimp — ${r.date} | ${r.emailsSent} sent | ${r.opens} opens | ${r.clicks} clicks`);
+      } else if (platform === 'klaviyo') {
+        const r = await syncKlaviyo(uid, plats.klaviyo);
+        logOk(`klaviyo — ${r.date} | ${r.emailsSent} sent | ${r.opens} opens | $${r.revenue?.toFixed(2)} revenue`);
+      } else if (platform === 'convertkit') {
+        const r = await syncConvertKit(uid, plats.convertkit);
+        logOk(`convertkit — ${r.date} | ${r.totalSubscribers} subscribers | ${r.newSubscribers} new | ${r.broadcastsSent} broadcasts`);
+      } else if (platform === 'activecampaign') {
+        const r = await syncActiveCampaign(uid, plats.activecampaign);
+        logOk(`activecampaign — ${r.date} | ${r.emailsSent} sent | ${r.opens} opens | ${r.newContacts} new contacts`);
+      } else if (platform === 'brevo') {
+        const r = await syncBrevo(uid, plats.brevo);
+        logOk(`brevo — ${r.date} | ${r.emailsSent} sent | ${r.opens} opens | ${r.newContacts} new contacts`);
+      } else if (platform === 'beehiiv') {
+        const r = await syncBeehiiv(uid, plats.beehiiv);
+        logOk(`beehiiv — ${r.date} | ${r.totalSubscribers} subscribers | ${r.newSubscribers} new | ${r.postsPublished} posts`);
+      } else if (platform === 'shopify') {
+        const r = await syncShopify(uid, plats.shopify);
+        logOk(`shopify — ${r.date} | $${r.revenue?.toFixed(2)} revenue | ${r.orders} orders | ${r.newCustomers} new customers`);
+      } else if (platform === 'woocommerce') {
+        const r = await syncWooCommerce(uid, plats.woocommerce);
+        logOk(`woocommerce — ${r.date} | $${r.revenue?.toFixed(2)} revenue | ${r.orders} orders | ${r.newCustomers} new customers`);
+      } else if (platform === 'bigcommerce') {
+        const r = await syncBigCommerce(uid, plats.bigcommerce);
+        logOk(`bigcommerce — ${r.date} | $${r.revenue?.toFixed(2)} revenue | ${r.orders} orders | ${r.newCustomers} new customers`);
+      } else if (platform === 'amazon-seller') {
+        const r = await syncAmazonSeller(uid, plats['amazon-seller']);
+        logOk(`amazon-seller — ${r.date} | $${r.revenue?.toFixed(2)} revenue | ${r.orders} orders | ${r.units} units`);
+      } else if (platform === 'etsy') {
+        const r = await syncEtsy(uid, plats.etsy);
+        logOk(`etsy — ${r.date} | $${r.revenue?.toFixed(2)} revenue | ${r.orders} orders | ${r.views} views`);
+      } else if (platform === 'hubspot') {
+        const r = await syncHubSpot(uid, plats.hubspot);
+        logOk(`hubspot — ${r.date} | ${r.dealsWon} deals won | $${r.closedRevenue?.toFixed(2)} closed | ${r.newContacts} new contacts`);
+      } else if (platform === 'salesforce') {
+        const r = await syncSalesforce(uid, plats.salesforce);
+        logOk(`salesforce — ${r.date} | ${r.dealsWon} deals won | $${r.closedRevenue?.toFixed(2)} closed | ${r.newLeads} new leads`);
+      } else if (platform === 'pipedrive') {
+        const r = await syncPipedrive(uid, plats.pipedrive);
+        logOk(`pipedrive — ${r.date} | ${r.dealsWon} deals won | $${r.closedRevenue?.toFixed(2)} closed | ${r.newContacts} new contacts`);
+      } else if (platform === 'notion') {
+        const r = await syncNotion(uid, plats.notion);
+        logOk(`notion — ${r.date} | ${r.newRows} new rows | ${r.updatedRows} updated | ${r.totalRows} total`);
+      } else if (platform === 'intercom') {
+        const r = await syncIntercom(uid, plats.intercom);
+        logOk(`intercom — ${r.date} | ${r.newConversations} new convos | ${r.resolvedConversations} resolved | ${r.newContacts} new contacts`);
+      } else if (platform === 'zendesk') {
+        const r = await syncZendesk(uid, plats.zendesk);
+        logOk(`zendesk — ${r.date} | ${r.newTickets} new tickets | ${r.solvedTickets} solved | ${r.csatScore?.toFixed(1)}% CSAT`);
+      } else if (platform === 'freshdesk') {
+        const r = await syncFreshdesk(uid, plats.freshdesk);
+        logOk(`freshdesk — ${r.date} | ${r.newTickets} new | ${r.resolvedTickets} resolved | ${r.openTickets} open`);
+      } else if (platform === 'segment') {
+        await syncSegment(uid, plats.segment);
+        logOk(`segment — ${yesterday()} synced`);
+      } else if (platform === 'heap') {
+        await syncHeap(uid, plats.heap);
+        logOk(`heap — ${yesterday()} synced`);
+      } else if (platform === 'fullstory') {
+        await syncFullStory(uid, plats.fullstory);
+        logOk(`fullstory — ${yesterday()} synced`);
+      } else if (platform === 'hotjar') {
+        await syncHotjar(uid, plats.hotjar);
+        logOk(`hotjar — ${yesterday()} synced`);
+      } else if (platform === 'instagram') {
+        const r = await syncInstagram(uid, plats.instagram);
+        logOk(`instagram — ${r.date} | ${r.followers} followers | ${r.reach} reach | ${r.impressions} impressions`);
+      } else if (platform === 'youtube') {
+        await syncYouTube(uid, plats.youtube);
+        logOk(`youtube — ${yesterday()} synced`);
+      } else if (platform === 'twitter-organic') {
+        await syncTwitterOrganic(uid, plats['twitter-organic']);
+        logOk(`twitter-organic — ${yesterday()} synced`);
       }
-      await sleep(PLATFORM_DELAY_MS);
-    }
+    }));
 
-    if (i < userIds.length - 1) {
-      log(`  ⏳ ${USER_DELAY_MS / 1000}s before next user…`);
-      await sleep(USER_DELAY_MS);
+    for (const result of results) {
+      if (result.status === 'fulfilled') ok++;
+      else { logFail(`${uid.slice(0, 8)} — ${result.reason?.message ?? result.reason}`); fail++; }
     }
+  }
+
+  // ── process users in parallel batches of USER_CONCURRENCY ────────────────
+  for (let i = 0; i < userIds.length; i += USER_CONCURRENCY) {
+    const batch = userIds.slice(i, i + USER_CONCURRENCY);
+    await Promise.allSettled(
+      batch.map((uid, batchIdx) => syncUserPlatforms(uid, byUser[uid], i + batchIdx + 1))
+    );
+    if (i + USER_CONCURRENCY < userIds.length) await sleep(USER_DELAY_MS);
   }
 
   log(`Done — ✓ ${ok} OK  ✗ ${fail} failed`);
@@ -3921,9 +4373,6 @@ Schema:
 
   log(`[digest] Done — ${sent}/${allUsers.length} digest(s) sent`);
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// ANOMALY ALERTS
 // Runs daily after sync. Compares today's snapshot for each monitored metric
 // against the 7-day rolling average. Flags deviations ≥ 25% as warnings and
 // ≥ 50% as critical. Writes every alert to the `notifications` table (shows up
