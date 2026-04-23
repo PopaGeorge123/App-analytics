@@ -104,8 +104,8 @@ const PAYPAL_CLIENT_ID = g('PAYPAL_CLIENT_ID');
 const PAYPAL_CLIENT_SEC = g('PAYPAL_CLIENT_SECRET');
 const RESEND_KEY       = g('RESEND_API_KEY');
 const ANTHROPIC_KEY    = g('ANTHROPIC_API_KEY');
-const FROM_EMAIL   = 'Fold Alerts <alerts@tryfold.io>';
-const FROM_DIGEST  = 'Fold Digest <info@tryfold.io>';
+const FROM_EMAIL   = 'Fold Alerts <info@usefold.io>';
+const FROM_DIGEST  = 'Fold Digest <info@usefold.io>';
 
 if (!SUPABASE_URL || !SERVICE_KEY) {
   console.error('✗ NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required in .env');
