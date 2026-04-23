@@ -131,13 +131,13 @@ export const INTEGRATIONS_CATALOG: Integration[] = [
     connectUrl: "/api/auth/fathom/url",
     icon: "/integrations/fathom.svg",
   },
-  { //not correct data
+  {
     id: "posthog",
     name: "PostHog",
     description: "Open-source product analytics & feature flags",
     category: "Web Analytics",
     color: "#f76300",
-    status: "soon",  // Go-to for product-led SaaS founders; free tier drives wide adoption
+    status: "live",
     connectUrl: "/dashboard?tab=settings&connect=posthog",
     icon: "/integrations/posthog.svg",
   },

@@ -1315,39 +1315,45 @@ async function backfillAmplitude(userId, integration, days = 365) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ⑪ POSTHOG  (PostHog Trends API — personal API key + projectId)
+// ⑪ POSTHOG  (HogQL Query API — synchronous, returns exact counts directly)
+// The legacy /insights/trend/ endpoint creates cached insight objects and can
+// return empty data arrays or async task IDs, causing silent 0s every time.
+// The HogQL Query API (POST /query) is direct and always returns real data.
 // account_id format: "eu:<projectId>" for EU cloud, "<projectId>" for US cloud
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function syncPostHogDay(userId, apiKey, rawAccountId, date) {
-  // Parse host + project ID from the stored account_id
   const isEU = rawAccountId.startsWith('eu:');
   const host = isEU ? 'https://eu.posthog.com' : 'https://app.posthog.com';
   const projectId = isEU ? rawAccountId.slice(3) : rawAccountId;
 
   const headers = { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' };
 
-  // Fetch one trend metric at a time (sequential) to avoid hammering the rate limit.
-  // PostHog personal API keys are limited to ~240 req/min; Promise.all of 3 per day
-  // during a 365-day backfill easily triggers 429s.
-  async function fetchTrend(eventName, math) {
-    const res = await fetchRetry(`PostHog ${eventName}`, `${host}/api/projects/${projectId}/insights/trend/`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ events: [{ id: eventName, math }], date_from: date, date_to: date, interval: 'day' }),
-    });
-    if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(`PostHog ${eventName}: ${e?.detail ?? res.status}`); }
-    const body = await res.json();
-    return (body.result?.[0]?.data ?? []).reduce((a, b) => a + b, 0);
+  // Single HogQL query — all three metrics in one round trip.
+  // count()                                → total $pageview events
+  // count(distinct person_id)              → unique visitors
+  // count(distinct properties.$session_id) → sessions via session property
+  const res = await fetchRetry('PostHog HogQL', `${host}/api/projects/${projectId}/query`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      query: {
+        kind: 'HogQLQuery',
+        query: `SELECT count() AS pageviews, count(distinct person_id) AS unique_users, count(distinct properties.\`$session_id\`) AS sessions FROM events WHERE event = '$pageview' AND toDate(timestamp) = '${date}'`,
+      },
+    }),
+  });
+
+  if (!res.ok) {
+    const e = await res.json().catch(() => ({}));
+    throw new Error(`PostHog HogQL: ${e?.detail ?? e?.code ?? res.status}`);
   }
 
-  // Sequential fetches — avoids burst 429s
-  const pageviews   = await fetchTrend('$pageview', 'total').catch(() => 0);
-  await sleep(400);
-  const uniqueUsers = await fetchTrend('$pageview', 'dau').catch(() => 0);
-  await sleep(400);
-  // Use $session_start for actual session count; fall back to pageviews-based estimate
-  const sessions    = await fetchTrend('$session_start', 'total').catch(() => 0);
+  const body = await res.json();
+  const row = body.results?.[0] ?? [];
+  const pageviews   = Number(row[0]) || 0;
+  const uniqueUsers = Number(row[1]) || 0;
+  const sessions    = Number(row[2]) || 0;
 
   await SB.upsert('daily_snapshots',
     { user_id: userId, provider: 'posthog', date, data: { pageviews, uniqueUsers, sessions } },
@@ -1370,9 +1376,9 @@ async function backfillPostHog(userId, integration, days = 365) {
       await syncPostHogDay(userId, integration.access_token, integration.account_id, date);
       ok++;
     } catch (err) { logFail(`  posthog ${date} — ${err.message}`); skipped++; }
-    // 1.5s between days — each day makes 3 sequential requests (400ms apart internally),
-    // so effective rate is ~3 req per 2.2s ≈ 80 req/min, well under PostHog's 240 req/min limit.
-    await sleep(1_500);
+    // 500ms between days — HogQL is 1 request per day (vs the old 3), so
+    // ~2 req/s is well within PostHog's rate limits.
+    await sleep(500);
   }
   log(`  [posthog backfill] done — ${ok} days saved, ${skipped} errors`);
 }

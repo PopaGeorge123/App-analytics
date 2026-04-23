@@ -179,6 +179,24 @@ const PRIVACY: Record<string, PrivacyInfo> = {
     ],
     docsUrl: "https://www.klaviyo.com/legal/privacy-notice",
   },
+  posthog: {
+    reads: [
+      "Total pageview count per day",
+      "Daily active users (DAU)",
+      "Session count per day (via $session_start event)",
+    ],
+    stores: [
+      "Daily aggregated traffic snapshots (pageviews, unique users, sessions)",
+    ],
+    never: [
+      "Individual user identifiers or Person IDs",
+      "Feature flag configurations",
+      "Raw event streams or custom event properties",
+      "Session recordings",
+      "A/B test results or experiment data",
+    ],
+    docsUrl: "https://posthog.com/privacy",
+  },
   beehiiv: {
     reads: [
       "Total subscriber count",
@@ -235,7 +253,7 @@ const PRIVACY: Record<string, PrivacyInfo> = {
 };
 
 // ── Platforms that require API key input instead of OAuth ─────────────────────
-const API_KEY_PLATFORMS: Record<string, { fields: { name: string; label: string; placeholder: string; type?: string }[] }> = {
+const API_KEY_PLATFORMS: Record<string, { fields: { name: string; label: string; placeholder: string; type?: string; optional?: boolean }[] }> = {
   "lemon-squeezy": {
     fields: [{ name: "apiKey", label: "API Key", placeholder: "Your Lemon Squeezy API key" }],
   },
@@ -252,6 +270,12 @@ const API_KEY_PLATFORMS: Record<string, { fields: { name: string; label: string;
     fields: [
       { name: "apiKey", label: "API Key", placeholder: "Your Beehiiv API key" },
       { name: "publicationId", label: "Publication ID", placeholder: "pub_xxxxxxxx" },
+    ],
+  },
+  posthog: {
+    fields: [
+      { name: "apiKey", label: "Personal API Key", placeholder: "phx_…" },
+      { name: "projectId", label: "Project ID ", placeholder: "123456" },
     ],
   },
 };
@@ -375,7 +399,7 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
     const payload: Record<string, string> = {};
     for (const field of cfg.fields) {
       const val = (apiKeyFields[field.name] ?? "").trim();
-      if (!val) {
+      if (!val && !field.optional) {
         setError(`Please fill in ${field.label}.`);
         return;
       }
@@ -762,7 +786,7 @@ function ApiKeyForm({
   error,
 }: {
   integration: Integration;
-  fields: { name: string; label: string; placeholder: string; type?: string }[];
+  fields: { name: string; label: string; placeholder: string; type?: string; optional?: boolean }[];
   values: Record<string, string>;
   onChange: (name: string, val: string) => void;
   onSubmit: (e: React.FormEvent) => void;
@@ -777,8 +801,11 @@ function ApiKeyForm({
       </p>
       {fields.map((field) => (
         <div key={field.name}>
-          <label className="mb-1 block font-mono text-[10px] font-semibold uppercase tracking-wider text-[#8585aa]">
+          <label className="mb-1 flex items-center gap-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#8585aa]">
             {field.label}
+            {field.optional && (
+              <span className="normal-case tracking-normal font-normal text-[#3a3a55]">(optional)</span>
+            )}
           </label>
           <input
             type={field.type ?? "text"}

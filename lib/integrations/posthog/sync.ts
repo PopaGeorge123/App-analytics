@@ -1,14 +1,16 @@
 import { createServiceClient } from "@/lib/supabase/service";
 
 /**
- * PostHog Query API — Trends endpoint
- * POST https://{host}/api/projects/{projectId}/insights/trend/
+ * PostHog HogQL Query API (synchronous, modern)
+ * POST https://{host}/api/projects/{projectId}/query
  * Auth: Authorization: Bearer <personal_api_key>
+ *
+ * The legacy /insights/trend/ endpoint creates cached insight objects and
+ * can return empty data arrays or async task IDs — causing silent 0s.
+ * The HogQL Query API is direct, synchronous, and always returns real counts.
  *
  * account_id format: "eu:<projectId>" for EU cloud, "<projectId>" for US cloud
  */
-
-const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 export async function syncPostHogDay(
   userId: string,
@@ -32,40 +34,52 @@ export async function syncPostHogDay(
     "Content-Type": "application/json",
   };
 
-  // Sequential fetches — avoids burst 429s on PostHog personal API keys.
-  // Promise.all of 3 concurrent requests per day × 365 days = ~1095 rapid-fire
-  // requests that reliably trigger PostHog rate limiting.
-  async function fetchTrend(eventName: string, math: string): Promise<number> {
-    const res = await fetch(
-      `${host}/api/projects/${projectId}/insights/trend/`,
-      {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          events: [{ id: eventName, math }],
-          date_from: date,
-          date_to:   date,
-          interval:  "day",
-        }),
-      },
-    );
+  /**
+   * Run a HogQL query and return the first row as a number array.
+   * The HogQL Query API is synchronous and returns exact counts directly —
+   * no caching, no async tasks, no stale-data issues.
+   */
+  async function hogql(sql: string): Promise<number[]> {
+    const res = await fetch(`${host}/api/projects/${projectId}/query`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ query: { kind: "HogQLQuery", query: sql } }),
+    });
     if (!res.ok) {
       const e = await res.json().catch(() => ({}));
-      throw new Error(`PostHog trend (${eventName}): ${e?.detail ?? res.status}`);
+      throw new Error(`PostHog HogQL: ${e?.detail ?? e?.code ?? res.status}`);
     }
-    const body   = await res.json();
-    const result = body.result?.[0];
-    const series = result?.data ?? [];
-    return series.reduce((a: number, b: number) => a + b, 0);
+    const body = await res.json();
+    // results is an array of rows; each row is an array of values
+    const row: unknown[] = body.results?.[0] ?? [];
+    return row.map((v) => Number(v) || 0);
   }
 
-  // Sequential — one metric at a time with a small gap
-  const pageviews   = await fetchTrend("$pageview", "total").catch(() => 0);
-  await sleep(400);
-  const uniqueUsers = await fetchTrend("$pageview", "dau").catch(() => 0);
-  await sleep(400);
-  // $session_start gives actual session count; $autocapture total was incorrect
-  const sessions    = await fetchTrend("$session_start", "total").catch(() => 0);
+  // Single query — all three metrics in one round trip.
+  // count()                            → total pageview events
+  // count(distinct person_id)          → unique visitors (PostHog person identity)
+  // count(distinct properties.$session_id) → session count via session property
+  let pageviews = 0;
+  let uniqueUsers = 0;
+  let sessions = 0;
+
+  try {
+    const [pv, uu, sess] = await hogql(
+      `SELECT
+         count()                                    AS pageviews,
+         count(distinct person_id)                  AS unique_users,
+         count(distinct properties.\`$session_id\`) AS sessions
+       FROM events
+       WHERE event = '$pageview'
+         AND toDate(timestamp) = '${date}'`
+    );
+    pageviews   = pv   ?? 0;
+    uniqueUsers = uu   ?? 0;
+    sessions    = sess ?? 0;
+  } catch (err) {
+    // Re-throw so the caller (syncPostHog / backfillPostHog) can log and skip
+    throw new Error(`PostHog sync failed for ${date}: ${(err as Error).message}`);
+  }
 
   const supabase = createServiceClient();
   await supabase.from("daily_snapshots").upsert(
