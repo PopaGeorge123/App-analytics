@@ -11,6 +11,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Live user count — fetches real count from /api/user-count, then animates
@@ -413,6 +414,8 @@ export function FaqSection() {
 export function Nav() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const pathname = usePathname();
+  const isHome = pathname === "/";
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 20);
@@ -421,10 +424,10 @@ export function Nav() {
   }, []);
 
   const links = [
-    { label: "Features", href: "#features" },
-    { label: "How it works", href: "#how-it-works" },
-    { label: "Pricing", href: "#pricing" },
-    { label: "FAQ", href: "#faq" },
+    { label: "Features", href: isHome ? "#features" : "/#features" },
+    { label: "How it works", href: isHome ? "#how-it-works" : "/#how-it-works" },
+    { label: "Pricing", href: isHome ? "#pricing" : "/#pricing" },
+    { label: "FAQ", href: isHome ? "#faq" : "/#faq" },
     { label: "Learn more", href: "/learn" },
   ];
 

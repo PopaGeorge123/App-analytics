@@ -17,6 +17,11 @@ export interface ApiEndpoint {
   purpose: string;      // What Fold does with it
 }
 
+export interface DataSnapshotField {
+  label: string;   // What it's called in the DB
+  value: string;   // A real-looking example value
+}
+
 export interface PlatformDetail {
   id: string;
   name: string;
@@ -40,6 +45,10 @@ export interface PlatformDetail {
   refreshFrequency: string;
   privacyNote: string;              // Platform-specific privacy callout
   faq: { q: string; a: string }[];
+  // ── New richer fields ──────────────────────────────────────────────────────
+  whyFoundersConnect: string;       // Human-written 2–3 sentence explainer
+  sampleSnapshot: DataSnapshotField[]; // What one day's stored record actually looks like
+  apiImpact: string;                // Rate limit / quota usage note
 }
 
 export const PLATFORM_DETAILS: Record<string, PlatformDetail> = {
@@ -127,6 +136,16 @@ export const PLATFORM_DETAILS: Record<string, PlatformDetail> = {
         a: "No. Fold uses OAuth 2.0 — we never see or store your Stripe secret key. We receive a time-limited, scoped OAuth token which is stored encrypted (AES-256) in our database.",
       },
     ],
+    whyFoundersConnect: "Stripe is usually the first thing a founder checks in the morning. Fold makes that check instant — your daily revenue, new customers, and refund rate land in the same view as your traffic and email metrics, so you can see whether a good traffic day actually turned into a good revenue day.",
+    sampleSnapshot: [
+      { label: "date", value: "2025-04-23" },
+      { label: "revenue", value: "4320.00" },
+      { label: "tx_count", value: "143" },
+      { label: "new_customers", value: "12" },
+      { label: "refund_count", value: "2" },
+      { label: "refund_total", value: "58.00" },
+    ],
+    apiImpact: "Fold makes 7 read-only API calls per sync, all well within Stripe's default rate limit of 100 requests/second. Syncs run once daily and complete in under 5 seconds.",
   },
 
   // ── Google Analytics 4 ────────────────────────────────────────────────────
@@ -210,6 +229,16 @@ export const PLATFORM_DETAILS: Record<string, PlatformDetail> = {
         a: "After connecting, Fold will ask you to select the specific GA4 property you want to sync. You can change this selection from the Settings tab at any time.",
       },
     ],
+    whyFoundersConnect: "GA4's own interface is powerful but slow to navigate for a quick daily check. Fold gives you the numbers that matter — sessions, new users, conversions — in a single row alongside your revenue and email metrics, making it obvious whether a traffic spike actually converted.",
+    sampleSnapshot: [
+      { label: "date", value: "2025-04-23" },
+      { label: "sessions", value: "8420" },
+      { label: "total_users", value: "5130" },
+      { label: "new_users", value: "3240" },
+      { label: "bounce_rate", value: "0.42" },
+      { label: "avg_session_duration", value: "134" },
+    ],
+    apiImpact: "Fold makes 7 GA4 Data API requests per sync using batch report calls. Well within Google's default quota of 10,000 requests per day per property.",
   },
 
   // ── Meta Ads ──────────────────────────────────────────────────────────────
@@ -290,6 +319,16 @@ export const PLATFORM_DETAILS: Record<string, PlatformDetail> = {
         a: "During the connect flow, you select which ad account(s) to share with Fold. You can update this selection from Settings at any time.",
       },
     ],
+    whyFoundersConnect: "Ad spend is the easiest metric to overspend on without noticing. Fold puts your daily Meta spend, clicks, and purchase conversions next to your actual revenue from Stripe or Shopify — so you can see your return on ad spend in context rather than switching between Ads Manager and your payment dashboard.",
+    sampleSnapshot: [
+      { label: "date", value: "2025-04-23" },
+      { label: "spend", value: "1240.00" },
+      { label: "impressions", value: "284000" },
+      { label: "clicks", value: "4320" },
+      { label: "reach", value: "192000" },
+      { label: "conversions", value: "38" },
+    ],
+    apiImpact: "Fold makes 4 Marketing API requests per sync. Meta's API has a rate limit based on an 'app score' — our requests are minimal and will not approach any limits.",
   },
 
   // ── Lemon Squeezy ────────────────────────────────────────────────────────
@@ -364,6 +403,16 @@ export const PLATFORM_DETAILS: Record<string, PlatformDetail> = {
         a: "No. We only store aggregate counts and totals. Individual customer names, emails, and order details are never extracted or stored by Fold.",
       },
     ],
+    whyFoundersConnect: "Lemon Squeezy is popular with indie hackers selling digital products and SaaS subscriptions. Fold pulls your daily revenue, new subscriptions, and churn into a single view — without having to refresh the LS dashboard to answer the question 'did yesterday beat last week?'",
+    sampleSnapshot: [
+      { label: "date", value: "2025-04-23" },
+      { label: "gross_revenue", value: "3100.00" },
+      { label: "net_revenue", value: "2790.00" },
+      { label: "active_subscriptions", value: "94" },
+      { label: "new_subscriptions", value: "11" },
+      { label: "cancelled_subscriptions", value: "4" },
+    ],
+    apiImpact: "Fold makes 4 API requests per sync. Lemon Squeezy's API is rate-limited to 120 requests/minute — our usage is negligible.",
   },
 
   // ── Gumroad ───────────────────────────────────────────────────────────────
@@ -431,6 +480,16 @@ export const PLATFORM_DETAILS: Record<string, PlatformDetail> = {
         a: "No. The view_sales OAuth scope is strictly read-only. Gumroad's API enforces this at their end.",
       },
     ],
+    whyFoundersConnect: "Gumroad creators often sell across multiple products and memberships. Fold gives you a daily number — total revenue and units sold — without logging into Gumroad, so you can see at a glance whether your latest launch or email is moving the needle.",
+    sampleSnapshot: [
+      { label: "date", value: "2025-04-23" },
+      { label: "revenue", value: "2400.00" },
+      { label: "units_sold", value: "82" },
+      { label: "active_subscribers", value: "34" },
+      { label: "cancelled_subscribers", value: "3" },
+      { label: "refund_count", value: "2" },
+    ],
+    apiImpact: "Fold makes 3 API requests per sync. Gumroad's API rate limit is 5,000 requests per hour — our usage is negligible.",
   },
 
   // ── Paddle ────────────────────────────────────────────────────────────────
@@ -500,6 +559,16 @@ export const PLATFORM_DETAILS: Record<string, PlatformDetail> = {
         a: "Yes. It is encrypted with AES-256 before storage and never logged or returned via the Fold API.",
       },
     ],
+    whyFoundersConnect: "Paddle acts as your Merchant of Record, which means the revenue numbers you care about (net after tax and fees) are only visible inside their dashboard. Fold syncs those net revenue figures daily so you can see your actual take-home alongside your other metrics without logging in to Paddle every morning.",
+    sampleSnapshot: [
+      { label: "date", value: "2025-04-23" },
+      { label: "net_revenue", value: "5800.00" },
+      { label: "active_subscriptions", value: "201" },
+      { label: "new_subscriptions", value: "18" },
+      { label: "churn_count", value: "6" },
+      { label: "refund_total", value: "120.00" },
+    ],
+    apiImpact: "Fold makes 4 API requests per sync. Paddle's API rate limit is 500 requests/minute — our usage is well within limits.",
   },
 
   // ── Plausible ─────────────────────────────────────────────────────────────
@@ -575,6 +644,15 @@ export const PLATFORM_DETAILS: Record<string, PlatformDetail> = {
         a: "When you connect, you enter the specific site domain you want to sync. You can update this from Settings at any time.",
       },
     ],
+    whyFoundersConnect: "Plausible users tend to value privacy and simplicity — which is exactly what Fold adds on top. Instead of opening Plausible every day to check if traffic moved, Fold surfaces your visitor count alongside revenue and email metrics, making it easy to see if a traffic spike actually meant anything.",
+    sampleSnapshot: [
+      { label: "date", value: "2025-04-23" },
+      { label: "visitors", value: "4200" },
+      { label: "pageviews", value: "12800" },
+      { label: "bounce_rate", value: "0.38" },
+      { label: "visit_duration", value: "134" },
+    ],
+    apiImpact: "Fold makes 6 Stats API requests per sync. Plausible's API has a generous limit and our usage — a handful of aggregate calls per day — is negligible.",
   },
 
   // ── Mailchimp ─────────────────────────────────────────────────────────────
@@ -649,6 +727,16 @@ export const PLATFORM_DETAILS: Record<string, PlatformDetail> = {
         a: "No. Read-only API calls have no effect on your Mailchimp account. Nothing changes when Fold syncs.",
       },
     ],
+    whyFoundersConnect: "List growth is one of the most important early indicators for content-led businesses, but it's buried inside Mailchimp under three clicks. Fold surfaces your net new subscribers alongside your traffic and revenue so you can see whether the newsletter is growing in sync with everything else.",
+    sampleSnapshot: [
+      { label: "date", value: "2025-04-23" },
+      { label: "total_subscribers", value: "4820" },
+      { label: "new_subscribers", value: "143" },
+      { label: "unsubscribes", value: "28" },
+      { label: "avg_open_rate", value: "0.324" },
+      { label: "avg_click_rate", value: "0.048" },
+    ],
+    apiImpact: "Fold makes 4 API requests per sync. Mailchimp's rate limit is 10 requests/second — our usage is negligible.",
   },
 
   // ── Klaviyo ───────────────────────────────────────────────────────────────
@@ -724,6 +812,17 @@ export const PLATFORM_DETAILS: Record<string, PlatformDetail> = {
         a: "No. Read-only API keys in Klaviyo prevent any send, create, or modify operations.",
       },
     ],
+    whyFoundersConnect: "Klaviyo is the engine for most DTC and e-commerce email revenue — but the dashboard is complex and slow for a quick morning check. Fold pulls your campaign performance, list growth, and attributed revenue into a single daily snapshot so you can see whether your email channel is keeping pace with your ad spend.",
+    sampleSnapshot: [
+      { label: "date", value: "2025-04-23" },
+      { label: "active_profiles", value: "6200" },
+      { label: "new_profiles", value: "220" },
+      { label: "emails_sent", value: "4100" },
+      { label: "opens", value: "1193" },
+      { label: "clicks", value: "152" },
+      { label: "attributed_revenue", value: "4100.00" },
+    ],
+    apiImpact: "Fold makes 5 API requests per sync. Klaviyo's API rate limit is 75 requests/second — our usage is negligible.",
   },
 
   // ── Beehiiv ───────────────────────────────────────────────────────────────
@@ -800,6 +899,15 @@ export const PLATFORM_DETAILS: Record<string, PlatformDetail> = {
         a: "No. We only count premium subscribers (the total number). Payment details are handled by Beehiiv and Stripe directly and are never accessible to Fold.",
       },
     ],
+    whyFoundersConnect: "Newsletter businesses live and die by subscriber growth and open rates — but checking Beehiiv daily is friction that breaks your morning routine. Fold puts your subscriber count and recent open rates next to your revenue and traffic so you can see the full content-to-conversion picture without switching apps.",
+    sampleSnapshot: [
+      { label: "date", value: "2025-04-23" },
+      { label: "total_subscribers", value: "3400" },
+      { label: "new_subscribers", value: "180" },
+      { label: "premium_subscribers", value: "87" },
+      { label: "posts_published", value: "1" },
+    ],
+    apiImpact: "Fold makes 5 API requests per sync. Beehiiv's API is rate-limited to 120 requests/minute — our usage is negligible.",
   },
 
   // ── Shopify ───────────────────────────────────────────────────────────────
@@ -882,6 +990,17 @@ export const PLATFORM_DETAILS: Record<string, PlatformDetail> = {
         a: "No. Fold is an analytics read tool — it adds nothing to your storefront.",
       },
     ],
+    whyFoundersConnect: "Shopify store owners tend to check their dashboard compulsively, especially during campaigns. Fold gives you your daily GMV, order count, and AOV in a single row alongside your Meta ad spend — so you can see your return on ad spend in context without any manual calculation.",
+    sampleSnapshot: [
+      { label: "date", value: "2025-04-23" },
+      { label: "gmv", value: "18400.00" },
+      { label: "net_revenue", value: "17100.00" },
+      { label: "order_count", value: "312" },
+      { label: "aov", value: "59.00" },
+      { label: "new_customers", value: "188" },
+      { label: "refund_count", value: "14" },
+    ],
+    apiImpact: "Fold makes 4 REST API calls per sync, all paginated with date filters. Well within Shopify's default limit of 40 requests/app/second.",
   },
 
   // ── WooCommerce ───────────────────────────────────────────────────────────
@@ -922,12 +1041,12 @@ export const PLATFORM_DETAILS: Record<string, PlatformDetail> = {
       { field: "Refund count and total", example: "7 refunds, $315", purpose: "Refund rate metric." },
     ],
     neverStored: [
-      "Customer names, email addresses, phone numbers or billing/shipping addresses",
-      "Individual order details or line items",
+      "Individual order details or line items beyond the order total",
+      "Customer phone numbers, shipping addresses or billing addresses",
       "Customer account passwords",
       "Payment gateway credentials or transaction IDs",
       "WordPress database credentials",
-      "Your WooCommerce Consumer Secret (used for authentication only, never persisted in plaintext)",
+      "Your WooCommerce Consumer Secret (used for authentication only, encrypted at rest, never logged)",
     ],
     neverDoes: [
       "Create, edit or delete orders, products or customers",
@@ -963,5 +1082,199 @@ export const PLATFORM_DETAILS: Record<string, PlatformDetail> = {
         a: "No. The WooCommerce API key you create must be set to Read Only — this is a hard permission enforced by WooCommerce. Fold cannot perform any write operations.",
       },
     ],
+    whyFoundersConnect: "Most WooCommerce store owners have no easy way to see yesterday's revenue without logging into WordPress. Fold pulls your daily sales totals, refund rate, and top products into a single view alongside your email, traffic, and ad spend — so you stop living in five separate tabs.",
+    sampleSnapshot: [
+      { label: "date", value: "2025-04-23" },
+      { label: "revenue", value: "9240.50" },
+      { label: "order_count", value: "204" },
+      { label: "avg_order_value", value: "45.30" },
+      { label: "new_customers", value: "89" },
+      { label: "refund_count", value: "7" },
+      { label: "refund_total", value: "315.00" },
+    ],
+    apiImpact: "Fold makes approximately 5 REST API requests per sync, well within WooCommerce's default rate limits. Syncs run once daily and take under 3 seconds.",
+  },
+
+  // ── HubSpot ───────────────────────────────────────────────────────────────
+  hubspot: {
+    id: "hubspot",
+    name: "HubSpot",
+    tagline: "CRM pipeline health, closed-won revenue and new contact growth — read-only via OAuth.",
+    color: "#ff7a59",
+    icon: "/integrations/hubspot.svg",
+    category: "CRM & Sales",
+    connectMethod: "oauth2",
+    connectSteps: [
+      'Click "Connect HubSpot" in your Fold Settings tab.',
+      "You're redirected to HubSpot's OAuth authorization page (app.hubspot.com).",
+      "You select the HubSpot account (portal) you want to connect — useful if you manage multiple.",
+      "You review the exact permissions Fold is requesting and click 'Grant access'.",
+      "HubSpot issues a scoped OAuth token to Fold. Your login credentials are never shared.",
+      "Fold performs the initial sync and your CRM metrics appear in the dashboard.",
+    ],
+    scopesRequested: [
+      "crm.objects.deals.read — read deal records: stage, amount, close date, owner ID.",
+      "crm.objects.contacts.read — read contact records: creation date and lifecycle stage only. No personal details stored.",
+      "crm.schemas.deals.read — read the deal pipeline and stage configuration to calculate pipeline value correctly.",
+      "No write scopes requested. Fold cannot create, update, or delete any HubSpot records.",
+    ],
+    apiEndpoints: [
+      { label: "POST /crm/v3/objects/deals/search (closed-won, date-filtered)", purpose: "Count deals closed-won on a given day and sum their revenue (amount field)." },
+      { label: "POST /crm/v3/objects/deals/search (open deals, all stages)", purpose: "Sum the amount field of all open deals to calculate live pipeline value." },
+      { label: "GET /crm/v3/objects/contacts?createdAfter={date}", purpose: "Count net-new contacts created on a given day. Contact names and emails are never extracted." },
+      { label: "GET /crm/v3/pipelines/deals", purpose: "Read pipeline stage names to label the pipeline value breakdown correctly." },
+    ],
+    storedFields: [
+      { field: "Deals closed-won (day)", example: "4 deals on 2025-04-23", purpose: "Daily sales velocity metric." },
+      { field: "Closed-won revenue (day)", example: "$12,400 on 2025-04-23", purpose: "Daily CRM revenue KPI tile." },
+      { field: "Open pipeline value", example: "$84,200 in pipeline", purpose: "Pipeline health widget." },
+      { field: "New contacts created (day)", example: "18 new contacts", purpose: "Top-of-funnel growth metric." },
+      { field: "Win rate (rolling 30 days)", example: "34%", purpose: "Sales efficiency KPI." },
+    ],
+    neverStored: [
+      "Contact names, email addresses, phone numbers or company names",
+      "Deal notes, activity logs or email threads",
+      "Individual contact or deal IDs",
+      "Meeting transcripts or call recordings",
+      "Association data (which contact is linked to which company)",
+      "Your HubSpot portal ID or API key",
+    ],
+    neverDoes: [
+      "Create, update or delete deals, contacts, companies or activities",
+      "Send emails or enroll contacts in sequences",
+      "Modify pipeline stages or deal properties",
+      "Access your HubSpot billing or account settings",
+      "Share your CRM data with any third party",
+      "Use your CRM data to train AI models",
+    ],
+    howToRevoke: {
+      fromFold: "Settings → HubSpot → Disconnect. All synced HubSpot data is deleted immediately.",
+      fromPlatform: "HubSpot → Settings → Integrations → Connected Apps → Fold Analytics → Uninstall.",
+      platformRevokeUrl: "https://app.hubspot.com/integrations-settings/",
+    },
+    dataRetention: "Synced CRM snapshots are retained while your Fold account is active and purged within 24 hours of disconnecting or account deletion.",
+    refreshFrequency: "Automatic sync every 24 hours (yesterday's data). Manual refresh available from Settings.",
+    privacyNote: "HubSpot stores significant personal data about your contacts and prospects. Fold is designed to read none of it — we only extract count and sum aggregates. Contact names, emails, company details and activity history are never extracted or stored by Fold.",
+    faq: [
+      {
+        q: "Can Fold see my contacts' names or email addresses?",
+        a: "No. We count new contacts created per day (the number 18, not who those 18 people are). Contact names, emails and phone numbers are never extracted or stored.",
+      },
+      {
+        q: "Can Fold see the notes or emails I have logged against deals?",
+        a: "No. We only read the deal amount, close date, and stage from the deal record. Notes, activity logs, email threads and meeting data are never accessed.",
+      },
+      {
+        q: "I use HubSpot for both marketing and sales. Does Fold access the marketing side?",
+        a: "No. We only request CRM scopes (deals and contacts). Marketing Hub data — emails, landing pages, workflows, social posts — is not accessible with the scopes we request.",
+      },
+      {
+        q: "What happens to my HubSpot data if I cancel my Fold subscription?",
+        a: "All synced data is deleted from Fold's servers within 24 hours of account closure. Disconnecting HubSpot from Settings → HubSpot → Disconnect will trigger immediate deletion.",
+      },
+    ],
+    whyFoundersConnect: "If you're running a sales-led or product-led motion, your CRM is where revenue actually closes — but checking HubSpot daily just to see if you're on track is friction. Fold surfaces your closed-won revenue, pipeline value, and new-contact growth next to your marketing and product metrics, so you can see whether your top-of-funnel activity is actually converting.",
+    sampleSnapshot: [
+      { label: "date", value: "2025-04-23" },
+      { label: "deals_closed_won", value: "4" },
+      { label: "closed_revenue", value: "12400.00" },
+      { label: "pipeline_value", value: "84200.00" },
+      { label: "new_contacts", value: "18" },
+      { label: "win_rate_30d", value: "34.0" },
+    ],
+    apiImpact: "Fold makes 4 API calls per sync using HubSpot's search API with date filters. This is negligible relative to HubSpot's 100 requests/10s rate limit and does not affect your portal's performance.",
+  },
+
+  // ── PostHog ───────────────────────────────────────────────────────────────
+  posthog: {
+    id: "posthog",
+    name: "PostHog",
+    tagline: "Product analytics — pageviews, sessions and unique users — read-only via HogQL.",
+    color: "#f54e00",
+    icon: "/integrations/posthog.svg",
+    category: "Product Analytics",
+    connectMethod: "api-key",
+    connectSteps: [
+      "Go to your PostHog project → Settings → Project API Keys.",
+      'Create a new Personal API Key — name it "Fold Analytics" and select your project.',
+      "Copy the key and paste it into Fold's Settings tab, along with your PostHog project ID.",
+      "Fold validates the key, runs a test HogQL query, and performs an initial sync.",
+      "Revoke the key from PostHog at any time to immediately stop all access.",
+    ],
+    scopesRequested: [
+      "Personal API Key (project-scoped) — read access to PostHog query API (HogQL).",
+      "Fold queries aggregate event counts only. No user-level data or session recordings are requested.",
+      "No write access. Fold cannot create events, modify feature flags, or alter your PostHog project.",
+    ],
+    apiEndpoints: [
+      {
+        label: "POST /api/projects/{id}/query — HogQL: SELECT count() FROM events WHERE event='$pageview'",
+        purpose: "Total pageview event count for the period.",
+      },
+      {
+        label: "POST /api/projects/{id}/query — HogQL: SELECT count(DISTINCT distinct_id) FROM events",
+        purpose: "Unique user (distinct person) count for the period.",
+      },
+      {
+        label: "POST /api/projects/{id}/query — HogQL: SELECT count() FROM events WHERE event='$session_start'",
+        purpose: "Session count (number of unique sessions started) for the period.",
+      },
+    ],
+    storedFields: [
+      { field: "Pageview count (day)", example: "3,420 pageviews on 2025-04-23", purpose: "Product traffic KPI tile." },
+      { field: "Unique users (day)", example: "1,840 users on 2025-04-23", purpose: "Active user count metric." },
+      { field: "Session count (day)", example: "2,110 sessions on 2025-04-23", purpose: "Engagement depth metric." },
+    ],
+    neverStored: [
+      "Individual user distinct_id values, person profiles or person properties",
+      "Session recording data or heatmaps",
+      "Custom event properties or user properties",
+      "Feature flag configurations or experiment results",
+      "Funnel or retention data",
+      "A/B test variant assignments",
+      "Your PostHog project's tracking snippet or configuration",
+    ],
+    neverDoes: [
+      "Create, modify or delete PostHog events, persons or groups",
+      "Access or replay session recordings",
+      "Read or modify feature flags or experiments",
+      "Add or remove tracking instrumentation from your app",
+      "Share your product analytics with any third party",
+      "Use your product data to train AI models",
+    ],
+    howToRevoke: {
+      fromFold: "Settings → PostHog → Disconnect. All synced PostHog data is deleted immediately.",
+      fromPlatform: "PostHog → Settings → Personal API Keys → Revoke the Fold Analytics key.",
+      platformRevokeUrl: "https://app.posthog.com/settings/user-api-keys",
+    },
+    dataRetention: "Synced metrics are retained while your Fold account is active and purged within 24 hours of disconnecting or account deletion.",
+    refreshFrequency: "Automatic sync every 24 hours. Manual refresh available from Settings.",
+    privacyNote: "PostHog stores rich per-user behavioural data — Fold deliberately avoids all of it. We only run 3 aggregate count queries (pageviews, unique users, sessions) that return a single number each. No person profiles, no event streams, no session recordings are ever accessed.",
+    faq: [
+      {
+        q: "Does Fold access my PostHog user profiles or session recordings?",
+        a: "No. We run 3 HogQL aggregate queries that return a single integer each — pageviews, unique users, sessions. No individual person data, properties or recordings are accessed.",
+      },
+      {
+        q: "Can Fold read my feature flag configurations or A/B test results?",
+        a: "No. The project API key we use only permits query access. Feature flags, experiments and cohorts require different API scopes that Fold does not request.",
+      },
+      {
+        q: "I self-host PostHog. Does Fold work with self-hosted instances?",
+        a: "Yes. Enter your self-hosted PostHog instance URL when connecting. Fold's HogQL queries work identically against both PostHog Cloud and self-hosted deployments.",
+      },
+      {
+        q: "PostHog already has dashboards. Why use Fold?",
+        a: "PostHog is great for deep product analysis. Fold is a daily summary layer — it puts your PostHog traffic numbers next to your Stripe revenue, your Mailchimp subscriber growth, and your Meta ad spend so you can see the full picture in one view.",
+      },
+    ],
+    whyFoundersConnect: "PostHog gives you deep product analytics, but checking it daily just to answer 'did traffic go up or down?' is overkill. Fold pulls your daily pageview, user, and session counts into the same view as your revenue and marketing data — so you can spot correlations across channels without switching tools.",
+    sampleSnapshot: [
+      { label: "date", value: "2025-04-23" },
+      { label: "pageviews", value: "3420" },
+      { label: "unique_users", value: "1840" },
+      { label: "sessions", value: "2110" },
+    ],
+    apiImpact: "Fold runs 3 HogQL queries per sync. Each query is a simple COUNT aggregation with a date filter and typically completes in under 500ms. This is negligible relative to PostHog's API limits.",
   },
 };

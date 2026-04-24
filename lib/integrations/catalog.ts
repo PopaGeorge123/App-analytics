@@ -373,7 +373,7 @@ export const INTEGRATIONS_CATALOG: Integration[] = [
     description: "CRM deals, pipeline value & close rates",
     category: "CRM & Sales",
     color: "#ff7a59",
-    status: "live",  // Free CRM tier drives wide adoption; common among early-stage B2B founders
+    status: "soon",  // Free CRM tier drives wide adoption; common among early-stage B2B founders
     connectUrl: "/api/auth/hubspot/url",
     icon: "/integrations/hubspot.svg",
   },

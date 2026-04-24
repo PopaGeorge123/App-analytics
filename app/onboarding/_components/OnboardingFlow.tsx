@@ -20,66 +20,66 @@ interface PrivacyInfo {
 const PRIVACY: Record<string, PrivacyInfo> = {
   stripe: {
     reads: [
-      "Total revenue & MRR aggregates",
-      "New customer count per day",
-      "Subscription & charge events (count, amount)",
+      "Total revenue per day (sum of succeeded PaymentIntents)",
+      "New customer count per day (unique customer IDs only)",
+      "Transaction count per day",
       "Refund totals",
     ],
     stores: [
-      "Daily revenue snapshots (aggregate numbers only)",
-      "Customer count per period",
+      "Daily revenue snapshot (aggregate number only)",
+      "New customer count (number, not identities)",
       "Currency code",
     ],
     never: [
       "Card numbers, CVVs or bank details",
-      "Customer personal details (name, email, address)",
+      "Customer names, emails or addresses",
       "Individual transaction IDs",
-      "Webhook secret or restricted API keys",
+      "Subscription details or billing schedules",
     ],
     docsUrl: "https://stripe.com/docs/security",
   },
   ga4: {
     reads: [
-      "Session counts per day",
-      "Unique user / visitor counts",
+      "Session count per day",
+      "Total & new user counts",
       "Bounce rate & average session duration",
-      "Top traffic sources (channel grouping)",
       "Conversion event totals",
     ],
     stores: [
-      "Daily aggregated traffic metrics",
-      "Traffic source breakdown (percentage)",
+      "Daily aggregated traffic metrics (counts only)",
     ],
     never: [
       "Individual user identifiers or User IDs",
       "IP addresses",
-      "Raw event streams",
+      "Raw event streams or page-level data",
+      "Traffic source or referrer breakdown",
       "Cookie data",
     ],
     docsUrl: "https://support.google.com/analytics/answer/6004245",
   },
   meta: {
     reads: [
-      "Total ad spend per campaign per day",
+      "Total ad spend per day (account level)",
       "Impressions & reach (aggregate)",
-      "Click-through rate",
-      "ROAS (return on ad spend)",
+      "Clicks",
+      "Purchase conversions (count only)",
     ],
     stores: [
-      "Daily spend & performance snapshots",
-      "Campaign-level aggregated metrics",
+      "Daily spend & performance snapshot",
+      "Currency code",
     ],
     never: [
       "Audience demographics or personal data",
       "Custom audience lists",
       "Pixel data or retargeting data",
       "Individual ad account billing info",
+      "ROAS (not calculated — divide spend/revenue yourself)",
     ],
     docsUrl: "https://www.facebook.com/privacy/policy",
   },
   "lemon-squeezy": {
     reads: [
-      "Total revenue & order counts",
+      "Total revenue & order counts per day",
       "Subscription MRR",
       "Refund totals",
     ],
@@ -90,7 +90,7 @@ const PRIVACY: Record<string, PrivacyInfo> = {
     never: [
       "Customer personal information",
       "Payment method details",
-      "Your Lemon Squeezy store API secret (stored encrypted, never logged)",
+      "Your API key (stored encrypted, never logged)",
     ],
     docsUrl: "https://www.lemonsqueezy.com/privacy",
   },
@@ -101,7 +101,7 @@ const PRIVACY: Record<string, PrivacyInfo> = {
       "Refund amounts",
     ],
     stores: [
-      "Daily revenue snapshots",
+      "Daily revenue snapshots (aggregate totals only)",
     ],
     never: [
       "Customer names or emails",
@@ -125,23 +125,24 @@ const PRIVACY: Record<string, PrivacyInfo> = {
       "Customer billing addresses",
       "VAT / tax IDs",
       "Individual customer records",
-      "Your Paddle vendor auth code (stored encrypted)",
+      "Your API key (stored encrypted)",
     ],
     docsUrl: "https://www.paddle.com/legal/privacy",
   },
   plausible: {
     reads: [
       "Total pageviews per day",
-      "Unique visitor counts",
+      "Unique visitor count",
       "Bounce rate",
-      "Top pages (aggregated)",
-      "Traffic sources (aggregated)",
+      "Average visit duration",
     ],
     stores: [
-      "Daily traffic metric snapshots",
+      "Daily traffic metric snapshot (4 numbers per day)",
     ],
     never: [
       "Individual visitor data (Plausible itself doesn't collect this)",
+      "Top pages or referrer breakdown",
+      "Traffic sources",
       "Cookies or user tracking identifiers",
       "Your site content",
     ],
@@ -149,46 +150,46 @@ const PRIVACY: Record<string, PrivacyInfo> = {
   },
   mailchimp: {
     reads: [
-      "Total subscriber count per list",
-      "New subscriber & unsubscribe counts per day",
-      "Campaign open rate & click rate (aggregate)",
+      "Emails sent, opens & clicks per campaign (aggregate)",
+      "New subscribers & unsubscribes per list per day",
     ],
     stores: [
-      "Daily subscriber count snapshots",
-      "Aggregate campaign engagement metrics",
+      "Daily campaign performance snapshot",
+      "Daily subscriber growth counts",
     ],
     never: [
       "Individual subscriber emails or names",
       "Subscriber tags or merge fields",
       "Email content or templates",
-      "Your Mailchimp audience data",
+      "Your audience list data",
     ],
     docsUrl: "https://mailchimp.com/legal/privacy/",
   },
   klaviyo: {
     reads: [
-      "Total active profiles (subscriber count)",
-      "Email campaign open & click rates (aggregate)",
-      "Flow revenue attributed (aggregate totals)",
+      "Emails sent, opens & clicks per day (aggregate event counts)",
+      "Placed Order revenue attributed to Klaviyo events",
     ],
     stores: [
-      "Daily subscriber & engagement snapshots",
+      "Daily email engagement snapshot",
+      "Daily attributed revenue total",
     ],
     never: [
       "Individual subscriber profiles or emails",
       "Customer purchase history",
       "Segment membership data",
+      "Flow or automation configurations",
     ],
     docsUrl: "https://www.klaviyo.com/legal/privacy-notice",
   },
   posthog: {
     reads: [
-      "Total pageview count per day",
-      "Daily active users (DAU)",
-      "Session count per day (via $session_start event)",
+      "Total pageview event count per day",
+      "Distinct person count (unique visitors)",
+      "Session count per day",
     ],
     stores: [
-      "Daily aggregated traffic snapshots (pageviews, unique users, sessions)",
+      "Daily aggregated snapshot (3 numbers: pageviews, unique users, sessions)",
     ],
     never: [
       "Individual user identifiers or Person IDs",
@@ -201,34 +202,34 @@ const PRIVACY: Record<string, PrivacyInfo> = {
   },
   beehiiv: {
     reads: [
-      "Total subscriber count",
-      "New subscriber count per period",
-      "Paid upgrade counts",
-      "Open rate (aggregate)",
+      "Total active subscriber count",
+      "Total premium subscriber count",
+      "New subscribers created on a given day",
+      "Posts published on a given day (count only)",
     ],
     stores: [
-      "Daily newsletter metric snapshots",
+      "Daily newsletter snapshot (subscriber counts, posts published)",
     ],
     never: [
       "Individual subscriber emails or names",
       "Email content",
       "Payment details of paid subscribers",
+      "Open rate (not fetched from the API)",
     ],
     docsUrl: "https://www.beehiiv.com/privacy",
   },
   shopify: {
     reads: [
-      "Total orders & GMV per day",
-      "Refund totals",
-      "Product count (aggregate)",
-      "New customer count per day",
+      "Total orders & revenue per day",
+      "Refund count per day",
+      "Unique customer IDs per day (count only)",
     ],
     stores: [
-      "Daily revenue & order snapshots",
-      "Customer acquisition count",
+      "Daily revenue & order snapshot",
+      "New customer count (number, not identities)",
     ],
     never: [
-      "Customer names, emails or addresses",
+      "Customer addresses",
       "Credit card or payment details",
       "Individual order line items",
       "Inventory or supplier data",
@@ -238,19 +239,37 @@ const PRIVACY: Record<string, PrivacyInfo> = {
   woocommerce: {
     reads: [
       "Total orders & revenue per day",
-      "Refund totals",
-      "New customer count",
+      "Refund count per day",
+      "Customer billing email & name (for LTV tracking in the Customers tab)",
     ],
     stores: [
-      "Daily revenue & order snapshots",
+      "Daily revenue & order snapshot",
+      "Customer records: email, name, lifetime spend (in your Fold account only)",
     ],
     never: [
-      "Customer personal data",
-      "Payment method information",
-      "WordPress database credentials",
-      "Individual order details",
+      "Credit card or payment method details",
+      "WordPress admin credentials",
+      "Individual order line items or product details",
+      "Shipping addresses",
     ],
     docsUrl: "https://automattic.com/privacy/",
+  },
+  hubspot: {
+    reads: [
+      "Deals closed (won) per day — count & revenue amount",
+      "Active pipeline value (open deals, aggregate)",
+      "New contacts created per day (count only)",
+    ],
+    stores: [
+      "Daily CRM snapshot: deals won, closed revenue, pipeline value, new contacts",
+    ],
+    never: [
+      "Individual contact names, emails or phone numbers",
+      "Deal notes or activity history",
+      "Company or association data",
+      "Your HubSpot access token is stored encrypted and never logged",
+    ],
+    docsUrl: "https://legal.hubspot.com/privacy-policy",
   },
 };
 
@@ -336,7 +355,10 @@ interface OnboardingFlowProps {
 export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError }: OnboardingFlowProps) {
   const router = useRouter();
 
-  const [selected, setSelected] = useState<Integration | null>(null);
+  // Auto-select Stripe (or first available) so the connect CTA is visible on load
+  const defaultIntegration = liveIntegrations.find((i) => i.id === "stripe") ?? liveIntegrations[0] ?? null;
+
+  const [selected, setSelected] = useState<Integration | null>(defaultIntegration);
   const [apiKeyFields, setApiKeyFields] = useState<Record<string, string>>({});
   const [shopDomain, setShopDomain] = useState("");
   const [connecting, setConnecting] = useState(false);
@@ -482,9 +504,9 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
             <span className="hidden font-mono text-[11px] text-[#3a3a55] sm:block truncate max-w-45">{userEmail}</span>
             <button
               onClick={skipToDashboard}
-              className="rounded-lg border border-[#2a2a40] px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#4a4a6a] transition hover:border-[#363650] hover:text-[#8585aa]"
+              className="font-mono text-[10px] text-[#2d2d44] hover:text-[#4a4a6a] transition underline-offset-2 hover:underline"
             >
-              Skip for now
+              Skip
             </button>
           </div>
         </div>
@@ -504,19 +526,49 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
         )}
 
         {/* ── Hero ──────────────────────────────────────────────────────── */}
-        <div className="mb-8 text-center">
+        <div className="mb-6 text-center">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#1e1e30] bg-[#13131f] px-3 py-1.5">
             <span className="h-1.5 w-1.5 rounded-full bg-[#00d4aa] animate-pulse" />
             <span className="font-mono text-[10px] text-[#8585aa]">{liveIntegrations.length} integrations available</span>
           </div>
-          <h1 className="mb-3 font-mono text-2xl font-bold text-[#f8f8fc] sm:text-3xl">
+          <h1 className="mb-2 font-mono text-2xl font-bold text-[#f8f8fc] sm:text-3xl">
             Connect your first integration
           </h1>
           <p className="mx-auto max-w-lg text-sm text-[#58588a] leading-relaxed">
-            Fold reads <strong className="text-[#8585aa]">aggregated metrics only</strong>, revenue totals,
-            traffic counts, subscriber growth. No customer data. No personal info.{" "}
-            <span className="text-[#4a4a6a]">Click any integration to see exactly what we read.</span>
+            Pick one below, you can add more later. Takes about <strong className="text-[#8585aa]">30 seconds</strong>.
           </p>
+        </div>
+
+        {/* ── Quick-start strip ─────────────────────────────────────────── */}
+        <div className="mb-7">
+          <p className="mb-2.5 font-mono text-[10px] font-semibold uppercase tracking-widest text-[#3a3a55]">
+            Most popular starting points
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {liveIntegrations.filter((i) => POPULAR_IDS.has(i.id)).map((integration) => {
+              const isSelected = selected?.id === integration.id;
+              return (
+                <button
+                  key={integration.id}
+                  onClick={() => handleSelect(integration)}
+                  className={`flex items-center gap-2 rounded-xl border px-3 py-2 font-mono text-[11px] font-semibold transition-all duration-150 ${
+                    isSelected
+                      ? "border-[#00d4aa]/50 bg-[#00d4aa]/10 text-[#00d4aa]"
+                      : "border-[#222233] bg-[#0f0f1a] text-[#8585aa] hover:border-[#363650] hover:text-[#c0c0d8]"
+                  }`}
+                >
+                  <img src={integration.icon} alt={integration.name} width={14} height={14} className="object-contain" />
+                  {integration.name}
+                  {isSelected && (
+                    <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                  )}
+                </button>
+              );
+            })}
+            <span className="flex items-center px-1 font-mono text-[10px] text-[#2d2d44]">or pick any below ↓</span>
+          </div>
         </div>
 
         {/* ── Two-column layout ─────────────────────────────────────────── */}
@@ -800,16 +852,26 @@ function DetailPanel({
               color="#ef4444"
               items={privacy.never}
             />
-            {privacy.docsUrl && (
+            <div className="flex items-center justify-between pt-1">
               <a
-                href={privacy.docsUrl}
+                href={`/learn/${selected.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block pt-1 text-center font-mono text-[10px] text-[#3a3a55] underline-offset-2 hover:text-[#58588a] hover:underline"
+                className="font-mono text-[10px] text-[#5a5a8a] underline-offset-2 hover:text-[#8b8bff] hover:underline"
               >
-                {selected.name} privacy policy →
+                How we use {selected.name} data →
               </a>
-            )}
+              {privacy.docsUrl && (
+                <a
+                  href={privacy.docsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-mono text-[10px] text-[#3a3a55] underline-offset-2 hover:text-[#58588a] hover:underline"
+                >
+                  {selected.name} privacy policy →
+                </a>
+              )}
+            </div>
           </div>
         )}
 
@@ -955,6 +1017,7 @@ function OAuthConnect({
           </svg>
         </span>
       </button>
+      <p className="text-center font-mono text-[10px] text-[#2d2d44]">~30 seconds · read-only · add more integrations later</p>
     </div>
   );
 }

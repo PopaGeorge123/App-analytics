@@ -1,12 +1,47 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
 type Step = "form" | "check-email";
 
-const AVATARS = ["J", "S", "T", "M", "A"];
+interface AvatarUser { url: string; initials: string; }
+
+// Fallback initials shown before the API resolves
+const FALLBACK_AVATARS: AvatarUser[] = [
+  { url: "", initials: "JR" },
+  { url: "", initials: "SM" },
+  { url: "", initials: "TK" },
+  { url: "", initials: "MA" },
+  { url: "", initials: "PL" },
+];
+
+function useRecentAvatars() {
+  const [avatars, setAvatars] = useState<AvatarUser[]>(FALLBACK_AVATARS);
+  useEffect(() => {
+    fetch("/api/recent-avatars")
+      .then((r) => r.json())
+      .then((d) => { if (d.avatars?.length >= 3) setAvatars(d.avatars); })
+      .catch(() => {/* keep fallback */});
+  }, []);
+  return avatars;
+}
+
+function LiveUserBadge() {
+  const [label, setLabel] = useState<string>("founders");
+  useEffect(() => {
+    fetch("/api/user-count")
+      .then((r) => r.json())
+      .then((d) => {
+        if (typeof d.count === "number" && d.count > 0) {
+          setLabel(`${d.count}+ founders`);
+        }
+      })
+      .catch(() => {});
+  }, []);
+  return <span className="text-[#f8f8fc] font-semibold">{label}</span>;
+}
 
 export default function SignupPage() {
   const [email, setEmail] = useState("");
@@ -16,6 +51,10 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
   const [step, setStep] = useState<Step>("form");
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendDone, setResendDone] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const avatars = useRecentAvatars();
 
   async function handleGoogleSignUp() {
     setOauthLoading(true);
@@ -66,6 +105,23 @@ export default function SignupPage() {
     setStep("check-email");
   }
 
+  async function handleResend() {
+    if (resendCooldown > 0 || resendLoading) return;
+    setResendLoading(true);
+    const supabase = createClient();
+    await supabase.auth.resend({ type: "signup", email: email.trim() });
+    setResendLoading(false);
+    setResendDone(true);
+    // 60s cooldown to prevent spam
+    setResendCooldown(60);
+    const t = setInterval(() => {
+      setResendCooldown((c) => {
+        if (c <= 1) { clearInterval(t); return 0; }
+        return c - 1;
+      });
+    }, 1000);
+  }
+
   // ── Check-email screen ──────────────────────────────────────────────────
   if (step === "check-email") {
     return (
@@ -87,10 +143,37 @@ export default function SignupPage() {
             <span className="font-semibold text-[#f8f8fc]">{email}</span>.{" "}
             Click it to activate your account.
           </p>
-          <p className="mt-8 text-xs text-[#8585aa]">
-            Already confirmed?{" "}
-            <Link href="/login" className="font-semibold text-[#00d4aa] hover:underline underline-offset-4">Sign in →</Link>
-          </p>
+
+          {/* Tips */}
+          <div className="mt-6 rounded-xl border border-[#1e1e30] bg-[#0d0d18] px-4 py-3 text-left space-y-1.5">
+            {[
+              "Check your spam / junk folder",
+              "The link expires in 24 hours",
+              "Gmail? Search: from:noreply@usefold.io",
+            ].map((tip) => (
+              <p key={tip} className="flex items-center gap-2 font-mono text-[10px] text-[#58588a]">
+                <span className="text-[#3a3a55]">→</span> {tip}
+              </p>
+            ))}
+          </div>
+
+          {/* Resend */}
+          <div className="mt-6 flex flex-col items-center gap-2">
+            {resendDone ? (
+              <p className="font-mono text-[11px] text-[#00d4aa]">✓ Resent! Check your inbox again.</p>
+            ) : (
+              <button
+                onClick={handleResend}
+                disabled={resendLoading || resendCooldown > 0}
+                className="rounded-xl border border-[#2a2a40] px-4 py-2 font-mono text-[11px] font-semibold text-[#8585aa] transition hover:border-[#00d4aa]/30 hover:text-[#00d4aa] disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {resendLoading ? "Sending…" : resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend confirmation email"}
+              </button>
+            )}
+            <Link href="/login" className="font-mono text-[10px] text-[#3a3a55] hover:text-[#58588a] underline underline-offset-2">
+              Already confirmed? Sign in →
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -126,17 +209,28 @@ export default function SignupPage() {
         {/* Social proof strip */}
         <div className="mb-5 flex items-center justify-center gap-2.5">
           <div className="flex -space-x-2">
-            {AVATARS.map((a, i) => (
-              <div
-                key={i}
-                className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-[#13131f] bg-[#363650] font-mono text-[9px] font-bold text-[#00d4aa]"
-              >
-                {a}
-              </div>
+            {avatars.map((a, i) => (
+              a.url ? (
+                <img
+                  key={i}
+                  src={a.url}
+                  alt={a.initials}
+                  width={24}
+                  height={24}
+                  className="h-6 w-6 rounded-full border-2 border-[#13131f] object-cover"
+                />
+              ) : (
+                <div
+                  key={i}
+                  className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-[#13131f] bg-[#363650] font-mono text-[9px] font-bold text-[#00d4aa]"
+                >
+                  {a.initials}
+                </div>
+              )
             ))}
           </div>
           <p className="font-mono text-[10px] text-[#8585aa]">
-            <span className="text-[#f8f8fc] font-semibold">340+ founders</span> joined this week
+            <LiveUserBadge /> already using Fold
           </p>
         </div>
 
