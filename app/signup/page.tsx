@@ -364,6 +364,14 @@ export default function SignupPage() {
                 </>
               )}
             </button>
+
+            {/* Legal consent */}
+            <p className="text-center font-mono text-[10px] leading-relaxed text-[#3a3a55]">
+              By creating an account you agree to our{" "}
+              <Link href="/terms" className="text-[#58588a] underline underline-offset-2 hover:text-[#8585aa]">Terms of Service</Link>
+              {" "}and{" "}
+              <Link href="/privacy" className="text-[#58588a] underline underline-offset-2 hover:text-[#8585aa]">Privacy Policy</Link>.
+            </p>
           </form>
         </div>
 
