@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { syncStripeData } from "@/lib/integrations/stripe/sync";
 import { syncGA4Data } from "@/lib/integrations/ga4/sync";
 import { syncMetaData } from "@/lib/integrations/meta/sync";
+import { syncHubSpotData } from "@/lib/integrations/hubspot/sync";
 
 // Delay helper — prevents hammering APIs back-to-back
 function sleep(ms: number) {
@@ -10,9 +11,10 @@ function sleep(ms: number) {
 
 // Delay (ms) between syncing each platform for the same user
 const PLATFORM_DELAY_MS: Record<string, number> = {
-  stripe: 0,    // first platform — no pre-delay needed
-  ga4:    1500, // 1.5s after Stripe
-  meta:   1500, // 1.5s after GA4
+  stripe:  0,    // first platform — no pre-delay needed
+  ga4:     1500, // 1.5s after Stripe
+  meta:    1500, // 1.5s after GA4
+  hubspot: 1500, // 1.5s after Meta
 };
 
 function verifyCronSecret(request: NextRequest): boolean {
@@ -49,10 +51,10 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const results: { stripe?: string; ga4?: string; meta?: string } = {};
+  const results: { stripe?: string; ga4?: string; meta?: string; hubspot?: string } = {};
 
   // Process platforms SEQUENTIALLY — one at a time — with delays
-  const platformOrder: Array<keyof typeof results> = ["stripe", "ga4", "meta"];
+  const platformOrder: Array<keyof typeof results> = ["stripe", "ga4", "meta", "hubspot"];
 
   for (const platform of platformOrder) {
     if (!platforms.includes(platform)) continue;
@@ -71,6 +73,9 @@ export async function POST(request: NextRequest) {
       } else if (platform === "meta") {
         await syncMetaData(userId);
         results.meta = "ok";
+      } else if (platform === "hubspot") {
+        await syncHubSpotData(userId);
+        results.hubspot = "ok";
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);

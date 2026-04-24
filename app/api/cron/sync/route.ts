@@ -3,6 +3,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { syncStripeData } from "@/lib/integrations/stripe/sync";
 import { syncGA4Data } from "@/lib/integrations/ga4/sync";
 import { syncMetaData } from "@/lib/integrations/meta/sync";
+import { syncHubSpotData } from "@/lib/integrations/hubspot/sync";
 
 // Verifies the request came from the internal cron server
 function verifyCronSecret(request: NextRequest): boolean {
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest) {
 
   const userIds = [...new Set(integrations.map((i) => i.user_id))];
 
-  const results: Record<string, { stripe?: string; ga4?: string; meta?: string }> = {};
+  const results: Record<string, { stripe?: string; ga4?: string; meta?: string; hubspot?: string }> = {};
 
   await Promise.allSettled(
     userIds.map(async (userId) => {
@@ -54,6 +55,12 @@ export async function POST(request: NextRequest) {
           ? syncMetaData(userId)
               .then(() => { results[userId].meta = "ok"; })
               .catch((e: Error) => { results[userId].meta = e.message; })
+          : Promise.resolve(),
+
+        platforms.includes("hubspot")
+          ? syncHubSpotData(userId)
+              .then(() => { results[userId].hubspot = "ok"; })
+              .catch((e: Error) => { results[userId].hubspot = e.message; })
           : Promise.resolve(),
       ]);
     })

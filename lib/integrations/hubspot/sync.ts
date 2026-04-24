@@ -119,3 +119,25 @@ export async function syncHubSpotDay(
 
   return { dealsWon, pipelineValue, newContacts, closedRevenue };
 }
+
+/**
+ * Top-level sync called by cron jobs.
+ * Fetches the access token from DB, then syncs yesterday's data.
+ */
+export async function syncHubSpotData(userId: string): Promise<void> {
+  const supabase = createServiceClient();
+  const { data: integration } = await supabase
+    .from("integrations")
+    .select("access_token")
+    .eq("user_id", userId)
+    .eq("platform", "hubspot")
+    .single();
+
+  if (!integration?.access_token) throw new Error("HubSpot integration not found");
+
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const date = yesterday.toISOString().slice(0, 10);
+
+  await syncHubSpotDay(userId, integration.access_token, date);
+}

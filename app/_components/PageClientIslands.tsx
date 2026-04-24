@@ -13,6 +13,57 @@
 import { useEffect, useRef, useState } from "react";
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Live user count — fetches real count from /api/user-count, then animates
+// ─────────────────────────────────────────────────────────────────────────────
+export function LiveUserCount({ fallback = 0 }: { fallback?: number; suffix?: string }) {
+  const [target, setTarget] = useState<number | null>(null);
+  const [value, setValue]   = useState(0);
+  const ref     = useRef<HTMLSpanElement>(null);
+  const started = useRef(false);
+
+  useEffect(() => {
+    fetch("/api/user-count")
+      .then((r) => r.json())
+      .then((d) => setTarget(typeof d.count === "number" ? d.count : fallback))
+      .catch(() => setTarget(fallback));
+  }, [fallback]);
+
+  useEffect(() => {
+    if (target === null || started.current) return;
+    const el = ref.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !started.current) {
+          started.current = true;
+          const duration = 1800;
+          const start    = performance.now();
+          const tick = (now: number) => {
+            const elapsed  = now - start;
+            const progress = Math.min(elapsed / duration, 1);
+            const eased    = 1 - Math.pow(1 - progress, 3);
+            setValue(Math.floor(eased * target));
+            if (progress < 1) requestAnimationFrame(tick);
+            else setValue(target);
+          };
+          requestAnimationFrame(tick);
+        }
+      },
+      { threshold: 0.3 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [target]);
+
+  return (
+    <span ref={ref}>
+      {target === null ? "…" : `${value.toLocaleString()}`}
+    </span>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Animated number counter
 // ─────────────────────────────────────────────────────────────────────────────
 export function AnimatedCounter({
@@ -127,23 +178,46 @@ function OverviewMockup() {
 
 function AnalyticsMockup() {
   const platforms = [
-    { name: "Stripe", color: "#6366f1", vals: [42, 58, 54, 73, 68, 82, 91] },
-    { name: "Google Analytics", color: "#f59e0b", vals: [30, 45, 50, 60, 55, 72, 80] },
-    { name: "Meta Ads", color: "#f87171", vals: [20, 28, 22, 35, 30, 42, 48] },
+    // Payments & Revenue
+    { name: "Stripe",          color: "#635bff", vals: [42,58,54,73,68,82,91], metric: "$12.4k" },
+    { name: "Lemon Squeezy",   color: "#FFC233", vals: [18,24,20,31,28,36,42], metric: "$3.1k"  },
+    { name: "Gumroad",         color: "#ff90e8", vals: [10,14,12,19,16,22,27], metric: "$1.8k"  },
+    { name: "Paddle",          color: "#3ddc97", vals: [30,38,35,44,40,52,60], metric: "$5.2k"  },
+    // Web Analytics
+    { name: "GA4",             color: "#4285F4", vals: [55,60,50,72,65,80,88], metric: "9.3k"   },
+    { name: "Plausible",       color: "#5850ec", vals: [28,35,30,42,38,48,55], metric: "4.8k"   },
+    { name: "PostHog",         color: "#f76300", vals: [20,26,22,33,30,40,46], metric: "3.2k"   },
+    // Advertising
+    { name: "Meta Ads",        color: "#1877f2", vals: [20,28,22,35,30,42,48], metric: "$920"   },
+    // Email & Marketing
+    { name: "Mailchimp",       color: "#FFE01B", vals: [60,65,58,74,70,80,85], metric: "14.2k"  },
+    { name: "Klaviyo",         color: "#7c3aed", vals: [35,42,38,50,46,58,65], metric: "8.6k"   },
+    { name: "Beehiiv",         color: "#FC5200", vals: [15,20,18,26,24,32,38], metric: "2.9k"   },
+    // E-commerce
+    { name: "Shopify",         color: "#96bf48", vals: [50,62,55,70,65,78,88], metric: "$18.7k" },
+    { name: "WooCommerce",     color: "#7f54b3", vals: [25,32,28,38,35,44,50], metric: "$7.3k"  },
   ];
   return (
-    <div className="space-y-2.5">
+    <div className="flex flex-col gap-1.5 max-h-85 overflow-y-auto pr-0.5" style={{ scrollbarWidth: "none" }}>
       {platforms.map((p) => (
-        <div key={p.name} className="rounded-xl border border-[#363650] bg-[#222235] p-3">
-          <div className="flex items-center justify-between mb-2">
-            <p className="font-mono text-[9px] uppercase tracking-widest text-[#bcbcd8]">{p.name}</p>
-            <span className="font-mono text-[9px] text-[#00d4aa]">▲ 12%</span>
-          </div>
-          <div className="flex items-end gap-1 h-8">
+        <div key={p.name} className="rounded-lg border border-[#363650] bg-[#222235] px-3 py-2 flex items-center gap-3">
+          {/* color dot */}
+          <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
+          {/* name */}
+          <p className="font-mono text-[9px] uppercase tracking-widest text-[#bcbcd8] w-19 shrink-0 truncate">{p.name}</p>
+          {/* mini sparkbar */}
+          <div className="flex items-end gap-px h-5 flex-1">
             {p.vals.map((h, i) => (
-              <div key={i} className="flex-1 rounded-sm" style={{ height: `${h}%`, backgroundColor: i === 6 ? p.color : `${p.color}50` }} />
+              <div
+                key={i}
+                className="flex-1 rounded-sm transition-all"
+                style={{ height: `${h}%`, backgroundColor: i === p.vals.length - 1 ? p.color : `${p.color}50` }}
+              />
             ))}
           </div>
+          {/* metric */}
+          <span className="font-mono text-[9px] font-bold shrink-0" style={{ color: p.color }}>{p.metric}</span>
+          <span className="font-mono text-[8px] text-[#00d4aa] shrink-0">▲</span>
         </div>
       ))}
     </div>

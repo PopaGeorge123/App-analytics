@@ -1876,10 +1876,13 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 divide-y lg:divide-y-0 lg:divide-x divide-[#363650]/50">
 
                   {/* Left: metric picker by platform */}
-                  <div className="p-5 space-y-4 max-h-72 overflow-y-auto scrollbar-none">
-                    <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa] sticky top-0 bg-[#13131f]/80 backdrop-blur-sm py-1">
+                  <div className="relative flex flex-col max-h-72 overflow-hidden">
+                    {/* Sticky header — outside the scroll area so content never passes through it */}
+                    <p className="flex-none font-mono text-[9px] uppercase tracking-widest text-[#8585aa] px-5 pt-5 pb-2 border-b border-[#363650] bg-[#13131f]">
                       Available metrics · {availableForCustom.length} platform{availableForCustom.length !== 1 ? "s" : ""}
                     </p>
+                    {/* Scrollable list below the header */}
+                    <div className="flex-1 overflow-y-auto scrollbar-none p-5 space-y-4">
                     {availableForCustom.length === 0 ? (
                       <p className="font-mono text-[11px] text-[#58588a]">No supported integrations connected yet.</p>
                     ) : (
@@ -1933,11 +1936,12 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
                       })
                     )}
                     {customMetrics.length >= 6 && (
-                      <div className="sticky bottom-0 bg-[#13131f]/90 backdrop-blur-sm py-1">
+                      <div className="sticky bottom-0 z-10 bg-[#13131f] py-1">
                         <p className="font-mono text-[9px] text-[#f59e0b]">⚠ Max 6 series. Remove one to add another.</p>
                       </div>
                     )}
-                  </div>
+                  </div>{/* end scrollable list */}
+                  </div>{/* end left column */}
 
                   {/* Right: selected series controls */}
                   <div className="p-5">

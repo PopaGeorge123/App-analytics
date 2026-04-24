@@ -1,4 +1,4 @@
-import { AnimatedCounter, DashboardMockup, FaqSection, Nav } from "./_components/PageClientIslands";
+import { AnimatedCounter, DashboardMockup, FaqSection, Nav, LiveUserCount } from "./_components/PageClientIslands";
 import { LIVE_INTEGRATIONS } from "@/lib/integrations/catalog";
 import type { ReactNode } from "react";
 import Link from "next/link";
@@ -269,7 +269,7 @@ export default function Home() {
               </h1>
 
               <p className="mb-8 w-full max-w-lg text-sm leading-relaxed text-[#bcbcd8] sm:text-base lg:text-lg">
-                Fold connects Stripe, Google Analytics, Meta Ads, Mailchimp, Shopify, and <strong className="text-[#f8f8fc] font-semibold">8 more live integrations</strong>, understand <strong className="text-[#f8f8fc] font-semibold">exactly what changed, why it changed, and what to do next</strong><br /> Before your first coffee.
+                Fold connects Stripe, Google Analytics, Meta Ads, Mailchimp, Shopify, and <strong className="text-[#f8f8fc] font-semibold">{LIVE_INTEGRATIONS.length - 5} more live integrations</strong>, understand <strong className="text-[#f8f8fc] font-semibold">exactly what changed, why it changed, and what to do next</strong><br /> Before your first coffee.
               </p>
 
               <div className="mb-8 flex flex-wrap gap-3">
@@ -345,8 +345,8 @@ export default function Home() {
         <div className="mx-auto max-w-6xl px-6 py-8">
           <div className="grid grid-cols-2 gap-6 sm:grid-cols-4 sm:divide-x sm:divide-[#363650]">
             {[
-              { label: "Live integrations", value: <AnimatedCounter target={11} />, color: "#00d4aa" },
-              { label: "Founders using Fold", value: <AnimatedCounter target={200} suffix="+" />, color: "#00d4aa" },
+              { label: "Live integrations", value: <AnimatedCounter target={LIVE_INTEGRATIONS.length} />, color: "#00d4aa" },
+              { label: "Founders using Fold", value: <LiveUserCount  />, color: "#00d4aa" },
               { label: "Hours saved per week", value: <><AnimatedCounter target={3} suffix="." /><span>5</span></>, color: "#00d4aa" },
               { label: "Manual exports needed", value: "Zero", color: "#f87171" },
             ].map((s, i) => (
@@ -647,8 +647,8 @@ export default function Home() {
               },
               {
                 icon: <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" /></svg>,
-                title: "11 Live Integrations", color: "#60a5fa",
-                description: "Stripe, GA4, Meta Ads, Shopify, WooCommerce, Mailchimp, Klaviyo, Beehiiv, Lemon Squeezy, Gumroad, Paddle, and Plausible — all via OAuth. Your data starts flowing instantly, no API keys needed.",
+                title: `${LIVE_INTEGRATIONS.length} Live Integrations`, color: "#60a5fa",
+                description: `${LIVE_INTEGRATIONS.slice(0, 6).map(i => i.name).join(", ")}, and ${LIVE_INTEGRATIONS.length - 6} more — all via OAuth. Your data starts flowing instantly, no API keys needed.`,
               },
               {
                 icon: <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>,
