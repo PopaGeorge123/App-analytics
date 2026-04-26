@@ -834,6 +834,70 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ── FOUNDER ───────────────────────────────────────────────────────── */}
+      <section className="border-t border-[#363650] px-6 py-24">
+        <div className="mx-auto max-w-4xl">
+          <div className="flex flex-col items-center gap-10 md:flex-row md:items-start md:gap-14">
+            {/* Photo */}
+            <div className="shrink-0">
+              <div className="relative">
+                <div className="absolute inset-0 rounded-2xl bg-[#00d4aa]/10 blur-xl" />
+                <img
+                  src="/founder-george-popa.jpg"
+                  alt="George Popa — Founder of Fold"
+                  className="relative h-48 w-48 rounded-2xl object-cover object-top border border-[#363650] shadow-xl"
+                />
+              </div>
+              <div className="mt-3 text-center">
+                <p className="font-mono text-sm font-bold text-[#f8f8fc]">George Popa</p>
+                <p className="font-mono text-[10px] uppercase tracking-widest text-[#00d4aa]">Founder &amp; CEO</p>
+              </div>
+            </div>
+
+            {/* Text */}
+            <div className="flex-1 space-y-5">
+              <div>
+                <p className="mb-2 font-mono text-[10px] font-semibold uppercase tracking-widest text-[#00d4aa]">Why I built Fold</p>
+                <h2 className="font-mono text-2xl font-bold text-[#f8f8fc] sm:text-3xl leading-snug">
+                  Built by a founder,<br className="hidden sm:block" /> for founders.
+                </h2>
+              </div>
+
+              <p className="text-[#bcbcd8] leading-relaxed">
+                I ran a small SaaS and every Monday I'd open five browser tabs, Stripe, Google Analytics, Mailchimp, Meta Ads, Shopify, just to piece together what happened last week. It took 40 minutes and I still wasn't sure I had the full picture.
+              </p>
+              <p className="text-[#bcbcd8] leading-relaxed">
+                Fold is the dashboard I wish existed. Every metric you care about, in one place, with a plain-English summary that tells you <em className="text-[#f8f8fc] not-italic font-medium">why</em> things moved, not just that they did. No data science degree required.
+              </p>
+
+              {/* Credibility bar */}
+              <div className="flex flex-wrap gap-3 pt-1">
+                {[
+                  { label: "Bootstrapped" },
+                  { label: "No VC pressure" },
+                  { label: "Built in public" },
+                  { label: "Shipping weekly" },
+                ].map(({ label }) => (
+                  <span
+                    key={label}
+                    className="rounded-lg border border-[#1e1e30] bg-[#13131f] px-3 py-1.5 font-mono text-[10px] text-[#8585aa]"
+                  >
+                    {label}
+                  </span>
+                ))}
+              </div>
+
+              <p className="font-mono text-sm text-[#58588a] pt-1">
+                Questions? I personally reply to every email —{" "}
+                <a href="mailto:info@usefold.io" className="text-[#00d4aa] hover:underline underline-offset-2">
+                  info@usefold.io
+                </a>
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── FAQ ───────────────────────────────────────────────────────────── */}
       <section id="faq" className="px-6 py-24 border-t border-[#363650]">
         <div className="mx-auto max-w-3xl">
