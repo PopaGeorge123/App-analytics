@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { LIVE_INTEGRATIONS, INTEGRATION_CATEGORIES } from "@/lib/integrations/catalog";
+import { LIVE_INTEGRATIONS, INTEGRATION_CATEGORIES, SOON_INTEGRATIONS } from "@/lib/integrations/catalog";
 
 const REVENUE_PROVIDERS_LOCAL = ["stripe", "lemon-squeezy", "paddle", "shopify", "woocommerce", "gumroad"];
 const ADS_PROVIDERS_LOCAL = ["meta", "google-ads", "tiktok-ads"];
@@ -35,6 +35,77 @@ const PARAM_REQUIRED: Record<string, { param: string; label: string; placeholder
   zendesk: { param: "subdomain", label: "Zendesk subdomain", placeholder: "yourcompany (from yourcompany.zendesk.com)" },
   freshdesk: { param: "subdomain", label: "Freshdesk subdomain", placeholder: "yourcompany (from yourcompany.freshdesk.com)" },
 };
+
+// ── Coming Soon section with Notify Me buttons ────────────────────────────
+function ComingSoonSection() {
+  const [notified, setNotified] = useState<Record<string, boolean>>({});
+  const [loading, setLoading] = useState<string | null>(null);
+
+  async function handleNotify(integrationId: string) {
+    if (notified[integrationId] || loading) return;
+    setLoading(integrationId);
+    try {
+      const res = await fetch("/api/notify-me", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ integration_id: integrationId }),
+      });
+      if (res.ok) {
+        setNotified((prev) => ({ ...prev, [integrationId]: true }));
+      }
+    } catch {
+      // silently ignore
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  return (
+    <section className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-6">
+      <div className="mb-5 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#a78bfa]/10 text-[#a78bfa]">
+            <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z" />
+            </svg>
+          </div>
+          <p className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#8585aa]">Coming Soon</p>
+        </div>
+        <p className="font-mono text-[10px] text-[#58588a]">Click &ldquo;Notify me&rdquo; to get an email when an integration launches</p>
+      </div>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        {SOON_INTEGRATIONS.map((intg) => (
+          <div
+            key={intg.id}
+            className="flex items-center gap-3 rounded-xl border border-[#363650] bg-[#222235] px-3 py-2.5"
+          >
+            <div
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
+              style={{ backgroundColor: intg.color + "18" }}
+            >
+              <img src={intg.icon} alt={intg.name} width={14} height={14} className="object-contain opacity-60" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-mono text-[11px] font-semibold text-[#bcbcd8] truncate">{intg.name}</p>
+              <p className="font-mono text-[9px] text-[#58588a] truncate">{intg.category}</p>
+            </div>
+            <button
+              onClick={() => handleNotify(intg.id)}
+              disabled={!!notified[intg.id] || loading === intg.id}
+              className={`shrink-0 font-mono text-[10px] font-semibold px-2.5 py-1 rounded-lg border transition-all ${
+                notified[intg.id]
+                  ? "border-[#00d4aa]/30 bg-[#00d4aa]/10 text-[#00d4aa] cursor-default"
+                  : "border-[#363650] text-[#8585aa] hover:border-[#a78bfa]/40 hover:text-[#a78bfa] hover:bg-[#a78bfa]/5"
+              } disabled:opacity-60`}
+            >
+              {loading === intg.id ? "…" : notified[intg.id] ? "✓ Noted" : "Notify me"}
+            </button>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 function IntegrationRow({
   integration,
@@ -1213,7 +1284,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
                     <p className="text-sm font-semibold text-[#f8f8fc]">Upgrade to Premium</p>
                     <p className="mt-0.5 text-xs text-[#bcbcd8]">Analytics, AI advisor, website optimizer & all integrations.</p>
                     <p className="mt-1 font-mono text-xs font-bold text-[#f8f8fc]">
-                      $29<span className="font-normal text-[#8585aa]">/month</span>
+                      $19<span className="font-normal text-[#8585aa]">/month</span>
                       <span className="ml-2 rounded-full bg-[#00d4aa]/10 px-2 py-0.5 font-mono text-[9px] font-semibold text-[#00d4aa]">7-day free trial</span>
                     </p>
                   </div>
@@ -1225,7 +1296,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
               >
                 Start free trial →
               </a>
-              <p className="font-mono text-[9px] text-[#58588a]">Card required · $29/mo after 3 days · cancel anytime</p>
+              <p className="font-mono text-[9px] text-[#58588a]">Card required · $19/mo after 3 days · cancel anytime</p>
             </div>
           )}
         </section>
@@ -1363,6 +1434,9 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
         </section>
 
       </div>{/* end Row 2 grid */}
+
+      {/* ── Coming Soon integrations — full width ────────────────────────── */}
+      {/* <ComingSoonSection /> */}
 
       {/* ═══════════════════════════════════════════════════
           Row 3: Alert Rules + Email Digest (premium only)

@@ -141,35 +141,6 @@ function PricingCard({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Testimonial
-// ─────────────────────────────────────────────────────────────────────────────
-function Testimonial({ quote, name, role, avatar, avatarUrl, stars = 5 }: { quote: string; name: string; role: string; avatar: string; avatarUrl?: string; stars?: number }) {
-  return (
-    <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-6 flex flex-col">
-      <div className="mb-4 flex gap-0.5">
-        {Array.from({ length: stars }).map((_, i) => (
-          <svg key={i} className="h-3.5 w-3.5 text-[#f59e0b]" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-          </svg>
-        ))}
-      </div>
-      <p className="mb-5 flex-1 text-sm leading-relaxed text-[#e0e0f0]">&ldquo;{quote}&rdquo;</p>
-      <div className="flex items-center gap-3">
-        {avatarUrl ? (
-          <img src={avatarUrl} alt={name} width={36} height={36} className="h-9 w-9 rounded-full object-cover border border-[#363650]" />
-        ) : (
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#363650] font-mono text-sm font-bold text-[#00d4aa]">{avatar}</div>
-        )}
-        <div>
-          <p className="font-mono text-xs font-semibold text-[#f8f8fc]">{name}</p>
-          <p className="font-mono text-[10px] text-[#8585aa]">{role}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Security trust badges
 // ─────────────────────────────────────────────────────────────────────────────
 function SecurityBadges() {
@@ -694,7 +665,7 @@ export default function Home() {
                   <span className="font-mono text-4xl font-bold text-[#a78bfa]">$0</span>
                   <span className="font-mono text-sm text-[#a78bfa]/70">/ 7 days</span>
                 </div>
-                <p className="text-sm text-[#bcbcd8]">Every Premium feature. Fully unlocked. No restrictions — no card required for the trial, upgrade to $29/mo whenever you&apos;re ready.</p>
+                <p className="text-sm text-[#bcbcd8]">Every Premium feature. Fully unlocked. No restrictions — no card required for the trial, upgrade to $19/mo whenever you&apos;re ready.</p>
               </div>
               <ul className="flex-1 space-y-3 mb-8">
                 {[
@@ -721,8 +692,8 @@ export default function Home() {
             {/* Premium card */}
             <PricingCard
               name="Premium"
-              price="$29"
-              description="Full access to every feature. Starts with a 7-day free trial — no card required. $29/month after the trial, cancel anytime."
+              price="$19"
+              description="Full access to every feature. Starts with a 7-day free trial — no card required. $19/month after the trial, cancel anytime."
               features={[
                 "Unified KPI dashboard with 7-day trends",
                 "Full 30-day analytics per platform",
@@ -742,95 +713,6 @@ export default function Home() {
             <a href="/signup" className="text-[#00d4aa] hover:underline">Create a free account</a>
             {" "}to explore the app — you can start your trial any time from inside the dashboard.
           </p>
-        </div>
-      </section>
-
-      {/* ── TESTIMONIALS ──────────────────────────────────────────────────── */}
-      <section className="px-6 py-24 border-t border-[#363650]">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-12 text-center">
-            <p className="mb-3 font-mono text-xs font-semibold uppercase tracking-widest text-[#00d4aa]">Real users</p>
-            <h2 className="font-mono text-3xl font-bold text-[#f8f8fc]">What founders are saying</h2>
-            <p className="mt-3 text-[#8585aa] text-sm">From solo bootstrappers to growing DTC brands.</p>
-          </div>
-
-          {/* Row 1 — large featured */}
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-4">
-            <Testimonial
-              quote="I used to spend Monday mornings pulling Stripe exports and matching them against GA4 manually. With Fold, I open one tab and it's all there, already explained. I actually look forward to Mondays now."
-              name="Sarah K."
-              role="Founder, SaaS productivity tool"
-              avatar="SK"
-              avatarUrl="https://i.pravatar.cc/150?u=sarah-k-fold"
-            />
-            <Testimonial
-              quote="The AI caught a revenue anomaly I would have missed for days. It told me exactly which campaign was the problem and what to do about it. Paid for itself in the first week."
-              name="Marcus D."
-              role="E-commerce founder · $2.4M ARR"
-              avatar="MD"
-              avatarUrl="https://i.pravatar.cc/150?u=marcus-d-fold"
-            />
-            <Testimonial
-              quote="The website optimizer found 14 improvements I didn't know existed and ranked them by impact. My site score went from 61 to 88 in two weeks. Conversion rate is up 18%."
-              name="Priya A."
-              role="DTC brand owner"
-              avatar="PA"
-              avatarUrl="https://i.pravatar.cc/150?u=priya-a-fold"
-            />
-          </div>
-
-          {/* Row 2 — medium */}
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-4">
-            <Testimonial
-              quote="I connected Beehiiv and Stripe and immediately saw that my Thursday newsletter drives 3x more paid conversions than Friday. Changed my whole publishing schedule."
-              name="Tom R."
-              role="Newsletter founder · 28k subscribers"
-              avatar="TR"
-              avatarUrl="https://i.pravatar.cc/150?u=tom-r-fold"
-            />
-            <Testimonial
-              quote="Fold replaced three different dashboards I was paying for. One place for Shopify, Klaviyo, and Meta Ads. The anomaly alerts alone are worth the price."
-              name="Leila M."
-              role="Shopify brand · $800k/yr"
-              avatar="LM"
-              avatarUrl="https://i.pravatar.cc/150?u=leila-m-fold"
-            />
-            <Testimonial
-              quote="Setup took 4 minutes. I connected GA4 and Plausible and finally stopped arguing with myself about which analytics tool to trust. Fold just shows me both, reconciled."
-              name="James O."
-              role="Indie hacker · 3 products"
-              avatar="JO"
-              avatarUrl="https://i.pravatar.cc/150?u=james-o-fold"
-            />
-          </div>
-
-          {/* Row 3 — compact */}
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Testimonial
-              quote="The daily digest email is the only morning report I actually read. It's two paragraphs and tells me exactly what moved and why."
-              name="Nadia V."
-              role="B2B SaaS founder"
-              avatar="NV"
-              avatarUrl="https://i.pravatar.cc/150?u=nadia-v-fold"
-              stars={5}
-            />
-            <Testimonial
-              quote="Connecting HubSpot took 30 seconds. Now I can see deal pipeline value next to Stripe MRR in the same view. This is what I always wanted."
-              name="Chris B."
-              role="Sales-led SaaS · Series A"
-              avatar="CB"
-              avatarUrl="https://i.pravatar.cc/150?u=chris-b-fold"
-              stars={5}
-            />
-            <Testimonial
-              quote="I was skeptical about another analytics tool, but Fold is different — it tells you what to do, not just what happened. That's the gap everything else misses."
-              name="Amara F."
-              role="Founder & solo developer"
-              avatar="AF"
-              avatarUrl="https://i.pravatar.cc/150?u=amara-f-fold"
-              stars={5}
-            />
-          </div>
         </div>
       </section>
 
@@ -925,7 +807,7 @@ export default function Home() {
         <div className="relative mx-auto max-w-2xl text-center">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#00d4aa]/25 bg-[#00d4aa]/8 px-3 py-1.5">
             <span className="h-1.5 w-1.5 rounded-full bg-[#00d4aa] animate-pulse" />
-            <span className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#00d4aa]">7-day free trial · No card required · $29/mo after</span>
+            <span className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#00d4aa]">7-day free trial · No card required · $19/mo after</span>
           </div>
           <h2 className="mb-4 font-mono text-4xl font-bold text-[#f8f8fc] sm:text-5xl leading-tight">
             Stop guessing.
@@ -944,7 +826,7 @@ export default function Home() {
               Already have an account? Sign in →
             </a>
           </div>
-          <p className="mt-6 font-mono text-[10px] text-[#8585aa]">7 days free · no card required · $29/month after · cancel anytime</p>
+          <p className="mt-6 font-mono text-[10px] text-[#8585aa]">7 days free · no card required · $19/month after · cancel anytime</p>
         </div>
       </section>
 

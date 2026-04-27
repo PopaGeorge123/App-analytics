@@ -14,29 +14,11 @@ import { LIVE_INTEGRATIONS, REVENUE_PROVIDERS, ANALYTICS_PROVIDERS, ADS_PROVIDER
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
-interface WebsiteData {
-  url: string | null;
-  score: number;
-  status: "idle" | "analyzing" | "done" | "error";
-  summary: string | null;
-  lastScanned: string | null;
-  tasks: {
-    id: string;
-    title: string;
-    description: string;
-    category: string;
-    impact_score: number;
-    completed: boolean;
-    completed_at?: string | null;
-  }[];
-}
-
 interface OverviewTabProps {
   email: string;
   isPremium: boolean;
   connectedPlatforms: string[];
   snapshots: Snapshot[];
-  websiteData: WebsiteData;
   /** platform → ISO currency code. e.g. { stripe: "EUR", meta: "USD" } */
   currencies: Record<string, string>;
   onNavigate: (tab: Tab) => void;
@@ -841,7 +823,6 @@ export default function OverviewTab({
   isPremium,
   connectedPlatforms,
   snapshots,
-  websiteData,
   currencies = {},
   onNavigate,
 }: OverviewTabProps) {
@@ -979,30 +960,14 @@ export default function OverviewTab({
       date: yesterdayStr,
     };
 
-    // ── Cross-insight: website + analytics ──────────────────────────────
+    // ── Cross-insight: high bounce rate ────────────────────────────────
     const crossInsights: { icon: string; color: string; message: string; action: string }[] = [];
-    if (hasAnalytics && bounceRate7 > 65 && websiteData.score > 0 && websiteData.score < 60) {
-      crossInsights.push({
-        icon: "⚠",
-        color: "#f59e0b",
-        message: `High bounce rate (${fmt(bounceRate7, "percent")}) combined with a low website score (${websiteData.score}/100) suggests UX issues are driving visitors away.`,
-        action: "Fix website →",
-      });
-    }
-    if (hasAnalytics && bounceRate7 > 65 && websiteData.score >= 60) {
+    if (hasAnalytics && bounceRate7 > 65) {
       crossInsights.push({
         icon: "↑",
         color: "#f87171",
-        message: `Bounce rate is elevated at ${fmt(bounceRate7, "percent")}. Despite a decent website score, consider reviewing your landing page copy and load speed.`,
-        action: "View website →",
-      });
-    }
-    if (hasRevenue && hasAds && newCustomers7 > 0 && spend7 > 0 && websiteData.score > 0 && websiteData.score < 55) {
-      crossInsights.push({
-        icon: "💡",
-        color: "#a78bfa",
-        message: `You're spending on ads but your website health score is ${websiteData.score}/100. Fixing website issues could significantly improve your ad-to-customer conversion rate.`,
-        action: "Improve website →",
+        message: `Bounce rate is elevated at ${fmt(bounceRate7, "percent")}. Consider reviewing your landing page copy and load speed.`,
+        action: "View analytics →",
       });
     }
 
@@ -1063,30 +1028,8 @@ export default function OverviewTab({
       },
     ];
 
-    // Activity feed from completed tasks + last scan
+    // Activity feed
     const activityItems: { type: string; label: string; time: string; color: string }[] = [];
-
-    websiteData.tasks
-      .filter((t) => t.completed && t.completed_at)
-      .sort((a, b) => new Date(b.completed_at!).getTime() - new Date(a.completed_at!).getTime())
-      .slice(0, 4)
-      .forEach((t) => {
-        activityItems.push({
-          type: "task",
-          label: `Completed: ${t.title}`,
-          time: timeAgo(t.completed_at!),
-          color: "#00d4aa",
-        });
-      });
-
-    if (websiteData.lastScanned) {
-      activityItems.push({
-        type: "scan",
-        label: `Website analyzed — score ${websiteData.score}/100`,
-        time: timeAgo(websiteData.lastScanned),
-        color: "#a78bfa",
-      });
-    }
 
     const today = new Date();
     const snapsThisMonth = filterDays(effectiveSnapshots, today.getDate());
@@ -1102,10 +1045,8 @@ export default function OverviewTab({
       primaryRevCurrency,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectiveSnapshots, effectivePlatforms, websiteData, currencies]);
+  }, [effectiveSnapshots, effectivePlatforms, currencies]);
 
-  const pendingTasks = websiteData.tasks.filter((t) => !t.completed);
-  const completedTasks = websiteData.tasks.filter((t) => t.completed);
   const hasAllIntegrations = LIVE_INTEGRATIONS.every((i) => connectedPlatforms.includes(i.id));
   const missingIntegrations = LIVE_INTEGRATIONS.filter((i) => !connectedPlatforms.includes(i.id));
 
@@ -1444,7 +1385,7 @@ export default function OverviewTab({
               <span className="mt-0.5 font-mono text-sm shrink-0" style={{ color: ci.color }}>{ci.icon}</span>
               <p className="flex-1 font-mono text-[11px] text-[#e0e0f0] leading-relaxed">{ci.message}</p>
               <button
-                onClick={() => onNavigate("website")}
+                onClick={() => onNavigate("analytics")}
                 className="shrink-0 font-mono text-[10px] font-semibold hover:underline"
                 style={{ color: ci.color }}
               >
@@ -1492,130 +1433,13 @@ export default function OverviewTab({
         />
       )}
 
-      {/* ── Bottom grid: Website score + Quick Actions + Activity ─ */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      {/* ── Bottom grid: Quick Actions + Activity ─ */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
 
-        {/* Website Health card (2/3 width) */}
-        <div className="lg:col-span-2 rounded-2xl border border-[#363650] bg-[#1c1c2a]/70 p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Website Health</p>
-              {websiteData.url && (
-                <p className="mt-0.5 font-mono text-[11px] text-[#bcbcd8] truncate max-w-60">
-                  {websiteData.url.replace(/^https?:\/\//, "")}
-                </p>
-              )}
-            </div>
-            <button
-              onClick={() => onNavigate("website")}
-              className="font-mono text-[10px] font-semibold text-[#00d4aa] hover:underline"
-            >
-              Manage →
-            </button>
-          </div>
-
-          {!websiteData.url ? (
-            <div className="flex items-center gap-4 rounded-xl border border-dashed border-[#363650] p-4">
-              <span className="text-[#2e2e4e]">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.2} strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="2" y1="12" x2="22" y2="12" />
-                  <path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />
-                </svg>
-              </span>
-              <div>
-                <p className="font-mono text-sm font-semibold text-[#8585aa]">No website added yet</p>
-                <button
-                  onClick={() => onNavigate("website")}
-                  className="mt-1 font-mono text-[11px] font-semibold text-[#00d4aa] hover:underline"
-                >
-                  Add your website →
-                </button>
-              </div>
-            </div>
-          ) : websiteData.status === "analyzing" ? (
-            <div className="flex items-center gap-4 rounded-xl border border-[#a78bfa]/20 bg-[#a78bfa]/5 p-4">
-              <svg className="animate-spin h-5 w-5 text-[#a78bfa] shrink-0" viewBox="0 0 24 24" fill="none">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-              </svg>
-              <p className="font-mono text-sm text-[#a78bfa]">Analysis in progress…</p>
-            </div>
-          ) : (
-            <div className="flex items-center gap-5">
-              <MiniScoreRing score={websiteData.score} />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="font-mono text-lg font-bold text-[#f8f8fc]">{websiteData.score}/100</span>
-                  <span
-                    className="font-mono text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md"
-                    style={{
-                      color: scoreColor(websiteData.score),
-                      backgroundColor: `${scoreColor(websiteData.score)}18`,
-                    }}
-                  >
-                    {scoreLabel(websiteData.score)}
-                  </span>
-                </div>
-                <div className="h-1.5 w-full rounded-full bg-[#363650] mb-3">
-                  <div
-                    className="h-full rounded-full transition-all duration-700"
-                    style={{
-                      width: `${websiteData.score}%`,
-                      backgroundColor: scoreColor(websiteData.score),
-                    }}
-                  />
-                </div>
-                <div className="flex flex-wrap gap-3 text-[10px] font-mono text-[#8585aa]">
-                  <span>
-                    <span className="text-[#f59e0b] font-bold">{pendingTasks.length}</span> tasks pending
-                  </span>
-                  <span>
-                    <span className="text-[#00d4aa] font-bold">{completedTasks.length}</span> completed
-                  </span>
-                  {websiteData.lastScanned && (
-                    <span>Scanned {timeAgo(websiteData.lastScanned)}</span>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Top 2 pending tasks preview */}
-          {pendingTasks.length > 0 && (
-            <div className="mt-4 space-y-2">
-              <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Top improvements</p>
-              {pendingTasks.slice(0, 2).map((t) => (
-                <div
-                  key={t.id}
-                  className="flex items-center gap-3 rounded-xl border border-[#363650] bg-[#222235] px-3 py-2.5"
-                >
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#f59e0b] shrink-0" />
-                  <p className="flex-1 min-w-0 font-mono text-[11px] text-[#e0e0f0] truncate">{t.title}</p>
-                  <span className="font-mono text-[10px] font-bold text-[#f59e0b] shrink-0">
-                    +{t.impact_score} pts
-                  </span>
-                </div>
-              ))}
-              {pendingTasks.length > 2 && (
-                <button
-                  onClick={() => onNavigate("website")}
-                  className="font-mono text-[10px] text-[#8585aa] hover:text-[#00d4aa] transition"
-                >
-                  +{pendingTasks.length - 2} more tasks →
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Right column: Quick Actions + Recent Activity */}
-        <div className="flex flex-col gap-4">
-
-          {/* Quick Actions */}
-          <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/70 p-5">
-            <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa] mb-3">Quick Actions</p>
-            <div className="space-y-2">
+        {/* Quick Actions */}
+        <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/70 p-5">
+          <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa] mb-3">Quick Actions</p>
+          <div className="space-y-2">
               <GoalsWidget
                 revenueMonth={revenueMonth}
                 sessionsMonth={sessionsMonth}
@@ -1623,21 +1447,6 @@ export default function OverviewTab({
                 ga4Conn={connectedIn(effectivePlatforms, ANALYTICS_PROVIDERS).length > 0}
                 currency={primaryRevCurrency}
               />
-              <button
-                onClick={() => onNavigate("website")}
-                className="w-full flex items-center gap-3 rounded-xl border border-[#363650] bg-[#222235] px-3 py-2.5 text-left transition hover:border-[#00d4aa]/25 hover:bg-[#0f1420] group"
-              >
-                <span className="text-[#8585aa] group-hover:text-[#00d4aa] transition">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10" />
-                    <line x1="2" y1="12" x2="22" y2="12" />
-                    <path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />
-                  </svg>
-                </span>
-                <span className="font-mono text-[11px] font-semibold text-[#e0e0f0] group-hover:text-[#f8f8fc]">
-                  {websiteData.url ? "Re-analyze website" : "Add website"}
-                </span>
-              </button>
               <button
                 onClick={() => onNavigate("analytics")}
                 className="w-full flex items-center gap-3 rounded-xl border border-[#363650] bg-[#222235] px-3 py-2.5 text-left transition hover:border-[#00d4aa]/25 hover:bg-[#0f1420] group"
@@ -1688,13 +1497,13 @@ export default function OverviewTab({
           </div>
 
           {/* Recent Activity */}
-          <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/70 p-5 flex-1">
+          <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/70 p-5">
             <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa] mb-3">Recent Activity</p>
             {activity.length === 0 ? (
               <div className="py-4 text-center">
                 <p className="font-mono text-[11px] text-[#58588a]">No activity yet</p>
                 <p className="mt-1 font-mono text-[10px] text-[#58588a]">
-                  Analyze your website to get started
+                  Connect your integrations to get started
                 </p>
               </div>
             ) : (
@@ -1728,7 +1537,6 @@ export default function OverviewTab({
               </div>
             )}
           </div>
-        </div>
       </div>
 
       {/* ── Integrations (only if not all connected) ──────────── */}

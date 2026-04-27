@@ -239,7 +239,7 @@ export async function sendTrialWelcomeEmail(email: string): Promise<void> {
             </table>
 
             <p style="margin:0;font-size:13px;color:#4a4a6a;line-height:1.6;">
-              You have 7 days of full access. After that, upgrade for $29/month or your data stops syncing. Questions? Reply to this email.
+              You have 7 days of full access. After that, upgrade for $19/month or your data stops syncing. Questions? Reply to this email.
             </p>
           </td>
         </tr>
@@ -292,7 +292,7 @@ export async function sendTrialEndingEmail(email: string, trialEndDate: string):
               After your trial ends, you'll lose access to <strong style="color:#f0f0f5;">Analytics, Website Optimizer, and AI Advisor</strong>. The free Overview dashboard will stay available.
             </p>
             <p style="margin:0 0 32px;font-size:16px;color:#8888aa;line-height:1.7;">
-              Upgrade to Premium ($29/month) to keep everything — cancel any time, no lock-in.
+              Upgrade to Premium ($19/month) to keep everything — cancel any time, no lock-in.
             </p>
             <table cellpadding="0" cellspacing="0" style="margin:0 0 32px;">
               <tr>

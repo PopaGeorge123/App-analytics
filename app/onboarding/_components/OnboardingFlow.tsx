@@ -273,7 +273,102 @@ const PRIVACY: Record<string, PrivacyInfo> = {
   },
 };
 
-// ── Platforms that require API key input instead of OAuth ─────────────────────
+// ── Dashboard preview metrics per integration ──────────────────────────────
+const PREVIEW_METRICS: Record<string, { label: string; value: string; trend?: string }[]> = {
+  stripe: [
+    { label: "MRR", value: "$4,280", trend: "↑ +12% this month" },
+    { label: "New customers", value: "18", trend: "↑ +3 vs last week" },
+    { label: "Churn rate", value: "2.1%", trend: "↓ -0.4%" },
+    { label: "Revenue (30d)", value: "$12,840" },
+  ],
+  ga4: [
+    { label: "Sessions (7d)", value: "3,240", trend: "↑ +8%" },
+    { label: "Unique visitors", value: "1,890" },
+    { label: "Bounce rate", value: "42%", trend: "↓ -3%" },
+    { label: "Avg session", value: "2m 34s" },
+  ],
+  shopify: [
+    { label: "Revenue (7d)", value: "$6,120", trend: "↑ +15%" },
+    { label: "Orders", value: "84" },
+    { label: "Avg order value", value: "$72.86" },
+    { label: "Refunds", value: "3" },
+  ],
+  mailchimp: [
+    { label: "Subscribers", value: "2,840", trend: "↑ +120 this week" },
+    { label: "Open rate", value: "28.4%" },
+    { label: "Click rate", value: "4.2%" },
+    { label: "Unsubscribes (7d)", value: "12" },
+  ],
+  meta: [
+    { label: "Ad spend (7d)", value: "$840", trend: "Budget on track" },
+    { label: "Impressions", value: "48,200" },
+    { label: "Clicks", value: "1,240" },
+    { label: "Conversions", value: "34" },
+  ],
+  "lemon-squeezy": [
+    { label: "Revenue (30d)", value: "$3,640", trend: "↑ +9%" },
+    { label: "New orders", value: "47" },
+    { label: "Active subs", value: "128" },
+    { label: "Refunds", value: "2" },
+  ],
+  gumroad: [
+    { label: "Revenue (30d)", value: "$1,820" },
+    { label: "Sales", value: "62" },
+    { label: "Refunds", value: "1" },
+    { label: "New customers", value: "58" },
+  ],
+  paddle: [
+    { label: "MRR", value: "$5,120", trend: "↑ +7%" },
+    { label: "New subs", value: "22" },
+    { label: "Churn (30d)", value: "4" },
+    { label: "Revenue (30d)", value: "$15,360" },
+  ],
+  plausible: [
+    { label: "Pageviews (7d)", value: "12,400", trend: "↑ +18%" },
+    { label: "Unique visitors", value: "3,820" },
+    { label: "Bounce rate", value: "39%" },
+    { label: "Avg duration", value: "1m 52s" },
+  ],
+  beehiiv: [
+    { label: "Subscribers", value: "4,210", trend: "↑ +180 this week" },
+    { label: "Premium subs", value: "312" },
+    { label: "Posts (30d)", value: "8" },
+    { label: "New today", value: "24" },
+  ],
+  posthog: [
+    { label: "Pageviews (7d)", value: "9,840", trend: "↑ +6%" },
+    { label: "Unique users", value: "2,140" },
+    { label: "Sessions (7d)", value: "3,680" },
+    { label: "Avg session", value: "3m 12s" },
+  ],
+  klaviyo: [
+    { label: "Emails sent (7d)", value: "18,400" },
+    { label: "Open rate", value: "31.2%" },
+    { label: "Attributed rev.", value: "$2,840", trend: "↑ +12%" },
+    { label: "New subscribers", value: "142" },
+  ],
+  hubspot: [
+    { label: "Deals won (30d)", value: "14", trend: "↑ +3 vs last month" },
+    { label: "Closed revenue", value: "$42,000" },
+    { label: "Pipeline value", value: "$128,000" },
+    { label: "New contacts (7d)", value: "38" },
+  ],
+  woocommerce: [
+    { label: "Revenue (7d)", value: "$3,840", trend: "↑ +11%" },
+    { label: "Orders", value: "56" },
+    { label: "Avg order value", value: "$68.57" },
+    { label: "Refunds", value: "4" },
+  ],
+};
+
+const DEFAULT_PREVIEW_METRICS = [
+  { label: "Revenue (30d)", value: "$8,240", trend: "↑ +11% this month" },
+  { label: "Active users", value: "1,840" },
+  { label: "Conversion", value: "3.2%", trend: "↑ +0.4%" },
+  { label: "Churn rate", value: "1.8%" },
+];
+
+
 const API_KEY_PLATFORMS: Record<string, { fields: { name: string; label: string; placeholder: string; type?: string; optional?: boolean }[] }> = {
   "lemon-squeezy": {
     fields: [{ name: "apiKey", label: "API Key", placeholder: "Your Lemon Squeezy API key" }],
@@ -527,15 +622,15 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
 
         {/* ── Hero ──────────────────────────────────────────────────────── */}
         <div className="mb-6 text-center">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#1e1e30] bg-[#13131f] px-3 py-1.5">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#00d4aa]/20 bg-[#00d4aa]/5 px-3 py-1.5">
             <span className="h-1.5 w-1.5 rounded-full bg-[#00d4aa] animate-pulse" />
-            <span className="font-mono text-[10px] text-[#8585aa]">{liveIntegrations.length} integrations available</span>
+            <span className="font-mono text-[10px] text-[#00d4aa]/80">142 founders connected Stripe this week</span>
           </div>
           <h1 className="mb-2 font-mono text-2xl font-bold text-[#f8f8fc] sm:text-3xl">
-            Connect your first integration
+            See your business in 30 seconds
           </h1>
           <p className="mx-auto max-w-lg text-sm text-[#58588a] leading-relaxed">
-            Pick one below, you can add more later. Takes about <strong className="text-[#8585aa]">30 seconds</strong>.
+            Connect one integration and your dashboard fills up instantly — add the rest later from Settings.
           </p>
         </div>
 
@@ -830,50 +925,68 @@ function DetailPanel({
       )}
 
       <div className="p-5 space-y-4">
-        {/* Privacy breakdown */}
-        {privacy && (
-          <div className="space-y-1">
-            <PrivacyBlock
-              icon={<svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="#3b82f6" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>}
-              title="What we read"
-              color="#3b82f6"
-              items={privacy.reads}
-              defaultOpen
-            />
-            <PrivacyBlock
-              icon={<svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="#8b5cf6" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 2.625c0 2.278-3.694 4.125-8.25 4.125S3.75 11.278 3.75 9m16.5 2.625c0 2.278-3.694 4.125-8.25 4.125S3.75 13.903 3.75 11.625" /></svg>}
-              title="What we store"
-              color="#8b5cf6"
-              items={privacy.stores}
-            />
-            <PrivacyBlock
-              icon={<svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="#ef4444" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>}
-              title="Never accessed"
-              color="#ef4444"
-              items={privacy.never}
-            />
-            <div className="flex items-center justify-between pt-1">
-              <a
-                href={`/learn/${selected.id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-mono text-[10px] text-[#5a5a8a] underline-offset-2 hover:text-[#8b8bff] hover:underline"
-              >
-                How we use {selected.name} data →
-              </a>
-              {privacy.docsUrl && (
-                <a
-                  href={privacy.docsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-mono text-[10px] text-[#3a3a55] underline-offset-2 hover:text-[#58588a] hover:underline"
-                >
-                  {selected.name} privacy policy →
-                </a>
-              )}
+        {/* Dashboard preview — what you'll see after connecting */}
+        <div className="space-y-2.5">
+          <div className="flex items-center justify-between">
+            <p className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#3a3a55]">
+              What you&apos;ll see after connecting
+            </p>
+            <span className="rounded-full border border-[#1a1a28] bg-[#0a0a14] px-2 py-0.5 font-mono text-[8px] text-[#3a3a55]">
+              sample data
+            </span>
+          </div>
+          <div className="rounded-xl border border-[#141420] bg-[#0a0a14] p-3">
+            <div className="grid grid-cols-2 gap-1.5 mb-2">
+              {(PREVIEW_METRICS[selected.id] ?? DEFAULT_PREVIEW_METRICS).map(({ label, value, trend }) => (
+                <div key={label} className="rounded-lg border border-[#1a1a28] bg-[#0f0f1a] px-2.5 py-2">
+                  <p className="font-mono text-[9px] text-[#3a3a55] truncate">{label}</p>
+                  <p className="font-mono text-sm font-bold text-[#e8e8f8] mt-0.5">{value}</p>
+                  {trend && (
+                    <p className="font-mono text-[9px] mt-0.5" style={{ color: trend.startsWith("↓") ? "#f87171" : "#00d4aa" }}>
+                      {trend}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+            {/* Mini sparkline placeholder */}
+            <div className="rounded-lg border border-[#141420] bg-[#0d0d18] px-3 py-2">
+              <div className="flex items-end gap-1 h-8">
+                {[30, 45, 35, 60, 52, 70, 65, 80, 72, 90, 84, 100].map((h, i) => (
+                  <div
+                    key={i}
+                    className="flex-1 rounded-sm opacity-60 transition-all"
+                    style={{
+                      height: `${h}%`,
+                      backgroundColor: selected.color,
+                    }}
+                  />
+                ))}
+              </div>
+              <p className="mt-1.5 font-mono text-[8px] text-[#252535]">30-day revenue trend</p>
             </div>
           </div>
-        )}
+          <div className="flex items-center justify-between">
+            <a
+              href={`/learn/${selected.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-mono text-[10px] text-[#3a3a55] underline-offset-2 hover:text-[#5a5a8a] hover:underline transition"
+            >
+              What data do we read? →
+            </a>
+            {privacy?.docsUrl && (
+              <a
+                href={privacy.docsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-mono text-[10px] text-[#252535] underline-offset-2 hover:text-[#3a3a55] hover:underline transition"
+              >
+                Privacy policy →
+              </a>
+            )}
+          </div>
+        </div>
 
         <div className="border-t border-[#141420]" />
 
@@ -914,60 +1027,6 @@ function DetailPanel({
           />
         )}
       </div>
-    </div>
-  );
-}
-
-function PrivacyBlock({
-  icon,
-  title,
-  color,
-  items,
-  defaultOpen = false,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  color: string;
-  items: string[];
-  defaultOpen?: boolean;
-}) {
-  const [open, setOpen] = useState(defaultOpen);
-  return (
-    <div className="rounded-lg border border-[#141420] bg-[#0a0a14] overflow-hidden">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between px-3 py-2.5 hover:bg-[#111120] transition"
-      >
-        <div className="flex items-center gap-2">
-          <span className="flex shrink-0 items-center">{icon}</span>
-          <span className="font-mono text-[10px] font-semibold uppercase tracking-widest" style={{ color }}>
-            {title}
-          </span>
-          <span className="font-mono text-[9px] text-[#2d2d44]">({items.length})</span>
-        </div>
-        <svg
-          width="10"
-          height="10"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="#3a3a55"
-          strokeWidth={2.5}
-          className={`shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-        </svg>
-      </button>
-      {open && (
-        <ul className="px-3 pb-3 space-y-1.5 border-t border-[#141420]">
-          {items.map((item) => (
-            <li key={item} className="flex items-start gap-2 pt-1.5 text-[11px] text-[#58588a]">
-              <span className="mt-0.5 shrink-0 text-[9px]" style={{ color: `${color}80` }}>▸</span>
-              {item}
-            </li>
-          ))}
-        </ul>
-      )}
     </div>
   );
 }
@@ -1042,7 +1101,7 @@ function ApiKeyForm({
   return (
     <form onSubmit={onSubmit} className="space-y-3">
       <p className="text-[11px] text-[#4a4a6a] leading-relaxed">
-        Enter your <strong className="text-[#8585aa]">{integration.name}</strong> credentials below.
+        Enter your <strong className="text-[#8585aa]">{integration.name + " "}</strong> credentials below.
         They&apos;re stored encrypted and never logged or shared.
       </p>
       {fields.map((field) => (

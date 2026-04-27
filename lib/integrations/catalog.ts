@@ -516,6 +516,7 @@ export const INTEGRATIONS_CATALOG: Integration[] = [
 
 // Helper — only live integrations (used in OverviewTab onboarding wizard)
 export const LIVE_INTEGRATIONS = INTEGRATIONS_CATALOG.filter((i) => i.status === "live");
+export const SOON_INTEGRATIONS = INTEGRATIONS_CATALOG.filter((i) => i.status === "soon");
 
 // Helper — unique categories present in the catalog
 export const INTEGRATION_CATEGORIES = Array.from(

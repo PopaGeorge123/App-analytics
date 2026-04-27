@@ -86,29 +86,6 @@ export default async function DashboardPage({
     data: s.data,
   }));
 
-  // Fetch website profile + tasks
-  const { data: websiteProfile } = await db
-    .from("website_profiles")
-    .select("url, score, analysis_status, description, last_scanned_at, analysis_error")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  const { data: websiteTasks } = await db
-    .from("website_tasks")
-    .select("id, title, description, category, impact_score, completed, completed_at")
-    .eq("user_id", user.id)
-    .order("completed", { ascending: true })
-    .order("impact_score", { ascending: false });
-
-  const websiteData = {
-    url: websiteProfile?.url ?? null,
-    score: websiteProfile?.score ?? 0,
-    status: (websiteProfile?.analysis_status ?? "idle") as "idle" | "analyzing" | "done" | "error",
-    summary: websiteProfile?.description ?? null,
-    lastScanned: websiteProfile?.last_scanned_at ?? null,
-    tasks: websiteTasks ?? [],
-  };
-
   // Fetch customer records — all providers for this user, sorted by LTV desc
   // Multiple revenue platforms (Stripe + WooCommerce + Gumroad etc.) each write their
   // own rows; the Customers tab aggregates across all of them automatically.
@@ -192,7 +169,6 @@ export default async function DashboardPage({
         trialEndsAt={trialEndsAt}
         connectedPlatforms={connectedPlatforms}
         snapshots={snapshots}
-        websiteData={websiteData}
         currencies={currencies}
         isSyncing={isSyncing}
         customers={customers}

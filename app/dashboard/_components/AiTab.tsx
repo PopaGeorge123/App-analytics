@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import type { Tab } from "./DashboardShell";
 
 interface Message {
   id: string;
@@ -25,6 +26,66 @@ interface Insight {
 interface AiTabProps {
   isPremium: boolean;
   isDemo?: boolean;
+  onNavigate?: (tab: Tab) => void;
+}
+
+type Goal = "grow_mrr" | "reduce_churn" | "scale_ads" | null;
+
+const GOAL_OPTIONS: { id: Goal; label: string; icon: React.ReactNode; color: string }[] = [
+  {
+    id: "grow_mrr",
+    label: "Grow MRR",
+    color: "#00d4aa",
+    icon: (
+      <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+      </svg>
+    ),
+  },
+  {
+    id: "reduce_churn",
+    label: "Reduce Churn",
+    color: "#f59e0b",
+    icon: (
+      <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+      </svg>
+    ),
+  },
+  {
+    id: "scale_ads",
+    label: "Scale Ads",
+    color: "#a78bfa",
+    icon: (
+      <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" />
+      </svg>
+    ),
+  },
+];
+
+const GOAL_STORAGE_KEY = "fold_user_goal";
+
+function loadGoal(): Goal {
+  try { return (localStorage.getItem(GOAL_STORAGE_KEY) as Goal) ?? null; } catch { return null; }
+}
+function saveGoal(g: Goal) {
+  try { if (g) localStorage.setItem(GOAL_STORAGE_KEY, g); else localStorage.removeItem(GOAL_STORAGE_KEY); } catch {}
+}
+
+/** Map content keywords → tabs to suggest */
+function inferInvestigateTabs(content: string): { tab: Tab; label: string }[] {
+  const lower = content.toLowerCase();
+  const tabs: { tab: Tab; label: string }[] = [];
+  if (/revenue|stripe|mrr|subscri|churn|arpu|cac|refund/.test(lower))
+    tabs.push({ tab: "analytics", label: "Revenue Analytics" });
+  if (/session|traffic|ga4|bounce|visitor|conversion|user/.test(lower) && !tabs.find(t => t.tab === "analytics"))
+    tabs.push({ tab: "analytics", label: "Traffic Analytics" });
+  if (/growth|forecast|trend|month|trajectory|goal/.test(lower))
+    tabs.push({ tab: "growth", label: "Growth Trends" });
+  if (/customer|churn|ltv|at.risk|cohort|segment/.test(lower))
+    tabs.push({ tab: "customers", label: "Customer Data" });
+  return tabs.slice(0, 3);
 }
 
 // ── Markdown-lite renderer ─────────────────────────────────────────────────
@@ -253,7 +314,7 @@ const DEMO_MESSAGES: Message[] = [
 
 **Churn breakdown last week**
 
-- 6 customers cancelled — 4 were on monthly Starter plans (avg $29/mo), 2 were annual Pro downgrades
+- 6 customers cancelled — 4 were on monthly Starter plans (avg $19/mo), 2 were annual Pro downgrades
 - Of the 6, **3 had zero logins in the 14 days prior to cancellation** — classic disengagement churn, not price-driven
 - 1 left a cancellation reason: "found a cheaper alternative"
 
@@ -553,9 +614,18 @@ function DemoAiView() {
 }
 
 // ── Main component ─────────────────────────────────────────────────────────
-export default function AiTab({ isPremium, isDemo = false }: AiTabProps) {
+export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabProps) {
   // ── Demo mode: show scripted conversation, no API calls ───────────────
   if (isDemo) return <DemoAiView />;
+  // ── Goal state (persisted in localStorage) ────────────────────────────
+  const [goal, setGoal] = useState<Goal>(null);
+  useEffect(() => { setGoal(loadGoal()); }, []);
+  function handleGoalChange(g: Goal) {
+    const next = goal === g ? null : g;
+    setGoal(next);
+    saveGoal(next);
+  }
+
   // ── Insight state ─────────────────────────────────────────────────────
   const [insight, setInsight] = useState<Insight | null>(null);
   const [insightLoading, setInsightLoading] = useState(true);
@@ -802,7 +872,7 @@ export default function AiTab({ isPremium, isDemo = false }: AiTabProps) {
           >
             Start 7-day free trial →
           </a>
-          <p className="mt-3 font-mono text-[10px] text-[#8585aa]">$29/mo after trial · Cancel anytime</p>
+          <p className="mt-3 font-mono text-[10px] text-[#8585aa]">$19/mo after trial · Cancel anytime</p>
         </div>
       </div>
     );
@@ -828,6 +898,44 @@ export default function AiTab({ isPremium, isDemo = false }: AiTabProps) {
 
       {/* ── Daily Insight card ───────────────────────────────────────────── */}
       <div className="rounded-2xl border border-[#00d4aa]/15 bg-[#1c1c2a] overflow-hidden" style={{ boxShadow: "0 0 0 1px #00d4aa08" }}>
+        {/* Goal context bar */}
+        <div className="flex items-center gap-3 px-5 py-3 border-b border-[#363650]/60 bg-[#17172a]">
+          <span className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#8585aa] shrink-0">Focus goal:</span>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {GOAL_OPTIONS.map((g) => (
+              <button
+                key={g.id}
+                onClick={() => handleGoalChange(g.id)}
+                className={`font-mono text-[10px] font-semibold px-2.5 py-1 rounded-lg border transition-all ${
+                  goal === g.id
+                    ? "border-transparent text-[#13131f]"
+                    : "border-[#363650] text-[#8585aa] hover:border-[#555570] hover:text-[#bcbcd8]"
+                }`}
+                style={goal === g.id ? { backgroundColor: g.color } : {}}
+              >
+                <span className="flex items-center gap-1.5">
+                  {g.icon}
+                  {g.label}
+                </span>
+              </button>
+            ))}
+            {goal && (
+              <button
+                onClick={() => handleGoalChange(null)}
+                className="flex items-center justify-center text-[#58588a] hover:text-[#8585aa] transition ml-0.5"
+              >
+                <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
+          {goal && (
+            <span className="ml-auto font-mono text-[9px] text-[#58588a] hidden sm:block shrink-0">
+              Applied to next insight
+            </span>
+          )}
+        </div>
         <div className="flex items-center justify-between px-5 py-4 border-b border-[#363650]">
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#00d4aa]/10 text-[#00d4aa]">
@@ -898,6 +1006,20 @@ export default function AiTab({ isPremium, isDemo = false }: AiTabProps) {
           ) : insightExpanded ? (
             <div className="prose-sm text-[0.8rem] leading-relaxed">
               {renderMarkdown(insight.content)}
+              {onNavigate && inferInvestigateTabs(insight.content).length > 0 && (
+                <div className="mt-4 flex flex-wrap gap-2 pt-3 border-t border-[#363650]/60">
+                  <span className="font-mono text-[9px] text-[#8585aa] w-full uppercase tracking-widest">Investigate:</span>
+                  {inferInvestigateTabs(insight.content).map(({ tab, label }) => (
+                    <button
+                      key={tab}
+                      onClick={() => onNavigate(tab)}
+                      className="font-mono text-[10px] font-semibold px-3 py-1.5 rounded-lg border border-[#363650] text-[#00d4aa] hover:border-[#00d4aa]/40 hover:bg-[#00d4aa]/5 transition"
+                    >
+                      {label} →
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           ) : null}
         </div>

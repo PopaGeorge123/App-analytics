@@ -1040,7 +1040,7 @@ export default function LearnPage() {
               </p>
               <div className="mb-4">
                 <div className="inline-flex items-baseline gap-1.5 rounded-xl border border-[#00d4aa]/25 bg-[#00d4aa]/8 px-3.5 py-2 mb-2">
-                  <span className="font-mono text-5xl font-bold text-[#00d4aa]">$29</span>
+                  <span className="font-mono text-5xl font-bold text-[#00d4aa]">$19</span>
                   <span className="font-mono text-sm text-[#00d4aa]/70">/ month</span>
                 </div>
                 <p className="font-mono text-xs text-[#8585aa]">Cancel anytime. No contracts.</p>
@@ -1074,9 +1074,9 @@ export default function LearnPage() {
 
           <div className="mt-6 rounded-2xl border border-[#363650] bg-[#1c1c2a]/40 p-5">
             <p className="text-sm text-[#bcbcd8] text-center leading-relaxed">
-              <strong className="text-[#f8f8fc]">$29/month context:</strong> If Fold saves you just
+              <strong className="text-[#f8f8fc]">$19/month context:</strong> If Fold saves you just
               1 hour per week of manual reporting, that&apos;s 4 hours/month. At $50/hr consulting
-              rate, that&apos;s $200 in saved time — for $29. Most founders report saving 3-4
+              rate, that&apos;s $200 in saved time — for $19. Most founders report saving 3-4
               hours/week.
             </p>
           </div>

@@ -7,14 +7,13 @@ import AnalyticsTab from "./AnalyticsTab";
 import OnboardingModal from "./OnboardingModal";
 import TabErrorBoundary from "./TabErrorBoundary";
 import SettingsTab from "./SettingsTab";
-import WebsiteTab from "./WebsiteTab";
 import AiTab from "./AiTab";
 import GrowthTab from "./GrowthTab";
 import CustomersTab from "./CustomersTab";
 import DangerZoneTab from "./DangerZoneTab";
 import type { CustomerRow } from "../page";
 
-export type Tab = "overview" | "analytics" | "growth" | "customers" | "website" | "ai" | "settings" | "danger";
+export type Tab = "overview" | "analytics" | "growth" | "customers" | "ai" | "settings" | "danger";
 
 export interface Snapshot {
   id: string;
@@ -23,30 +22,12 @@ export interface Snapshot {
   data: unknown;
 }
 
-interface WebsiteData {
-  url: string | null;
-  score: number;
-  status: "idle" | "analyzing" | "done" | "error";
-  summary: string | null;
-  lastScanned: string | null;
-  tasks: {
-    id: string;
-    title: string;
-    description: string;
-    category: string;
-    impact_score: number;
-    completed: boolean;
-    completed_at?: string | null;
-  }[];
-}
-
 interface DashboardShellProps {
   email: string;
   isPremium: boolean;
   trialEndsAt?: string | null;
   connectedPlatforms: string[];
   snapshots: Snapshot[];
-  websiteData: WebsiteData;
   /** platform → ISO currency code. e.g. { stripe: "EUR", meta: "USD" } */
   currencies: Record<string, string>;
   isSyncing?: string | null;
@@ -89,15 +70,6 @@ const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
     icon: (
       <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
-      </svg>
-    ),
-  },
-  {
-    id: "website",
-    label: "Website",
-    icon: (
-      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253M3 12c0 .778.099 1.533.284 2.253" />
       </svg>
     ),
   },
@@ -472,13 +444,13 @@ function UpgradeModal({ tab, onClose }: { tab: Tab; onClose: () => void }) {
         >
           Start 7-day free trial →
         </a>
-        <p className="mt-2.5 text-center font-mono text-[10px] text-[#8585aa]">$29/mo after trial · Cancel anytime</p>
+        <p className="mt-2.5 text-center font-mono text-[10px] text-[#8585aa]">$19/mo after trial · Cancel anytime</p>
       </div>
     </div>
   );
 }
 
-function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms, snapshots, websiteData, currencies, isSyncing, customers = [], isDemo = false }: DashboardShellProps) {
+function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms, snapshots, currencies, isSyncing, customers = [], isDemo = false }: DashboardShellProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -507,7 +479,7 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
   // Only update when the tab value actually changes to avoid fighting user clicks.
   useEffect(() => {
     const tab = searchParams.get("tab") as Tab | null;
-    if (tab && ["overview", "analytics", "growth", "customers", "website", "ai", "settings", "danger"].includes(tab) && tab !== activeTab) {
+    if (tab && ["overview", "analytics", "growth", "customers", "ai", "settings", "danger"].includes(tab) && tab !== activeTab) {
       setActiveTab(tab);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -526,7 +498,7 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
 
   function navigate(tab: Tab) {
     // Non-premium users trying to access a locked tab → show contextual upgrade modal
-    const LOCKED_TABS: Tab[] = ["analytics", "growth", "customers", "website", "ai"];
+    const LOCKED_TABS: Tab[] = ["analytics", "growth", "customers", "ai"];
     if (!isPremium && LOCKED_TABS.includes(tab)) {
       setUpgradeModal(tab);
       return;
@@ -620,7 +592,7 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
               </span>
               {tab.label}
               {/* Premium lock badge for non-premium tabs */}
-              {!isPremium && (tab.id === "analytics" || tab.id === "growth" || tab.id === "customers" || tab.id === "website" || tab.id === "ai") && (
+              {!isPremium && (tab.id === "analytics" || tab.id === "growth" || tab.id === "customers" || tab.id === "ai") && (
                 <span className="ml-auto">
                   <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className="text-[#8585aa]">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
@@ -739,7 +711,6 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
                 isPremium={isPremium}
                 connectedPlatforms={connectedPlatforms}
                 snapshots={snapshots}
-                websiteData={websiteData}
                 currencies={currencies}
                 onNavigate={navigate}
               />
@@ -776,22 +747,9 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
               />
             </TabErrorBoundary>
           )}
-          {activeTab === "website" && (
-            <TabErrorBoundary tabName="Website">
-              <WebsiteTab
-                isPremium={isPremium}
-                initialUrl={websiteData.url}
-                initialScore={websiteData.score}
-                initialStatus={websiteData.status}
-                initialSummary={websiteData.summary}
-                initialLastScanned={websiteData.lastScanned}
-                initialTasks={websiteData.tasks}
-              />
-            </TabErrorBoundary>
-          )}
           {activeTab === "ai" && (
             <TabErrorBoundary tabName="AI Advisor">
-              <AiTab isPremium={isPremium} isDemo={isDemo} />
+              <AiTab isPremium={isPremium} isDemo={isDemo} onNavigate={navigate} />
             </TabErrorBoundary>
           )}
           {activeTab === "settings" && (
