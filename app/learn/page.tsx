@@ -262,7 +262,7 @@ export default function LearnPage() {
             </span>
           </div>
           <h1 className="font-mono text-4xl font-bold tracking-tight text-[#f8f8fc] sm:text-5xl lg:text-6xl mb-6">
-            Everything Fold does —{" "}
+            Everything Fold does{" "}
             <span className="text-[#00d4aa]">explained</span>
           </h1>
           <p className="text-lg text-[#bcbcd8] max-w-2xl mx-auto leading-relaxed">
