@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { handleActiveCampaignOAuthCallback } from "@/lib/integrations/activecampaign/callback";
+import { notifyIntegrationConnected } from "@/lib/utils/notifyIntegrationConnected";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -14,6 +15,7 @@ export async function GET(request: NextRequest) {
   }
   try {
     await handleActiveCampaignOAuthCallback(state, code);
+    await notifyIntegrationConnected(state, "activecampaign");
     return NextResponse.redirect(
       new URL("/dashboard?tab=settings&activecampaign=connected&syncing=activecampaign", process.env.NEXT_PUBLIC_APP_URL),
     );

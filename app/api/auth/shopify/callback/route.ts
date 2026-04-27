@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { handleShopifyOAuthCallback } from "@/lib/integrations/shopify/callback";
+import { notifyIntegrationConnected } from "@/lib/utils/notifyIntegrationConnected";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);

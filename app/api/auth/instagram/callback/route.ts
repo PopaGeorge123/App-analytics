@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { handleInstagramOAuthCallback } from "@/lib/integrations/instagram/callback";
+import { notifyIntegrationConnected } from "@/lib/utils/notifyIntegrationConnected";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -14,6 +15,7 @@ export async function GET(request: NextRequest) {
   }
   try {
     await handleInstagramOAuthCallback(state, code);
+    await notifyIntegrationConnected(state, "instagram");
     return NextResponse.redirect(
       new URL("/dashboard?tab=settings&instagram=connected&syncing=instagram", process.env.NEXT_PUBLIC_APP_URL),
     );

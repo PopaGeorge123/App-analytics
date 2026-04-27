@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { handleMetaCallback } from "@/lib/integrations/meta/callback";
+import { notifyIntegrationConnected } from "@/lib/utils/notifyIntegrationConnected";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -15,6 +16,7 @@ export async function GET(request: NextRequest) {
 
   try {
     await handleMetaCallback(state, code);
+    await notifyIntegrationConnected(state, "meta");
     return NextResponse.redirect(
       new URL("/dashboard?tab=settings&meta=connected&syncing=meta", process.env.NEXT_PUBLIC_APP_URL)
     );

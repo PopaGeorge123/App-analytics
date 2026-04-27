@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { handleStripeCallback } from "@/lib/integrations/stripe/callback";
+import { notifyIntegrationConnected } from "@/lib/utils/notifyIntegrationConnected";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -15,6 +16,7 @@ export async function GET(request: NextRequest) {
 
   try {
     await handleStripeCallback(state, code);
+    await notifyIntegrationConnected(state, "stripe");
     return NextResponse.redirect(
       new URL("/dashboard?tab=settings&stripe=connected&syncing=stripe", process.env.NEXT_PUBLIC_APP_URL)
     );

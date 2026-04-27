@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { handleIntercomOAuthCallback } from "@/lib/integrations/intercom/callback";
+import { notifyIntegrationConnected } from "@/lib/utils/notifyIntegrationConnected";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -14,6 +15,7 @@ export async function GET(request: NextRequest) {
   }
   try {
     await handleIntercomOAuthCallback(state, code);
+    await notifyIntegrationConnected(state, "intercom");
     return NextResponse.redirect(
       new URL("/dashboard?tab=settings&intercom=connected&syncing=intercom", process.env.NEXT_PUBLIC_APP_URL),
     );

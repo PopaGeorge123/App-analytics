@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { handleTwitterAdsOAuthCallback } from "@/lib/integrations/twitter-ads/callback";
+import { notifyIntegrationConnected } from "@/lib/utils/notifyIntegrationConnected";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);

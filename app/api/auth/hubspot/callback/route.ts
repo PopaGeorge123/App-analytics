@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { handleHubSpotOAuthCallback } from "@/lib/integrations/hubspot/callback";
+import { notifyIntegrationConnected } from "@/lib/utils/notifyIntegrationConnected";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -15,6 +16,7 @@ export async function GET(request: NextRequest) {
 
   try {
     await handleHubSpotOAuthCallback(state, code);
+    await notifyIntegrationConnected(state, "hubspot");
     return NextResponse.redirect(
       new URL("/dashboard?tab=settings&hubspot=connected&syncing=hubspot", process.env.NEXT_PUBLIC_APP_URL),
     );

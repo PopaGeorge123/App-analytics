@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { handleWooCommerceOAuthCallback } from "@/lib/integrations/woocommerce/callback";
+import { notifyIntegrationConnected } from "@/lib/utils/notifyIntegrationConnected";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -14,6 +15,7 @@ export async function GET(request: NextRequest) {
   }
   try {
     await handleWooCommerceOAuthCallback(state, code);
+    await notifyIntegrationConnected(state, "woocommerce");
     return NextResponse.redirect(
       new URL("/dashboard?tab=settings&woocommerce=connected&syncing=woocommerce", process.env.NEXT_PUBLIC_APP_URL),
     );

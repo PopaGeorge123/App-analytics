@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { handleConvertKitOAuthCallback } from "@/lib/integrations/convertkit/callback";
+import { notifyIntegrationConnected } from "@/lib/utils/notifyIntegrationConnected";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -14,6 +15,7 @@ export async function GET(request: NextRequest) {
   }
   try {
     await handleConvertKitOAuthCallback(state, code);
+    await notifyIntegrationConnected(state, "convertkit");
     return NextResponse.redirect(
       new URL("/dashboard?tab=settings&convertkit=connected&syncing=convertkit", process.env.NEXT_PUBLIC_APP_URL),
     );

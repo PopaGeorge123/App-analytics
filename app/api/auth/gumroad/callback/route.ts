@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { handleGumroadOAuthCallback } from "@/lib/integrations/gumroad/callback";
+import { notifyIntegrationConnected } from "@/lib/utils/notifyIntegrationConnected";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -15,6 +16,7 @@ export async function GET(request: NextRequest) {
 
   try {
     await handleGumroadOAuthCallback(state, code);
+    await notifyIntegrationConnected(state, "gumroad");
     return NextResponse.redirect(
       new URL("/dashboard?tab=settings&gumroad=connected&syncing=gumroad", process.env.NEXT_PUBLIC_APP_URL),
     );

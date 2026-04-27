@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { handleNotionOAuthCallback } from "@/lib/integrations/notion/callback";
+import { notifyIntegrationConnected } from "@/lib/utils/notifyIntegrationConnected";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -15,6 +16,7 @@ export async function GET(request: NextRequest) {
 
   try {
     await handleNotionOAuthCallback(state, code);
+    await notifyIntegrationConnected(state, "notion");
     return NextResponse.redirect(
       new URL("/dashboard?tab=settings&notion=connected&syncing=notion", process.env.NEXT_PUBLIC_APP_URL),
     );

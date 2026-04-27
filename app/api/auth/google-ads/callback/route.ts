@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { handleGoogleAdsOAuthCallback } from "@/lib/integrations/google-ads/callback";
+import { notifyIntegrationConnected } from "@/lib/utils/notifyIntegrationConnected";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -15,6 +16,7 @@ export async function GET(request: NextRequest) {
 
   try {
     await handleGoogleAdsOAuthCallback(state, code);
+    await notifyIntegrationConnected(state, "google-ads");
     return NextResponse.redirect(
       new URL(
         "/dashboard?tab=settings&google-ads=connected&syncing=google-ads",

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { handleSegmentOAuthCallback } from "@/lib/integrations/segment/callback";
+import { notifyIntegrationConnected } from "@/lib/utils/notifyIntegrationConnected";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -14,6 +15,7 @@ export async function GET(request: NextRequest) {
   }
   try {
     await handleSegmentOAuthCallback(state, code);
+    await notifyIntegrationConnected(state, "segment");
     return NextResponse.redirect(
       new URL("/dashboard?tab=settings&segment=connected&syncing=segment", process.env.NEXT_PUBLIC_APP_URL),
     );

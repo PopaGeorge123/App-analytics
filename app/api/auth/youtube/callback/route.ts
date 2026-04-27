@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { handleYouTubeOAuthCallback } from "@/lib/integrations/youtube/callback";
+import { notifyIntegrationConnected } from "@/lib/utils/notifyIntegrationConnected";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -14,6 +15,7 @@ export async function GET(request: NextRequest) {
   }
   try {
     await handleYouTubeOAuthCallback(state, code);
+    await notifyIntegrationConnected(state, "youtube");
     return NextResponse.redirect(
       new URL("/dashboard?tab=settings&youtube=connected&syncing=youtube", process.env.NEXT_PUBLIC_APP_URL),
     );

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { handleSalesforceOAuthCallback } from "@/lib/integrations/salesforce/callback";
+import { notifyIntegrationConnected } from "@/lib/utils/notifyIntegrationConnected";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -14,6 +15,7 @@ export async function GET(request: NextRequest) {
   }
   try {
     await handleSalesforceOAuthCallback(state, code);
+    await notifyIntegrationConnected(state, "salesforce");
     return NextResponse.redirect(
       new URL("/dashboard?tab=settings&salesforce=connected&syncing=salesforce", process.env.NEXT_PUBLIC_APP_URL),
     );
