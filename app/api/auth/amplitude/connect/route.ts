@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient }              from "@/lib/supabase/server";
 import { handleAmplitudeConnect }    from "@/lib/integrations/amplitude/callback";
+import { notifyIntegrationConnected } from "@/lib/utils/notifyIntegrationConnected";
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -19,6 +20,8 @@ export async function POST(request: NextRequest) {
 
   try {
     await handleAmplitudeConnect(user.id, apiKey, secretKey);
+    await notifyIntegrationConnected(user.id, "amplitude");
+
     return NextResponse.json({ success: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";

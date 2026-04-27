@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { handleBigCommerceConnect } from "@/lib/integrations/bigcommerce/callback";
+import { notifyIntegrationConnected } from "@/lib/utils/notifyIntegrationConnected";
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -15,6 +16,8 @@ export async function POST(req: NextRequest) {
     }
 
     await handleBigCommerceConnect(user.id, storeHash, accessToken);
+    await notifyIntegrationConnected(user.id, "bigcommerce");
+
     return NextResponse.json({ success: true });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";

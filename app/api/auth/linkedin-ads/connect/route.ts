@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient }              from "@/lib/supabase/server";
 import { handleLinkedInAdsConnect }  from "@/lib/integrations/linkedin-ads/callback";
+import { notifyIntegrationConnected } from "@/lib/utils/notifyIntegrationConnected";
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -19,6 +20,8 @@ export async function POST(request: NextRequest) {
 
   try {
     await handleLinkedInAdsConnect(user.id, accessToken, accountId);
+    await notifyIntegrationConnected(user.id, "linkedin-ads");
+
     return NextResponse.json({ success: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";

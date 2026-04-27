@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { handleInstagramConnect } from "@/lib/integrations/instagram/callback";
+import { notifyIntegrationConnected } from "@/lib/utils/notifyIntegrationConnected";
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -15,6 +16,8 @@ export async function POST(req: NextRequest) {
     }
 
     await handleInstagramConnect(user.id, accessToken, businessAccountId);
+    await notifyIntegrationConnected(user.id, "instagram");
+
     return NextResponse.json({ success: true });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";

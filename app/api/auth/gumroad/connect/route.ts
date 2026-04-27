@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient }             from "@/lib/supabase/server";
 import { handleGumroadConnect }     from "@/lib/integrations/gumroad/callback";
+import { notifyIntegrationConnected } from "@/lib/utils/notifyIntegrationConnected";
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -18,6 +19,8 @@ export async function POST(request: NextRequest) {
 
   try {
     await handleGumroadConnect(user.id, apiKey);
+    await notifyIntegrationConnected(user.id, "gumroad");
+
     return NextResponse.json({ success: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";

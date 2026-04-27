@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient }              from "@/lib/supabase/server";
 import { handleKlaviyoConnect }      from "@/lib/integrations/klaviyo/callback";
+import { notifyIntegrationConnected } from "@/lib/utils/notifyIntegrationConnected";
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -18,6 +19,8 @@ export async function POST(request: NextRequest) {
 
   try {
     await handleKlaviyoConnect(user.id, apiKey);
+    await notifyIntegrationConnected(user.id, "klaviyo");
+
     return NextResponse.json({ success: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";

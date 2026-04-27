@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient }              from "@/lib/supabase/server";
 import { handleMixpanelConnect }     from "@/lib/integrations/mixpanel/callback";
+import { notifyIntegrationConnected } from "@/lib/utils/notifyIntegrationConnected";
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -20,6 +21,8 @@ export async function POST(request: NextRequest) {
 
   try {
     await handleMixpanelConnect(user.id, projectId, serviceAccountUser, serviceAccountSecret);
+    await notifyIntegrationConnected(user.id, "mixpanel");
+
     return NextResponse.json({ success: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";

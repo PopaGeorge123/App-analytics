@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { handleZendeskConnect } from "@/lib/integrations/zendesk/callback";
+import { notifyIntegrationConnected } from "@/lib/utils/notifyIntegrationConnected";
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -15,6 +16,8 @@ export async function POST(req: NextRequest) {
     }
 
     await handleZendeskConnect(user.id, subdomain, email, apiToken);
+    await notifyIntegrationConnected(user.id, "zendesk");
+
     return NextResponse.json({ success: true });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { handleFreshdeskConnect } from "@/lib/integrations/freshdesk/callback";
+import { notifyIntegrationConnected } from "@/lib/utils/notifyIntegrationConnected";
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -15,6 +16,8 @@ export async function POST(req: NextRequest) {
     }
 
     await handleFreshdeskConnect(user.id, subdomain, apiKey);
+    await notifyIntegrationConnected(user.id, "freshdesk");
+
     return NextResponse.json({ success: true });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
