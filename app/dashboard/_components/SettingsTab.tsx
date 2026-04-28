@@ -1368,7 +1368,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
         )}
 
         {/* Integration list */}
-        <div className="flex flex-col gap-8">
+        <div className="flex flex-col gap-8 overflow-y-auto pr-1 scrollbar-none" style={{ maxHeight: "500px" }}>
           {UI_INTEGRATIONS.filter(
             (i) =>
               i.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
