@@ -35,11 +35,11 @@ type Category =
 
 const CATEGORY_CONFIG: Record<Exclude<Category, "all">, { label: string; color: string }> = {
   "paid-ads":   { label: "Paid Ads",   color: "#a78bfa" },
-  "revenue":    { label: "Revenue",    color: "#00d4aa" },
+  "revenue":    { label: "Revenue",    color: "#34d399" },
   "email":      { label: "Email",      color: "#f59e0b" },
   "seo":        { label: "SEO",        color: "#60a5fa" },
   "ecommerce":  { label: "Ecommerce",  color: "#f472b6" },
-  "conversion": { label: "Conversion", color: "#34d399" },
+  "conversion": { label: "Conversion", color: "#00d4aa" },
   "retention":  { label: "Retention",  color: "#fb923c" },
 };
 
@@ -50,17 +50,17 @@ const categories: Category[] = ["all", "paid-ads", "revenue", "email", "seo", "e
 // ─────────────────────────────────────────────────────────────────────────────
 
 function HealthRing({ score, label }: { score: number; label: string }) {
-  const r = 36;
+  const r = 32;
   const circ = 2 * Math.PI * r;
   const fill = circ - (score / 100) * circ;
-  const color = score >= 75 ? "#00d4aa" : score >= 50 ? "#f59e0b" : "#f87171";
+  const color = score >= 75 ? "#34d399" : score >= 50 ? "#f59e0b" : "#f87171";
   return (
-    <div className="relative flex h-24 w-24 items-center justify-center">
-      <svg width="96" height="96" className="-rotate-90">
-        <circle cx="48" cy="48" r={r} fill="none" stroke="#363650" strokeWidth="7" />
+    <div className="relative flex h-20 w-20 items-center justify-center">
+      <svg width="80" height="80" className="-rotate-90">
+        <circle cx="40" cy="40" r={r} fill="none" stroke="#2a2a3e" strokeWidth="6" />
         <circle
-          cx="48" cy="48" r={r} fill="none"
-          stroke={color} strokeWidth="7"
+          cx="40" cy="40" r={r} fill="none"
+          stroke={color} strokeWidth="6"
           strokeDasharray={circ}
           strokeDashoffset={fill}
           strokeLinecap="round"
@@ -68,8 +68,8 @@ function HealthRing({ score, label }: { score: number; label: string }) {
         />
       </svg>
       <div className="absolute flex flex-col items-center">
-        <span className="font-mono text-xl font-bold" style={{ color }}>{score}</span>
-        <span className="font-mono text-[8px] text-[#8585aa] uppercase tracking-widest">{label}</span>
+        <span className="text-lg font-bold leading-none" style={{ color }}>{score}</span>
+        <span className="text-[10px] text-slate-400 mt-0.5">{label}</span>
       </div>
     </div>
   );
@@ -93,73 +93,67 @@ function fmtChartDate(d: string): string {
 }
 
 function ProofChart({ chart, accentColor, uid }: { chart: AiPlaybookChart; accentColor: string; uid: string }) {
-  // Pick 3 evenly-spaced ticks so the x-axis isn't crowded
   const pts = chart.points;
   const ticks = [pts[0]?.date, pts[Math.floor(pts.length / 2)]?.date, pts[pts.length - 1]?.date]
     .filter(Boolean) as string[];
-
   const gradId = `proof-grad-${uid}`;
 
   return (
-    <div className="rounded-xl border border-[#363650] bg-[#13131f] p-3 overflow-hidden">
-      {/* Title */}
-      <div className="flex items-center gap-2 mb-3">
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={accentColor} strokeWidth={2.5}>
+    <div className="rounded-xl border border-white/5 bg-[#0f0f1a] p-4 overflow-hidden">
+      <div className="flex items-center gap-2 mb-4">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={accentColor} strokeWidth={2.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v18h18M7 16l4-4 4 4 4-4" />
         </svg>
-        <p className="font-mono text-[9px] font-semibold uppercase tracking-widest" style={{ color: accentColor }}>
-          Proof: {chart.title}
+        <p className="text-xs font-semibold" style={{ color: accentColor }}>
+          {chart.title}
         </p>
       </div>
 
-      {/* Chart */}
-      <ResponsiveContainer width="100%" height={148}>
+      <ResponsiveContainer width="100%" height={160}>
         <AreaChart data={pts} margin={{ top: 6, right: 6, left: 0, bottom: 0 }}>
           <defs>
             <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%"  stopColor={accentColor} stopOpacity={0.22} />
+              <stop offset="5%"  stopColor={accentColor} stopOpacity={0.25} />
               <stop offset="95%" stopColor={accentColor} stopOpacity={0.02} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="#2a2a3d" vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke="#1e1e30" vertical={false} />
           <XAxis
             dataKey="date"
             ticks={ticks}
             tickFormatter={fmtChartDate}
-            tick={{ fill: "#8585aa", fontSize: 9, fontFamily: "monospace" }}
+            tick={{ fill: "#6b7280", fontSize: 11 }}
             axisLine={false}
             tickLine={false}
           />
           <YAxis
             tickFormatter={(v) => fmtChartVal(v as number, chart.unit)}
-            tick={{ fill: "#8585aa", fontSize: 9, fontFamily: "monospace" }}
+            tick={{ fill: "#6b7280", fontSize: 11 }}
             axisLine={false}
             tickLine={false}
-            width={52}
+            width={56}
           />
           <Tooltip
             contentStyle={{
-              background: "#1c1c2a",
-              border: "1px solid #363650",
-              borderRadius: "8px",
-              fontFamily: "monospace",
-              fontSize: "11px",
-              color: "#f8f8fc",
+              background: "#1a1a2e",
+              border: "1px solid #2a2a3e",
+              borderRadius: "10px",
+              fontSize: "12px",
+              color: "#f1f5f9",
             }}
             labelFormatter={(label) => fmtChartDate(String(label))}
-            formatter={(v: unknown) => [fmtChartVal(v as number, chart.unit), "Value"]}
+            formatter={(v: unknown) => [fmtChartVal(v as number, chart.unit), chart.title]}
           />
           {chart.benchmark != null && (
             <ReferenceLine
               y={chart.benchmark}
-              stroke="#00d4aa"
-              strokeDasharray="5 3"
+              stroke={accentColor}
+              strokeDasharray="4 3"
               strokeWidth={1.5}
               label={{
                 value: chart.benchmarkLabel ?? `Target: ${fmtChartVal(chart.benchmark, chart.unit)}`,
-                fill: "#00d4aa",
-                fontSize: 9,
-                fontFamily: "monospace",
+                fill: accentColor,
+                fontSize: 10,
                 position: "insideTopRight",
               }}
             />
@@ -171,15 +165,14 @@ function ProofChart({ chart, accentColor, uid }: { chart: AiPlaybookChart; accen
             strokeWidth={2}
             fill={`url(#${gradId})`}
             dot={false}
-            activeDot={{ r: 3, fill: accentColor, strokeWidth: 0 }}
+            activeDot={{ r: 4, fill: accentColor, strokeWidth: 0 }}
           />
         </AreaChart>
       </ResponsiveContainer>
 
-      {/* Footnote */}
       {chart.benchmark != null && (
-        <p className="mt-1.5 font-mono text-[8px] text-[#58588a] text-center">
-          ── {chart.benchmarkLabel ?? `target ${fmtChartVal(chart.benchmark, chart.unit)}`} · your trend should cross this line after fixing
+        <p className="mt-2 text-xs text-slate-500 text-center">
+          Dashed line = {chart.benchmarkLabel ?? `target ${fmtChartVal(chart.benchmark, chart.unit)}`}
         </p>
       )}
     </div>
@@ -190,6 +183,12 @@ function ProofChart({ chart, accentColor, uid }: { chart: AiPlaybookChart; accen
 // Playbook card
 // ─────────────────────────────────────────────────────────────────────────────
 
+const SEV_CONFIG = {
+  critical:    { color: "#f87171", label: "Critical",    bg: "rgba(248,113,113,0.08)" },
+  warning:     { color: "#f59e0b", label: "Warning",     bg: "rgba(245,158,11,0.08)"  },
+  opportunity: { color: "#34d399", label: "Opportunity", bg: "rgba(52,211,153,0.08)"  },
+};
+
 function PlaybookCard({
   playbook,
   isOpen,
@@ -199,141 +198,156 @@ function PlaybookCard({
   isOpen: boolean;
   onToggle: () => void;
 }) {
-  const sevColor = playbook.severity === "critical" ? "#f87171"
-                 : playbook.severity === "warning"  ? "#f59e0b"
-                 : "#00d4aa";
-  const catCfg   = CATEGORY_CONFIG[playbook.category as Exclude<Category, "all">];
-  const catColor = catCfg?.color ?? "#8585aa";
+  const sev     = SEV_CONFIG[playbook.severity] ?? SEV_CONFIG.opportunity;
+  const catCfg  = CATEGORY_CONFIG[playbook.category as Exclude<Category, "all">];
+  const catColor = catCfg?.color ?? "#8b8ba8";
   const catLabel = catCfg?.label ?? playbook.category;
   const hasTriggered = Array.isArray(playbook.triggeredBy) && playbook.triggeredBy.length > 0;
 
   return (
     <div
-      className="rounded-2xl border transition-all"
+      className="rounded-2xl overflow-hidden transition-all duration-200"
       style={{
-        borderColor: isOpen ? sevColor + "40" : "#363650",
-        background:  isOpen ? sevColor + "06" : "#1c1c2a60",
+        background: isOpen ? "#1a1a2e" : "#16162a",
+        border: `1px solid ${isOpen ? sev.color + "35" : "#2a2a3e"}`,
       }}
     >
-      {/* Header */}
-      <button className="flex w-full items-start gap-3 p-4 text-left" onClick={onToggle}>
-        <div
-          className="mt-1 h-2 w-2 shrink-0 rounded-full"
-          style={{ backgroundColor: sevColor, boxShadow: `0 0 6px ${sevColor}80` }}
-        />
+      {/* Severity stripe */}
+      <div className="h-0.5 w-full" style={{ background: sev.color, opacity: 0.7 }} />
+
+      {/* Header button */}
+      <button className="flex w-full items-start gap-4 px-5 py-4 text-left" onClick={onToggle}>
+        {/* Left: severity dot */}
+        <div className="mt-1.5 shrink-0">
+          <div
+            className="h-2.5 w-2.5 rounded-full"
+            style={{ backgroundColor: sev.color, boxShadow: `0 0 8px ${sev.color}60` }}
+          />
+        </div>
+
+        {/* Middle: text */}
         <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-2 mb-1">
-            {hasTriggered && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-[#f87171]/30 bg-[#f87171]/8 px-2 py-0.5 font-mono text-[8px] font-semibold text-[#f87171] uppercase tracking-widest">
-                <span className="h-1 w-1 rounded-full bg-[#f87171] animate-pulse" />
-                detected in your data
-              </span>
-            )}
+          {/* Badges row */}
+          <div className="flex flex-wrap items-center gap-2 mb-2">
             <span
-              className="rounded-full border px-2 py-0.5 font-mono text-[8px] font-semibold uppercase tracking-widest"
-              style={{ borderColor: catColor + "40", color: catColor, background: catColor + "10" }}
+              className="rounded-md px-2 py-0.5 text-[11px] font-semibold"
+              style={{ background: sev.bg, color: sev.color }}
+            >
+              {sev.label}
+            </span>
+            <span
+              className="rounded-md px-2 py-0.5 text-[11px] font-medium text-slate-300"
+              style={{ background: catColor + "18" }}
             >
               {catLabel}
             </span>
-            <span
-              className="rounded-full border px-2 py-0.5 font-mono text-[8px] font-semibold uppercase tracking-widest"
-              style={{ borderColor: sevColor + "40", color: sevColor, background: sevColor + "10" }}
-            >
-              {playbook.severity}
-            </span>
+            {hasTriggered && (
+              <span className="inline-flex items-center gap-1 rounded-md bg-red-500/10 px-2 py-0.5 text-[11px] font-semibold text-red-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-red-400 animate-pulse" />
+                In your data
+              </span>
+            )}
           </div>
-          <h3 className="font-mono text-sm font-bold text-[#f8f8fc]">{playbook.title}</h3>
-          <p className="mt-0.5 text-xs text-[#8585aa] line-clamp-2">{playbook.problem}</p>
+          {/* Title */}
+          <h3 className="text-sm font-semibold text-white leading-snug">{playbook.title}</h3>
+          {/* Problem — only when collapsed */}
+          {!isOpen && (
+            <p className="mt-1 text-sm text-slate-400 line-clamp-2 leading-relaxed">{playbook.problem}</p>
+          )}
         </div>
-        <div className="shrink-0 flex flex-col items-end gap-1.5">
+
+        {/* Right: gain + chevron */}
+        <div className="shrink-0 flex flex-col items-end gap-2">
           <span
-            className="rounded-lg border px-2 py-1 font-mono text-[9px] font-semibold"
-            style={{ borderColor: "#00d4aa30", color: "#00d4aa", background: "#00d4aa08" }}
+            className="rounded-lg px-2.5 py-1 text-xs font-semibold text-emerald-400 whitespace-nowrap"
+            style={{ background: "rgba(52,211,153,0.1)" }}
           >
             {playbook.expectedGain}
           </span>
           <svg
-            className="transition-transform"
+            className="transition-transform duration-200"
             style={{ transform: isOpen ? "rotate(180deg)" : "rotate(0deg)" }}
-            width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#8585aa" strokeWidth={2}
+            width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#6b7280" strokeWidth={2}
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
           </svg>
         </div>
       </button>
 
-      {/* Expanded */}
+      {/* Expanded body */}
       {isOpen && (
-        <div className="border-t border-[#363650] px-4 pb-4 pt-3 space-y-4">
-          {/* Why it matters */}
-          <div className="rounded-xl border border-[#363650] bg-[#13131f] p-3">
-            <p className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#8585aa] mb-1">Why this matters</p>
-            <p className="text-xs text-[#c4c4d4]">{playbook.impact}</p>
+        <div className="border-t border-white/5 px-5 pb-5 pt-4 space-y-5">
+
+          {/* Problem + Impact */}
+          <div className="space-y-3">
+            <div>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Problem</p>
+              <p className="text-sm text-slate-200 leading-relaxed">{playbook.problem}</p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Why it matters</p>
+              <p className="text-sm text-slate-300 leading-relaxed">{playbook.impact}</p>
+            </div>
           </div>
 
-          {/* ── Proof chart ─────────────────────────────────────────────── */}
+          {/* Proof chart */}
           {playbook.chart && playbook.chart.points.length >= 3 && (
-            <ProofChart chart={playbook.chart} accentColor={sevColor} uid={playbook.id} />
+            <ProofChart chart={playbook.chart} accentColor={sev.color} uid={playbook.id} />
           )}
 
           {/* Triggered metric tiles */}
           {hasTriggered && (
             <div>
-              <p className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#f87171] mb-2">Detected in your data</p>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Detected in your data</p>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                 {playbook.triggeredBy!.map((t, i) => (
-                  <div key={i} className="rounded-xl border border-[#f87171]/20 bg-[#f87171]/6 p-2.5">
-                    <p className="font-mono text-[9px] text-[#8585aa] uppercase tracking-widest">{t.label}</p>
-                    <p className="font-mono text-sm font-bold text-[#f87171]">{t.value}</p>
-                    <p className="font-mono text-[8px] text-[#8585aa]">benchmark: {t.benchmark}</p>
+                  <div key={i} className="rounded-xl border border-red-500/15 bg-red-500/5 p-3">
+                    <p className="text-xs text-slate-400 mb-0.5">{t.label}</p>
+                    <p className="text-base font-bold text-red-400">{t.value}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Target: {t.benchmark}</p>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* ── Action plan ─────────────────────────────────────────────── */}
+          {/* Action plan */}
           <div>
-            <p className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#8585aa] mb-2">Action plan</p>
-            <ol className="space-y-2">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Action plan</p>
+            <ol className="space-y-3">
               {playbook.steps.map((step, i) => (
-                <li key={i} className="rounded-xl border border-[#363650] bg-[#222235] p-3">
-                  <div className="flex gap-3">
-                    <span
-                      className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full font-mono text-[9px] font-bold"
-                      style={{ background: catColor + "25", color: catColor }}
-                    >
-                      {i + 1}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-mono text-xs font-semibold text-[#f8f8fc]">{step.action}</p>
-                      <p className="mt-0.5 text-xs text-[#8585aa]">{step.detail}</p>
-                      {/* Step resource link */}
-                      {step.link && (
-                        <a
-                          href={step.link.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-2 inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 font-mono text-[9px] font-semibold transition-colors"
-                          style={{
-                            borderColor: catColor + "40",
-                            color: catColor,
-                            background: catColor + "0d",
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-                          </svg>
-                          {step.link.label}
-                        </a>
-                      )}
-                    </div>
+                <li key={i} className="flex gap-3">
+                  {/* Step number */}
+                  <div
+                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold mt-0.5"
+                    style={{ background: catColor + "22", color: catColor }}
+                  >
+                    {i + 1}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-white leading-snug">{step.action}</p>
+                    <p className="mt-1 text-sm text-slate-400 leading-relaxed">{step.detail}</p>
+                    {step.link && (
+                      <a
+                        href={step.link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-2 inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-white/5"
+                        style={{ borderColor: catColor + "50", color: catColor }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                        </svg>
+                        {step.link.label}
+                      </a>
+                    )}
                   </div>
                 </li>
               ))}
             </ol>
           </div>
+
         </div>
       )}
     </div>
@@ -347,19 +361,20 @@ function PlaybookCard({
 function PlaybookSkeleton() {
   return (
     <div className="space-y-3 animate-pulse">
-      {[...Array(5)].map((_, i) => (
-        <div key={i} className="rounded-2xl border border-[#363650] bg-[#1c1c2a60] p-4">
-          <div className="flex items-start gap-3">
-            <div className="mt-1 h-2 w-2 rounded-full bg-[#363650]" />
-            <div className="flex-1 space-y-2">
+      {[...Array(4)].map((_, i) => (
+        <div key={i} className="rounded-2xl border border-[#2a2a3e] bg-[#16162a] overflow-hidden">
+          <div className="h-0.5 bg-[#2a2a3e]" />
+          <div className="flex items-start gap-4 px-5 py-4">
+            <div className="mt-1.5 h-2.5 w-2.5 rounded-full bg-[#2a2a3e]" />
+            <div className="flex-1 space-y-2.5">
               <div className="flex gap-2">
-                <div className="h-4 w-16 rounded-full bg-[#363650]" />
-                <div className="h-4 w-20 rounded-full bg-[#363650]" />
+                <div className="h-5 w-16 rounded-md bg-[#2a2a3e]" />
+                <div className="h-5 w-20 rounded-md bg-[#2a2a3e]" />
               </div>
-              <div className="h-4 w-3/5 rounded bg-[#363650]" />
-              <div className="h-3 w-4/5 rounded bg-[#2a2a3d]" />
+              <div className="h-4 w-2/3 rounded bg-[#2a2a3e]" />
+              <div className="h-3.5 w-4/5 rounded bg-[#222238]" />
             </div>
-            <div className="h-6 w-20 rounded-lg bg-[#363650]" />
+            <div className="h-7 w-24 rounded-lg bg-[#2a2a3e]" />
           </div>
         </div>
       ))}
@@ -373,21 +388,21 @@ function PlaybookSkeleton() {
 
 function PremiumGate() {
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-[#00d4aa]/20 bg-gradient-to-br from-[#0d2b24] to-[#1a1a2e] p-8 text-center">
-      <div className="mb-4 flex justify-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#00d4aa]/30 bg-[#00d4aa]/10">
-          <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="#00d4aa" strokeWidth={1.5}>
+    <div className="rounded-2xl border border-emerald-500/20 bg-linear-to-br from-emerald-950/40 to-[#16162a] p-10 text-center">
+      <div className="mb-5 flex justify-center">
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-emerald-500/30 bg-emerald-500/10">
+          <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="#34d399" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
           </svg>
         </div>
       </div>
-      <h3 className="font-mono text-sm font-bold text-[#f8f8fc] mb-2">AI Fix-It Playbooks</h3>
-      <p className="text-xs text-[#8585aa] mb-4 max-w-sm mx-auto">
+      <h3 className="text-base font-bold text-white mb-2">AI Fix-It Playbooks</h3>
+      <p className="text-sm text-slate-400 mb-6 max-w-sm mx-auto leading-relaxed">
         Claude analyses your live data and generates personalised, step-by-step playbooks for every problem detected in your business.
       </p>
       <a
         href="/dashboard?tab=settings"
-        className="inline-flex items-center gap-2 rounded-xl border border-[#00d4aa] bg-[#00d4aa]/10 px-4 py-2 font-mono text-xs font-semibold text-[#00d4aa] hover:bg-[#00d4aa]/20 transition-colors"
+        className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/50 bg-emerald-500/10 px-5 py-2.5 text-sm font-semibold text-emerald-400 hover:bg-emerald-500/20 transition-colors"
       >
         Upgrade to Premium →
       </a>
@@ -405,30 +420,75 @@ export default function PlaybooksTab({
 }: PlaybooksTabProps) {
   const [data, setData]         = useState<AiPlaybooksResponse | null>(null);
   const [loading, setLoading]   = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [error, setError]       = useState<string | null>(null);
   const [openId, setOpenId]     = useState<string | null>(null);
-  const [activeCategory, setActiveCategory]     = useState<Category>("all");
+  const [activeCategory, setActiveCategory]       = useState<Category>("all");
   const [showOnlyTriggered, setShowOnlyTriggered] = useState(false);
   const hasFetched = useRef(false);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const load = useCallback(async (force = false) => {
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const url = force ? "/api/ai/playbooks?refresh=1" : "/api/ai/playbooks";
-      const res = await fetch(url);
+      const res = await fetch("/api/ai/playbooks");
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error((body as { error?: string }).error ?? `Error ${res.status}`);
       }
       const json: AiPlaybooksResponse = await res.json();
       setData(json);
+      return json;
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to load playbooks.");
+      return null;
     } finally {
       setLoading(false);
     }
   }, []);
+
+  /** POST to generate endpoint → daemon runs generation → poll until generatedAt changes */
+  const triggerGenerate = useCallback(async () => {
+    if (generating) return;
+    setGenerating(true);
+    setError(null);
+    const prevGeneratedAt = data?.generatedAt ?? null;
+
+    try {
+      const res = await fetch("/api/ai/playbooks/generate", { method: "POST" });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body as { error?: string }).error ?? `Error ${res.status}`);
+      }
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to start generation.");
+      setGenerating(false);
+      return;
+    }
+
+    // Poll every 5s until generatedAt changes or 3-min timeout
+    const deadline = Date.now() + 3 * 60 * 1000;
+    pollRef.current = setInterval(async () => {
+      if (Date.now() > deadline) {
+        clearInterval(pollRef.current!);
+        setGenerating(false);
+        setError("Generation is taking longer than expected. Please try again in a few minutes.");
+        return;
+      }
+      const res = await fetch("/api/ai/playbooks");
+      if (!res.ok) return;
+      const json: AiPlaybooksResponse = await res.json();
+      if (json.generatedAt && json.generatedAt !== prevGeneratedAt) {
+        clearInterval(pollRef.current!);
+        setData(json);
+        setGenerating(false);
+      }
+    }, 5_000);
+  }, [generating, data?.generatedAt]);
+
+  // Cleanup poll on unmount
+  useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current); }, []);
 
   useEffect(() => {
     if (!isPremium || hasFetched.current) return;
@@ -452,44 +512,44 @@ export default function PlaybooksTab({
     return sevOrder[a.severity] - sevOrder[b.severity];
   });
 
-  const criticalCount = playbooks.filter((p) => p.severity === "critical").length;
-  const detectedCount = playbooks.filter((p) => p.triggeredBy && p.triggeredBy.length > 0).length;
+  const criticalCount  = playbooks.filter((p) => p.severity === "critical").length;
+  const detectedCount  = playbooks.filter((p) => p.triggeredBy && p.triggeredBy.length > 0).length;
 
   const generatedAgo = data?.generatedAt
     ? (() => {
         const mins = Math.round((Date.now() - new Date(data.generatedAt).getTime()) / 60000);
         if (mins < 2) return "just now";
-        if (mins < 60) return `${mins} min ago`;
+        if (mins < 60) return `${mins}m ago`;
         return `${Math.round(mins / 60)}h ago`;
       })()
     : null;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h2 className="font-mono text-base font-bold text-[#f8f8fc]">AI Fix-It Playbooks</h2>
-          <p className="mt-0.5 text-xs text-[#8585aa]">
+          <h2 className="text-lg font-bold text-white">AI Fix-It Playbooks</h2>
+          <p className="mt-1 text-sm text-slate-400">
             {data
-              ? `Claude analysed your live data and found ${playbooks.length} personalised action plans`
+              ? `${playbooks.length} personalised action plan${playbooks.length !== 1 ? "s" : ""} based on your live data`
               : "Claude analyses your real data and builds personalised, step-by-step action plans"}
           </p>
         </div>
         {isPremium && (
           <button
-            onClick={() => load(true)}
-            disabled={loading}
-            className="inline-flex items-center gap-2 rounded-xl border border-[#363650] bg-[#222235] px-3 py-2 font-mono text-[10px] font-semibold text-[#8585aa] hover:border-[#00d4aa]/40 hover:text-[#00d4aa] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            onClick={triggerGenerate}
+            disabled={loading || generating}
+            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-300 hover:border-white/20 hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <svg
-              className={loading ? "animate-spin" : ""}
-              width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}
+              className={(loading || generating) ? "animate-spin" : ""}
+              width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}
             >
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
             </svg>
-            {loading ? "Generating…" : "Regenerate"}
+            {generating ? "Generating…" : loading ? "Loading…" : "Generate"}
           </button>
         )}
       </div>
@@ -499,32 +559,32 @@ export default function PlaybooksTab({
 
       {/* ── Summary bar ────────────────────────────────────────────────────── */}
       {isPremium && data && !loading && (
-        <div className="flex flex-col gap-4 rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-4 sm:flex-row sm:items-center">
+        <div className="rounded-2xl border border-white/8 bg-[#16162a] p-5 flex flex-col gap-5 sm:flex-row sm:items-center">
           <div className="shrink-0 flex justify-center sm:justify-start">
             <HealthRing score={data.healthScore} label={data.healthLabel} />
           </div>
           <div className="flex-1">
-            <p className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#8585aa] mb-1.5">Business health summary</p>
-            <p className="text-xs text-[#c4c4d4] leading-relaxed">{data.summary}</p>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Business health</p>
+            <p className="text-sm text-slate-200 leading-relaxed">{data.summary}</p>
             {generatedAgo && (
-              <p className="mt-2 font-mono text-[8px] text-[#58588a]">Generated {generatedAgo} · based on your live data</p>
+              <p className="mt-2 text-xs text-slate-500">Generated {generatedAgo} · updates nightly</p>
             )}
           </div>
-          <div className="flex gap-2 sm:flex-col sm:items-end shrink-0">
+          <div className="flex gap-3 sm:flex-col sm:items-end shrink-0">
             {criticalCount > 0 && (
-              <div className="rounded-xl border border-[#f87171]/25 bg-[#f87171]/6 px-3 py-2 text-center">
-                <p className="font-mono text-lg font-bold text-[#f87171]">{criticalCount}</p>
-                <p className="font-mono text-[8px] text-[#f87171]/70 uppercase tracking-widest">Critical</p>
+              <div className="rounded-xl border border-red-500/20 bg-red-500/8 px-4 py-2.5 text-center min-w-15">
+                <p className="text-xl font-bold text-red-400">{criticalCount}</p>
+                <p className="text-xs text-red-400/70 mt-0.5">Critical</p>
               </div>
             )}
-            <div className="rounded-xl border border-[#363650] bg-[#222235] px-3 py-2 text-center">
-              <p className="font-mono text-lg font-bold text-[#f8f8fc]">{playbooks.length}</p>
-              <p className="font-mono text-[8px] text-[#8585aa] uppercase tracking-widest">Playbooks</p>
+            <div className="rounded-xl border border-white/8 bg-white/4 px-4 py-2.5 text-center min-w-15">
+              <p className="text-xl font-bold text-white">{playbooks.length}</p>
+              <p className="text-xs text-slate-500 mt-0.5">Playbooks</p>
             </div>
             {detectedCount > 0 && (
-              <div className="rounded-xl border border-[#00d4aa]/20 bg-[#00d4aa]/5 px-3 py-2 text-center">
-                <p className="font-mono text-lg font-bold text-[#00d4aa]">{detectedCount}</p>
-                <p className="font-mono text-[8px] text-[#00d4aa]/70 uppercase tracking-widest">Detected</p>
+              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/6 px-4 py-2.5 text-center min-w-15">
+                <p className="text-xl font-bold text-emerald-400">{detectedCount}</p>
+                <p className="text-xs text-emerald-400/70 mt-0.5">Detected</p>
               </div>
             )}
           </div>
@@ -534,12 +594,12 @@ export default function PlaybooksTab({
       {/* ── Loading ─────────────────────────────────────────────────────────── */}
       {isPremium && loading && (
         <div className="space-y-4">
-          <div className="rounded-2xl border border-[#00d4aa]/20 bg-[#0d2b24]/40 p-5 flex items-center gap-4">
-            <div className="h-10 w-10 shrink-0 rounded-full border-2 border-[#00d4aa]/30 border-t-[#00d4aa] animate-spin" />
+          <div className="rounded-2xl border border-emerald-500/15 bg-emerald-950/20 p-5 flex items-center gap-4">
+            <div className="h-9 w-9 shrink-0 rounded-full border-2 border-emerald-500/20 border-t-emerald-400 animate-spin" />
             <div>
-              <p className="font-mono text-xs font-bold text-[#f8f8fc]">Claude is analysing your data…</p>
-              <p className="text-xs text-[#8585aa] mt-0.5">
-                Reading your metrics from {connectedPlatforms.length} connected platform{connectedPlatforms.length !== 1 ? "s" : ""} and building personalised playbooks.
+              <p className="text-sm font-semibold text-white">Loading your playbooks…</p>
+              <p className="text-sm text-slate-400 mt-0.5">
+                Reading metrics from {connectedPlatforms.length} connected platform{connectedPlatforms.length !== 1 ? "s" : ""}.
               </p>
             </div>
           </div>
@@ -549,12 +609,12 @@ export default function PlaybooksTab({
 
       {/* ── Error ───────────────────────────────────────────────────────────── */}
       {isPremium && !loading && error && (
-        <div className="rounded-2xl border border-[#f87171]/30 bg-[#f87171]/6 p-5 text-center">
-          <p className="font-mono text-xs font-bold text-[#f87171] mb-1">Failed to generate playbooks</p>
-          <p className="text-xs text-[#8585aa] mb-3">{error}</p>
+        <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-6 text-center">
+          <p className="text-sm font-semibold text-red-400 mb-1">Failed to load playbooks</p>
+          <p className="text-sm text-slate-400 mb-4">{error}</p>
           <button
             onClick={() => load()}
-            className="inline-flex items-center gap-2 rounded-xl border border-[#f87171]/40 px-3 py-2 font-mono text-[10px] font-semibold text-[#f87171] hover:bg-[#f87171]/10 transition-colors"
+            className="inline-flex items-center gap-2 rounded-xl border border-red-500/30 px-4 py-2 text-sm font-semibold text-red-400 hover:bg-red-500/10 transition-colors"
           >
             Try again
           </button>
@@ -563,50 +623,50 @@ export default function PlaybooksTab({
 
       {/* ── Filters ─────────────────────────────────────────────────────────── */}
       {isPremium && data && !loading && (
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex flex-wrap gap-2">
-            {categories.map((cat) => {
-              const cfg    = cat === "all" ? null : CATEGORY_CONFIG[cat];
-              const active = activeCategory === cat;
-              const count  = cat === "all" ? playbooks.length : playbooks.filter((p) => p.category === cat).length;
-              if (cat !== "all" && count === 0) return null;
-              return (
-                <button
-                  key={cat}
-                  onClick={() => setActiveCategory(cat)}
-                  className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 font-mono text-[9px] font-semibold uppercase tracking-widest transition-all"
-                  style={{
-                    borderColor: active ? (cfg?.color ?? "#00d4aa") + "60" : "#363650",
-                    color:       active ? (cfg?.color ?? "#00d4aa") : "#8585aa",
-                    background:  active ? (cfg?.color ?? "#00d4aa") + "12" : "transparent",
-                  }}
+        <div className="flex flex-wrap items-center gap-2">
+          {categories.map((cat) => {
+            const cfg    = cat === "all" ? null : CATEGORY_CONFIG[cat];
+            const active = activeCategory === cat;
+            const count  = cat === "all" ? playbooks.length : playbooks.filter((p) => p.category === cat).length;
+            if (cat !== "all" && count === 0) return null;
+            const color = cfg?.color ?? "#34d399";
+            return (
+              <button
+                key={cat}
+                onClick={() => setActiveCategory(cat)}
+                className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-all"
+                style={{
+                  borderColor: active ? color + "50" : "#2a2a3e",
+                  color:       active ? color : "#6b7280",
+                  background:  active ? color + "12" : "transparent",
+                }}
+              >
+                {cat === "all" ? "All" : cfg!.label}
+                <span
+                  className="rounded-md px-1.5 py-0 text-[10px] font-semibold"
+                  style={{ background: active ? color + "22" : "#2a2a3e", color: active ? color : "#6b7280" }}
                 >
-                  {cat === "all" ? "All Playbooks" : cfg!.label}
-                  <span
-                    className="flex h-3.5 w-3.5 items-center justify-center rounded-full text-[8px]"
-                    style={{ background: active ? (cfg?.color ?? "#00d4aa") + "25" : "#363650" }}
-                  >
-                    {count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+
           {detectedCount > 0 && (
             <button
               onClick={() => setShowOnlyTriggered((v) => !v)}
-              className="ml-auto inline-flex items-center gap-2 rounded-full border px-3 py-1 font-mono text-[9px] font-semibold uppercase tracking-widest transition-all"
+              className="ml-auto inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-all"
               style={{
-                borderColor: showOnlyTriggered ? "#f87171aa" : "#363650",
-                color:       showOnlyTriggered ? "#f87171" : "#8585aa",
+                borderColor: showOnlyTriggered ? "#f87171aa" : "#2a2a3e",
+                color:       showOnlyTriggered ? "#f87171" : "#6b7280",
                 background:  showOnlyTriggered ? "rgba(248,113,113,0.08)" : "transparent",
               }}
             >
               <span
                 className="h-1.5 w-1.5 rounded-full"
-                style={{ backgroundColor: showOnlyTriggered ? "#f87171" : "#8585aa" }}
+                style={{ backgroundColor: showOnlyTriggered ? "#f87171" : "#6b7280" }}
               />
-              {showOnlyTriggered ? "Showing detected only" : "Detected in data only"}
+              {showOnlyTriggered ? "Detected only" : "Show detected only"}
             </button>
           )}
         </div>
@@ -616,8 +676,8 @@ export default function PlaybooksTab({
       {isPremium && data && !loading && (
         <div className="space-y-3">
           {sorted.length === 0 ? (
-            <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-8 text-center">
-              <p className="font-mono text-xs text-[#8585aa]">No playbooks match the current filter.</p>
+            <div className="rounded-2xl border border-white/5 bg-[#16162a] p-10 text-center">
+              <p className="text-sm text-slate-500">No playbooks match the current filter.</p>
             </div>
           ) : (
             sorted.map((pb) => (
@@ -633,12 +693,24 @@ export default function PlaybooksTab({
       )}
 
       {/* ── Footer ──────────────────────────────────────────────────────────── */}
-      {isPremium && data && !loading && (
-        <p className="text-center font-mono text-[9px] text-[#58588a]">
-          Playbooks are generated by Claude using your real live data. Connect more integrations for deeper analysis.
+      {isPremium && data && !loading && playbooks.length > 0 && (
+        <p className="text-center text-xs text-slate-600">
+          Generated by Claude · based on your live data · refreshes nightly
         </p>
       )}
 
     </div>
   );
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Props
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface PlaybooksTabProps {
+  isPremium: boolean;
+  connectedPlatforms: string[];
+  snapshots: Snapshot[];
+  currencies: Record<string, string>;
 }

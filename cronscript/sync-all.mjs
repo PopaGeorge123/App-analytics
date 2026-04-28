@@ -4512,357 +4512,382 @@ function buildAnomalyAlertEmailHtml(alerts) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// AI FIX-IT PLAYBOOKS GENERATOR
-// Runs daily after the sync. For every premium user who has at least 7 days of
-// snapshot data this function:
-//   1. Fetches the last 30 days of daily_snapshots
-//   2. Computes 7d/30d aggregates + derives cpc/ctr/openRate from raw fields
-//   3. Calls Anthropic (claude-opus-4-5) with a strict JSON schema
-//   4. Hydrates each chartSpec with real time-series points from the snapshots
-//   5. Upserts the result into ai_playbooks_cache (one row per user)
-//
-// The Next.js API route /api/ai/playbooks becomes read-only — it just returns
-// the cached row. No Vercel timeout risk whatsoever.
+// AI FIX-IT PLAYBOOKS
 // ─────────────────────────────────────────────────────────────────────────────
 
-async function generateAllPlaybooks() {
-  if (!ANTHROPIC_KEY) {
-    logWarn('[playbooks] ANTHROPIC_API_KEY not set — skipping playbook generation');
-    return;
-  }
+const FROM_PLAYBOOKS = 'Fold Playbooks <info@usefold.io>';
+const SEV_COLOR_MAP  = { critical: '#f87171', warning: '#f59e0b', opportunity: '#34d399' };
 
-  const today   = new Date().toISOString().slice(0, 10);
-  const appUrl  = g('NEXT_PUBLIC_APP_URL') || 'https://usefold.io';
-  log(`[playbooks] Starting AI playbook generation — ${today}`);
+function buildPlaybooksEmailHtml(payload, appUrl) {
+  const { playbooks = [], healthScore = 0, healthLabel = 'Needs Work', summary = '' } = payload;
+  const scoreColor = healthScore >= 75 ? '#34d399' : healthScore >= 50 ? '#f59e0b' : '#f87171';
 
-  // ── 1. Fetch all premium (or active trial) users ─────────────────────────
-  let users;
-  try {
-    const getHeaders = { apikey: SB.headers.apikey, Authorization: SB.headers.Authorization };
+  const rows = playbooks.slice(0, 8).map(pb => {
+    const color     = SEV_COLOR_MAP[pb.severity] ?? '#8888aa';
+    const firstStep = pb.steps?.[0];
+    return `
+<tr><td style="padding:16px;border-bottom:1px solid #1e1e2e;">
+  <span style="background:${color}18;color:${color};border-radius:5px;padding:2px 8px;font-size:11px;font-weight:600;text-transform:uppercase;">${pb.severity}</span>
+  <span style="background:#1e1e2e;color:#8888aa;border-radius:5px;padding:2px 8px;font-size:11px;margin-left:6px;">${pb.category}</span>
+  <p style="margin:8px 0 4px;font-size:15px;font-weight:600;color:#f0f0f5;">${pb.title}</p>
+  <p style="margin:0 0 8px;font-size:13px;color:#8888aa;line-height:1.5;">${pb.problem}</p>
+  ${firstStep ? `<p style="margin:0 0 6px;font-size:13px;color:#d4d4e8;"><strong style="color:${color};">Step 1:</strong> ${firstStep.action}</p>` : ''}
+  <span style="font-size:12px;color:#34d399;background:#34d39910;border-radius:5px;padding:2px 8px;">${pb.expectedGain}</span>
+</td></tr>`;
+  }).join('');
 
-    const [premRes, trialRes] = await Promise.all([
-      fetch(
-        `${SUPABASE_URL}/rest/v1/users?select=id&subscription_status=eq.active`,
-        { headers: getHeaders },
-      ),
-      fetch(
-        `${SUPABASE_URL}/rest/v1/users?select=id&trial_ends_at=gte.${today}`,
-        { headers: getHeaders },
-      ),
-    ]);
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head>
+<body style="margin:0;padding:0;background:#0a0a0f;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0f;padding:40px 20px;"><tr><td align="center">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:580px;">
 
-    const prem  = premRes.ok  ? (await premRes.json())  : [];
-    const trial = trialRes.ok ? (await trialRes.json()) : [];
-    const seen  = new Set();
-    users = [...prem, ...trial].filter(u => {
-      if (seen.has(u.id)) return false;
-      seen.add(u.id);
-      return true;
-    });
-  } catch (err) {
-    logFail(`[playbooks] Cannot fetch users: ${err.message}`);
-    return;
-  }
+  <tr><td style="padding-bottom:20px;">
+    <table width="100%" cellpadding="0" cellspacing="0"><tr>
+      <td><span style="font-size:20px;font-weight:700;color:#00d4aa;font-family:'Courier New',monospace;">Fold</span></td>
+      <td align="right"><span style="font-size:11px;color:#4a4a6a;font-family:'Courier New',monospace;">WEEKLY PLAYBOOKS</span></td>
+    </tr></table>
+  </td></tr>
 
-  if (!users.length) {
-    log('[playbooks] No premium users found — skipping');
-    return;
-  }
+  <tr><td style="background:#12121a;border:1px solid #1e1e2e;border-radius:12px;padding:24px 28px;">
+    <table width="100%" cellpadding="0" cellspacing="0"><tr>
+      <td>
+        <p style="margin:0 0 4px;font-size:11px;color:#4a4a6a;text-transform:uppercase;letter-spacing:1px;font-family:'Courier New',monospace;">Business Health</p>
+        <p style="margin:0;font-size:13px;color:#c0c0d8;line-height:1.6;">${summary}</p>
+      </td>
+      <td align="right" style="padding-left:20px;white-space:nowrap;">
+        <span style="font-size:36px;font-weight:700;color:${scoreColor};font-family:'Courier New',monospace;">${healthScore}</span>
+        <p style="margin:0;font-size:11px;color:${scoreColor};text-align:right;font-family:'Courier New',monospace;">${healthLabel}</p>
+      </td>
+    </tr></table>
+  </td></tr>
 
-  log(`[playbooks] Generating playbooks for ${users.length} user(s)…`);
-  let ok = 0, skipped = 0, failed = 0;
+  <tr><td style="height:20px;"></td></tr>
 
-  for (const { id: uid } of users) {
-    try {
-      // ── 2. Fetch 30d snapshots ──────────────────────────────────────────
-      const cutoff30 = daysAgo(30);
-      const cutoff7  = daysAgo(7);
-      const getHeaders = { apikey: SB.headers.apikey, Authorization: SB.headers.Authorization };
+  <tr><td>
+    <p style="margin:0 0 10px;font-size:12px;font-weight:600;color:#4a4a6a;text-transform:uppercase;letter-spacing:1px;font-family:'Courier New',monospace;">${playbooks.length} action plan${playbooks.length !== 1 ? 's' : ''} this week</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#12121a;border:1px solid #1e1e2e;border-radius:12px;overflow:hidden;">${rows}</table>
+  </td></tr>
 
-      const snapRes = await fetchRetry(
-        `[playbooks] snapshots ${uid.slice(0, 8)}`,
-        `${SUPABASE_URL}/rest/v1/daily_snapshots?` +
-          new URLSearchParams({
-            select:  'provider,date,data',
-            user_id: `eq.${uid}`,
-            date:    `gte.${cutoff30}`,
-            order:   'date.desc',
-          }),
-        { headers: getHeaders },
-      );
-      const snaps = snapRes.ok ? (await snapRes.json()) : [];
+  <tr><td style="height:24px;"></td></tr>
 
-      if (snaps.length < 7) {
-        skipped++;
-        continue; // not enough history yet
-      }
+  <tr><td align="center">
+    <a href="${appUrl}/dashboard?tab=playbooks" style="display:inline-block;background:#00d4aa;color:#0a0a0f;font-size:14px;font-weight:700;padding:14px 32px;border-radius:10px;text-decoration:none;">View Full Playbooks →</a>
+  </td></tr>
 
-      // ── 3. Fetch integrations list ────────────────────────────────────
-      const intRes = await fetchRetry(
-        `[playbooks] integrations ${uid.slice(0, 8)}`,
-        `${SUPABASE_URL}/rest/v1/integrations?` +
-          new URLSearchParams({ select: 'platform', user_id: `eq.${uid}` }),
-        { headers: getHeaders },
-      );
-      const integrations   = intRes.ok ? (await intRes.json()) : [];
-      const connectedPlatforms = integrations.map(i => i.platform);
+  <tr><td style="height:28px;border-top:1px solid #1e1e2e;padding-top:16px;margin-top:28px;">
+    <p style="margin:0;font-size:11px;color:#4a4a6a;text-align:center;">
+      Fold AI · <a href="${appUrl}/dashboard?tab=settings" style="color:#4a4a6a;">Manage notifications</a>
+    </p>
+  </td></tr>
 
-      // ── 4. Compute aggregates ─────────────────────────────────────────
-      const REVENUE_PROVIDERS  = ['stripe', 'shopify', 'woocommerce', 'gumroad', 'lemon-squeezy', 'paddle', 'paypal'];
-      const ANALYTICS_PROVIDERS = ['ga4', 'plausible', 'posthog', 'fathom', 'amplitude', 'heap'];
-      const ADS_PROVIDERS      = ['meta', 'google-ads', 'tiktok-ads', 'twitter-ads', 'linkedin-ads'];
-
-      const snaps7  = snaps.filter(s => s.date >= cutoff7);
-      const snaps30 = snaps;
-
-      const sumP = (arr, providers, field) =>
-        arr.filter(s => providers.includes(s.provider))
-           .reduce((a, s) => a + (s.data?.[field] ?? 0), 0);
-      const sumS = (arr, provider, field) =>
-        arr.filter(s => s.provider === provider)
-           .reduce((a, s) => a + (s.data?.[field] ?? 0), 0);
-      const avgS = (arr, provider, field) => {
-        const rows = arr.filter(s => s.provider === provider && (s.data?.[field] ?? 0) > 0);
-        return rows.length ? rows.reduce((a, s) => a + s.data[field], 0) / rows.length : 0;
-      };
-      const latestS = (arr, provider, field) => {
-        const rows = arr.filter(s => s.provider === provider && (s.data?.[field] ?? 0) != null);
-        return rows.length ? (rows[0].data?.[field] ?? 0) : 0;
-      };
-
-      // Primary analytics platform (most days of data)
-      const anCounts = {};
-      for (const s of snaps) {
-        if (!ANALYTICS_PROVIDERS.includes(s.provider)) continue;
-        if (Object.values(s.data ?? {}).some(v => v > 0)) anCounts[s.provider] = (anCounts[s.provider] ?? 0) + 1;
-      }
-      const primaryAn = Object.keys(anCounts).sort((a, b) => (anCounts[b] ?? 0) - (anCounts[a] ?? 0))[0] ?? null;
-
-      const rev7    = sumP(snaps7, REVENUE_PROVIDERS, 'revenue');
-      const rev30   = sumP(snaps30, REVENUE_PROVIDERS, 'revenue');
-      const spend7  = sumP(snaps7, ADS_PROVIDERS, 'spend');
-      const spend30 = sumP(snaps30, ADS_PROVIDERS, 'spend');
-      const newCx7  = sumP(snaps7, REVENUE_PROVIDERS, 'newCustomers');
-      const newCx30 = sumP(snaps30, REVENUE_PROVIDERS, 'newCustomers');
-      const churned30 = sumP(snaps30, REVENUE_PROVIDERS, 'churnedToday');
-      const refunds30 = sumP(snaps30, REVENUE_PROVIDERS, 'refunds');
-      const sess7   = primaryAn ? sumS(snaps7, primaryAn, 'sessions') : 0;
-      const sess30  = primaryAn ? sumS(snaps30, primaryAn, 'sessions') : 0;
-      const currentMRR  = latestS(snaps, 'stripe', 'mrr');
-      const activeSubs  = latestS(snaps, 'stripe', 'activeSubscriptions');
-      const arpu        = latestS(snaps, 'stripe', 'arpu');
-      const bounce30    = primaryAn ? avgS(snaps30, primaryAn, 'bounceRate') : 0;
-
-      // Meta derived
-      const metaSpend30 = sumS(snaps30, 'meta', 'spend');
-      const metaClicks30 = sumS(snaps30, 'meta', 'clicks');
-      const metaImpr30   = sumS(snaps30, 'meta', 'impressions');
-      const cpc30  = metaClicks30 > 0 ? metaSpend30 / metaClicks30 : 0;
-      const ctr30  = metaImpr30   > 0 ? metaClicks30 / metaImpr30  : 0;
-
-      // Email derived
-      const emailPlatform = connectedPlatforms.find(p => ['mailchimp','klaviyo','beehiiv'].includes(p));
-      const emailSent30 = emailPlatform ? sumS(snaps30, emailPlatform, 'emailsSent') : 0;
-      const emailOpens30 = emailPlatform ? sumS(snaps30, emailPlatform, 'opens') : 0;
-      const emailClicks30 = emailPlatform ? sumS(snaps30, emailPlatform, 'clicks') : 0;
-      const openRate30  = emailSent30 > 0 ? emailOpens30 / emailSent30 : 0;
-      const clickRate30 = emailSent30 > 0 ? emailClicks30 / emailSent30 : 0;
-
-      const churnRate = activeSubs > 0 ? churned30 / activeSubs : 0;
-      const cac30     = newCx30 > 0 && spend30 > 0 ? spend30 / newCx30 : 0;
-      const convRate  = sess30 > 0 && newCx30 > 0  ? newCx30 / sess30  : 0;
-
-      const fmtUSD = (cents) => `$${(cents / 100).toFixed(2)}`;
-
-      // ── 5. Fetch website profile ──────────────────────────────────────
-      let website = null;
-      try {
-        const wRes = await fetch(
-          `${SUPABASE_URL}/rest/v1/website_profiles?` +
-            new URLSearchParams({ select: 'url,score,description', user_id: `eq.${uid}` }),
-          { headers: getHeaders },
-        );
-        const wRows = wRes.ok ? (await wRes.json()) : [];
-        website = wRows[0] ?? null;
-      } catch (_) { /* optional */ }
-
-      // ── 6. Build data context string ──────────────────────────────────
-      const dataContext = [
-        `TODAY: ${today}`,
-        `CONNECTED PLATFORMS: ${connectedPlatforms.join(', ') || 'none'}`,
-        '',
-        '=== REVENUE (last 30d) ===',
-        `Revenue 7d: ${fmtUSD(rev7)} | Revenue 30d: ${fmtUSD(rev30)}`,
-        `MRR: ${fmtUSD(currentMRR)}/month`,
-        `Active subscriptions: ${activeSubs} | ARPU: ${fmtUSD(arpu)}/month`,
-        `New customers 7d: ${newCx7} | 30d: ${newCx30}`,
-        `Churned (30d): ${churned30} | Monthly churn rate: ${churnRate > 0 ? (churnRate * 100).toFixed(2) + '%' : 'N/A'}`,
-        `Refunds (30d): ${fmtUSD(refunds30)}`,
-        `CAC (30d): ${cac30 > 0 ? '$' + cac30.toFixed(2) : 'N/A'}`,
-        '',
-        `=== TRAFFIC (via ${primaryAn ?? 'no analytics connected'}) ===`,
-        `Sessions 7d: ${sess7} | 30d: ${sess30}`,
-        `Avg bounce rate (30d): ${bounce30 > 0 ? bounce30.toFixed(1) + '%' : 'N/A'}`,
-        `Conversion rate (30d): ${convRate > 0 ? (convRate * 100).toFixed(2) + '%' : 'N/A'}`,
-        '',
-        '=== PAID ADS ===',
-        `Ad spend 7d: $${spend7.toFixed(2)} | 30d: $${spend30.toFixed(2)}`,
-        `30d CPC: ${cpc30 > 0 ? '$' + cpc30.toFixed(2) : 'N/A'}`,
-        `30d CTR: ${ctr30 > 0 ? (ctr30 * 100).toFixed(2) + '%' : 'N/A'}`,
-        '',
-        '=== EMAIL MARKETING ===',
-        `Platform: ${emailPlatform ?? 'none'}`,
-        `Open rate (30d): ${openRate30 > 0 ? (openRate30 * 100).toFixed(1) + '%' : 'N/A'}`,
-        `Click rate (30d): ${clickRate30 > 0 ? (clickRate30 * 100).toFixed(1) + '%' : 'N/A'}`,
-        '',
-        '=== WEBSITE ===',
-        `URL: ${website?.url ?? 'Not set'}`,
-        `Health score: ${website?.score ?? 'N/A'}/100`,
-      ].join('\n');
-
-      // ── 7. Call Anthropic ─────────────────────────────────────────────
-      const aiRes = await fetchRetry(
-        `[playbooks] Anthropic ${uid.slice(0, 8)}`,
-        'https://api.anthropic.com/v1/messages',
-        {
-          method: 'POST',
-          headers: {
-            'x-api-key':         ANTHROPIC_KEY,
-            'anthropic-version': '2023-06-01',
-            'content-type':      'application/json',
-          },
-          body: JSON.stringify({
-            model:      'claude-opus-4-5',
-            max_tokens: 4096,
-            system: `You are an elite growth advisor with deep expertise in SaaS, DTC e-commerce, paid ads, email marketing, and SEO. You have access to a founder's REAL live business data. Your job is to generate a set of highly specific, personalized Fix-It Playbooks.
-
-RULES:
-- Every playbook MUST reference the founder's specific numbers.
-- Only generate playbooks for problems ACTUALLY visible in their data.
-- Be brutally specific with steps.
-- Severity: critical = costing money NOW, warning = will compound, opportunity = amplify a win.
-- Generate 4–8 playbooks only when genuinely warranted.
-- If no data yet (no platforms connected), generate 2–3 starter playbooks.
-
-PROOF CHARTS — include "chartSpec" for every playbook where the problem shows as a time-series trend.
-AVAILABLE METRICS ONLY (use exact keys — no others will resolve):
-  meta      → spend (usd), cpc (usd), ctr (percent_decimal)
-  ga4       → sessions (number), bounceRate (percent_decimal)
-  stripe    → revenue (usd_cents), newCustomers (number)
-  mailchimp / klaviyo → openRate (percent_decimal), clickRate (percent_decimal)
-If no matching metric exists, omit chartSpec entirely.
-
-STEP LINKS — add "link" on steps where a specific external URL would help (Meta Ads Manager, GA4, Stripe dashboard, etc.).
-
-OUTPUT: Respond ONLY with valid JSON — no markdown fences, no commentary.
-
-{
-  "healthScore": <0-100>,
-  "healthLabel": "<Healthy | Needs Work | At Risk>",
-  "summary": "<2-3 sentences about the most important thing happening right now>",
-  "playbooks": [
-    {
-      "id": "<slug>",
-      "title": "<concise title>",
-      "problem": "<1 sentence with actual numbers>",
-      "impact": "<1-2 sentences business cost>",
-      "category": "<paid-ads | revenue | retention | conversion | email | seo | ecommerce>",
-      "severity": "<critical | warning | opportunity>",
-      "expectedGain": "<specific improvement e.g. '20-35% lower CPC'>",
-      "triggeredBy": [{ "label": "<metric>", "value": "<actual>", "benchmark": "<target>" }],
-      "chartSpec": { "provider": "<provider>", "metric": "<exact-key>", "unit": "<unit>", "title": "<chart title>", "benchmark": <number>, "benchmarkLabel": "<label>" },
-      "steps": [{ "action": "<imperative>", "detail": "<how+why with numbers>", "link": { "label": "<short label>", "url": "<https://...>" } }]
-    }
-  ]
-}`,
-            messages: [
-              {
-                role: 'user',
-                content: `Generate personalized Fix-It Playbooks for this business. Rank by severity (critical first):\n\n${dataContext}`,
-              },
-            ],
-          }),
-        },
-      );
-
-      if (!aiRes.ok) {
-        const errText = await aiRes.text().catch(() => '');
-        throw new Error(`Anthropic ${aiRes.status}: ${errText.slice(0, 200)}`);
-      }
-
-      const aiJson = await aiRes.json();
-      let raw = (aiJson.content?.[0]?.text ?? '').trim();
-      raw = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
-      const jsonMatch = raw.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error('No JSON in Anthropic response');
-      const parsed = JSON.parse(jsonMatch[0]);
-
-      // ── 8. Hydrate chartSpec → chart with real time-series points ────
-      // Derive computed fields (cpc, ctr, openRate, clickRate) per snapshot day
-      const snapsAsc = [...snaps].sort((a, b) => a.date.localeCompare(b.date));
-      const derived  = snapsAsc.map(s => {
-        const d = { ...(s.data ?? {}) };
-        if (s.provider === 'meta') {
-          if (d.clicks > 0)      d.cpc = d.spend / d.clicks;
-          if (d.impressions > 0) d.ctr = d.clicks / d.impressions;
-        }
-        if (s.provider === 'mailchimp' || s.provider === 'klaviyo') {
-          if (d.emailsSent > 0) {
-            d.openRate  = d.opens  / d.emailsSent;
-            d.clickRate = d.clicks / d.emailsSent;
-          }
-        }
-        return { provider: s.provider, date: s.date, data: d };
-      });
-
-      for (const pb of parsed.playbooks ?? []) {
-        const spec = pb.chartSpec;
-        if (!spec?.provider || !spec?.metric) { delete pb.chartSpec; continue; }
-
-        const points = derived
-          .filter(s => s.provider === spec.provider)
-          .map(s => ({ date: s.date, value: s.data[spec.metric] ?? 0 }))
-          .filter(p => p.value > 0);
-
-        if (points.length >= 3) {
-          pb.chart = {
-            title: spec.title,
-            unit:  spec.unit,
-            benchmark: spec.benchmark,
-            benchmarkLabel: spec.benchmarkLabel,
-            points,
-          };
-        }
-        delete pb.chartSpec;
-      }
-
-      // ── 9. Upsert into ai_playbooks_cache ────────────────────────────
-      const payload = {
-        playbooks:    parsed.playbooks ?? [],
-        healthScore:  parsed.healthScore ?? 50,
-        healthLabel:  parsed.healthLabel ?? 'Needs Work',
-        summary:      parsed.summary ?? '',
-        generatedAt:  new Date().toISOString(),
-      };
-
-      await SB.upsert(
-        'ai_playbooks_cache',
-        { user_id: uid, payload, generated_at: payload.generatedAt },
-        'user_id',
-      );
-
-      logOk(`[playbooks] Done for ${uid.slice(0, 8)} — ${payload.playbooks.length} playbooks, score=${payload.healthScore}`);
-      ok++;
-    } catch (err) {
-      logFail(`[playbooks] Failed for ${uid.slice(0, 8)}: ${err.message}`);
-      failed++;
-    }
-  }
-
-  log(`[playbooks] Complete — ${ok} generated, ${skipped} skipped (insufficient data), ${failed} failed`);
+</table></td></tr></table>
+</body></html>`;
 }
 
+async function sendPlaybooksEmail(toEmail, payload) {
+  if (!RESEND_KEY) { logWarn('[playbooks-email] RESEND_API_KEY not set — skipping'); return; }
+  const appUrl = g('NEXT_PUBLIC_APP_URL') || 'https://usefold.io';
+  const html   = buildPlaybooksEmailHtml(payload, appUrl);
+  try {
+    const res = await fetchRetry('Resend playbooks email', 'https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from:    FROM_PLAYBOOKS,
+        to:      [toEmail],
+        subject: `📋 Your ${payload.playbooks?.length ?? 0} weekly AI playbooks are ready`,
+        html,
+      }),
+    });
+    if (res.ok) {
+      logOk(`[playbooks-email] Sent to ${toEmail}`);
+    } else {
+      const t = await res.text().catch(() => '');
+      logFail(`[playbooks-email] Resend ${res.status}: ${t.slice(0, 120)}`);
+    }
+  } catch (err) {
+    logFail(`[playbooks-email] ${err.message}`);
+  }
+}
+
+// ─── Single-user generator (called by both batch and HTTP trigger) ────────────
+
+async function generatePlaybooksForUser(uid) {
+  const today    = new Date().toISOString().slice(0, 10);
+  const cutoff30 = daysAgo(30);
+  const cutoff7  = daysAgo(7);
+  const getHeaders = { apikey: SB.headers.apikey, Authorization: SB.headers.Authorization };
+
+  try {
+    const snapRes = await fetchRetry(
+      `[playbooks] snapshots ${uid.slice(0, 8)}`,
+      `${SUPABASE_URL}/rest/v1/daily_snapshots?` +
+        new URLSearchParams({ select: 'provider,date,data', user_id: `eq.${uid}`, date: `gte.${cutoff30}`, order: 'date.desc' }),
+      { headers: getHeaders },
+    );
+    const snaps = snapRes.ok ? (await snapRes.json()) : [];
+
+    if (snaps.length < 7) {
+      logWarn(`[playbooks] Skipping ${uid.slice(0, 8)} — only ${snaps.length} days of data`);
+      return null;
+    }
+
+    const intRes = await fetchRetry(
+      `[playbooks] integrations ${uid.slice(0, 8)}`,
+      `${SUPABASE_URL}/rest/v1/integrations?` + new URLSearchParams({ select: 'platform', user_id: `eq.${uid}` }),
+      { headers: getHeaders },
+    );
+    const connectedPlatforms = (intRes.ok ? (await intRes.json()) : []).map(i => i.platform);
+
+    const REVENUE_P   = ['stripe','shopify','woocommerce','gumroad','lemon-squeezy','paddle','paypal'];
+    const ANALYTICS_P = ['ga4','plausible','posthog','fathom','amplitude','heap'];
+    const ADS_P       = ['meta','google-ads','tiktok-ads','twitter-ads','linkedin-ads'];
+
+    const snaps7  = snaps.filter(s => s.date >= cutoff7);
+    const snaps30 = snaps;
+    const sumP = (arr, providers, field) =>
+      arr.filter(s => providers.includes(s.provider)).reduce((a, s) => a + (s.data?.[field] ?? 0), 0);
+    const sumS = (arr, provider, field) =>
+      arr.filter(s => s.provider === provider).reduce((a, s) => a + (s.data?.[field] ?? 0), 0);
+    const avgS = (arr, provider, field) => {
+      const rows = arr.filter(s => s.provider === provider && (s.data?.[field] ?? 0) > 0);
+      return rows.length ? rows.reduce((a, s) => a + s.data[field], 0) / rows.length : 0;
+    };
+    const latestS = (arr, provider, field) => {
+      const rows = arr.filter(s => s.provider === provider && (s.data?.[field] ?? 0) != null);
+      return rows.length ? (rows[0].data?.[field] ?? 0) : 0;
+    };
+
+    const anCounts = {};
+    for (const s of snaps) {
+      if (!ANALYTICS_P.includes(s.provider)) continue;
+      if (Object.values(s.data ?? {}).some(v => v > 0)) anCounts[s.provider] = (anCounts[s.provider] ?? 0) + 1;
+    }
+    const primaryAn = Object.keys(anCounts).sort((a, b) => (anCounts[b] ?? 0) - (anCounts[a] ?? 0))[0] ?? null;
+
+    const rev7    = sumP(snaps7, REVENUE_P, 'revenue');
+    const rev30   = sumP(snaps30, REVENUE_P, 'revenue');
+    const spend7  = sumP(snaps7, ADS_P, 'spend');
+    const spend30 = sumP(snaps30, ADS_P, 'spend');
+    const newCx7  = sumP(snaps7, REVENUE_P, 'newCustomers');
+    const newCx30 = sumP(snaps30, REVENUE_P, 'newCustomers');
+    const churned30 = sumP(snaps30, REVENUE_P, 'churnedToday');
+    const refunds30 = sumP(snaps30, REVENUE_P, 'refunds');
+    const sess7   = primaryAn ? sumS(snaps7, primaryAn, 'sessions') : 0;
+    const sess30  = primaryAn ? sumS(snaps30, primaryAn, 'sessions') : 0;
+    const currentMRR = latestS(snaps, 'stripe', 'mrr');
+    const activeSubs = latestS(snaps, 'stripe', 'activeSubscriptions');
+    const arpu       = latestS(snaps, 'stripe', 'arpu');
+    const bounce30   = primaryAn ? avgS(snaps30, primaryAn, 'bounceRate') : 0;
+    const metaClicks30 = sumS(snaps30, 'meta', 'clicks');
+    const metaImpr30   = sumS(snaps30, 'meta', 'impressions');
+    const cpc30  = metaClicks30 > 0 ? sumS(snaps30, 'meta', 'spend') / metaClicks30 : 0;
+    const ctr30  = metaImpr30   > 0 ? metaClicks30 / metaImpr30 : 0;
+    const emailPlatform = connectedPlatforms.find(p => ['mailchimp','klaviyo','beehiiv'].includes(p));
+    const emailSent30   = emailPlatform ? sumS(snaps30, emailPlatform, 'emailsSent') : 0;
+    const openRate30    = emailSent30 > 0 ? sumS(snaps30, emailPlatform, 'opens') / emailSent30 : 0;
+    const clickRate30   = emailSent30 > 0 ? sumS(snaps30, emailPlatform, 'clicks') / emailSent30 : 0;
+    const churnRate = activeSubs > 0 ? churned30 / activeSubs : 0;
+    const cac30     = newCx30 > 0 && spend30 > 0 ? spend30 / newCx30 : 0;
+    const convRate  = sess30  > 0 && newCx30 > 0  ? newCx30 / sess30  : 0;
+    const fmtUSD = (cents) => `$${(cents / 100).toFixed(2)}`;
+
+    let website = null;
+    try {
+      const wRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/website_profiles?` + new URLSearchParams({ select: 'url,score,description', user_id: `eq.${uid}` }),
+        { headers: getHeaders },
+      );
+      const wRows = wRes.ok ? (await wRes.json()) : [];
+      website = wRows[0] ?? null;
+    } catch (_) { /* optional */ }
+
+    const dataContext = [
+      `TODAY: ${today}`,
+      `CONNECTED PLATFORMS: ${connectedPlatforms.join(', ') || 'none'}`,
+      '',
+      '=== REVENUE (last 30d) ===',
+      `Revenue 7d: ${fmtUSD(rev7)} | Revenue 30d: ${fmtUSD(rev30)}`,
+      `MRR: ${fmtUSD(currentMRR)}/month`,
+      `Active subscriptions: ${activeSubs} | ARPU: ${fmtUSD(arpu)}/month`,
+      `New customers 7d: ${newCx7} | 30d: ${newCx30}`,
+      `Churned (30d): ${churned30} | Churn rate: ${churnRate > 0 ? (churnRate * 100).toFixed(2) + '%' : 'N/A'}`,
+      `Refunds (30d): ${fmtUSD(refunds30)}`,
+      `CAC (30d): ${cac30 > 0 ? '$' + cac30.toFixed(2) : 'N/A'}`,
+      '',
+      `=== TRAFFIC (via ${primaryAn ?? 'no analytics connected'}) ===`,
+      `Sessions 7d: ${sess7} | 30d: ${sess30}`,
+      `Avg bounce rate (30d): ${bounce30 > 0 ? bounce30.toFixed(1) + '%' : 'N/A'}`,
+      `Conversion rate (30d): ${convRate > 0 ? (convRate * 100).toFixed(2) + '%' : 'N/A'}`,
+      '',
+      '=== PAID ADS ===',
+      `Ad spend 7d: $${spend7.toFixed(2)} | 30d: $${spend30.toFixed(2)}`,
+      `30d CPC: ${cpc30 > 0 ? '$' + cpc30.toFixed(2) : 'N/A'}`,
+      `30d CTR: ${ctr30 > 0 ? (ctr30 * 100).toFixed(2) + '%' : 'N/A'}`,
+      '',
+      '=== EMAIL MARKETING ===',
+      `Platform: ${emailPlatform ?? 'none'}`,
+      `Open rate (30d): ${openRate30 > 0 ? (openRate30 * 100).toFixed(1) + '%' : 'N/A'}`,
+      `Click rate (30d): ${clickRate30 > 0 ? (clickRate30 * 100).toFixed(1) + '%' : 'N/A'}`,
+      '',
+      '=== WEBSITE ===',
+      `URL: ${website?.url ?? 'Not set'}`,
+      `Health score: ${website?.score ?? 'N/A'}/100`,
+    ].join('\n');
+
+    const aiRes = await fetchRetry(
+      `[playbooks] Anthropic ${uid.slice(0, 8)}`,
+      'https://api.anthropic.com/v1/messages',
+      {
+        method: 'POST',
+        headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+        body: JSON.stringify({
+          model:      'claude-opus-4-5',
+          max_tokens: 4096,
+          system: `You are an elite growth advisor. Generate specific, personalized Fix-It Playbooks from the founder's REAL data.
+RULES: Reference actual numbers. Only flag problems visible in data. Be specific. Generate 4–8 playbooks.
+PROOF CHARTS (chartSpec) — use ONLY these exact keys:
+  meta → spend (usd), cpc (usd), ctr (percent_decimal)
+  ga4  → sessions (number), bounceRate (percent_decimal)
+  stripe → revenue (usd_cents), newCustomers (number)
+  mailchimp/klaviyo → openRate (percent_decimal), clickRate (percent_decimal)
+OUTPUT: valid JSON only, no markdown fences.
+{"healthScore":<0-100>,"healthLabel":"<Healthy|Needs Work|At Risk>","summary":"<2-3 sentences>","playbooks":[{"id":"<slug>","title":"<title>","problem":"<1 sentence with numbers>","impact":"<business cost>","category":"<paid-ads|revenue|retention|conversion|email|seo|ecommerce>","severity":"<critical|warning|opportunity>","expectedGain":"<specific gain>","triggeredBy":[{"label":"<metric>","value":"<actual>","benchmark":"<target>"}],"chartSpec":{"provider":"<p>","metric":"<key>","unit":"<unit>","title":"<title>","benchmark":<n>,"benchmarkLabel":"<label>"},"steps":[{"action":"<imperative>","detail":"<how+why+numbers>","link":{"label":"<label>","url":"<url>"}}]}]}`,
+          messages: [{ role: 'user', content: `Generate Fix-It Playbooks (critical first):\n\n${dataContext}` }],
+        }),
+      },
+    );
+
+    if (!aiRes.ok) {
+      const errText = await aiRes.text().catch(() => '');
+      throw new Error(`Anthropic ${aiRes.status}: ${errText.slice(0, 200)}`);
+    }
+
+    const aiJson = await aiRes.json();
+    let raw = (aiJson.content?.[0]?.text ?? '').trim();
+    raw = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No JSON in Anthropic response');
+    const parsed = JSON.parse(jsonMatch[0]);
+
+    // Hydrate chartSpec → chart
+    const derived = [...snaps].sort((a, b) => a.date.localeCompare(b.date)).map(s => {
+      const d = { ...(s.data ?? {}) };
+      if (s.provider === 'meta') {
+        if (d.clicks > 0)      d.cpc = d.spend / d.clicks;
+        if (d.impressions > 0) d.ctr = d.clicks / d.impressions;
+      }
+      if (s.provider === 'mailchimp' || s.provider === 'klaviyo') {
+        if (d.emailsSent > 0) { d.openRate = d.opens / d.emailsSent; d.clickRate = d.clicks / d.emailsSent; }
+      }
+      return { provider: s.provider, date: s.date, data: d };
+    });
+
+    for (const pb of parsed.playbooks ?? []) {
+      const spec = pb.chartSpec;
+      if (!spec?.provider || !spec?.metric) { delete pb.chartSpec; continue; }
+      const points = derived
+        .filter(s => s.provider === spec.provider)
+        .map(s => ({ date: s.date, value: s.data[spec.metric] ?? 0 }))
+        .filter(p => p.value > 0);
+      if (points.length >= 3) {
+        pb.chart = { title: spec.title, unit: spec.unit, benchmark: spec.benchmark, benchmarkLabel: spec.benchmarkLabel, points };
+      }
+      delete pb.chartSpec;
+    }
+
+    const payload = {
+      playbooks:   parsed.playbooks ?? [],
+      healthScore: parsed.healthScore ?? 50,
+      healthLabel: parsed.healthLabel ?? 'Needs Work',
+      summary:     parsed.summary ?? '',
+      generatedAt: new Date().toISOString(),
+    };
+
+    await SB.upsert('ai_playbooks_cache', { user_id: uid, payload, generated_at: payload.generatedAt }, 'user_id');
+    logOk(`[playbooks] Done for ${uid.slice(0, 8)} — ${payload.playbooks.length} playbooks, score=${payload.healthScore}`);
+    return payload;
+
+  } catch (err) {
+    logFail(`[playbooks] Failed for ${uid.slice(0, 8)}: ${err.message}`);
+    return null;
+  }
+}
+
+// ─── Nightly batch (no email) ─────────────────────────────────────────────────
+
+async function generateAllPlaybooks() {
+  if (!ANTHROPIC_KEY) { logWarn('[playbooks] ANTHROPIC_API_KEY not set — skipping'); return; }
+  const today = new Date().toISOString().slice(0, 10);
+  log(`[playbooks] Starting nightly generation — ${today}`);
+
+  const getHeaders = { apikey: SB.headers.apikey, Authorization: SB.headers.Authorization };
+  let users;
+  try {
+    const [premRes, trialRes] = await Promise.all([
+      fetch(`${SUPABASE_URL}/rest/v1/users?select=id&subscription_status=eq.active`, { headers: getHeaders }),
+      fetch(`${SUPABASE_URL}/rest/v1/users?select=id&trial_ends_at=gte.${today}`, { headers: getHeaders }),
+    ]);
+    const prem  = premRes.ok  ? (await premRes.json()) : [];
+    const trial = trialRes.ok ? (await trialRes.json()) : [];
+    const seen  = new Set();
+    users = [...prem, ...trial].filter(u => { if (seen.has(u.id)) return false; seen.add(u.id); return true; });
+  } catch (err) { logFail(`[playbooks] Cannot fetch users: ${err.message}`); return; }
+
+  if (!users.length) { log('[playbooks] No premium users — skipping'); return; }
+  log(`[playbooks] Generating for ${users.length} user(s)…`);
+
+  let ok = 0, skipped = 0;
+  for (const { id: uid } of users) {
+    const r = await generatePlaybooksForUser(uid);
+    r ? ok++ : skipped++;
+    await sleep(USER_DELAY_MS);
+  }
+  log(`[playbooks] Complete — ${ok} generated, ${skipped} skipped/failed`);
+}
+
+// ─── Weekly batch with email ──────────────────────────────────────────────────
+
+async function sendWeeklyPlaybooksEmails() {
+  if (!ANTHROPIC_KEY) { logWarn('[playbooks-weekly] ANTHROPIC_API_KEY not set — skipping'); return; }
+  const today = new Date().toISOString().slice(0, 10);
+  log(`[playbooks-weekly] Starting weekly playbooks + email — ${today}`);
+
+  const getHeaders = { apikey: SB.headers.apikey, Authorization: SB.headers.Authorization };
+  let users;
+  try {
+    const [premRes, trialRes] = await Promise.all([
+      fetch(`${SUPABASE_URL}/rest/v1/users?select=id,email&subscription_status=eq.active`, { headers: getHeaders }),
+      fetch(`${SUPABASE_URL}/rest/v1/users?select=id,email&trial_ends_at=gte.${today}`, { headers: getHeaders }),
+    ]);
+    const prem  = premRes.ok  ? (await premRes.json()) : [];
+    const trial = trialRes.ok ? (await trialRes.json()) : [];
+    const seen  = new Set();
+    users = [...prem, ...trial].filter(u => { if (seen.has(u.id)) return false; seen.add(u.id); return true; });
+  } catch (err) { logFail(`[playbooks-weekly] Cannot fetch users: ${err.message}`); return; }
+
+  if (!users.length) { log('[playbooks-weekly] No eligible users — skipping'); return; }
+  log(`[playbooks-weekly] Processing ${users.length} user(s)…`);
+
+  let ok = 0, failed = 0;
+  for (const { id: uid, email } of users) {
+    const payload = await generatePlaybooksForUser(uid);
+    if (payload && email && RESEND_KEY) {
+      await sendPlaybooksEmail(email, payload);
+      ok++;
+    } else if (!payload) {
+      failed++;
+    }
+    await sleep(USER_DELAY_MS);
+  }
+  log(`[playbooks-weekly] Complete — ${ok} emailed, ${failed} failed/skipped`);
+}
+
+
 async function runAnomalyAlerts() {
+  if (!RESEND_KEY) {
+    logWarn('[anomaly] RESEND_API_KEY not set — skipping anomaly alert emails');
+  }
   if (!RESEND_KEY) {
     logWarn('[anomaly] RESEND_API_KEY not set — skipping anomaly alert emails');
   }
@@ -5462,14 +5487,13 @@ function startTriggerServer() {
   }
 
   const server = createServer(async (req, res) => {
-    // Only handle POST /sync-trigger
-    if (req.method !== 'POST' || req.url !== '/sync-trigger') {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Not found' }));
+    if (req.method !== 'POST') {
+      res.writeHead(405, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Method not allowed' }));
       return;
     }
 
-    // Verify secret
+    // Verify secret for all routes
     const auth = req.headers['authorization'] ?? '';
     if (auth !== `Bearer ${SYNC_SECRET}`) {
       logWarn(`[trigger] Unauthorized request from ${req.socket.remoteAddress}`);
@@ -5488,25 +5512,48 @@ function startTriggerServer() {
       return;
     }
 
-    let userId, platform, newAccountId;
-    try {
-      ({ userId, platform, newAccountId = null } = JSON.parse(body));
-      if (!userId || !platform) throw new Error('Missing userId or platform');
-    } catch (err) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: err.message }));
+    // ── POST /sync-trigger ───────────────────────────────────────────────────
+    if (req.url === '/sync-trigger') {
+      let userId, platform, newAccountId;
+      try {
+        ({ userId, platform, newAccountId = null } = JSON.parse(body));
+        if (!userId || !platform) throw new Error('Missing userId or platform');
+      } catch (err) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
+        return;
+      }
+      log(`[trigger] Received — user=${userId.slice(0, 8)} platform=${platform}${newAccountId ? ' (account change)' : ''}`);
+      res.writeHead(202, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, message: 'Backfill queued' }));
+      runBackfillForUser(userId, platform, newAccountId).catch(e =>
+        logFail(`[trigger] Unhandled error in backfill: ${e.message}`)
+      );
       return;
     }
 
-    log(`[trigger] Received — user=${userId.slice(0, 8)} platform=${platform}${newAccountId ? ' (account change)' : ''}`);
+    // ── POST /playbooks/generate ─────────────────────────────────────────────
+    if (req.url === '/playbooks/generate') {
+      let userId;
+      try {
+        ({ userId } = JSON.parse(body));
+        if (!userId) throw new Error('Missing userId');
+      } catch (err) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
+        return;
+      }
+      log(`[trigger] Playbook generation queued for user=${userId.slice(0, 8)}`);
+      res.writeHead(202, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, message: 'Playbook generation queued' }));
+      generatePlaybooksForUser(userId).catch(e =>
+        logFail(`[trigger] Unhandled error in playbook generation: ${e.message}`)
+      );
+      return;
+    }
 
-    // Respond immediately, run backfill in background
-    res.writeHead(202, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ ok: true, message: 'Backfill queued' }));
-
-    runBackfillForUser(userId, platform, newAccountId).catch(e =>
-      logFail(`[trigger] Unhandled error in backfill: ${e.message}`)
-    );
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Not found' }));
   });
 
   server.listen(TRIGGER_PORT, () => {
@@ -5578,6 +5625,13 @@ if (backfillMode) {
     await generateAllPlaybooks();
     await pingHeartbeat();
   }, 'daily-sync+alerts+anomalies+digest+playbooks');
+
+  // 4. Weekly playbook emails — every Monday at 08:00 UTC
+  scheduleDailyAt(8, async () => {
+    const dayOfWeek = new Date().getUTCDay(); // 0=Sun, 1=Mon
+    if (dayOfWeek !== 1) return; // only run on Mondays
+    await sendWeeklyPlaybooksEmails();
+  }, 'weekly-playbooks-email');
 
 } else {
   // One-shot: sync yesterday + check alerts + anomalies + goals + digests + playbooks, then exit
