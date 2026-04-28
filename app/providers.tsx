@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from "react"
+import { ThemeProvider } from "next-themes"
 
 import posthog from 'posthog-js'
 import { PostHogProvider as PHProvider } from 'posthog-js/react'
@@ -19,5 +20,13 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
     <PHProvider client={posthog}>
       {children}
     </PHProvider>
+  )
+}
+
+export function Providers({ children }: { children: React.ReactNode }) {
+  return (
+    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+      {children}
+    </ThemeProvider>
   )
 }

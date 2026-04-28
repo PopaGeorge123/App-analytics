@@ -56,6 +56,22 @@ body {
   --c-text:     #f8f8fc;
 }
 
+/* ── Light mode overrides ──────────────────────────────────────────────────── */
+html.light {
+  --c-bg:       #f4f4f8;
+  --c-surface:  #ffffff;
+  --c-card:     #f0f0f5;
+  --c-border:   #dddde8;
+  --c-borderhi: #c8c8d8;
+  --c-muted-lo: #b0b0c8;
+  --c-muted:    #7878a0;
+  --c-muted-hi: #4a4a6a;
+  --c-text-sec: #2a2a40;
+  --c-text:     #13131f;
+  --background: #f4f4f8;
+  --foreground: #13131f;
+}
+
 /* Apply lifted background globally */
 body {
   background: var(--c-bg);

@@ -2,6 +2,7 @@
 
 import { Suspense, useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import OverviewTab from "./OverviewTab";
 import AnalyticsTab from "./AnalyticsTab";
 import OnboardingModal from "./OnboardingModal";
@@ -685,11 +686,13 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
             </span>
           </div>
           {/* Bell in mobile bar */}
+          <ThemeToggle />
           <NotificationBell />
         </div>
 
-        {/* Desktop notification bell — fixed top-right of the content area */}
-        <div className="hidden lg:flex items-center justify-end px-8 pt-5 pb-0">
+        {/* Desktop notification bell + theme toggle — fixed top-right of the content area */}
+        <div className="hidden lg:flex items-center gap-2 justify-end px-8 pt-5 pb-0">
+          <ThemeToggle />
           <NotificationBell />
         </div>
 
@@ -769,6 +772,7 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
                 connectedPlatforms={connectedPlatforms}
                 snapshots={snapshots}
                 currencies={currencies}
+                isDemo={isDemo}
               />
             </TabErrorBoundary>
           )}

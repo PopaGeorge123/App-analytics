@@ -8,16 +8,6 @@ import {
 import type { Snapshot } from "./DashboardShell";
 import type { AiPlaybook, AiPlaybookChart, AiPlaybooksResponse } from "@/app/api/ai/playbooks/route";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Props
-// ─────────────────────────────────────────────────────────────────────────────
-
-interface PlaybooksTabProps {
-  isPremium: boolean;
-  connectedPlatforms: string[];
-  snapshots: Snapshot[];
-  currencies: Record<string, string>;
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Category config
@@ -34,13 +24,13 @@ type Category =
   | "retention";
 
 const CATEGORY_CONFIG: Record<Exclude<Category, "all">, { label: string; color: string }> = {
-  "paid-ads":   { label: "Paid Ads",   color: "#a78bfa" },
-  "revenue":    { label: "Revenue",    color: "#34d399" },
-  "email":      { label: "Email",      color: "#f59e0b" },
-  "seo":        { label: "SEO",        color: "#60a5fa" },
-  "ecommerce":  { label: "Ecommerce",  color: "#f472b6" },
-  "conversion": { label: "Conversion", color: "#00d4aa" },
-  "retention":  { label: "Retention",  color: "#fb923c" },
+  "paid-ads":   { label: "Paid Ads",   color: "#7a6fa8" },
+  "revenue":    { label: "Revenue",    color: "#4a7a64" },
+  "email":      { label: "Email",      color: "#8a7040" },
+  "seo":        { label: "SEO",        color: "#4a6a8a" },
+  "ecommerce":  { label: "Ecommerce",  color: "#7a5070" },
+  "conversion": { label: "Conversion", color: "#3a7878" },
+  "retention":  { label: "Retention",  color: "#7a5a3a" },
 };
 
 const categories: Category[] = ["all", "paid-ads", "revenue", "email", "seo", "ecommerce", "conversion", "retention"];
@@ -53,7 +43,7 @@ function HealthRing({ score, label }: { score: number; label: string }) {
   const r = 32;
   const circ = 2 * Math.PI * r;
   const fill = circ - (score / 100) * circ;
-  const color = score >= 75 ? "#34d399" : score >= 50 ? "#f59e0b" : "#f87171";
+  const color = score >= 75 ? "#3d8a68" : score >= 50 ? "#a07840" : "#b06060";
   return (
     <div className="relative flex h-20 w-20 items-center justify-center">
       <svg width="80" height="80" className="-rotate-90">
@@ -180,176 +170,215 @@ function ProofChart({ chart, accentColor, uid }: { chart: AiPlaybookChart; accen
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Playbook card
+// Severity config
 // ─────────────────────────────────────────────────────────────────────────────
 
 const SEV_CONFIG = {
-  critical:    { color: "#f87171", label: "Critical",    bg: "rgba(248,113,113,0.08)" },
-  warning:     { color: "#f59e0b", label: "Warning",     bg: "rgba(245,158,11,0.08)"  },
-  opportunity: { color: "#34d399", label: "Opportunity", bg: "rgba(52,211,153,0.08)"  },
+  critical:    { color: "#b06060", label: "Critical",    bg: "rgba(176,96,96,0.09)",   icon: "🔴" },
+  warning:     { color: "#a07840", label: "Warning",     bg: "rgba(160,120,64,0.09)",  icon: "🟡" },
+  opportunity: { color: "#3d8a68", label: "Opportunity", bg: "rgba(61,138,104,0.09)",  icon: "🟢" },
 };
 
-function PlaybookCard({
+// ─────────────────────────────────────────────────────────────────────────────
+// Playbook list item  (compact left-column row)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function PlaybookListItem({
   playbook,
-  isOpen,
-  onToggle,
+  isSelected,
+  onSelect,
 }: {
   playbook: AiPlaybook;
-  isOpen: boolean;
-  onToggle: () => void;
+  isSelected: boolean;
+  onSelect: () => void;
 }) {
-  const sev     = SEV_CONFIG[playbook.severity] ?? SEV_CONFIG.opportunity;
-  const catCfg  = CATEGORY_CONFIG[playbook.category as Exclude<Category, "all">];
+  const sev = SEV_CONFIG[playbook.severity] ?? SEV_CONFIG.opportunity;
+  const hasTriggered = Array.isArray(playbook.triggeredBy) && playbook.triggeredBy.length > 0;
+
+  return (
+    <button
+      onClick={onSelect}
+      className="group w-full text-left rounded-lg overflow-hidden transition-all duration-150 focus:outline-none"
+      style={{
+        background: isSelected ? "#18182a" : "transparent",
+        border: `1px solid ${isSelected ? "#2a2a40" : "transparent"}`,
+      }}
+    >
+      <div className="flex items-stretch">
+        {/* Left severity bar */}
+        <div
+          className="w-0.5 shrink-0 rounded-l-lg"
+          style={{ background: sev.color, opacity: isSelected ? 0.8 : 0.25 }}
+        />
+
+        <div className="flex-1 px-3 py-2.5 min-w-0 flex items-center gap-2">
+          {/* Live dot */}
+          {hasTriggered && (
+            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-red-400/50 animate-pulse" />
+          )}
+          {/* Title */}
+          <p
+            className="text-xs leading-snug line-clamp-2 transition-colors"
+            style={{ color: isSelected ? "#c8cfe0" : "#5a6070" }}
+          >
+            {playbook.title}
+          </p>
+        </div>
+      </div>
+    </button>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Playbook detail  (inline right-side panel)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function PlaybookDetail({ playbook }: { playbook: AiPlaybook }) {
+  const sev      = SEV_CONFIG[playbook.severity] ?? SEV_CONFIG.opportunity;
+  const catCfg   = CATEGORY_CONFIG[playbook.category as Exclude<Category, "all">];
   const catColor = catCfg?.color ?? "#8b8ba8";
   const catLabel = catCfg?.label ?? playbook.category;
   const hasTriggered = Array.isArray(playbook.triggeredBy) && playbook.triggeredBy.length > 0;
 
   return (
     <div
-      className="rounded-2xl overflow-hidden transition-all duration-200"
+      key={playbook.id}
+      className="h-full flex flex-col overflow-hidden rounded-2xl"
       style={{
-        background: isOpen ? "#1a1a2e" : "#16162a",
-        border: `1px solid ${isOpen ? sev.color + "35" : "#2a2a3e"}`,
+        background: "#0f0f1c",
+        border: `1px solid ${sev.color}25`,
       }}
     >
-      {/* Severity stripe */}
-      <div className="h-0.5 w-full" style={{ background: sev.color, opacity: 0.7 }} />
+      {/* Top accent bar */}
+      <div className="h-0.5 w-full shrink-0" style={{ background: sev.color }} />
 
-      {/* Header button */}
-      <button className="flex w-full items-start gap-4 px-5 py-4 text-left" onClick={onToggle}>
-        {/* Left: severity dot */}
-        <div className="mt-1.5 shrink-0">
-          <div
-            className="h-2.5 w-2.5 rounded-full"
-            style={{ backgroundColor: sev.color, boxShadow: `0 0 8px ${sev.color}60` }}
-          />
-        </div>
-
-        {/* Middle: text */}
-        <div className="flex-1 min-w-0">
-          {/* Badges row */}
-          <div className="flex flex-wrap items-center gap-2 mb-2">
-            <span
-              className="rounded-md px-2 py-0.5 text-[11px] font-semibold"
-              style={{ background: sev.bg, color: sev.color }}
-            >
-              {sev.label}
-            </span>
-            <span
-              className="rounded-md px-2 py-0.5 text-[11px] font-medium text-slate-300"
-              style={{ background: catColor + "18" }}
-            >
-              {catLabel}
-            </span>
-            {hasTriggered && (
-              <span className="inline-flex items-center gap-1 rounded-md bg-red-500/10 px-2 py-0.5 text-[11px] font-semibold text-red-400">
-                <span className="h-1.5 w-1.5 rounded-full bg-red-400 animate-pulse" />
-                In your data
-              </span>
-            )}
-          </div>
-          {/* Title */}
-          <h3 className="text-sm font-semibold text-white leading-snug">{playbook.title}</h3>
-          {/* Problem — only when collapsed */}
-          {!isOpen && (
-            <p className="mt-1 text-sm text-slate-400 line-clamp-2 leading-relaxed">{playbook.problem}</p>
-          )}
-        </div>
-
-        {/* Right: gain + chevron */}
-        <div className="shrink-0 flex flex-col items-end gap-2">
+      {/* Header */}
+      <div
+        className="shrink-0 px-6 py-5 border-b"
+        style={{ borderColor: "#1a1a2e" }}
+      >
+        <div className="flex flex-wrap items-center gap-2 mb-3">
           <span
-            className="rounded-lg px-2.5 py-1 text-xs font-semibold text-emerald-400 whitespace-nowrap"
-            style={{ background: "rgba(52,211,153,0.1)" }}
+            className="rounded-full px-2.5 py-0.5 text-[11px] font-bold"
+            style={{ background: sev.bg, color: sev.color }}
           >
-            {playbook.expectedGain}
+            {sev.label.toUpperCase()}
           </span>
-          <svg
-            className="transition-transform duration-200"
-            style={{ transform: isOpen ? "rotate(180deg)" : "rotate(0deg)" }}
-            width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#6b7280" strokeWidth={2}
+          <span
+            className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
+            style={{ background: catColor + "18", color: catColor }}
           >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-          </svg>
-        </div>
-      </button>
-
-      {/* Expanded body */}
-      {isOpen && (
-        <div className="border-t border-white/5 px-5 pb-5 pt-4 space-y-5">
-
-          {/* Problem + Impact */}
-          <div className="space-y-3">
-            <div>
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Problem</p>
-              <p className="text-sm text-slate-200 leading-relaxed">{playbook.problem}</p>
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Why it matters</p>
-              <p className="text-sm text-slate-300 leading-relaxed">{playbook.impact}</p>
-            </div>
-          </div>
-
-          {/* Proof chart */}
-          {playbook.chart && playbook.chart.points.length >= 3 && (
-            <ProofChart chart={playbook.chart} accentColor={sev.color} uid={playbook.id} />
-          )}
-
-          {/* Triggered metric tiles */}
+            {catLabel}
+          </span>
           {hasTriggered && (
-            <div>
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Detected in your data</p>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {playbook.triggeredBy!.map((t, i) => (
-                  <div key={i} className="rounded-xl border border-red-500/15 bg-red-500/5 p-3">
-                    <p className="text-xs text-slate-400 mb-0.5">{t.label}</p>
-                    <p className="text-base font-bold text-red-400">{t.value}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">Target: {t.benchmark}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2 py-0.5 text-[11px] font-semibold text-red-400">
+              <span className="h-1.5 w-1.5 rounded-full bg-red-400 animate-pulse" />
+              Live data
+            </span>
           )}
-
-          {/* Action plan */}
-          <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Action plan</p>
-            <ol className="space-y-3">
-              {playbook.steps.map((step, i) => (
-                <li key={i} className="flex gap-3">
-                  {/* Step number */}
-                  <div
-                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold mt-0.5"
-                    style={{ background: catColor + "22", color: catColor }}
-                  >
-                    {i + 1}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-white leading-snug">{step.action}</p>
-                    <p className="mt-1 text-sm text-slate-400 leading-relaxed">{step.detail}</p>
-                    {step.link && (
-                      <a
-                        href={step.link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-2 inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-white/5"
-                        style={{ borderColor: catColor + "50", color: catColor }}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-                        </svg>
-                        {step.link.label}
-                      </a>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </div>
-
         </div>
-      )}
+        <h3 className="text-base font-bold text-white leading-snug">{playbook.title}</h3>
+      </div>
+
+      {/* Scrollable body */}
+      <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+
+          {/* Expected gain */}
+          <div
+            className="rounded-xl border p-3.5 flex items-center gap-3"
+            style={{ borderColor: "#2a3a30", background: "rgba(61,138,104,0.06)" }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4a8a6a" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
+            </svg>
+            <div>
+              <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">Expected gain</p>
+              <p className="text-sm font-semibold text-slate-300">{playbook.expectedGain}</p>
+            </div>
+          </div>        {/* Problem */}
+        <div>
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Problem</p>
+          <p className="text-sm text-slate-200 leading-relaxed">{playbook.problem}</p>
+        </div>
+
+        {/* Why it matters */}
+        <div>
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Why it matters</p>
+          <p className="text-sm text-slate-300 leading-relaxed">{playbook.impact}</p>
+        </div>
+
+        {/* Proof chart */}
+        {playbook.chart && playbook.chart.points.length >= 3 && (
+          <div>
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Proof</p>
+            <ProofChart chart={playbook.chart} accentColor={sev.color} uid={playbook.id} />
+          </div>
+        )}
+
+        {/* Triggered metrics */}
+        {hasTriggered && (
+          <div>
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Detected in your data</p>
+            <div className="grid grid-cols-2 gap-2">
+              {playbook.triggeredBy!.map((t, i) => (
+                <div key={i} className="rounded-xl border border-white/5 bg-white/3 p-3">
+                  <p className="text-xs text-slate-500 mb-0.5">{t.label}</p>
+                  <p className="text-base font-semibold text-slate-300">{t.value}</p>
+                  <p className="text-[11px] text-slate-600 mt-0.5">Target: {t.benchmark}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Action plan */}
+        <div>
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Action plan</p>
+          <ol className="space-y-4">
+            {playbook.steps.map((step, i) => (
+              <li key={i} className="flex gap-3">
+                <div
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold mt-0.5"
+                  style={{ background: catColor + "22", color: catColor, border: `1px solid ${catColor}30` }}
+                >
+                  {i + 1}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-white leading-snug">{step.action}</p>
+                  <p className="mt-1 text-[13px] text-slate-400 leading-relaxed">{step.detail}</p>
+                  {step.link && (
+                    <a
+                      href={step.link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-white/5"
+                      style={{ borderColor: catColor + "50", color: catColor }}
+                    >
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                      </svg>
+                      {step.link.label}
+                    </a>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+
+        <div className="pb-6" />
+      </div>
+    </div>
+  );
+}
+
+function PlaybookDetailEmpty() {
+  return (
+    <div className="h-full flex flex-col items-center justify-center rounded-2xl border border-white/5 bg-[#0f0f1c]">
+      <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="#2a2a3e" strokeWidth={1.5} className="mb-3">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+      </svg>
+      <p className="text-xs text-slate-600">Select a playbook to view details</p>
     </div>
   );
 }
@@ -360,24 +389,39 @@ function PlaybookCard({
 
 function PlaybookSkeleton() {
   return (
-    <div className="space-y-3 animate-pulse">
-      {[...Array(4)].map((_, i) => (
-        <div key={i} className="rounded-2xl border border-[#2a2a3e] bg-[#16162a] overflow-hidden">
-          <div className="h-0.5 bg-[#2a2a3e]" />
-          <div className="flex items-start gap-4 px-5 py-4">
-            <div className="mt-1.5 h-2.5 w-2.5 rounded-full bg-[#2a2a3e]" />
-            <div className="flex-1 space-y-2.5">
-              <div className="flex gap-2">
-                <div className="h-5 w-16 rounded-md bg-[#2a2a3e]" />
-                <div className="h-5 w-20 rounded-md bg-[#2a2a3e]" />
-              </div>
-              <div className="h-4 w-2/3 rounded bg-[#2a2a3e]" />
-              <div className="h-3.5 w-4/5 rounded bg-[#222238]" />
+    <div className="flex gap-4 animate-pulse" style={{ height: 560 }}>
+      {/* Left list skeleton */}
+      <div className="w-64 shrink-0 flex flex-col gap-1 overflow-hidden rounded-2xl border border-[#1e1e30] bg-[#0f0f1c] p-2">
+        {[...Array(6)].map((_, i) => (
+          <div key={i} className="rounded-xl p-3 space-y-2">
+            <div className="flex gap-2">
+              <div className="h-4 w-14 rounded bg-[#2a2a3e]" />
+              <div className="h-4 w-10 rounded bg-[#2a2a3e] ml-auto" />
             </div>
-            <div className="h-7 w-24 rounded-lg bg-[#2a2a3e]" />
+            <div className="h-3 w-full rounded bg-[#222238]" />
+            <div className="h-3 w-3/4 rounded bg-[#222238]" />
+            <div className="h-3 w-20 rounded bg-[#1e2a20]" />
           </div>
+        ))}
+      </div>
+      {/* Right detail skeleton */}
+      <div className="flex-1 rounded-2xl border border-[#1e1e30] bg-[#0f0f1c] p-6 space-y-4">
+        <div className="flex gap-2 mb-2">
+          <div className="h-5 w-16 rounded-full bg-[#2a2a3e]" />
+          <div className="h-5 w-20 rounded-full bg-[#2a2a3e]" />
         </div>
-      ))}
+        <div className="h-5 w-2/3 rounded bg-[#2a2a3e]" />
+        <div className="h-14 rounded-xl bg-[#1a2a1e]" />
+        <div className="space-y-2">
+          <div className="h-3 w-16 rounded bg-[#2a2a3e]" />
+          <div className="h-3 w-full rounded bg-[#222238]" />
+          <div className="h-3 w-4/5 rounded bg-[#222238]" />
+        </div>
+        <div className="space-y-2">
+          <div className="h-3 w-20 rounded bg-[#2a2a3e]" />
+          <div className="h-32 rounded-xl bg-[#111128]" />
+        </div>
+      </div>
     </div>
   );
 }
@@ -388,10 +432,10 @@ function PlaybookSkeleton() {
 
 function PremiumGate() {
   return (
-    <div className="rounded-2xl border border-emerald-500/20 bg-linear-to-br from-emerald-950/40 to-[#16162a] p-10 text-center">
+    <div className="rounded-2xl border border-white/8 bg-[#16162a] p-10 text-center">
       <div className="mb-5 flex justify-center">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-emerald-500/30 bg-emerald-500/10">
-          <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="#34d399" strokeWidth={1.5}>
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
+          <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="#4a6a8a" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
           </svg>
         </div>
@@ -402,7 +446,7 @@ function PremiumGate() {
       </p>
       <a
         href="/dashboard?tab=settings"
-        className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/50 bg-emerald-500/10 px-5 py-2.5 text-sm font-semibold text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+        className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-medium text-slate-300 hover:bg-white/8 transition-colors"
       >
         Upgrade to Premium →
       </a>
@@ -417,6 +461,7 @@ function PremiumGate() {
 export default function PlaybooksTab({
   isPremium,
   connectedPlatforms,
+  isDemo = false,
 }: PlaybooksTabProps) {
   const [data, setData]         = useState<AiPlaybooksResponse | null>(null);
   const [loading, setLoading]   = useState(false);
@@ -439,6 +484,9 @@ export default function PlaybooksTab({
       }
       const json: AiPlaybooksResponse = await res.json();
       setData(json);
+      if (json.playbooks?.length > 0) {
+        setOpenId((prev) => prev ?? json.playbooks[0].id);
+      }
       return json;
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to load playbooks.");
@@ -482,6 +530,9 @@ export default function PlaybooksTab({
       if (json.generatedAt && json.generatedAt !== prevGeneratedAt) {
         clearInterval(pollRef.current!);
         setData(json);
+        if (json.playbooks?.length > 0) {
+          setOpenId((prev) => prev ?? json.playbooks[0].id);
+        }
         setGenerating(false);
       }
     }, 5_000);
@@ -491,10 +542,16 @@ export default function PlaybooksTab({
   useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current); }, []);
 
   useEffect(() => {
-    if (!isPremium || hasFetched.current) return;
+    if (!isPremium && !isDemo) return;
+    if (hasFetched.current) return;
     hasFetched.current = true;
-    load();
-  }, [isPremium, load]);
+    if (isDemo) {
+      setData(DEMO_DATA);
+      setOpenId(DEMO_DATA.playbooks[0]?.id ?? null);
+    } else {
+      load();
+    }
+  }, [isPremium, isDemo, load]);
 
   const playbooks = data?.playbooks ?? [];
 
@@ -572,9 +629,9 @@ export default function PlaybooksTab({
           </div>
           <div className="flex gap-3 sm:flex-col sm:items-end shrink-0">
             {criticalCount > 0 && (
-              <div className="rounded-xl border border-red-500/20 bg-red-500/8 px-4 py-2.5 text-center min-w-15">
-                <p className="text-xl font-bold text-red-400">{criticalCount}</p>
-                <p className="text-xs text-red-400/70 mt-0.5">Critical</p>
+              <div className="rounded-xl border border-white/8 bg-white/4 px-4 py-2.5 text-center min-w-15">
+                <p className="text-xl font-bold text-slate-300">{criticalCount}</p>
+                <p className="text-xs text-slate-600 mt-0.5">Critical</p>
               </div>
             )}
             <div className="rounded-xl border border-white/8 bg-white/4 px-4 py-2.5 text-center min-w-15">
@@ -582,9 +639,9 @@ export default function PlaybooksTab({
               <p className="text-xs text-slate-500 mt-0.5">Playbooks</p>
             </div>
             {detectedCount > 0 && (
-              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/6 px-4 py-2.5 text-center min-w-15">
-                <p className="text-xl font-bold text-emerald-400">{detectedCount}</p>
-                <p className="text-xs text-emerald-400/70 mt-0.5">Detected</p>
+              <div className="rounded-xl border border-white/8 bg-white/4 px-4 py-2.5 text-center min-w-15">
+                <p className="text-xl font-bold text-slate-300">{detectedCount}</p>
+                <p className="text-xs text-slate-600 mt-0.5">Detected</p>
               </div>
             )}
           </div>
@@ -657,14 +714,14 @@ export default function PlaybooksTab({
               onClick={() => setShowOnlyTriggered((v) => !v)}
               className="ml-auto inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-all"
               style={{
-                borderColor: showOnlyTriggered ? "#f87171aa" : "#2a2a3e",
-                color:       showOnlyTriggered ? "#f87171" : "#6b7280",
-                background:  showOnlyTriggered ? "rgba(248,113,113,0.08)" : "transparent",
+                borderColor: showOnlyTriggered ? "#60404080" : "#2a2a3e",
+                color:       showOnlyTriggered ? "#a06060" : "#6b7280",
+                background:  showOnlyTriggered ? "rgba(160,96,96,0.08)" : "transparent",
               }}
             >
               <span
                 className="h-1.5 w-1.5 rounded-full"
-                style={{ backgroundColor: showOnlyTriggered ? "#f87171" : "#6b7280" }}
+                style={{ backgroundColor: showOnlyTriggered ? "#a06060" : "#6b7280" }}
               />
               {showOnlyTriggered ? "Detected only" : "Show detected only"}
             </button>
@@ -672,22 +729,39 @@ export default function PlaybooksTab({
         </div>
       )}
 
-      {/* ── Playbook list ────────────────────────────────────────────────────── */}
+      {/* ── Playbook split layout ─────────────────────────────────────────── */}
       {isPremium && data && !loading && (
-        <div className="space-y-3">
+        <div>
           {sorted.length === 0 ? (
             <div className="rounded-2xl border border-white/5 bg-[#16162a] p-10 text-center">
               <p className="text-sm text-slate-500">No playbooks match the current filter.</p>
             </div>
           ) : (
-            sorted.map((pb) => (
-              <PlaybookCard
-                key={pb.id}
-                playbook={pb}
-                isOpen={openId === pb.id}
-                onToggle={() => setOpenId(openId === pb.id ? null : pb.id)}
-              />
-            ))
+            <div className="flex gap-3" style={{ height: 600 }}>
+              {/* ── Left: compact list ─────────────────────────────────── */}
+              <div
+                className="w-64 shrink-0 flex flex-col gap-0.5 overflow-y-auto rounded-2xl border p-2"
+                style={{ borderColor: "#1e1e30", background: "#0b0b18" }}
+              >
+                {sorted.map((pb) => (
+                  <PlaybookListItem
+                    key={pb.id}
+                    playbook={pb}
+                    isSelected={openId === pb.id}
+                    onSelect={() => setOpenId(openId === pb.id ? null : pb.id)}
+                  />
+                ))}
+              </div>
+
+              {/* ── Right: detail ──────────────────────────────────────── */}
+              <div className="flex-1 min-w-0">
+                {openId && (() => {
+                  const selected = sorted.find((pb) => pb.id === openId);
+                  return selected ? <PlaybookDetail playbook={selected} /> : <PlaybookDetailEmpty />;
+                })()}
+                {!openId && <PlaybookDetailEmpty />}
+              </div>
+            </div>
           )}
         </div>
       )}
@@ -695,7 +769,7 @@ export default function PlaybooksTab({
       {/* ── Footer ──────────────────────────────────────────────────────────── */}
       {isPremium && data && !loading && playbooks.length > 0 && (
         <p className="text-center text-xs text-slate-600">
-          Generated by Claude · based on your live data · refreshes nightly
+          Generated by Claude · based on your live data · refreshes weekly
         </p>
       )}
 
@@ -713,4 +787,215 @@ interface PlaybooksTabProps {
   connectedPlatforms: string[];
   snapshots: Snapshot[];
   currencies: Record<string, string>;
+  isDemo?: boolean;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Demo data
+// ─────────────────────────────────────────────────────────────────────────────
+
+const DEMO_DATA: AiPlaybooksResponse = {
+  healthScore: 58,
+  healthLabel: "Needs Work",
+  summary: "Your SaaS is generating solid top-line revenue but leaking growth through three critical vectors: rising ad costs, a deteriorating email programme, and a churn rate that is quietly compounding. Fixing ad targeting and email segmentation alone could recover an estimated $2,400/month within 30 days. The biggest immediate opportunity is your conversion rate — at 0.8% you are leaving roughly 60 sign-ups per week on the table from existing traffic.",
+  generatedAt: "2026-04-28T08:00:00.000Z",
+  playbooks: [
+    {
+      id: "meta-cpc-bleed",
+      title: "Meta Ad CPC Has Tripled — Kill Broad Targeting Now",
+      severity: "critical",
+      category: "paid-ads",
+      problem: "Your Meta CPC has risen to $4.20 over the last 30 days, up from $1.40 the prior period — a 200% increase. At your current click volume (820 clicks/month) you are overpaying by roughly $2,300/month for the same traffic.",
+      impact: "At $4.20 CPC with your 0.8% conversion rate, your blended CAC from paid is now $525 — well above your $49/month ARPU, making every paid acquisition loss-making. If left unaddressed for 60 days, this alone will drain ~$4,600 in wasted spend with no improvement in new customers.",
+      expectedGain: "Cut CPC back below $1.80 and reduce paid CAC to ~$225 within 3 weeks",
+      triggeredBy: [
+        { label: "CPC (30d avg)", value: "$4.20", benchmark: "< $1.80" },
+        { label: "Paid CAC", value: "$525", benchmark: "< $250" },
+        { label: "Ad spend (30d)", value: "$3,444", benchmark: "—" },
+      ],
+      chart: {
+        title: "Meta CPC — last 30 days",
+        unit: "usd",
+        benchmark: 1.8,
+        benchmarkLabel: "Target CPC $1.80",
+        points: [
+          { date: "2026-03-29", value: 1.45 }, { date: "2026-03-31", value: 1.62 },
+          { date: "2026-04-02", value: 1.9 },  { date: "2026-04-04", value: 2.1 },
+          { date: "2026-04-07", value: 2.55 }, { date: "2026-04-10", value: 3.0 },
+          { date: "2026-04-13", value: 3.4 },  { date: "2026-04-16", value: 3.8 },
+          { date: "2026-04-19", value: 4.0 },  { date: "2026-04-22", value: 4.2 },
+          { date: "2026-04-25", value: 4.2 },  { date: "2026-04-28", value: 4.2 },
+        ],
+      },
+      steps: [
+        {
+          action: "Pause all Advantage+ and broad-audience ad sets immediately",
+          detail: "In Meta Ads Manager, filter by ad sets with CPC > $3.00 and pause them today. Advantage+ campaigns frequently expand audiences in ways that inflate CPC once creative fatigue sets in. Broad audiences with no interest or behavioural constraints are the primary driver of your CPC spike. Pausing these stops the bleed while you rebuild tighter targeting.",
+          link: { label: "Meta Ads Manager", url: "https://business.facebook.com/adsmanager" },
+        },
+        {
+          action: "Rebuild with 3 tightly scoped interest-based ad sets",
+          detail: "Create three new ad sets each capped at a potential reach of 500k–1.5M: (1) job titles matching your ICP, (2) competitors as interests, (3) lookalike 1% from your existing customer list. Set a manual CPC bid cap of $2.00 in each. Narrow audiences consistently outperform broad ones for B2B SaaS — expect CPC to drop to $1.50–$2.00 within the first week.",
+          link: { label: "Meta Lookalike Audiences guide", url: "https://www.facebook.com/business/help/164749007013531" },
+        },
+        {
+          action: "Refresh ad creative with 3 new variants per ad set",
+          detail: "Creative fatigue is the second most common cause of CPC spikes. Upload at least 3 new image/video variants per ad set — test a problem-focused headline, a social-proof headline, and a benefit-led headline. Use Meta's Creative Reporting to kill any creative with CTR below 0.8% after 3 days. Fresh creative typically recovers CTR by 25–40% within 5 days.",
+        },
+        {
+          action: "Set a daily spend cap per ad set at $40 while testing",
+          detail: "While CPCs are elevated, capping each ad set at $40/day limits downside exposure to $120/day total during the rebuild phase. Once you confirm CPC is below $2.00 for 5 consecutive days, scale back to your previous budget. This prevents compounding losses during the optimisation window.",
+        },
+        {
+          action: "Install the Meta Pixel conversion event for 'Trial Started'",
+          detail: "If you are only optimising for 'Lead' or 'View Content', Meta's algorithm is not learning from your highest-value conversion signal. Add a custom conversion event firing on your trial confirmation page and switch your campaign objective to 'Conversions — Trial Started'. This gives the algorithm the signal it needs to find users who actually convert, which naturally reduces CPC on a per-quality-click basis.",
+          link: { label: "Meta Pixel setup guide", url: "https://developers.facebook.com/docs/meta-pixel/get-started" },
+        },
+      ],
+    },
+    {
+      id: "churn-rate-spike",
+      title: "Churn Rate at 6.2% — Identify and Plug the Leak",
+      severity: "critical",
+      category: "retention",
+      problem: "Your monthly churn rate is 6.2%, meaning you are losing 6 out of every 100 active subscribers each month. At your current MRR of $11,400 this translates to $707/month in churned revenue — or $8,484 annualised.",
+      impact: "At 6.2% monthly churn your net revenue retention (NRR) is below 94%, meaning your existing customer base is shrinking even if you add new customers. To maintain flat MRR you must acquire more than $707 in new MRR every month just to stay even — your growth is being run on a treadmill. Reducing churn to 2% would free up effectively $480/month in retained revenue, compounding significantly over 12 months.",
+      expectedGain: "Reduce monthly churn from 6.2% to under 2.5%, recovering ~$400–$480/month in MRR",
+      triggeredBy: [
+        { label: "Monthly churn rate", value: "6.2%", benchmark: "< 2.5%" },
+        { label: "Churned MRR (30d)", value: "$707", benchmark: "< $285" },
+        { label: "Active subscriptions", value: "97", benchmark: "—" },
+      ],
+      chart: {
+        title: "New customers vs churned (30d)",
+        unit: "number",
+        benchmark: 0,
+        benchmarkLabel: "",
+        points: [
+          { date: "2026-03-29", value: 102 }, { date: "2026-04-04", value: 101 },
+          { date: "2026-04-07", value: 99 },  { date: "2026-04-11", value: 100 },
+          { date: "2026-04-14", value: 98 },  { date: "2026-04-18", value: 99 },
+          { date: "2026-04-21", value: 97 },  { date: "2026-04-25", value: 97 },
+          { date: "2026-04-28", value: 97 },
+        ],
+      },
+      steps: [
+        {
+          action: "Pull the last 30 churned customers and identify a pattern",
+          detail: "In Stripe, filter cancelled subscriptions from the last 30 days and export to CSV. Look for common attributes: plan type, company size, how long they were a customer before churning, and whether they ever contacted support. In most SaaS businesses 60–70% of churn clusters around 2–3 specific failure patterns (e.g. never set up a core feature, or churned at day 7, 14, or 30). Identifying the pattern tells you exactly where to intervene.",
+          link: { label: "Stripe subscription export", url: "https://dashboard.stripe.com/subscriptions" },
+        },
+        {
+          action: "Add a cancellation survey with 4 fixed options + free text",
+          detail: "Before a user can cancel, show a one-question modal: 'Why are you leaving?' with options: Too expensive / Missing a feature I need / Switching to a competitor / Not using it enough / Other. Log responses to your database. Even 30 responses will give you statistically meaningful signal. Tools like Stripe Billing Portal or a custom modal in your app can intercept the cancel flow. This data will tell you whether churn is a pricing, activation, or product problem.",
+        },
+        {
+          action: "Set up a 3-email at-risk sequence triggered by inactivity",
+          detail: "Using your email platform, create a segment of users who have not logged in for 7 days. Send them a 3-email sequence over 14 days: Day 7 — 'You haven't tried [core feature] yet, here's how'; Day 10 — a case study or win from another customer; Day 14 — a personal check-in from the founder offering a 15-min call. This sequence consistently recovers 15–25% of at-risk users before they churn.",
+        },
+        {
+          action: "Offer a pause option instead of cancellation for price-sensitive users",
+          detail: "For users who indicate 'Too expensive' in the cancellation survey, offer a 1-month pause at 50% discount before full cancellation. Stripe Billing supports subscription pausing natively. Roughly 20–30% of users who intend to cancel will accept a pause, and ~60% of those paused users resume at full price. This alone can recover 1–2% of monthly churn.",
+          link: { label: "Stripe: pause a subscription", url: "https://stripe.com/docs/billing/subscriptions/pause-payment" },
+        },
+      ],
+    },
+    {
+      id: "email-open-rate-drop",
+      title: "Email Open Rate Collapsed to 11% — Resegment Your List",
+      severity: "warning",
+      category: "email",
+      problem: "Your email open rate over the last 30 days is 11.2%, down from 24.8% the prior period. Your click-to-open rate is 3.1%, well below the 8–12% SaaS benchmark. You are sending to a disengaged list which is actively damaging your sender reputation.",
+      impact: "Continued sending to a disengaged list risks your domain landing in spam folders — once that happens it takes 4–8 weeks to recover sender reputation. Beyond deliverability, a 3.1% CTOR means your email channel is generating roughly 1/4 of the leads it should be. For a list of 2,400 subscribers this represents ~180 missed clicks per campaign versus industry norm.",
+      expectedGain: "Restore open rate above 22% and CTOR above 8% within 4 weeks",
+      triggeredBy: [
+        { label: "Open rate (30d)", value: "11.2%", benchmark: "> 22%" },
+        { label: "CTOR (30d)", value: "3.1%", benchmark: "> 8%" },
+        { label: "List size", value: "2,400", benchmark: "—" },
+      ],
+      steps: [
+        {
+          action: "Immediately suppress anyone who hasn't opened in 60+ days",
+          detail: "In your email platform, create a segment of subscribers with 0 opens in the last 60 days and move them to a suppressed list — do not delete them, just stop mailing them. This will likely be 40–60% of your list. Your immediate open rate will jump to 18–22% because you're only sending to engaged subscribers. This also protects your domain reputation from further damage.",
+        },
+        {
+          action: "Run a re-engagement campaign to the suppressed segment",
+          detail: "Send a single 'We miss you' email to suppressed users with a very low-friction CTA (e.g. 'Click here if you want to stay on our list'). Subject line: 'Should we break up?' typically gets 2–3× the open rate of regular emails due to curiosity. Anyone who does not open or click within 7 days should be permanently unsubscribed. This cleans your list while giving dormant users one last chance to re-engage.",
+        },
+        {
+          action: "A/B test subject lines — move from feature-led to curiosity or benefit-led",
+          detail: "Your current subject lines appear to be feature announcements (e.g. 'New dashboard update'). Switch to benefit or curiosity formats: 'How [Customer Name] 3×'d their revenue in 30 days' or 'The metric killing your growth (and how to fix it)'. Run an A/B test on your next 3 sends using your platform's split-test feature. Expect a 30–50% improvement in open rate from subject line optimisation alone.",
+        },
+        {
+          action: "Reduce send frequency to 1× per week and increase content quality",
+          detail: "If you are sending 3+ emails per week, cut to once per week. List fatigue is the #1 cause of sudden open rate drops. Each email should deliver one clear insight, story, or actionable tip — not a product update. Track your open rate weekly; it should recover by 2–3 percentage points per week once you reduce frequency and improve content relevance.",
+        },
+      ],
+    },
+    {
+      id: "conversion-rate-low",
+      title: "0.8% Conversion Rate — Your Pricing Page Is Losing Signups",
+      severity: "warning",
+      category: "conversion",
+      problem: "Your site-wide conversion rate (sessions to trial sign-ups) is 0.8% against a SaaS benchmark of 2.5–3.5%. You are generating 4,200 sessions per month but only 34 trial sign-ups — at 2.5% conversion that would be 105 sign-ups, or 71 more per month.",
+      impact: "At your current CAC of $525 those 71 missed sign-ups represent $37,275 in equivalent paid acquisition cost every month — traffic you already have but are not converting. Even a modest improvement to 1.5% conversion would deliver 29 additional trials per month from zero incremental ad spend, and at a 15% trial-to-paid rate that is 4–5 new customers per month.",
+      expectedGain: "Increase conversion rate from 0.8% to 1.8%+, adding ~25 trials/month from existing traffic",
+      triggeredBy: [
+        { label: "Conversion rate (30d)", value: "0.8%", benchmark: "> 2.5%" },
+        { label: "Sessions (30d)", value: "4,200", benchmark: "—" },
+        { label: "Trial sign-ups (30d)", value: "34", benchmark: "105+" },
+      ],
+      steps: [
+        {
+          action: "Install a heatmap tool and identify where users drop off on your pricing page",
+          detail: "Set up Microsoft Clarity (free) or Hotjar on your pricing page today. Within 48–72 hours you will have heatmap and session recording data. Look for: (1) how far users scroll — if 60%+ don't reach your CTA, move it up; (2) rage clicks on non-clickable elements indicating confusion; (3) whether users hover over the pricing tiers but don't click. This data replaces guesswork and tells you exactly what to fix.",
+          link: { label: "Microsoft Clarity (free)", url: "https://clarity.microsoft.com" },
+        },
+        {
+          action: "Add a single social proof element above the fold on your pricing page",
+          detail: "Place a strip of 3–5 customer logos, or a single pull-quote from a recognisable customer, immediately below your hero headline — before any pricing table. Studies consistently show this single change improves conversion by 10–25%. If you don't have recognisable logos, use a '⭐⭐⭐⭐⭐ Rated 4.8/5 by 120+ teams' trust badge instead. This reduces the psychological risk of clicking 'Start free trial'.",
+        },
+        {
+          action: "Simplify to 2 pricing tiers and rename your primary CTA",
+          detail: "If you have 3+ tiers, the paradox of choice is causing decision paralysis. Consolidate to 2 tiers: Starter and Pro (or equivalent). Make your recommended tier visually dominant with a 'Most popular' badge. Change the CTA button from 'Get started' or 'Sign up' to 'Start your free trial — no credit card required'. The phrase 'no credit card required' consistently lifts conversion by 8–15% by removing friction.",
+        },
+        {
+          action: "Add an exit-intent popup offering a 14-day extended trial",
+          detail: "Install an exit-intent trigger (Hotjar, ConvertBox, or a simple JS event listener on mouseleave) that fires when a user is about to leave your pricing page without converting. Offer them a 14-day extended trial (vs your standard 7-day) in exchange for their email. This recovers 5–10% of abandoning visitors and adds them to a nurture sequence. Even at 5% recovery on 200 pricing-page exits per month, that is 10 additional trials.",
+        },
+      ],
+    },
+    {
+      id: "mrr-growth-stalling",
+      title: "MRR Growth Stalling — Expansion Revenue Is Near Zero",
+      severity: "opportunity",
+      category: "revenue",
+      problem: "Your MRR has been flat at $11,200–$11,400 for the last 3 weeks. New MRR from sign-ups ($340) is barely outpacing churned MRR ($707), and your expansion MRR (upgrades) is effectively $0 — meaning 100% of your revenue growth must come from new customer acquisition.",
+      impact: "Without expansion revenue you are entirely dependent on new customer acquisition to grow — the most expensive growth motion. SaaS companies with active expansion revenue grow 2–3× faster than acquisition-only businesses and have significantly lower effective CAC. Adding even $500/month in expansion MRR would meaningfully change your growth trajectory and LTV:CAC ratio.",
+      expectedGain: "Generate $400–$600/month in expansion MRR within 60 days through in-app upgrade prompts",
+      triggeredBy: [
+        { label: "MRR", value: "$11,400", benchmark: "Growing > 10%/mo" },
+        { label: "Expansion MRR", value: "~$0", benchmark: "> $300/mo" },
+        { label: "Upgrade rate", value: "< 0.5%", benchmark: "> 3%" },
+      ],
+      steps: [
+        {
+          action: "Identify your 'power users' — those hitting plan limits most often",
+          detail: "In your database, query for users who have used 80%+ of their plan's feature limits (seats, API calls, projects, etc.) in the last 14 days. These are your most likely upgraders. Export this list and tag them in your CRM or email platform as 'Upgrade ready'. This segment alone typically converts at 15–30% when you reach out with a targeted upgrade message — 10× better than broadcasting to your whole list.",
+        },
+        {
+          action: "Add an in-app upgrade nudge at the point of limit approach",
+          detail: "Implement a non-blocking banner or modal that appears when a user reaches 80% of their plan limit: 'You've used 8/10 projects — upgrade to Pro for unlimited projects and [key feature].' This is the highest-intent upgrade moment because the user is actively trying to do the thing the next plan unlocks. In-app upgrade nudges at limit approach convert at 8–18% — far higher than email campaigns.",
+        },
+        {
+          action: "Reach out personally to your top 20 customers and offer an annual plan discount",
+          detail: "Sort your customers by MRR contribution and identify the top 20. Send each a personal email (not a campaign) offering 2 months free in exchange for switching to annual billing. Annual plans typically convert at 20–30% when offered personally, and they reduce churn by ~50% because annual customers are far less likely to cancel. For 20 customers at $49/month, converting 6 to annual locks in $3,528 in upfront revenue immediately.",
+        },
+        {
+          action: "Launch a 'Teams' add-on for your highest-usage accounts",
+          detail: "If your product has any collaborative or multi-user value, package a 'Teams' add-on priced at $29–$49/month: additional seats, shared workspaces, admin controls, or audit logs. Email your single-seat customers who have invited at least one other user to your app — these are signals of team use. Even 10 upgrades at $39/month adds $390/month in expansion MRR immediately.",
+        },
+      ],
+    },
+  ],
+};

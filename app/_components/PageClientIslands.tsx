@@ -12,6 +12,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Live user count — fetches real count from /api/user-count, then animates
@@ -445,6 +446,7 @@ export function Nav() {
           ))}
         </div>
         <div className="flex items-center gap-3">
+          <ThemeToggle />
           <a href="/login" className="hidden md:block font-mono text-xs uppercase tracking-widest text-[#8585aa] transition-colors hover:text-[#f8f8fc] px-3 py-2">Sign in</a>
           <a href="/signup" className="rounded-xl bg-[#00d4aa] px-4 py-2 font-mono text-xs font-semibold uppercase tracking-wider text-[#13131f] transition-all hover:bg-[#00bfa0]">Get started free</a>
           <button className="md:hidden p-2 text-[#8585aa] hover:text-[#f8f8fc]" onClick={() => setMobileOpen((v) => !v)} aria-label="Toggle menu">

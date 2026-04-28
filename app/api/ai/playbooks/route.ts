@@ -54,8 +54,18 @@ export async function GET() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { isPremiumUser } = await import("@/lib/supabase/isPremiumUser");
-  if (!(await isPremiumUser(user.id))) {
+  // Same premium check as dashboard page (user-scoped client for consistency)
+  const { data: dbUser } = await supabase
+    .from("users")
+    .select("is_premium, trial_ends_at")
+    .eq("id", user.id)
+    .single();
+
+  const isPremium =
+    dbUser?.is_premium === true ||
+    (!!dbUser?.trial_ends_at && new Date(dbUser.trial_ends_at) > new Date());
+
+  if (!isPremium) {
     return NextResponse.json({ error: "Premium required." }, { status: 403 });
   }
 

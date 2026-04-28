@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { PostHogProvider } from "./providers";
+import { PostHogProvider, Providers } from "./providers";
 import Script from "next/script";
 
 const geistSans = Geist({
@@ -76,7 +76,7 @@ export default function RootLayout({
         />
         {/* End Google Tag Manager */}
       </head>
-      <body className="min-h-full flex flex-col bg-[#13131f]">
+      <body className="min-h-full flex flex-col" style={{ background: "var(--c-bg)", color: "var(--c-text)", transition: "background 0.2s, color 0.2s" }}>
         {/* Google Tag Manager (noscript) */}
         <noscript>
           <iframe
@@ -117,9 +117,11 @@ export default function RootLayout({
           `}
         </Script>
 
-        <PostHogProvider>
-          {children}
-        </PostHogProvider>
+        <Providers>
+          <PostHogProvider>
+            {children}
+          </PostHogProvider>
+        </Providers>
       </body>
     </html>
   );
