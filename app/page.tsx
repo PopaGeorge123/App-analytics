@@ -233,38 +233,38 @@ export default function Home() {
         <div className="relative mx-auto max-w-6xl">
           <div className="grid gap-16 lg:grid-cols-2 lg:items-center">
             <div>
-              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#00d4aa]/25 bg-[#00d4aa]/8 px-3 py-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#00d4aa] animate-pulse" />
-                <span className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#00d4aa]">Free to start — no card needed</span>
+              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#f87171]/25 bg-[#f87171]/8 px-3 py-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#f87171] animate-pulse" />
+                <span className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#f87171]">Most founders discover revenue leaks too late</span>
               </div>
 
               <h1 className="mb-6 font-mono text-[1.75rem] leading-snug font-bold tracking-tight text-[#f8f8fc] sm:text-4xl lg:text-[3.4rem] lg:leading-tight">
-                Stop spending Monday mornings{" "}
-                <span className="text-[#00d4aa]">in spreadsheets<span className="text-white">.</span></span>
+                You&apos;re losing revenue{" "}
+                <span className="text-[#f87171]">you can&apos;t see<span className="text-white">.</span></span>
               </h1>
 
               <p className="mb-8 w-full max-w-lg text-sm leading-relaxed text-[#bcbcd8] sm:text-base lg:text-lg">
-                Fold connects Stripe, Google Analytics, Meta Ads, Mailchimp, Shopify, and <strong className="text-[#f8f8fc] font-semibold">{LIVE_INTEGRATIONS.length - 5} more live integrations</strong>, understand <strong className="text-[#f8f8fc] font-semibold">exactly what changed, why it changed, and what to do next</strong><br /> Before your first coffee.
+                Every day your Stripe, GA4, Meta Ads, and Shopify data sits in separate tabs, a revenue leak grows undetected. Fold connects <strong className="text-[#f8f8fc] font-semibold">{LIVE_INTEGRATIONS.length}+ live integrations</strong> and tells you <strong className="text-[#f8f8fc] font-semibold">exactly what broke, why it broke, and what to fix first</strong> — before it compounds.
               </p>
 
               <div className="mb-8 flex flex-wrap gap-3">
                 <a href="/signup" className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-5 py-3 font-mono text-sm font-semibold uppercase tracking-wider text-[#13131f] transition-all hover:bg-[#00bfa0] hover:shadow-[0_0_30px_rgba(0,212,170,0.3)] sm:px-6 sm:py-3.5">
-                  Get started free
+                  Find my revenue leaks
                   <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
                 </a>
                 <a href="/demo" className="inline-flex items-center gap-2 rounded-xl border border-[#a78bfa]/40 bg-[#a78bfa]/8 px-5 py-3 font-mono text-sm font-semibold uppercase tracking-wider text-[#a78bfa] transition-all hover:border-[#a78bfa]/70 hover:bg-[#a78bfa]/15 sm:px-6 sm:py-3.5">
                   <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" /></svg>
-                  Live demo
+                  See live demo
                 </a>
               </div>
 
               {/* Risk-zero pills */}
               <div className="flex flex-wrap gap-2">
                 {[
-                  { icon: "✓", text: "7-day free trial" },
+                  { icon: "✓", text: "Free 7-day trial" },
                   { icon: "✓", text: "No card required" },
-                  { icon: "✓", text: "Connect in 90 seconds" },
-                  { icon: "✓", text: "Cancel anytime" },
+                  { icon: "✓", text: "Live in 90 seconds" },
+                  { icon: "✓", text: "Read-only — we never touch your data" },
                 ].map((pill) => (
                   <span key={pill.text} className="inline-flex items-center gap-1.5 rounded-full border border-[#363650] bg-[#1c1c2a] px-3 py-1 font-mono text-[10px] font-semibold text-[#bcbcd8]">
                     <span className="text-[#00d4aa]">{pill.icon}</span>
@@ -284,20 +284,20 @@ export default function Home() {
       {/* ── PAIN STRIP ────────────────────────────────────────────────────── */}
       <section className="border-t border-[#363650] bg-[#0f0f1a] px-6 py-10">
         <div className="mx-auto max-w-4xl">
-          <p className="mb-6 text-center font-mono text-[10px] uppercase tracking-widest text-[#58588a]">Sound familiar?</p>
+          <p className="mb-6 text-center font-mono text-[10px] uppercase tracking-widest text-[#58588a]">This is costing you money right now</p>
           <div className="grid gap-3 sm:grid-cols-3">
             {[
               {
-                bad: "Checking 4 different tabs every Monday morning",
-                good: "One tab. Everything explained.",
+                bad: "Revenue dropped 18% last Tuesday — you found out Friday",
+                good: "Fold flags the drop within hours. With the exact cause.",
               },
               {
-                bad: "Exporting CSVs to compare Stripe vs. ad spend",
-                good: "Automatic cross-platform view. Daily.",
+                bad: "Ad spend is up but you don't know if it's working",
+                good: "See ROAS, CAC, and paid vs. organic side-by-side. Daily.",
               },
               {
-                bad: "Guessing why revenue dropped last week",
-                good: "AI tells you why. In plain English.",
+                bad: "A slow page is killing conversions — silently",
+                good: "AI scores your site and ranks every fix by revenue impact.",
               },
             ].map((item) => (
               <div key={item.bad} className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-4 space-y-3">
@@ -322,8 +322,8 @@ export default function Home() {
             {[
               { label: "Live integrations", value: <AnimatedCounter target={LIVE_INTEGRATIONS.length} />, color: "#00d4aa" },
               { label: "Founders using Fold", value: <LiveUserCount  />, color: "#00d4aa" },
-              { label: "Hours saved per week", value: <><AnimatedCounter target={3} suffix="." /><span>5</span></>, color: "#00d4aa" },
-              { label: "Manual exports needed", value: "Zero", color: "#f87171" },
+              { label: "Avg. time to first insight", value: "< 2 min", color: "#00d4aa" },
+              { label: "Revenue leaks found", value: "Daily", color: "#f87171" },
             ].map((s, i) => (
               <div key={i} className="text-center sm:px-6">
                 <p className="font-mono text-xs uppercase tracking-widest text-[#8585aa]">{s.label}</p>
@@ -339,18 +339,18 @@ export default function Home() {
         <div className="mx-auto max-w-6xl">
           <div className="mb-16 text-center">
             <p className="mb-3 font-mono text-xs font-semibold uppercase tracking-widest text-[#00d4aa]">How it works</p>
-            <h2 className="font-mono text-3xl font-bold text-[#f8f8fc] sm:text-4xl">From fragmented data to clear action</h2>
+            <h2 className="font-mono text-3xl font-bold text-[#f8f8fc] sm:text-4xl">Stop flying blind. Start seeing the leaks.</h2>
             <p className="mx-auto mt-4 max-w-xl text-[#bcbcd8]">
-              Three steps from &ldquo;I have no idea what&apos;s going on&rdquo; to &ldquo;here&apos;s exactly what I need to do today.&rdquo;
+              Three steps from &ldquo;something is wrong but I don&apos;t know what&rdquo; to &ldquo;here&apos;s the exact problem and what to do about it.&rdquo;
             </p>
           </div>
           <div className="mx-auto max-w-2xl">
-            <Step n={1} title="Connect your tools in one click"
-              description="Link Stripe for revenue, Google Analytics for traffic, Meta Ads for spend, Shopify for orders, Mailchimp for email — plus Lemon Squeezy, Gumroad, Paddle, Plausible, Beehiiv, and WooCommerce. No code, no CSV exports." />
-            <Step n={2} title="See your unified dashboard"
-              description="All your data normalized into one source of truth. KPI tiles, sparklines, and trends update automatically every day." />
-            <Step n={3} title="Let AI do the heavy lifting"
-              description="Fold surfaces anomalies, explains trends in plain English, analyzes your website, and gives you a prioritized action list — refreshed daily." />
+            <Step n={1} title="Connect your tools in 90 seconds"
+              description="Link Stripe, Google Analytics, Meta Ads, Shopify, Mailchimp and 30+ more. No code, no CSV exports, no engineers. OAuth only — read-only access, nothing is ever written to your accounts." />
+            <Step n={2} title="Fold surfaces what's actually wrong"
+              description="One unified view across all your data. Revenue anomalies, traffic drops, ad budget waste, and conversion leaks are flagged automatically — with context, not just raw numbers." />
+            <Step n={3} title="AI tells you exactly what to fix"
+              description="Plain-English explanations of every anomaly. A prioritized action list updated daily. Ask follow-up questions about your own data. No analyst needed." />
           </div>
 
           {/* Platform OAuth trust strip — live integrations only */}
