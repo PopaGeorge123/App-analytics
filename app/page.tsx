@@ -424,8 +424,8 @@ export default function Home() {
         <div className="relative mx-auto max-w-6xl">
           <div className="mb-16 text-center">
             <p className="mb-3 font-mono text-xs font-semibold uppercase tracking-widest text-[#00d4aa]">Features</p>
-            <h2 className="font-mono text-3xl font-bold text-[#f8f8fc] sm:text-4xl">Everything you need to stay ahead</h2>
-            <p className="mx-auto mt-4 max-w-xl text-[#bcbcd8]">Four powerful modules. One dashboard. Always on.</p>
+            <h2 className="font-mono text-3xl font-bold text-[#f8f8fc] sm:text-4xl">Every leak, caught. Every decision, backed.</h2>
+            <p className="mx-auto mt-4 max-w-xl text-[#bcbcd8]">Four modules and nine intelligence features — built to find revenue problems before they compound.</p>
           </div>
 
           {/* Module deep-dives */}
@@ -634,6 +634,21 @@ export default function Home() {
                 icon: <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 010 1.9A3.745 3.745 0 0117.34 19.06a3.745 3.745 0 01-1.9 0A3.745 3.745 0 0112 21a3.745 3.745 0 01-3.068-1.593 3.745 3.745 0 010-1.9A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 010-1.9A3.745 3.745 0 017.661 4.94a3.745 3.745 0 011.9 0A3.746 3.746 0 0112 3a3.746 3.746 0 013.068 1.593 3.746 3.746 0 011.9 0 3.745 3.745 0 013.068 3.068 3.746 3.746 0 010 1.9A3.745 3.745 0 0121 12z" /></svg>,
                 title: "Built for Founders", color: "#34d399",
                 description: "No jargon, no analyst required. Plain-English explanations, opinionated defaults, and actionable outputs only.",
+              },
+              {
+                icon: <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" /></svg>,
+                title: "Cross-Platform Attribution", color: "#f59e0b",
+                description: "See which channel — paid, organic, email, or direct — is actually driving revenue. Fold links Stripe payments back to GA4 sources and Meta campaigns so you stop guessing.",
+              },
+              {
+                icon: <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941" /></svg>,
+                title: "Revenue Forecasting", color: "#a78bfa",
+                description: "AI projects your next 30 days of revenue by combining trend data from Stripe, ad spend efficiency, and traffic growth — so you can see problems before they happen.",
+              },
+              {
+                icon: <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>,
+                title: "Custom Alert Rules", color: "#60a5fa",
+                description: "Set your own thresholds — alert me when CAC exceeds $50, when churn crosses 5%, or when daily revenue drops below $1k. Fold watches your numbers so you don't have to.",
               },
             ].map((f) => (
               <FeatureCard key={f.title} icon={f.icon} title={f.title} description={f.description} color={f.color} />

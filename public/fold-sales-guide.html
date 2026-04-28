@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Fold — Sales & Product Guide</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --teal:    #00d4aa;
+    --teal-lo: #00d4aa18;
+    --red:     #f87171;
+    --amber:   #f59e0b;
+    --purple:  #a78bfa;
+    --indigo:  #6366f1;
+    --green:   #34d399;
+    --blue:    #60a5fa;
+    --bg:      #13131f;
+    --surface: #1c1c2a;
+    --card:    #222235;
+    --border:  #363650;
+    --muted:   #8585aa;
+    --dimmed:  #bcbcd8;
+    --text:    #f8f8fc;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: #fff;
+    color: #1a1a2e;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  /* ── PRINT ─────────────────────────────────────────────── */
+  @media print {
+    .no-print { display: none !important; }
+    .page-break { page-break-before: always; }
+    body { font-size: 11.5px; }
+    .cover { page-break-after: always; }
+  }
+
+  /* ── COVER ─────────────────────────────────────────────── */
+  .cover {
+    background: var(--bg);
+    color: var(--text);
+    padding: 80px 64px 60px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .cover-logo {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--teal);
+    letter-spacing: -0.5px;
+  }
+  .cover-logo span {
+    display: block;
+    font-size: 10px;
+    color: #4a4a6a;
+    letter-spacing: 3px;
+    margin-top: 4px;
+    font-weight: 400;
+  }
+  .cover-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 52px;
+    font-weight: 800;
+    line-height: 1.1;
+    color: var(--text);
+    margin-bottom: 20px;
+  }
+  .cover-title em {
+    font-style: normal;
+    color: var(--teal);
+  }
+  .cover-sub {
+    font-size: 17px;
+    color: var(--dimmed);
+    max-width: 540px;
+    line-height: 1.7;
+  }
+  .cover-tag {
+    display: inline-block;
+    background: var(--teal-lo);
+    border: 1px solid rgba(0,212,170,0.25);
+    color: var(--teal);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 5px 12px;
+    border-radius: 99px;
+    margin-bottom: 24px;
+  }
+  .cover-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+  .cover-footer p {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: #4a4a6a;
+  }
+  .cover-footer .version {
+    text-align: right;
+  }
+  .cover-pills {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 32px;
+  }
+  .cover-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--dimmed);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 5px 10px;
+    border-radius: 99px;
+  }
+  .cover-pill .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--teal);
+  }
+
+  /* ── CONTENT PAGES ──────────────────────────────────────── */
+  .page {
+    padding: 56px 64px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  /* Section header */
+  .section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: var(--teal);
+    margin-bottom: 8px;
+  }
+  .section-label.red   { color: #e53e3e; }
+  .section-label.amber { color: #d97706; }
+  .section-label.purple{ color: #7c3aed; }
+
+  h2 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 26px;
+    font-weight: 800;
+    color: #0f0f1a;
+    margin-bottom: 6px;
+    line-height: 1.25;
+  }
+  .lead {
+    font-size: 14px;
+    color: #555577;
+    max-width: 680px;
+    margin-bottom: 36px;
+    line-height: 1.75;
+  }
+
+  /* Divider */
+  hr {
+    border: none;
+    border-top: 1px solid #e8e8f0;
+    margin: 40px 0;
+  }
+
+  /* ── CARDS ──────────────────────────────────────────────── */
+  .card-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .card-grid-3 {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+  .card {
+    border: 1px solid #e0e0ee;
+    border-radius: 12px;
+    padding: 20px 22px;
+    background: #fafafe;
+  }
+  .card-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #0f0f1a;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .card-title .badge {
+    font-size: 8px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    padding: 2px 7px;
+    border-radius: 99px;
+    border: 1px solid;
+  }
+  .badge-premium {
+    color: var(--teal);
+    border-color: rgba(0,212,170,0.4);
+    background: rgba(0,212,170,0.08);
+  }
+  .badge-free {
+    color: #7c3aed;
+    border-color: rgba(124,58,237,0.3);
+    background: rgba(124,58,237,0.06);
+  }
+  .card p {
+    font-size: 12.5px;
+    color: #555577;
+    line-height: 1.65;
+  }
+  .card ul {
+    padding-left: 0;
+    list-style: none;
+    margin-top: 10px;
+  }
+  .card ul li {
+    font-size: 12px;
+    color: #444466;
+    padding: 3px 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+  }
+  .card ul li::before {
+    content: '→';
+    color: var(--teal);
+    font-size: 11px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .card-accent {
+    border-left: 3px solid var(--teal);
+  }
+  .card-accent-red  { border-left: 3px solid #f87171; }
+  .card-accent-amber { border-left: 3px solid #f59e0b; }
+  .card-accent-purple { border-left: 3px solid #a78bfa; }
+  .card-accent-indigo { border-left: 3px solid #6366f1; }
+  .card-accent-green { border-left: 3px solid #34d399; }
+
+  /* ── COMPARISON TABLE ───────────────────────────────────── */
+  table { width: 100%; border-collapse: collapse; margin-bottom: 28px; }
+  th {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #888;
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 2px solid #e0e0ee;
+  }
+  td {
+    font-size: 12.5px;
+    color: #333;
+    padding: 10px 14px;
+    border-bottom: 1px solid #eee;
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  .check { color: #00b894; font-weight: 700; }
+  .cross { color: #e17055; font-weight: 700; }
+  .highlight-row { background: rgba(0,212,170,0.04); }
+
+  /* ── PAIN/GAIN ──────────────────────────────────────────── */
+  .pain-gain {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .pain, .gain {
+    border-radius: 12px;
+    padding: 18px 20px;
+  }
+  .pain {
+    background: #fff5f5;
+    border: 1px solid #fed7d7;
+  }
+  .gain {
+    background: #f0fdf9;
+    border: 1px solid #b2f5ea;
+  }
+  .pain-label, .gain-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+  }
+  .pain-label { color: #e53e3e; }
+  .gain-label { color: #00875a; }
+  .pain ul, .gain ul {
+    list-style: none;
+    padding: 0;
+  }
+  .pain ul li, .gain ul li {
+    font-size: 12px;
+    color: #333;
+    padding: 4px 0;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .pain ul li::before { content: '✕'; color: #e53e3e; font-size: 10px; margin-top: 1px; }
+  .gain ul li::before { content: '✓'; color: #00875a; font-weight: 700; font-size: 10px; margin-top: 1px; }
+
+  /* ── INTEGRATION GRID ───────────────────────────────────── */
+  .int-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 28px;
+  }
+  .int-item {
+    border: 1px solid #e0e0ee;
+    border-radius: 9px;
+    padding: 10px 12px;
+    background: #fafafe;
+  }
+  .int-item .name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    color: #0f0f1a;
+  }
+  .int-item .desc {
+    font-size: 10px;
+    color: #888;
+    margin-top: 2px;
+  }
+  .int-item .live-dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: #00d4aa;
+    display: inline-block;
+    margin-right: 4px;
+  }
+  .int-cat {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #888;
+    margin: 20px 0 8px;
+  }
+
+  /* ── OBJECTION HANDLING ─────────────────────────────────── */
+  .objection {
+    border: 1px solid #e0e0ee;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+  .obj-q {
+    background: #f5f5fe;
+    padding: 12px 18px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #2d2d4e;
+  }
+  .obj-a {
+    padding: 12px 18px;
+    font-size: 12.5px;
+    color: #444466;
+    line-height: 1.65;
+  }
+
+  /* ── PRICING BLOCK ──────────────────────────────────────── */
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .price-card {
+    border-radius: 14px;
+    padding: 24px;
+    border: 1px solid #e0e0ee;
+    background: #fafafe;
+  }
+  .price-card.highlight {
+    border-color: rgba(0,212,170,0.5);
+    background: rgba(0,212,170,0.03);
+  }
+  .price-card .plan-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #888;
+    margin-bottom: 8px;
+  }
+  .price-card .amount {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 38px;
+    font-weight: 800;
+    color: #0f0f1a;
+  }
+  .price-card.highlight .amount { color: var(--teal); }
+  .price-card .period {
+    font-size: 12px;
+    color: #888;
+    margin-left: 4px;
+  }
+  .price-card .desc {
+    font-size: 12px;
+    color: #666;
+    margin: 10px 0 16px;
+    line-height: 1.65;
+  }
+  .price-card ul { list-style: none; padding: 0; }
+  .price-card ul li {
+    font-size: 12px;
+    color: #333;
+    padding: 4px 0;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .price-card ul li .ck { color: #00d4aa; font-weight: 700; }
+
+  /* ── CALL-OUT BOX ───────────────────────────────────────── */
+  .callout {
+    border-radius: 12px;
+    padding: 18px 22px;
+    margin-bottom: 20px;
+  }
+  .callout-teal {
+    background: rgba(0,212,170,0.07);
+    border: 1px solid rgba(0,212,170,0.3);
+    color: #004d40;
+  }
+  .callout-red {
+    background: #fff5f5;
+    border: 1px solid #fed7d7;
+    color: #742a2a;
+  }
+  .callout-amber {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    color: #78350f;
+  }
+  .callout strong {
+    font-weight: 700;
+  }
+
+  /* ── STAT ROW ───────────────────────────────────────────── */
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .stat {
+    border: 1px solid #e0e0ee;
+    border-radius: 12px;
+    padding: 16px 18px;
+    background: #fafafe;
+    text-align: center;
+  }
+  .stat .number {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--teal);
+    display: block;
+    margin-bottom: 4px;
+  }
+  .stat .label {
+    font-size: 10.5px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  /* ── QUOTE ──────────────────────────────────────────────── */
+  .quote-block {
+    border-left: 3px solid var(--teal);
+    padding: 14px 20px;
+    background: rgba(0,212,170,0.04);
+    border-radius: 0 10px 10px 0;
+    margin-bottom: 20px;
+    font-size: 13.5px;
+    color: #2d2d4e;
+    line-height: 1.7;
+    font-style: italic;
+  }
+
+  /* ── FOOTER BAR ─────────────────────────────────────────── */
+  .doc-footer {
+    background: var(--bg);
+    color: #4a4a6a;
+    padding: 20px 64px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+  }
+  .doc-footer .logo { color: var(--teal); font-weight: 700; }
+
+  /* ── TOC ────────────────────────────────────────────────── */
+  .toc-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 8px 0;
+    border-bottom: 1px dashed #e0e0ee;
+    font-size: 13px;
+    color: #333;
+  }
+  .toc-item:last-child { border-bottom: none; }
+  .toc-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--teal);
+    font-weight: 700;
+    margin-right: 14px;
+  }
+  .toc-page {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: #aaa;
+  }
+
+  .chip {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    padding: 2px 8px;
+    border-radius: 99px;
+    margin-left: 6px;
+  }
+  .chip-live { background: rgba(0,212,170,0.1); color: #00875a; border: 1px solid rgba(0,212,170,0.3); }
+  .chip-soon { background: #f5f5fe; color: #7c3aed; border: 1px solid rgba(124,58,237,0.2); }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- COVER PAGE -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="cover">
+  <div>
+    <div class="cover-logo">Fold<span>AI Business Intelligence</span></div>
+  </div>
+  <div>
+    <div class="cover-tag">Sales &amp; Product Reference Guide</div>
+    <div class="cover-title">
+      Your business,<br>
+      <em>finally visible.</em>
+    </div>
+    <p class="cover-sub">
+      Fold connects all your business tools and tells you exactly what changed, why it changed, and what to fix first — before it costs you money. This document covers every feature, integration, and objection a sales conversation needs.
+    </p>
+    <div class="cover-pills">
+      <span class="cover-pill"><span class="dot"></span>50+ Live Integrations</span>
+      <span class="cover-pill"><span class="dot"></span>AI-Powered Insights</span>
+      <span class="cover-pill"><span class="dot"></span>$19 / month</span>
+      <span class="cover-pill"><span class="dot"></span>7-Day Free Trial</span>
+      <span class="cover-pill"><span class="dot"></span>No Card Required</span>
+      <span class="cover-pill"><span class="dot"></span>Read-Only Access</span>
+    </div>
+  </div>
+  <div class="cover-footer">
+    <p>Confidential — Internal Sales Use Only</p>
+    <div class="version">
+      <p>Version 1.0 — April 2026</p>
+      <p style="margin-top:4px;">usefold.io · info@usefold.io</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- TABLE OF CONTENTS -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="section-label">Navigation</div>
+  <h2>Table of Contents</h2>
+  <p class="lead">Use this guide section by section during demos, discovery calls, or follow-up emails.</p>
+
+  <div>
+    <div class="toc-item"><span><span class="toc-num">01</span>The Problem We Solve</span><span class="toc-page">—</span></div>
+    <div class="toc-item"><span><span class="toc-num">02</span>What Fold Is</span><span class="toc-page">—</span></div>
+    <div class="toc-item"><span><span class="toc-num">03</span>Who It's For — Ideal Customer Profile</span><span class="toc-page">—</span></div>
+    <div class="toc-item"><span><span class="toc-num">04</span>The Four Modules in Detail</span><span class="toc-page">—</span></div>
+    <div class="toc-item"><span><span class="toc-num">05</span>All Integrations</span><span class="toc-page">—</span></div>
+    <div class="toc-item"><span><span class="toc-num">06</span>Security &amp; Privacy</span><span class="toc-page">—</span></div>
+    <div class="toc-item"><span><span class="toc-num">07</span>Pricing &amp; Trial</span><span class="toc-page">—</span></div>
+    <div class="toc-item"><span><span class="toc-num">08</span>Common Objections &amp; How to Answer</span><span class="toc-page">—</span></div>
+    <div class="toc-item"><span><span class="toc-num">09</span>Demo Talking Points</span><span class="toc-page">—</span></div>
+    <div class="toc-item"><span><span class="toc-num">10</span>Key Messages &amp; One-Liners</span><span class="toc-page">—</span></div>
+  </div>
+</div>
+
+<hr style="margin:0; border-color:#ddd;">
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- 01 — THE PROBLEM -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="page page-break">
+  <div class="section-label red">01 — The Problem</div>
+  <h2>Most founders are running their business blind.</h2>
+  <p class="lead">Revenue is leaking and they won't know until it's already compounded. The data exists — it's just scattered across 5 different tools with no one to connect it.</p>
+
+  <div class="pain-gain">
+    <div class="pain">
+      <div class="pain-label">Without Fold</div>
+      <ul>
+        <li>Revenue dropped 18% last week — found out 4 days later</li>
+        <li>Stripe, GA4, Meta Ads, and Shopify open in separate tabs every Monday</li>
+        <li>No idea if the ad spend is actually driving revenue</li>
+        <li>A slow page is killing conversions — silently</li>
+        <li>Churn is up but the cause is unknown</li>
+        <li>40+ minutes every week just assembling a picture of the business</li>
+        <li>Insights buried in data — no one to explain them</li>
+      </ul>
+    </div>
+    <div class="gain">
+      <div class="gain-label">With Fold</div>
+      <ul>
+        <li>Anomalies flagged within hours — with the exact cause in plain English</li>
+        <li>One dashboard. All tools. Updated automatically every day</li>
+        <li>ROAS, CAC, and paid vs. organic visible side-by-side</li>
+        <li>AI scores the website and ranks fixes by revenue impact</li>
+        <li>Churn anomalies detected and explained before they compound</li>
+        <li>Live in 90 seconds. Zero maintenance after that</li>
+        <li>AI advisor explains every metric change, no analyst needed</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout callout-red">
+    <strong>The real cost of fragmented data:</strong> Every day a founder doesn't know their numbers is a day they can't make a good decision. A $500 Meta campaign can waste $3,000 in a week before anyone notices it stopped converting — if there's no unified view watching it.
+  </div>
+
+  <div class="quote-block">
+    "I ran a small SaaS and every Monday I'd open five browser tabs — Stripe, Google Analytics, Mailchimp, Meta Ads, Shopify — just to piece together what happened last week. It took 40 minutes and I still wasn't sure I had the full picture."
+    <br><br>
+    <strong style="font-style:normal; font-size:11px; color:#555;">— George Popa, Founder of Fold</strong>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- 02 — WHAT FOLD IS -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="page page-break">
+  <div class="section-label">02 — What Fold Is</div>
+  <h2>AI-powered business intelligence for founders.</h2>
+  <p class="lead">Fold is a unified dashboard that connects all your business tools — payments, analytics, ads, email, e-commerce — and uses AI to explain what's actually happening and what to do next.</p>
+
+  <div class="stat-row">
+    <div class="stat"><span class="number">50+</span><span class="label">Live Integrations</span></div>
+    <div class="stat"><span class="number">90s</span><span class="label">Time to First Insight</span></div>
+    <div class="stat"><span class="number">$19</span><span class="label">Per Month</span></div>
+    <div class="stat"><span class="number">4</span><span class="label">Core Modules</span></div>
+  </div>
+
+  <div class="card-grid">
+    <div class="card card-accent">
+      <div class="card-title">How it works in 3 steps</div>
+      <ul>
+        <li><strong>Connect</strong> — Link your tools in 90 seconds via OAuth. No code, no CSV exports, no engineers needed.</li>
+        <li><strong>Fold surfaces the problems</strong> — One view across all data. Revenue anomalies, traffic drops, ad waste, conversion leaks — flagged automatically with context.</li>
+        <li><strong>AI tells you what to fix</strong> — Plain-English explanations, prioritized action list, daily digest. Ask follow-up questions about your own live data.</li>
+      </ul>
+    </div>
+    <div class="card card-accent-indigo">
+      <div class="card-title">What makes Fold different</div>
+      <ul>
+        <li>Built specifically for <strong>small business founders</strong>, not enterprise teams</li>
+        <li>No jargon — everything explained in plain English</li>
+        <li>AI that uses <strong>your real live data</strong>, not generic advice</li>
+        <li>Proactive — Fold <em>comes to you</em> with daily insights and alerts</li>
+        <li>Read-only, OAuth-secured — never writes to your accounts</li>
+        <li>Bootstrapped — no VC pressure, ships weekly</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout callout-teal">
+    <strong>One-line pitch:</strong> "Fold connects all your business tools and tells you exactly what broke, why it broke, and what to fix first — before it costs you more money."
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- 03 — ICP -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="page page-break">
+  <div class="section-label">03 — Ideal Customer Profile</div>
+  <h2>Who Fold is built for.</h2>
+  <p class="lead">Fold is purpose-built for founders running small businesses with live revenue and multiple tools. The ICP is not an enterprise data team — it's a solo founder or small team making real decisions every week.</p>
+
+  <div class="card-grid card-grid-3">
+    <div class="card card-accent">
+      <div class="card-title">SaaS Founders</div>
+      <p>Running a subscription product. Tracking MRR, churn, CAC, and conversion from Stripe + GA4 + Meta Ads. Need to know immediately when any metric breaks.</p>
+    </div>
+    <div class="card card-accent-indigo">
+      <div class="card-title">DTC / E-commerce</div>
+      <p>Shopify or WooCommerce store. Running paid ads on Meta or Google. Need to see ad spend vs. revenue in one place and catch ROAS drops before they compound.</p>
+    </div>
+    <div class="card card-accent-amber">
+      <div class="card-title">Creators & Newsletter</div>
+      <p>Beehiiv or Mailchimp newsletter + Gumroad / Lemon Squeezy products. Need subscriber growth, open rate trends, and product revenue in one place.</p>
+    </div>
+    <div class="card card-accent-purple">
+      <div class="card-title">Indie SaaS / Bootstrapped</div>
+      <p>Paddle or Lemon Squeezy for billing. Plausible or PostHog for analytics. Privacy-conscious. Wants insights without a data stack or analyst.</p>
+    </div>
+    <div class="card card-accent-green">
+      <div class="card-title">Agency Owners</div>
+      <p>Managing clients across Shopify, Mailchimp, Meta Ads. Needs a consolidated view per business without exporting CSVs or building custom reports.</p>
+    </div>
+    <div class="card card-accent-red">
+      <div class="card-title">Who is NOT the ICP</div>
+      <p>Enterprise teams with dedicated analysts. Businesses with no digital revenue. Anyone looking for a BI tool to build custom reports — Fold does it for you automatically.</p>
+    </div>
+  </div>
+
+  <hr>
+
+  <div class="section-label">Qualifying Questions</div>
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-title">Green Flags — Good Fit</div>
+      <ul>
+        <li>Uses 3+ different tools and checks them separately each week</li>
+        <li>Has live revenue (Stripe, Shopify, Paddle, etc.)</li>
+        <li>Runs any paid ads (Meta, Google, TikTok)</li>
+        <li>Doesn't have a data analyst or BI team</li>
+        <li>Has ever been surprised by a drop they found out about too late</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-title">Red Flags — Poor Fit</div>
+      <ul>
+        <li>Only uses one tool total (nothing to unify)</li>
+        <li>Pre-revenue or pre-launch</li>
+        <li>Already has a dedicated BI team or analyst</li>
+        <li>Wants to build custom dashboards manually</li>
+        <li>Enterprise procurement / lengthy vendor evaluation</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- 04 — THE FOUR MODULES -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="page page-break">
+  <div class="section-label">04 — The Four Modules</div>
+  <h2>Everything inside Fold, explained.</h2>
+  <p class="lead">Fold is organized into four distinct modules. The Overview is free forever. Analytics, Website Optimizer, and AI Advisor are Premium features — unlocked fully during the 7-day trial.</p>
+
+  <!-- Module 1 -->
+  <div class="card card-accent" style="margin-bottom:16px;">
+    <div class="card-title">Overview Dashboard <span class="badge badge-free">Free Forever</span></div>
+    <p>The single-screen command center for any founder. Shows the 6 KPIs that matter most — side by side, always current, always compared to the prior period.</p>
+    <ul>
+      <li><strong>Revenue &amp; MRR</strong> — pulled from Stripe, Shopify, Lemon Squeezy, Gumroad, Paddle, PayPal</li>
+      <li><strong>Sessions &amp; Conversions</strong> — from GA4, Plausible, or PostHog</li>
+      <li><strong>Ad Spend &amp; CAC</strong> — from Meta Ads, Google Ads, or TikTok Ads</li>
+      <li><strong>New Customers</strong> — across all connected revenue sources</li>
+      <li>7-day trend comparison vs. prior 7 days with ▲/▼ indicators</li>
+      <li>Quick actions panel and recent activity feed</li>
+      <li>Works with 1 integration connected — gets more powerful as more are added</li>
+    </ul>
+  </div>
+
+  <!-- Module 2 -->
+  <div class="card card-accent-indigo" style="margin-bottom:16px;">
+    <div class="card-title">Analytics <span class="badge badge-premium">Premium</span></div>
+    <p>Full 30-day daily breakdown per platform. Not just totals — sparklines, trend percentages, and a dedicated deep-dive per connected integration.</p>
+    <ul>
+      <li><strong>Stripe:</strong> MRR, revenue, new customers, refunds, churn — 30-day daily time series</li>
+      <li><strong>GA4:</strong> sessions, bounce rate, conversions, top pages, traffic sources</li>
+      <li><strong>Meta Ads:</strong> spend, ROAS, CPC, impressions, click-through rate</li>
+      <li><strong>Shopify:</strong> GMV, orders, AOV, top products, return rates</li>
+      <li><strong>Mailchimp / Klaviyo / Beehiiv:</strong> subscribers, open rates, click rates, revenue attributed</li>
+      <li>Each integration gets its own dedicated view — not just a summary tile</li>
+      <li>Anomaly detection built in — unusual movements highlighted automatically</li>
+    </ul>
+  </div>
+
+  <!-- Module 3 -->
+  <div class="card card-accent-green" style="margin-bottom:16px;">
+    <div class="card-title">Website Optimizer <span class="badge badge-premium">Premium</span></div>
+    <p>AI crawls the user's website, assigns a health score out of 100, and generates a prioritized task list ranked by revenue impact. This is not a generic SEO audit — it's an AI that understands the business context.</p>
+    <ul>
+      <li>AI-generated health score 0–100 with explanation of what's holding it back</li>
+      <li>Tasks categorized across 6 dimensions: UX, SEO, Performance, Copy, Conversion, Accessibility</li>
+      <li>Each task ranked by impact score — highest revenue potential shown first</li>
+      <li>Mark tasks complete — score updates live to show progress</li>
+      <li>Re-analyze the site anytime with one click</li>
+      <li>Actionable — tasks written as clear instructions, not technical reports</li>
+    </ul>
+  </div>
+
+  <!-- Module 4 -->
+  <div class="card card-accent-amber" style="margin-bottom:16px;">
+    <div class="card-title">AI Advisor <span class="badge badge-premium">Premium</span></div>
+    <p>A persistent AI chat that has full context of all connected integrations and live data. Every day a new insight is auto-generated. Users can ask follow-up questions, dig into anomalies, or get action plans — all in plain English.</p>
+    <ul>
+      <li>Daily AI-generated insight from live data — delivered every morning automatically</li>
+      <li>Multi-conversation history — create new chats, revisit old ones, rename &amp; organize</li>
+      <li>AI has full context of ALL connected integrations — not generic advice</li>
+      <li>Ask anything: "Why did revenue drop last Tuesday?", "Is my ad spend efficient?", "What should I fix this week?"</li>
+      <li>Anomaly explanations — when something unusual happens, AI explains it automatically</li>
+      <li>No data science knowledge needed — designed for founders, not analysts</li>
+    </ul>
+  </div>
+
+  <!-- Additional features -->
+  <hr>
+  <div class="section-label">Additional Features Across All Modules</div>
+  <div class="card-grid">
+    <div class="card card-accent-red">
+      <div class="card-title">Anomaly Alerts</div>
+      <p>Unusual churn? Sudden session drop? Ad spend spike? Fold detects it automatically and surfaces it with an explanation — before the founder would normally notice.</p>
+    </div>
+    <div class="card card-accent-amber">
+      <div class="card-title">Daily Digest Email</div>
+      <p>Every morning, Fold sends an AI-generated email digest: what changed, what matters most, and what to do. Like a daily briefing from a business analyst — automatically.</p>
+    </div>
+    <div class="card card-accent">
+      <div class="card-title">Integration Connected Emails</div>
+      <p>When a user connects a new integration, they receive an email confirming what data is now flowing, what Fold will track from it, and what to expect next.</p>
+    </div>
+    <div class="card card-accent-indigo">
+      <div class="card-title">7-Day Trend Comparisons</div>
+      <p>Every metric shows its current 7-day value vs. the prior 7-day period — with ▲/▼ percentage change. Immediately clear whether the business is improving or declining.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- 05 — INTEGRATIONS -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="page page-break">
+  <div class="section-label">05 — Integrations</div>
+  <h2>50+ integrations across every category.</h2>
+  <p class="lead">Fold connects to every major tool a small business founder uses. Live integrations sync data automatically. "Coming soon" integrations are in active development — users can connect via API key or will be notified at launch.</p>
+
+  <div class="callout callout-teal">
+    <strong>Connection method:</strong> All OAuth integrations connect in one click — the user is redirected to the platform, grants read-only access, and Fold starts syncing immediately. API-key integrations require the user to paste a key from their account settings. <strong>Fold never writes to any account.</strong>
+  </div>
+
+  <div class="int-cat">💳 Payments & Revenue</div>
+  <div class="int-grid">
+    <div class="int-item"><div class="name"><span class="live-dot"></span>Stripe</div><div class="desc">Revenue, MRR, transactions & customers</div></div>
+    <div class="int-item"><div class="name"><span class="live-dot"></span>Lemon Squeezy</div><div class="desc">Digital products & subscriptions</div></div>
+    <div class="int-item"><div class="name"><span class="live-dot"></span>Gumroad</div><div class="desc">Creator sales & subscription revenue</div></div>
+    <div class="int-item"><div class="name"><span class="live-dot"></span>Paddle</div><div class="desc">SaaS billing, subscriptions & tax</div></div>
+    <div class="int-item"><div class="name">PayPal <span class="chip chip-soon">Soon</span></div><div class="desc">Transactions, fees & payouts</div></div>
+  </div>
+
+  <div class="int-cat">📊 Web & Product Analytics</div>
+  <div class="int-grid">
+    <div class="int-item"><div class="name"><span class="live-dot"></span>Google Analytics 4</div><div class="desc">Sessions, users, bounce rate & conversions</div></div>
+    <div class="int-item"><div class="name"><span class="live-dot"></span>Plausible</div><div class="desc">Privacy-first traffic analytics</div></div>
+    <div class="int-item"><div class="name"><span class="live-dot"></span>PostHog</div><div class="desc">Product analytics & feature flags</div></div>
+    <div class="int-item"><div class="name">Fathom <span class="chip chip-soon">Soon</span></div><div class="desc">Cookie-free, GDPR-compliant analytics</div></div>
+    <div class="int-item"><div class="name">Mixpanel <span class="chip chip-soon">Soon</span></div><div class="desc">Event tracking, funnels & retention</div></div>
+    <div class="int-item"><div class="name">Amplitude <span class="chip chip-soon">Soon</span></div><div class="desc">Product analytics & behavioral cohorts</div></div>
+    <div class="int-item"><div class="name">Hotjar <span class="chip chip-soon">Soon</span></div><div class="desc">Heatmaps & session recordings</div></div>
+    <div class="int-item"><div class="name">Heap <span class="chip chip-soon">Soon</span></div><div class="desc">Auto-captured events & funnels</div></div>
+    <div class="int-item"><div class="name">FullStory <span class="chip chip-soon">Soon</span></div><div class="desc">Session replays & friction scoring</div></div>
+    <div class="int-item"><div class="name">Segment <span class="chip chip-soon">Soon</span></div><div class="desc">Customer data pipeline</div></div>
+  </div>
+
+  <div class="int-cat">📣 Advertising</div>
+  <div class="int-grid">
+    <div class="int-item"><div class="name"><span class="live-dot"></span>Meta Ads</div><div class="desc">Ad spend, reach, clicks & ROAS</div></div>
+    <div class="int-item"><div class="name">Google Ads <span class="chip chip-soon">Soon</span></div><div class="desc">Search, display & Shopping spend</div></div>
+    <div class="int-item"><div class="name">TikTok Ads <span class="chip chip-soon">Soon</span></div><div class="desc">Campaign spend, reach & conversions</div></div>
+    <div class="int-item"><div class="name">LinkedIn Ads <span class="chip chip-soon">Soon</span></div><div class="desc">B2B campaigns, leads & spend</div></div>
+    <div class="int-item"><div class="name">Pinterest Ads <span class="chip chip-soon">Soon</span></div><div class="desc">Promoted Pin spend & clicks</div></div>
+    <div class="int-item"><div class="name">Snapchat Ads <span class="chip chip-soon">Soon</span></div><div class="desc">Campaign spend & story impressions</div></div>
+    <div class="int-item"><div class="name">X (Twitter) Ads <span class="chip chip-soon">Soon</span></div><div class="desc">Promoted posts & cost-per-click</div></div>
+  </div>
+
+  <div class="int-cat">✉️ Email & Marketing</div>
+  <div class="int-grid">
+    <div class="int-item"><div class="name"><span class="live-dot"></span>Mailchimp</div><div class="desc">Email campaigns, opens, clicks & subscribers</div></div>
+    <div class="int-item"><div class="name"><span class="live-dot"></span>Klaviyo</div><div class="desc">E-commerce email flows & revenue</div></div>
+    <div class="int-item"><div class="name"><span class="live-dot"></span>Beehiiv</div><div class="desc">Newsletter subscribers & paid upgrades</div></div>
+    <div class="int-item"><div class="name">Kit (ConvertKit) <span class="chip chip-soon">Soon</span></div><div class="desc">Subscriber growth & email sequences</div></div>
+    <div class="int-item"><div class="name">ActiveCampaign <span class="chip chip-soon">Soon</span></div><div class="desc">Email automation & campaign revenue</div></div>
+    <div class="int-item"><div class="name">Brevo <span class="chip chip-soon">Soon</span></div><div class="desc">Email campaigns, SMS & transactional</div></div>
+  </div>
+
+  <div class="int-cat">🛒 E-commerce</div>
+  <div class="int-grid">
+    <div class="int-item"><div class="name"><span class="live-dot"></span>Shopify</div><div class="desc">Orders, GMV, refunds & product revenue</div></div>
+    <div class="int-item"><div class="name"><span class="live-dot"></span>WooCommerce</div><div class="desc">WordPress store orders & revenue</div></div>
+    <div class="int-item"><div class="name">Etsy <span class="chip chip-soon">Soon</span></div><div class="desc">Shop orders, views & conversion rate</div></div>
+    <div class="int-item"><div class="name">BigCommerce <span class="chip chip-soon">Soon</span></div><div class="desc">Enterprise store orders & catalog</div></div>
+    <div class="int-item"><div class="name">Amazon Seller <span class="chip chip-soon">Soon</span></div><div class="desc">Marketplace sales, fees & buy box</div></div>
+  </div>
+
+  <div class="int-cat">🤝 CRM & Sales · 🎧 Customer Support · 📱 Social Media</div>
+  <div class="int-grid">
+    <div class="int-item"><div class="name">HubSpot <span class="chip chip-soon">Soon</span></div><div class="desc">CRM deals, pipeline & close rates</div></div>
+    <div class="int-item"><div class="name">Pipedrive <span class="chip chip-soon">Soon</span></div><div class="desc">Deals won & revenue forecast</div></div>
+    <div class="int-item"><div class="name">Salesforce <span class="chip chip-soon">Soon</span></div><div class="desc">Sales pipeline & ARR</div></div>
+    <div class="int-item"><div class="name">Notion <span class="chip chip-soon">Soon</span></div><div class="desc">Database tables as business metrics</div></div>
+    <div class="int-item"><div class="name">Intercom <span class="chip chip-soon">Soon</span></div><div class="desc">Support volume & CSAT</div></div>
+    <div class="int-item"><div class="name">Zendesk <span class="chip chip-soon">Soon</span></div><div class="desc">Ticket volume & resolution time</div></div>
+    <div class="int-item"><div class="name">Freshdesk <span class="chip chip-soon">Soon</span></div><div class="desc">Support tickets & satisfaction</div></div>
+    <div class="int-item"><div class="name">Instagram <span class="chip chip-soon">Soon</span></div><div class="desc">Followers, reach & impressions</div></div>
+    <div class="int-item"><div class="name">X (Twitter) Organic <span class="chip chip-soon">Soon</span></div><div class="desc">Organic impressions & followers</div></div>
+    <div class="int-item"><div class="name">YouTube Analytics <span class="chip chip-soon">Soon</span></div><div class="desc">Views, watch time & subscribers</div></div>
+  </div>
+
+  <div style="display:flex; gap:16px; margin-top:8px; font-size:11px; color:#888; font-family:'JetBrains Mono',monospace;">
+    <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#00d4aa;margin-right:5px;"></span>Live — syncing data today</span>
+    <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#a78bfa;margin-right:5px;"></span>Coming Soon — in active development</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- 06 — SECURITY -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="page page-break">
+  <div class="section-label">06 — Security & Privacy</div>
+  <h2>Your data is safer here than in a spreadsheet.</h2>
+  <p class="lead">Security and privacy are first-class concerns at Fold — especially for founders who are hesitant to connect financial tools. Every point below is factual and verifiable.</p>
+
+  <div class="card-grid card-grid-3">
+    <div class="card card-accent">
+      <div class="card-title">OAuth 2.0 Only</div>
+      <p>All connections use OAuth 2.0 — the same standard used by Google and Apple sign-in. No passwords are ever stored, asked for, or transmitted.</p>
+    </div>
+    <div class="card card-accent">
+      <div class="card-title">Read-Only Access</div>
+      <p>Fold requests read-only permissions on every integration. It is technically impossible for Fold to create, modify, or delete anything in your connected accounts.</p>
+    </div>
+    <div class="card card-accent">
+      <div class="card-title">TLS 1.3 Encryption</div>
+      <p>All data in transit is encrypted with TLS 1.3 — the current industry standard. No data travels unencrypted between Fold's servers and your browser.</p>
+    </div>
+    <div class="card card-accent-indigo">
+      <div class="card-title">AES-256 at Rest</div>
+      <p>All stored data is encrypted at rest using AES-256 via Supabase — the same encryption standard used by banks and government agencies.</p>
+    </div>
+    <div class="card card-accent-indigo">
+      <div class="card-title">GDPR Ready</div>
+      <p>Users can delete their account and all associated data at any time from within the dashboard. No data is retained after deletion.</p>
+    </div>
+    <div class="card card-accent-indigo">
+      <div class="card-title">No Data Selling</div>
+      <p>Fold never sells, shares, or uses your business data to train models or advertise. Your data belongs to you.</p>
+    </div>
+  </div>
+
+  <div class="callout callout-teal">
+    <strong>The easiest security objection to handle:</strong> "We use the same connection method as when you log in with Google. We request read-only access — Fold can't create a charge, send an email, or change a setting in any of your tools. It literally isn't possible."
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Security Concern</th>
+        <th>What Fold Does</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="highlight-row"><td>Can Fold make changes to my Stripe account?</td><td><span class="check">✓ No.</span> Read-only OAuth scope. Write access was never requested.</td></tr>
+      <tr><td>Are my API keys or passwords stored?</td><td><span class="check">✓ No.</span> OAuth tokens only — no passwords ever.</td></tr>
+      <tr><td>Is my revenue data encrypted?</td><td><span class="check">✓ Yes.</span> AES-256 at rest, TLS 1.3 in transit.</td></tr>
+      <tr class="highlight-row"><td>Can I revoke access later?</td><td><span class="check">✓ Yes.</span> From any platform's OAuth settings, instantly.</td></tr>
+      <tr><td>Is my data used for advertising or AI training?</td><td><span class="check">✓ No.</span> Never sold, shared, or used to train any model.</td></tr>
+      <tr class="highlight-row"><td>Who can see my data?</td><td><span class="check">✓ Only you.</span> Your data is isolated per account with row-level security.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- 07 — PRICING -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="page page-break">
+  <div class="section-label">07 — Pricing & Trial</div>
+  <h2>Simple. One plan. No surprises.</h2>
+  <p class="lead">Fold has two tiers: a free Overview that never expires, and a Premium plan at $19/month that includes everything. Every new user gets a full 7-day Premium trial — no credit card required.</p>
+
+  <div class="pricing-grid">
+    <div class="price-card">
+      <div class="plan-name">Free — Forever</div>
+      <div><span class="amount">$0</span></div>
+      <div class="desc">The Overview Dashboard is always free — no trial, no expiry. Connect integrations and see your unified KPIs forever.</div>
+      <ul>
+        <li><span class="ck">✓</span> Unified KPI dashboard</li>
+        <li><span class="ck">✓</span> 7-day trend comparisons</li>
+        <li><span class="ck">✓</span> Connect all integrations</li>
+        <li><span class="ck">✓</span> Quick actions & activity feed</li>
+        <li><span class="ck">✓</span> No credit card, no time limit</li>
+      </ul>
+    </div>
+    <div class="price-card highlight">
+      <div class="plan-name">Premium</div>
+      <div><span class="amount">$19</span><span class="period">/ month · starts with 7-day free trial</span></div>
+      <div class="desc">Full access to every feature. 7-day trial — no card required. $19/month after. Cancel anytime, no questions asked.</div>
+      <ul>
+        <li><span class="ck">✓</span> Everything in Free</li>
+        <li><span class="ck">✓</span> Full 30-day Analytics per platform</li>
+        <li><span class="ck">✓</span> AI Advisor with multi-chat history</li>
+        <li><span class="ck">✓</span> Daily AI-generated insight</li>
+        <li><span class="ck">✓</span> Website health score & task list</li>
+        <li><span class="ck">✓</span> Anomaly detection & alerts</li>
+        <li><span class="ck">✓</span> Daily digest email</li>
+        <li><span class="ck">✓</span> Priority support</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout callout-amber">
+    <strong>Trial to paid conversion script:</strong> "You won't be charged anything today or for 7 days. Once you see the dashboard pulling in your live data and the AI explaining what's happening, you can decide if $19/month is worth it. Most founders connect Stripe in under 2 minutes and have their first real insight within the hour."
+  </div>
+
+  <hr>
+  <div class="section-label">Pricing Justification</div>
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-title">$19/month is less than 1 hour of your time</div>
+      <p>If Fold saves 3+ hours per week of manual data checking (conservative), at even $20/hr that's $240/month saved. Fold costs $19. The ROI is immediate and obvious.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">One caught anomaly pays for a year</div>
+      <p>A single Meta campaign that silently loses ROAS for a week can waste $500–$2,000 before a founder notices. One alert from Fold catches that. That's 12 months of Fold paid for.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- 08 — OBJECTIONS -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="page page-break">
+  <div class="section-label">08 — Objections & How to Answer</div>
+  <h2>Every pushback, handled.</h2>
+  <p class="lead">These are the most common objections heard in sales conversations. Use these responses word-for-word or adapt them.</p>
+
+  <div class="objection">
+    <div class="obj-q">💬 "I already use Google Analytics / Stripe. I have dashboards there."</div>
+    <div class="obj-a">Those are great tools — but they only show their own data. When revenue drops, you can't tell from Stripe alone whether it was a traffic problem (GA4), an ads problem (Meta), or a product problem (Shopify). Fold connects all of them and crosses the data, so you see the full picture instead of having to assemble it yourself every week.</div>
+  </div>
+
+  <div class="objection">
+    <div class="obj-q">💬 "I'm worried about connecting my Stripe / financial data."</div>
+    <div class="obj-a">That's a fair concern — let me explain exactly what happens. Fold uses OAuth, the same technology as "Login with Google." We request read-only access, which means Fold literally cannot create a charge, issue a refund, or change any setting. You can revoke the connection from Stripe's dashboard in 10 seconds at any time. Your data is encrypted at rest and in transit. We never sell or share it.</div>
+  </div>
+
+  <div class="objection">
+    <div class="obj-q">💬 "I don't have time to set this up."</div>
+    <div class="obj-a">The average connection time is 90 seconds per integration. You click Connect, log in to the platform, approve read-only access, and you're done. No configuration, no data mapping, no engineers. If you connect Stripe and GA4 right now, you'll have your first insight in under 5 minutes.</div>
+  </div>
+
+  <div class="objection">
+    <div class="obj-q">💬 "I can just build this in a spreadsheet."</div>
+    <div class="obj-a">You could — and if you enjoy spending 3–5 hours a week building and maintaining it, that's a valid choice. But every time Stripe, GA4, or Meta changes their export format, the spreadsheet breaks. Fold maintains all the integrations for you. And a spreadsheet can't tell you why something changed — it just shows numbers. Fold gives you the explanation.</div>
+  </div>
+
+  <div class="objection">
+    <div class="obj-q">💬 "Is this just another dashboard tool? I've tried those."</div>
+    <div class="obj-a">Most dashboard tools give you charts and leave you to figure out what they mean. Fold goes further — it detects anomalies automatically, explains them in plain English, and tells you what to do. The AI Advisor has the full context of your business across all connected tools. It's the difference between data and insight.</div>
+  </div>
+
+  <div class="objection">
+    <div class="obj-q">💬 "I'm not sure $19/month is worth it."</div>
+    <div class="obj-a">That's exactly why there's a 7-day free trial with no credit card required. Connect your tools, use it for a week, and decide. Most founders have their ROI moment in the first 48 hours when they see something they didn't know about — a campaign underperforming, a conversion rate drop, or a churn spike that started 3 days ago.</div>
+  </div>
+
+  <div class="objection">
+    <div class="obj-q">💬 "The integration I use isn't on your list."</div>
+    <div class="obj-a">We're adding integrations every week. Tell us which one you need and we'll prioritize it — the founder personally reads every support email. In the meantime, many integrations support API key connections right now, and any integration you need can be on the roadmap within days.</div>
+  </div>
+
+  <div class="objection">
+    <div class="obj-q">💬 "I'm a small business, I don't need AI."</div>
+    <div class="obj-a">You don't need to use the AI features — the unified dashboard alone saves most founders their first 3 hours of manual work. But when you do want to know why something happened, the AI is there. It's not an extra thing to learn — you just type a question in plain English and it answers it.</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- 09 — DEMO TALKING POINTS -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="page page-break">
+  <div class="section-label">09 — Demo Talking Points</div>
+  <h2>What to say during a live demo.</h2>
+  <p class="lead">Walk through the demo in this order. Focus on moments that create an "aha" — the points where the prospect says "I didn't know I needed that."</p>
+
+  <div class="card-grid">
+    <div class="card card-accent">
+      <div class="card-title">1. Open the Overview Dashboard</div>
+      <ul>
+        <li>Point at the 6 KPI tiles: "This is your whole business — revenue, sessions, ad spend, conversions, new customers, CAC — in one screen."</li>
+        <li>Point at the 7-day trend arrows: "These ▲/▼ arrows compare this week to last week. In seconds, you know if things are going up or down."</li>
+        <li>Ask them: "How long does it currently take you to get this picture every week?"</li>
+      </ul>
+    </div>
+    <div class="card card-accent-indigo">
+      <div class="card-title">2. Click into Analytics</div>
+      <ul>
+        <li>Click Stripe: "This is your full 30-day revenue breakdown — MRR, new customers, churn, refunds, all on one chart."</li>
+        <li>Click GA4: "Sessions and conversions over 30 days. Notice the anomaly highlighted here — that's Fold flagging an unusual drop automatically."</li>
+        <li>Key line: "You'd normally need to export this from 3 different places and put it in a spreadsheet."</li>
+      </ul>
+    </div>
+    <div class="card card-accent-amber">
+      <div class="card-title">3. Show the AI Advisor</div>
+      <ul>
+        <li>Open the daily insight: "Every morning, Fold reads all your data and writes this summary — what changed, what matters, what to do."</li>
+        <li>Type a question in the chat: "Why did revenue drop last Tuesday?" — show the AI's answer using real data context.</li>
+        <li>Key line: "This is like having a business analyst who read everything this morning and is ready to answer your questions."</li>
+      </ul>
+    </div>
+    <div class="card card-accent-green">
+      <div class="card-title">4. Show the Website Optimizer</div>
+      <ul>
+        <li>Show the health score: "74 out of 100 — here's what's holding it back."</li>
+        <li>Click a task: "This one task — compressing the hero image — is worth +12 points and likely translates to a measurable conversion improvement."</li>
+        <li>Key line: "A freelance SEO audit costs $500–$2,000. This runs automatically, any time you want, as part of the $19/month."</li>
+      </ul>
+    </div>
+    <div class="card card-accent-purple">
+      <div class="card-title">5. Show the Settings / Integrations</div>
+      <ul>
+        <li>Show the integration grid: "These are all the tools you can connect. Each one adds more context to the AI and more tiles to your dashboard."</li>
+        <li>Demonstrate connecting one: "Watch — I click Connect Stripe, it opens Stripe, I approve read-only access, and it's connected. 90 seconds."</li>
+        <li>Key line: "Every integration you add makes every other insight smarter — they're all connected."</li>
+      </ul>
+    </div>
+    <div class="card card-accent-red">
+      <div class="card-title">6. Close on the Trial</div>
+      <ul>
+        <li>"You can start a 7-day free trial right now — no card required. Connect your first integration in 90 seconds and you'll have real insights before the end of the day."</li>
+        <li>Remove friction: "If you don't find it useful in 7 days, nothing is charged, nothing is changed in your accounts."</li>
+        <li>Urgency: "The data from the last week is already in your tools — every day you wait is a day that context gets older."</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- 10 — KEY MESSAGES -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="page page-break">
+  <div class="section-label">10 — Key Messages & One-Liners</div>
+  <h2>The words that resonate most.</h2>
+  <p class="lead">Use these verbatim in emails, social posts, conversations, and follow-ups. They're tested and direct.</p>
+
+  <div class="card-grid">
+    <div class="card card-accent">
+      <div class="card-title">Headline Pitch</div>
+      <p style="font-size:14px; font-weight:600; color:#0f0f1a; line-height:1.5;">"You're losing revenue you can't see. Fold connects all your tools and tells you exactly what broke, why it broke, and what to fix first."</p>
+    </div>
+    <div class="card card-accent-indigo">
+      <div class="card-title">The 15-Second Pitch</div>
+      <p style="font-size:13px; color:#333; line-height:1.65;">"Fold is a unified dashboard for founders. You connect Stripe, GA4, Meta Ads, Shopify — or whatever you use — and Fold shows you everything in one place, flags anomalies automatically, and uses AI to explain what's happening in plain English. $19/month, free trial, no card needed."</p>
+    </div>
+  </div>
+
+  <div class="card-grid card-grid-3" style="margin-top:4px;">
+    <div class="card">
+      <div class="card-title">On Speed</div>
+      <p>"Live in 90 seconds. Real insights within the hour."</p>
+    </div>
+    <div class="card">
+      <div class="card-title">On Complexity</div>
+      <p>"No code. No CSV exports. No engineers. No data degree required."</p>
+    </div>
+    <div class="card">
+      <div class="card-title">On Cost</div>
+      <p>"Less than one lost hour of ad spend. One caught anomaly pays for a year."</p>
+    </div>
+    <div class="card">
+      <div class="card-title">On Security</div>
+      <p>"Read-only, OAuth-secured. Fold can't change anything in your accounts — ever."</p>
+    </div>
+    <div class="card">
+      <div class="card-title">On AI</div>
+      <p>"It's not a chatbot. It reads your real live data and explains what's actually happening in your business."</p>
+    </div>
+    <div class="card">
+      <div class="card-title">On the Trial</div>
+      <p>"No card. 7 days. Connect your tools and decide — you'll know if it's worth it within the first 24 hours."</p>
+    </div>
+  </div>
+
+  <hr>
+
+  <div class="section-label">What NOT to say</div>
+  <table>
+    <thead><tr><th>Avoid</th><th>Say instead</th></tr></thead>
+    <tbody>
+      <tr><td>"It's like a BI tool / analytics platform"</td><td>"It's a business intelligence dashboard built specifically for founders — no analyst needed."</td></tr>
+      <tr class="highlight-row"><td>"It saves you time"</td><td>"It catches revenue leaks before they compound — time saving is a side effect."</td></tr>
+      <tr><td>"You can build custom dashboards"</td><td>"You don't have to build anything — Fold does it automatically."</td></tr>
+      <tr class="highlight-row"><td>"It has AI features"</td><td>"The AI reads your live data every day and tells you exactly what's happening."</td></tr>
+      <tr><td>"It integrates with many tools"</td><td>"It connects to every major tool you already use — and starts syncing immediately."</td></tr>
+    </tbody>
+  </table>
+
+  <hr>
+  <div class="section-label">Contact & Resources</div>
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-title">Send a Prospect To</div>
+      <ul>
+        <li><strong>usefold.io</strong> — main landing page</li>
+        <li><strong>usefold.io/demo</strong> — live interactive demo (no sign-up)</li>
+        <li><strong>usefold.io/signup</strong> — start 7-day free trial</li>
+        <li><strong>usefold.io/learn</strong> — full feature documentation</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-title">Support & Questions</div>
+      <ul>
+        <li><strong>info@usefold.io</strong> — founder replies personally</li>
+        <li>Every email answered within 24 hours</li>
+        <li>Custom integration requests go directly to the roadmap</li>
+        <li>Bootstrapped — no sales team to route through</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="doc-footer">
+  <span class="logo">Fold</span>
+  <span>Sales & Product Reference Guide · v1.0 · April 2026</span>
+  <span>usefold.io · info@usefold.io · Confidential</span>
+</div>
+
+</body>
+</html>

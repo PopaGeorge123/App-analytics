@@ -4511,6 +4511,357 @@ function buildAnomalyAlertEmailHtml(alerts) {
   return { subject, html };
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// AI FIX-IT PLAYBOOKS GENERATOR
+// Runs daily after the sync. For every premium user who has at least 7 days of
+// snapshot data this function:
+//   1. Fetches the last 30 days of daily_snapshots
+//   2. Computes 7d/30d aggregates + derives cpc/ctr/openRate from raw fields
+//   3. Calls Anthropic (claude-opus-4-5) with a strict JSON schema
+//   4. Hydrates each chartSpec with real time-series points from the snapshots
+//   5. Upserts the result into ai_playbooks_cache (one row per user)
+//
+// The Next.js API route /api/ai/playbooks becomes read-only — it just returns
+// the cached row. No Vercel timeout risk whatsoever.
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function generateAllPlaybooks() {
+  if (!ANTHROPIC_KEY) {
+    logWarn('[playbooks] ANTHROPIC_API_KEY not set — skipping playbook generation');
+    return;
+  }
+
+  const today   = new Date().toISOString().slice(0, 10);
+  const appUrl  = g('NEXT_PUBLIC_APP_URL') || 'https://usefold.io';
+  log(`[playbooks] Starting AI playbook generation — ${today}`);
+
+  // ── 1. Fetch all premium (or active trial) users ─────────────────────────
+  let users;
+  try {
+    const getHeaders = { apikey: SB.headers.apikey, Authorization: SB.headers.Authorization };
+
+    const [premRes, trialRes] = await Promise.all([
+      fetch(
+        `${SUPABASE_URL}/rest/v1/users?select=id&subscription_status=eq.active`,
+        { headers: getHeaders },
+      ),
+      fetch(
+        `${SUPABASE_URL}/rest/v1/users?select=id&trial_ends_at=gte.${today}`,
+        { headers: getHeaders },
+      ),
+    ]);
+
+    const prem  = premRes.ok  ? (await premRes.json())  : [];
+    const trial = trialRes.ok ? (await trialRes.json()) : [];
+    const seen  = new Set();
+    users = [...prem, ...trial].filter(u => {
+      if (seen.has(u.id)) return false;
+      seen.add(u.id);
+      return true;
+    });
+  } catch (err) {
+    logFail(`[playbooks] Cannot fetch users: ${err.message}`);
+    return;
+  }
+
+  if (!users.length) {
+    log('[playbooks] No premium users found — skipping');
+    return;
+  }
+
+  log(`[playbooks] Generating playbooks for ${users.length} user(s)…`);
+  let ok = 0, skipped = 0, failed = 0;
+
+  for (const { id: uid } of users) {
+    try {
+      // ── 2. Fetch 30d snapshots ──────────────────────────────────────────
+      const cutoff30 = daysAgo(30);
+      const cutoff7  = daysAgo(7);
+      const getHeaders = { apikey: SB.headers.apikey, Authorization: SB.headers.Authorization };
+
+      const snapRes = await fetchRetry(
+        `[playbooks] snapshots ${uid.slice(0, 8)}`,
+        `${SUPABASE_URL}/rest/v1/daily_snapshots?` +
+          new URLSearchParams({
+            select:  'provider,date,data',
+            user_id: `eq.${uid}`,
+            date:    `gte.${cutoff30}`,
+            order:   'date.desc',
+          }),
+        { headers: getHeaders },
+      );
+      const snaps = snapRes.ok ? (await snapRes.json()) : [];
+
+      if (snaps.length < 7) {
+        skipped++;
+        continue; // not enough history yet
+      }
+
+      // ── 3. Fetch integrations list ────────────────────────────────────
+      const intRes = await fetchRetry(
+        `[playbooks] integrations ${uid.slice(0, 8)}`,
+        `${SUPABASE_URL}/rest/v1/integrations?` +
+          new URLSearchParams({ select: 'platform', user_id: `eq.${uid}` }),
+        { headers: getHeaders },
+      );
+      const integrations   = intRes.ok ? (await intRes.json()) : [];
+      const connectedPlatforms = integrations.map(i => i.platform);
+
+      // ── 4. Compute aggregates ─────────────────────────────────────────
+      const REVENUE_PROVIDERS  = ['stripe', 'shopify', 'woocommerce', 'gumroad', 'lemon-squeezy', 'paddle', 'paypal'];
+      const ANALYTICS_PROVIDERS = ['ga4', 'plausible', 'posthog', 'fathom', 'amplitude', 'heap'];
+      const ADS_PROVIDERS      = ['meta', 'google-ads', 'tiktok-ads', 'twitter-ads', 'linkedin-ads'];
+
+      const snaps7  = snaps.filter(s => s.date >= cutoff7);
+      const snaps30 = snaps;
+
+      const sumP = (arr, providers, field) =>
+        arr.filter(s => providers.includes(s.provider))
+           .reduce((a, s) => a + (s.data?.[field] ?? 0), 0);
+      const sumS = (arr, provider, field) =>
+        arr.filter(s => s.provider === provider)
+           .reduce((a, s) => a + (s.data?.[field] ?? 0), 0);
+      const avgS = (arr, provider, field) => {
+        const rows = arr.filter(s => s.provider === provider && (s.data?.[field] ?? 0) > 0);
+        return rows.length ? rows.reduce((a, s) => a + s.data[field], 0) / rows.length : 0;
+      };
+      const latestS = (arr, provider, field) => {
+        const rows = arr.filter(s => s.provider === provider && (s.data?.[field] ?? 0) != null);
+        return rows.length ? (rows[0].data?.[field] ?? 0) : 0;
+      };
+
+      // Primary analytics platform (most days of data)
+      const anCounts = {};
+      for (const s of snaps) {
+        if (!ANALYTICS_PROVIDERS.includes(s.provider)) continue;
+        if (Object.values(s.data ?? {}).some(v => v > 0)) anCounts[s.provider] = (anCounts[s.provider] ?? 0) + 1;
+      }
+      const primaryAn = Object.keys(anCounts).sort((a, b) => (anCounts[b] ?? 0) - (anCounts[a] ?? 0))[0] ?? null;
+
+      const rev7    = sumP(snaps7, REVENUE_PROVIDERS, 'revenue');
+      const rev30   = sumP(snaps30, REVENUE_PROVIDERS, 'revenue');
+      const spend7  = sumP(snaps7, ADS_PROVIDERS, 'spend');
+      const spend30 = sumP(snaps30, ADS_PROVIDERS, 'spend');
+      const newCx7  = sumP(snaps7, REVENUE_PROVIDERS, 'newCustomers');
+      const newCx30 = sumP(snaps30, REVENUE_PROVIDERS, 'newCustomers');
+      const churned30 = sumP(snaps30, REVENUE_PROVIDERS, 'churnedToday');
+      const refunds30 = sumP(snaps30, REVENUE_PROVIDERS, 'refunds');
+      const sess7   = primaryAn ? sumS(snaps7, primaryAn, 'sessions') : 0;
+      const sess30  = primaryAn ? sumS(snaps30, primaryAn, 'sessions') : 0;
+      const currentMRR  = latestS(snaps, 'stripe', 'mrr');
+      const activeSubs  = latestS(snaps, 'stripe', 'activeSubscriptions');
+      const arpu        = latestS(snaps, 'stripe', 'arpu');
+      const bounce30    = primaryAn ? avgS(snaps30, primaryAn, 'bounceRate') : 0;
+
+      // Meta derived
+      const metaSpend30 = sumS(snaps30, 'meta', 'spend');
+      const metaClicks30 = sumS(snaps30, 'meta', 'clicks');
+      const metaImpr30   = sumS(snaps30, 'meta', 'impressions');
+      const cpc30  = metaClicks30 > 0 ? metaSpend30 / metaClicks30 : 0;
+      const ctr30  = metaImpr30   > 0 ? metaClicks30 / metaImpr30  : 0;
+
+      // Email derived
+      const emailPlatform = connectedPlatforms.find(p => ['mailchimp','klaviyo','beehiiv'].includes(p));
+      const emailSent30 = emailPlatform ? sumS(snaps30, emailPlatform, 'emailsSent') : 0;
+      const emailOpens30 = emailPlatform ? sumS(snaps30, emailPlatform, 'opens') : 0;
+      const emailClicks30 = emailPlatform ? sumS(snaps30, emailPlatform, 'clicks') : 0;
+      const openRate30  = emailSent30 > 0 ? emailOpens30 / emailSent30 : 0;
+      const clickRate30 = emailSent30 > 0 ? emailClicks30 / emailSent30 : 0;
+
+      const churnRate = activeSubs > 0 ? churned30 / activeSubs : 0;
+      const cac30     = newCx30 > 0 && spend30 > 0 ? spend30 / newCx30 : 0;
+      const convRate  = sess30 > 0 && newCx30 > 0  ? newCx30 / sess30  : 0;
+
+      const fmtUSD = (cents) => `$${(cents / 100).toFixed(2)}`;
+
+      // ── 5. Fetch website profile ──────────────────────────────────────
+      let website = null;
+      try {
+        const wRes = await fetch(
+          `${SUPABASE_URL}/rest/v1/website_profiles?` +
+            new URLSearchParams({ select: 'url,score,description', user_id: `eq.${uid}` }),
+          { headers: getHeaders },
+        );
+        const wRows = wRes.ok ? (await wRes.json()) : [];
+        website = wRows[0] ?? null;
+      } catch (_) { /* optional */ }
+
+      // ── 6. Build data context string ──────────────────────────────────
+      const dataContext = [
+        `TODAY: ${today}`,
+        `CONNECTED PLATFORMS: ${connectedPlatforms.join(', ') || 'none'}`,
+        '',
+        '=== REVENUE (last 30d) ===',
+        `Revenue 7d: ${fmtUSD(rev7)} | Revenue 30d: ${fmtUSD(rev30)}`,
+        `MRR: ${fmtUSD(currentMRR)}/month`,
+        `Active subscriptions: ${activeSubs} | ARPU: ${fmtUSD(arpu)}/month`,
+        `New customers 7d: ${newCx7} | 30d: ${newCx30}`,
+        `Churned (30d): ${churned30} | Monthly churn rate: ${churnRate > 0 ? (churnRate * 100).toFixed(2) + '%' : 'N/A'}`,
+        `Refunds (30d): ${fmtUSD(refunds30)}`,
+        `CAC (30d): ${cac30 > 0 ? '$' + cac30.toFixed(2) : 'N/A'}`,
+        '',
+        `=== TRAFFIC (via ${primaryAn ?? 'no analytics connected'}) ===`,
+        `Sessions 7d: ${sess7} | 30d: ${sess30}`,
+        `Avg bounce rate (30d): ${bounce30 > 0 ? bounce30.toFixed(1) + '%' : 'N/A'}`,
+        `Conversion rate (30d): ${convRate > 0 ? (convRate * 100).toFixed(2) + '%' : 'N/A'}`,
+        '',
+        '=== PAID ADS ===',
+        `Ad spend 7d: $${spend7.toFixed(2)} | 30d: $${spend30.toFixed(2)}`,
+        `30d CPC: ${cpc30 > 0 ? '$' + cpc30.toFixed(2) : 'N/A'}`,
+        `30d CTR: ${ctr30 > 0 ? (ctr30 * 100).toFixed(2) + '%' : 'N/A'}`,
+        '',
+        '=== EMAIL MARKETING ===',
+        `Platform: ${emailPlatform ?? 'none'}`,
+        `Open rate (30d): ${openRate30 > 0 ? (openRate30 * 100).toFixed(1) + '%' : 'N/A'}`,
+        `Click rate (30d): ${clickRate30 > 0 ? (clickRate30 * 100).toFixed(1) + '%' : 'N/A'}`,
+        '',
+        '=== WEBSITE ===',
+        `URL: ${website?.url ?? 'Not set'}`,
+        `Health score: ${website?.score ?? 'N/A'}/100`,
+      ].join('\n');
+
+      // ── 7. Call Anthropic ─────────────────────────────────────────────
+      const aiRes = await fetchRetry(
+        `[playbooks] Anthropic ${uid.slice(0, 8)}`,
+        'https://api.anthropic.com/v1/messages',
+        {
+          method: 'POST',
+          headers: {
+            'x-api-key':         ANTHROPIC_KEY,
+            'anthropic-version': '2023-06-01',
+            'content-type':      'application/json',
+          },
+          body: JSON.stringify({
+            model:      'claude-opus-4-5',
+            max_tokens: 4096,
+            system: `You are an elite growth advisor with deep expertise in SaaS, DTC e-commerce, paid ads, email marketing, and SEO. You have access to a founder's REAL live business data. Your job is to generate a set of highly specific, personalized Fix-It Playbooks.
+
+RULES:
+- Every playbook MUST reference the founder's specific numbers.
+- Only generate playbooks for problems ACTUALLY visible in their data.
+- Be brutally specific with steps.
+- Severity: critical = costing money NOW, warning = will compound, opportunity = amplify a win.
+- Generate 4–8 playbooks only when genuinely warranted.
+- If no data yet (no platforms connected), generate 2–3 starter playbooks.
+
+PROOF CHARTS — include "chartSpec" for every playbook where the problem shows as a time-series trend.
+AVAILABLE METRICS ONLY (use exact keys — no others will resolve):
+  meta      → spend (usd), cpc (usd), ctr (percent_decimal)
+  ga4       → sessions (number), bounceRate (percent_decimal)
+  stripe    → revenue (usd_cents), newCustomers (number)
+  mailchimp / klaviyo → openRate (percent_decimal), clickRate (percent_decimal)
+If no matching metric exists, omit chartSpec entirely.
+
+STEP LINKS — add "link" on steps where a specific external URL would help (Meta Ads Manager, GA4, Stripe dashboard, etc.).
+
+OUTPUT: Respond ONLY with valid JSON — no markdown fences, no commentary.
+
+{
+  "healthScore": <0-100>,
+  "healthLabel": "<Healthy | Needs Work | At Risk>",
+  "summary": "<2-3 sentences about the most important thing happening right now>",
+  "playbooks": [
+    {
+      "id": "<slug>",
+      "title": "<concise title>",
+      "problem": "<1 sentence with actual numbers>",
+      "impact": "<1-2 sentences business cost>",
+      "category": "<paid-ads | revenue | retention | conversion | email | seo | ecommerce>",
+      "severity": "<critical | warning | opportunity>",
+      "expectedGain": "<specific improvement e.g. '20-35% lower CPC'>",
+      "triggeredBy": [{ "label": "<metric>", "value": "<actual>", "benchmark": "<target>" }],
+      "chartSpec": { "provider": "<provider>", "metric": "<exact-key>", "unit": "<unit>", "title": "<chart title>", "benchmark": <number>, "benchmarkLabel": "<label>" },
+      "steps": [{ "action": "<imperative>", "detail": "<how+why with numbers>", "link": { "label": "<short label>", "url": "<https://...>" } }]
+    }
+  ]
+}`,
+            messages: [
+              {
+                role: 'user',
+                content: `Generate personalized Fix-It Playbooks for this business. Rank by severity (critical first):\n\n${dataContext}`,
+              },
+            ],
+          }),
+        },
+      );
+
+      if (!aiRes.ok) {
+        const errText = await aiRes.text().catch(() => '');
+        throw new Error(`Anthropic ${aiRes.status}: ${errText.slice(0, 200)}`);
+      }
+
+      const aiJson = await aiRes.json();
+      let raw = (aiJson.content?.[0]?.text ?? '').trim();
+      raw = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+      const jsonMatch = raw.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error('No JSON in Anthropic response');
+      const parsed = JSON.parse(jsonMatch[0]);
+
+      // ── 8. Hydrate chartSpec → chart with real time-series points ────
+      // Derive computed fields (cpc, ctr, openRate, clickRate) per snapshot day
+      const snapsAsc = [...snaps].sort((a, b) => a.date.localeCompare(b.date));
+      const derived  = snapsAsc.map(s => {
+        const d = { ...(s.data ?? {}) };
+        if (s.provider === 'meta') {
+          if (d.clicks > 0)      d.cpc = d.spend / d.clicks;
+          if (d.impressions > 0) d.ctr = d.clicks / d.impressions;
+        }
+        if (s.provider === 'mailchimp' || s.provider === 'klaviyo') {
+          if (d.emailsSent > 0) {
+            d.openRate  = d.opens  / d.emailsSent;
+            d.clickRate = d.clicks / d.emailsSent;
+          }
+        }
+        return { provider: s.provider, date: s.date, data: d };
+      });
+
+      for (const pb of parsed.playbooks ?? []) {
+        const spec = pb.chartSpec;
+        if (!spec?.provider || !spec?.metric) { delete pb.chartSpec; continue; }
+
+        const points = derived
+          .filter(s => s.provider === spec.provider)
+          .map(s => ({ date: s.date, value: s.data[spec.metric] ?? 0 }))
+          .filter(p => p.value > 0);
+
+        if (points.length >= 3) {
+          pb.chart = {
+            title: spec.title,
+            unit:  spec.unit,
+            benchmark: spec.benchmark,
+            benchmarkLabel: spec.benchmarkLabel,
+            points,
+          };
+        }
+        delete pb.chartSpec;
+      }
+
+      // ── 9. Upsert into ai_playbooks_cache ────────────────────────────
+      const payload = {
+        playbooks:    parsed.playbooks ?? [],
+        healthScore:  parsed.healthScore ?? 50,
+        healthLabel:  parsed.healthLabel ?? 'Needs Work',
+        summary:      parsed.summary ?? '',
+        generatedAt:  new Date().toISOString(),
+      };
+
+      await SB.upsert(
+        'ai_playbooks_cache',
+        { user_id: uid, payload, generated_at: payload.generatedAt },
+        'user_id',
+      );
+
+      logOk(`[playbooks] Done for ${uid.slice(0, 8)} — ${payload.playbooks.length} playbooks, score=${payload.healthScore}`);
+      ok++;
+    } catch (err) {
+      logFail(`[playbooks] Failed for ${uid.slice(0, 8)}: ${err.message}`);
+      failed++;
+    }
+  }
+
+  log(`[playbooks] Complete — ${ok} generated, ${skipped} skipped (insufficient data), ${failed} failed`);
+}
+
 async function runAnomalyAlerts() {
   if (!RESEND_KEY) {
     logWarn('[anomaly] RESEND_API_KEY not set — skipping anomaly alert emails');
@@ -5177,10 +5528,9 @@ if (backfillMode) {
   await checkAlerts();
   await runAnomalyAlerts();
   await checkGoals();
-
-} else if (digestOnly) {
   // Manual one-shot: digest send only, then exit
   await sendDailyDigests();
+  await generateAllPlaybooks();
 
 } else if (daemonMode || loopMode) {
   // ── DAEMON MODE ─────────────────────────────────────────────────────────
@@ -5195,6 +5545,7 @@ if (backfillMode) {
   log(`  • Anomaly detection:   after every daily sync`);
   log(`  • Goals & KPIs check:  after every daily sync`);
   log(`  • Digest send:         after every daily sync (sent to users on their chosen day)`);
+  log(`  • AI Playbooks:        after every daily sync (cached in ai_playbooks_cache)`);
   log(`  • Trigger server:      port ${TRIGGER_PORT}`);
   log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
@@ -5202,10 +5553,9 @@ if (backfillMode) {
   startTriggerServer();
 
   // 1. Immediate first run (sync + alerts + anomalies + goals)
-  // Note: sendDailyDigests is intentionally NOT called here — it runs only at
-  // the scheduled daily time (02:00 UTC) to avoid duplicate sends on restarts.
-  // The idempotency check in sendDailyDigests also protects against duplicates,
-  // but we skip it on startup for clarity and to avoid unnecessary API calls.
+  // Note: sendDailyDigests and generateAllPlaybooks are intentionally NOT called
+  // here — they run only at the scheduled daily time (02:00 UTC) to avoid
+  // duplicate API calls on restarts.
   await runAutoBackfill();
   await runSync();
   await checkAlerts();
@@ -5218,21 +5568,23 @@ if (backfillMode) {
     try { await runAutoBackfill(); } catch (e) { logFail(`[auto-backfill loop] ${e.message}`); }
   }, CHECK_INTERVAL_MS);
 
-  // 3. Daily sync + alerts + anomalies + goals + digest at 02:00 UTC
+  // 3. Daily sync + alerts + anomalies + goals + digest + playbooks at 02:00 UTC
   scheduleDailyAt(DAILY_UTC_HOUR, async () => {
     await runSync();
     await checkAlerts();
     await runAnomalyAlerts();
     await checkGoals();
     await sendDailyDigests();
+    await generateAllPlaybooks();
     await pingHeartbeat();
-  }, 'daily-sync+alerts+anomalies+digest');
+  }, 'daily-sync+alerts+anomalies+digest+playbooks');
 
 } else {
-  // One-shot: sync yesterday + check alerts + anomalies + goals + send digests, then exit
+  // One-shot: sync yesterday + check alerts + anomalies + goals + digests + playbooks, then exit
   await runSync();
   await checkAlerts();
   await runAnomalyAlerts();
   await checkGoals();
   await sendDailyDigests();
+  await generateAllPlaybooks();
 }
