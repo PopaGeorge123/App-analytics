@@ -87,7 +87,7 @@ export async function GET() {
     healthScore: 0,
     healthLabel: "Needs Work",
     summary:
-      "Your playbooks are being generated nightly. Check back tomorrow after your first sync — or connect at least one integration to speed things up.",
+      "Your playbooks are being generated each week. You can generate one report now manually.",
     generatedAt: null,
   };
   return NextResponse.json(empty);
