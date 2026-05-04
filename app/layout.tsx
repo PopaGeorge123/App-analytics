@@ -49,7 +49,7 @@ export const metadata: Metadata = {
     title: "Fold — AI Business Intelligence for Founders",
     description:
       "Your entire business, understood in seconds. AI-powered dashboard for founders.",
-    images: ["/api/og"],
+    images: ["/twitter-card.png"],
   },
 };
 

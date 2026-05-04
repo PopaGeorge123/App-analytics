@@ -576,7 +576,7 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
 
         <nav className="flex flex-col gap-0.5 p-3 flex-1">
           <p className="px-2 pb-2 pt-1 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#8585aa]">Navigation</p>
-          {tabs.map((tab) => (
+          {tabs.filter((tab) => !(isDemo && tab.id === "danger")).map((tab) => (
             <button
               key={tab.id}
               onClick={() => navigate(tab.id)}
@@ -786,7 +786,7 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
               />
             </TabErrorBoundary>
           )}
-          {activeTab === "danger" && (
+          {activeTab === "danger" && !isDemo && (
             <TabErrorBoundary tabName="Danger Zone">
               <DangerZoneTab email={email} />
             </TabErrorBoundary>
