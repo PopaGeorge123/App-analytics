@@ -616,6 +616,106 @@ async function backfillStripe(userId, accessToken, days = BACKFILL_DAYS.stripe) 
     ok++;
   }
   log(`  [stripe backfill] done — ${ok} days with data (${allCharges.length} charges fetched)`);
+
+  // --- Backfill individual customer records from all historical charges ---
+  await backfillStripeCustomers(userId, accessToken, allCharges);
+}
+
+/**
+ * Upsert all unique Stripe customers found in a charge list into the customers table.
+ * Called by backfillStripe (passing charges already fetched) and can be called
+ * standalone to populate customers without re-fetching all charges.
+ */
+async function backfillStripeCustomers(userId, accessToken, preloadedCharges = null) {
+  const stripeHeaders = { Authorization: `Bearer ${accessToken}` };
+
+  let allCharges = preloadedCharges;
+  if (!allCharges) {
+    // Fetch all charges ever (no date filter — we want every customer)
+    log(`  [stripe customers] fetching all charges for user ${userId.slice(0, 8)}`);
+    allCharges = [];
+    let url = `https://api.stripe.com/v1/charges?limit=100&status=succeeded`;
+    while (url) {
+      const res = await fetchRetry('Stripe all charges', url, { headers: stripeHeaders });
+      if (!res.ok) break;
+      const body = await res.json();
+      allCharges.push(...(body.data ?? []));
+      url = body.has_more
+        ? `https://api.stripe.com/v1/charges?limit=100&status=succeeded&starting_after=${body.data.at(-1).id}`
+        : null;
+      if (url) await sleep(200);
+    }
+  }
+
+  // Collect unique customer IDs from charges
+  const customerIds = [...new Set(
+    allCharges.filter(ch => ch.customer).map(ch => String(ch.customer))
+  )];
+
+  if (customerIds.length === 0) {
+    log(`  [stripe customers] no customer IDs found in charges — skipping`);
+    return;
+  }
+
+  log(`  [stripe customers] upserting ${customerIds.length} unique customers`);
+  let ok = 0, skipped = 0;
+
+  for (const cusId of customerIds) {
+    try {
+      // Fetch customer profile
+      const cusRes = await fetchRetry(`Stripe customer ${cusId}`,
+        `https://api.stripe.com/v1/customers/${cusId}`, { headers: stripeHeaders });
+      if (!cusRes.ok) { skipped++; continue; }
+      const cus = await cusRes.json();
+
+      // Compute LTV from this customer's charges in our already-fetched list
+      const cusCharges = allCharges.filter(ch => ch.customer === cusId);
+      let totalSpent = 0, orderCount = 0, firstSeenTs = null, lastSeenTs = null;
+      for (const ch of cusCharges) {
+        totalSpent += ch.amount_captured ?? ch.amount ?? 0;
+        orderCount += 1;
+        if (!firstSeenTs || ch.created < firstSeenTs) firstSeenTs = ch.created;
+        if (!lastSeenTs  || ch.created > lastSeenTs)  lastSeenTs  = ch.created;
+      }
+
+      // Check subscription status
+      const subsRes = await fetchRetry(`Stripe subs ${cusId}`,
+        `https://api.stripe.com/v1/subscriptions?customer=${cusId}&limit=10`,
+        { headers: stripeHeaders });
+      let subscribed = false, churned = false;
+      if (subsRes.ok) {
+        const subs = (await subsRes.json()).data ?? [];
+        subscribed = subs.some(s => s.status === 'active' || s.status === 'trialing');
+        churned    = !subscribed && subs.some(s => s.status === 'canceled');
+      }
+
+      const today      = new Date().toISOString().slice(0, 10);
+      const firstSeen  = firstSeenTs ? new Date(firstSeenTs * 1000).toISOString().slice(0, 10) : today;
+      const lastSeen   = lastSeenTs  ? new Date(lastSeenTs  * 1000).toISOString().slice(0, 10) : today;
+
+      await SB.upsert('customers', {
+        user_id:     userId,
+        provider:    'stripe',
+        provider_id: cusId,
+        email:       cus.email ?? null,
+        name:        cus.name  ?? null,
+        total_spent: totalSpent,
+        order_count: orderCount,
+        first_seen:  firstSeen,
+        last_seen:   lastSeen,
+        subscribed,
+        churned,
+      }, 'user_id,provider,provider_id');
+
+      ok++;
+      await sleep(100); // gentle rate-limiting
+    } catch (err) {
+      logFail(`  [stripe customers] ${cusId}: ${err.message}`);
+      skipped++;
+    }
+  }
+
+  log(`  [stripe customers] done — ${ok} upserted, ${skipped} skipped`);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
