@@ -33,6 +33,25 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Failed to disconnect" }, { status: 500 });
   }
 
+  // Delete all historical snapshots for this platform
+  await db
+    .from("daily_snapshots")
+    .delete()
+    .eq("user_id", user.id)
+    .eq("provider", platform);
+
+  // Delete customer records sourced from this platform
+  await db
+    .from("customers")
+    .delete()
+    .eq("user_id", user.id)
+    .eq("provider", platform);
+
+  // Invalidate the AI playbooks cache so it is regenerated without this platform's data
+  await db
+    .from("ai_playbooks_cache")
+    .delete()
+    .eq("user_id", user.id);
+
   return NextResponse.json({ success: true });
 }
-

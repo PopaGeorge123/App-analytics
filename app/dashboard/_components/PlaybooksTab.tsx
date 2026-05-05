@@ -8,6 +8,148 @@ import {
 import type { Snapshot } from "./DashboardShell";
 import type { AiPlaybook, AiPlaybookChart, AiPlaybooksResponse } from "@/app/api/ai/playbooks/route";
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Generating Tips Modal — shown while AI is running (no playbooks yet)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const TIPS = [
+  {
+    icon: "🎯",
+    title: "Connect more platforms for better insights",
+    body: "The more data sources you connect (Stripe, GA4, Meta Ads…), the more specific and actionable your playbooks become. Generic advice is worthless — real numbers unlock real recommendations.",
+  },
+  {
+    icon: "📊",
+    title: "Playbooks reference your actual metrics",
+    body: "Every recommendation cites your real revenue, sessions, churn rate and ad spend — not industry averages. If a number looks wrong, check your integration is syncing correctly.",
+  },
+  {
+    icon: "⚡",
+    title: "Critical issues are ranked first",
+    body: "Your playbooks are ordered from most urgent to biggest opportunity. Start with Critical — those are issues that are actively costing you money or growth right now.",
+  },
+  {
+    icon: "✅",
+    title: "Check off steps as you complete them",
+    body: "Each playbook has 4–6 concrete steps. Tick them off as you go — the AI will track your progress and avoid repeating advice you've already acted on in future generations.",
+  },
+  {
+    icon: "👍",
+    title: "Rate playbooks to teach the AI",
+    body: "Thumbs up / down on each playbook teaches the AI what works for your business. Over time it gets sharper, avoids unhelpful patterns, and surfaces better opportunities.",
+  },
+  {
+    icon: "🔄",
+    title: "Playbooks refresh automatically every week",
+    body: "You don't need to manually regenerate — the daemon runs every Sunday night and produces fresh playbooks based on the latest 30 days of data. You can also trigger a manual refresh anytime.",
+  },
+];
+
+const NEVER_SHOW_KEY = "fold_playbooks_tips_never_show";
+
+function GeneratingTipsModal({ onClose, onNeverShow }: { onClose: () => void; onNeverShow: () => void }) {
+  const [tipIdx, setTipIdx] = useState(0);
+  const tip = TIPS[tipIdx];
+
+  // Auto-advance tips every 6s
+  useEffect(() => {
+    const t = setInterval(() => setTipIdx((i) => (i + 1) % TIPS.length), 6000);
+    return () => clearInterval(t);
+  }, []);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.72)", backdropFilter: "blur(6px)" }}
+    >
+      <div
+        className="relative w-full max-w-md rounded-2xl border p-6 shadow-2xl"
+        style={{ background: "#0f0f1a", borderColor: "#1e2040" }}
+      >
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute right-4 top-4 rounded-lg p-1.5 text-slate-500 hover:text-slate-300 transition-colors"
+          aria-label="Close"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        {/* Spinner + heading */}
+        <div className="flex items-center gap-3 mb-5">
+          <div className="h-8 w-8 shrink-0 rounded-full border-2 border-emerald-500/20 border-t-emerald-400 animate-spin" />
+          <div>
+            <p className="text-sm font-bold text-white">Claude is analysing your data…</p>
+            <p className="text-xs text-slate-500 mt-0.5">This usually takes 30–90 seconds</p>
+          </div>
+        </div>
+
+        {/* Progress dots */}
+        <div className="flex gap-1.5 mb-5">
+          {TIPS.map((_, i) => (
+            <div
+              key={i}
+              onClick={() => setTipIdx(i)}
+              className="h-1 flex-1 rounded-full cursor-pointer transition-all duration-300"
+              style={{ background: i === tipIdx ? "#00d4aa" : "#1e2040" }}
+            />
+          ))}
+        </div>
+
+        {/* Tip card */}
+        <div
+          key={tipIdx}
+          className="rounded-xl border p-4 mb-5 transition-all"
+          style={{ borderColor: "#1e2040", background: "#13141f" }}
+        >
+          <div className="flex items-start gap-3">
+            <span className="text-2xl leading-none mt-0.5">{tip.icon}</span>
+            <div>
+              <p className="text-sm font-semibold text-white mb-1">{tip.title}</p>
+              <p className="text-sm text-slate-400 leading-relaxed">{tip.body}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Navigation */}
+        <div className="flex items-center justify-between mb-5">
+          <button
+            onClick={() => setTipIdx((i) => (i - 1 + TIPS.length) % TIPS.length)}
+            className="rounded-lg border border-white/8 px-3 py-1.5 text-xs text-slate-400 hover:text-white hover:border-white/20 transition-colors"
+          >
+            ← Prev
+          </button>
+          <span className="text-xs text-slate-600">{tipIdx + 1} / {TIPS.length}</span>
+          <button
+            onClick={() => setTipIdx((i) => (i + 1) % TIPS.length)}
+            className="rounded-lg border border-white/8 px-3 py-1.5 text-xs text-slate-400 hover:text-white hover:border-white/20 transition-colors"
+          >
+            Next →
+          </button>
+        </div>
+
+        {/* Footer actions */}
+        <div className="flex items-center justify-between gap-3">
+          <button
+            onClick={onNeverShow}
+            className="text-xs text-slate-600 hover:text-slate-400 transition-colors underline underline-offset-2"
+          >
+            Don&apos;t show this again
+          </button>
+          <button
+            onClick={onClose}
+            className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white hover:border-white/20 transition-colors"
+          >
+            Close for now
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Category config
@@ -564,6 +706,7 @@ export default function PlaybooksTab({
   const [data, setData]         = useState<AiPlaybooksResponse | null>(null);
   const [loading, setLoading]   = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [showTipsModal, setShowTipsModal] = useState(false);
   const [error, setError]       = useState<string | null>(null);
   const [openId, setOpenId]     = useState<string | null>(null);
   const [activeCategory, setActiveCategory]       = useState<Category>("all");
@@ -701,6 +844,17 @@ export default function PlaybooksTab({
     }
   }, [isPremium, isDemo, load, loadFeedback]);
 
+  // ── Tips modal logic ──────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!generating || playbooks.length > 0) return;
+    const neverShow = typeof window !== "undefined" && localStorage.getItem(NEVER_SHOW_KEY) === "true";
+    if (!neverShow) setShowTipsModal(true);
+  }, [generating]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!generating) setShowTipsModal(false);
+  }, [generating]);
+
   const playbooks = data?.playbooks ?? [];
 
   const filtered = playbooks.filter((p) => {
@@ -731,6 +885,16 @@ export default function PlaybooksTab({
 
   return (
     <div className="space-y-6">
+
+      {showTipsModal && (
+        <GeneratingTipsModal
+          onClose={() => setShowTipsModal(false)}
+          onNeverShow={() => {
+            localStorage.setItem(NEVER_SHOW_KEY, "true");
+            setShowTipsModal(false);
+          }}
+        />
+      )}
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
