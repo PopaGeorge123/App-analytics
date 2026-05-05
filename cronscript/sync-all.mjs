@@ -553,16 +553,31 @@ async function backfillStripe(userId, accessToken, days = BACKFILL_DAYS.stripe) 
   // --- Current MRR / active subscriptions (snapshot, not historic) ---
   let mrr = 0, activeSubscriptions = 0;
   try {
-    let subsUrl = `https://api.stripe.com/v1/subscriptions?limit=100&status=active`;
+    let subsUrl = `https://api.stripe.com/v1/subscriptions?limit=100&status=active&expand[]=data.items.data.price`;
     while (subsUrl) {
       const res = await fetchRetry('Stripe subs page', subsUrl, { headers: stripeHeaders });
       if (!res.ok) break;
       const body = await res.json();
       for (const s of (body.data ?? [])) {
         activeSubscriptions++;
-        mrr += (s.plan?.amount ?? s.items?.data?.[0]?.plan?.amount ?? 0);
+        // Use expanded price (new API) with fallback to deprecated plan
+        for (const item of (s.items?.data ?? [])) {
+          const price = item.price ?? {};
+          const unitAmount = price.unit_amount ?? item.plan?.amount ?? 0;
+          const qty = item.quantity ?? 1;
+          const interval = price.recurring?.interval ?? item.plan?.interval ?? 'month';
+          const intervalCount = price.recurring?.interval_count ?? item.plan?.interval_count ?? 1;
+          let monthlyAmount = 0;
+          if (interval === 'month')  monthlyAmount = (unitAmount * qty) / intervalCount;
+          else if (interval === 'year')  monthlyAmount = (unitAmount * qty) / (intervalCount * 12);
+          else if (interval === 'week')  monthlyAmount = (unitAmount * qty * 52) / (intervalCount * 12);
+          else if (interval === 'day')   monthlyAmount = (unitAmount * qty * 365) / (intervalCount * 12);
+          mrr += Math.round(monthlyAmount);
+        }
       }
-      subsUrl = body.has_more ? `https://api.stripe.com/v1/subscriptions?limit=100&status=active&starting_after=${body.data.at(-1).id}` : null;
+      subsUrl = body.has_more
+        ? `https://api.stripe.com/v1/subscriptions?limit=100&status=active&expand[]=data.items.data.price&starting_after=${body.data.at(-1).id}`
+        : null;
       if (subsUrl) await sleep(200);
     }
   } catch { /* non-fatal */ }
@@ -4236,29 +4251,53 @@ async function sendDailyDigests() {
     };
 
     // Revenue platforms
-    const REVENUE_PLATFORMS = ['stripe', 'shopify', 'woocommerce', 'gumroad', 'lemon-squeezy', 'paddle'];
+    const REVENUE_PLATFORMS = ['stripe', 'shopify', 'woocommerce', 'gumroad', 'lemon-squeezy', 'paddle', 'paypal', 'amazon-seller', 'etsy', 'bigcommerce'];
+    const ALL_ADS_PLATFORMS = ['meta', 'google-ads', 'tiktok-ads', 'twitter-ads', 'linkedin-ads', 'snapchat-ads', 'pinterest-ads'];
+    const ALL_ANALYTICS_P   = ['ga4', 'plausible', 'posthog', 'fathom', 'mixpanel', 'amplitude'];
     const connectedProviders = [...new Set(snaps.map(s => s.provider))];
 
     const revenue7    = REVENUE_PLATFORMS.reduce((a, p) => a + sumField(snaps7, p, 'revenue'), 0);
     const revenuePrev = REVENUE_PLATFORMS.reduce((a, p) => a + sumField(snapsPrev7, p, 'revenue'), 0);
 
-    const sessions7    = sumField(snaps7,     'ga4',    'sessions');
-    const sessionsPrev = sumField(snapsPrev7,  'ga4',    'sessions');
-    const spend7       = sumField(snaps7,     'meta',   'spend');
-    const spendPrev    = sumField(snapsPrev7,  'meta',   'spend');
-    const bounceRate7  = avgField(snaps7,     'ga4',    'bounceRate');
+    // Traffic: use whichever analytics platform has the most data
+    const anCounts7 = {};
+    for (const s of snaps7) {
+      if (!ALL_ANALYTICS_P.includes(s.provider)) continue;
+      if (Object.values(s.data ?? {}).some(v => v > 0)) anCounts7[s.provider] = (anCounts7[s.provider] ?? 0) + 1;
+    }
+    const primaryAn = Object.keys(anCounts7).sort((a, b) => (anCounts7[b] ?? 0) - (anCounts7[a] ?? 0))[0] ?? null;
+    const sessions7Field = primaryAn === 'plausible' || primaryAn === 'fathom' ? 'visitors' : 'sessions';
+    const sessions7    = primaryAn ? sumField(snaps7,    primaryAn, sessions7Field) : 0;
+    const sessionsPrev = primaryAn ? sumField(snapsPrev7, primaryAn, sessions7Field) : 0;
+    const bounceRate7  = primaryAn ? avgField(snaps7,    primaryAn, 'bounceRate') : 0;
+    const conversions7 = primaryAn ? sumField(snaps7,    primaryAn, 'conversions') : 0;
 
-    // New customers (Stripe primarily, supplement with Shopify)
-    const newCustomers7 = sumField(snaps7, 'stripe', 'newCustomers') +
-                          sumField(snaps7, 'shopify', 'newCustomers');
+    // All ad platforms combined
+    const spend7    = ALL_ADS_PLATFORMS.reduce((a, p) => a + sumField(snaps7,    p, 'spend'), 0);
+    const spendPrev = ALL_ADS_PLATFORMS.reduce((a, p) => a + sumField(snapsPrev7, p, 'spend'), 0);
 
-    // Subscription metrics
-    const currentMRR   = maxField(snaps7, 'stripe', 'mrr');
-    const activeSubs   = maxField(snaps7, 'stripe', 'activeSubscriptions');
+    // New customers (all revenue platforms)
+    const newCustomers7 = REVENUE_PLATFORMS.reduce((a, p) => a + sumField(snaps7, p, 'newCustomers'), 0);
+
+    // Subscription metrics — look across ALL snapshots not just 7d to handle annual plans
+    const latestSnap   = snaps.find(s => s.provider === 'stripe');
+    const currentMRR   = latestSnap?.data?.mrr   ?? maxField(snaps7, 'stripe', 'mrr') ?? 0;
+    const activeSubs   = latestSnap?.data?.activeSubscriptions ?? maxField(snaps7, 'stripe', 'activeSubscriptions') ?? 0;
+    const trialingSubs = latestSnap?.data?.trialingSubscriptions ?? 0;
     const churnedTotal = sumField(snaps7, 'stripe', 'churnedToday');
 
+    // Per-platform revenue breakdown
+    const revByPlatform = REVENUE_PLATFORMS
+      .filter(p => connectedProviders.includes(p))
+      .map(p => {
+        const r7 = sumField(snaps7, p, 'revenue');
+        const rPrev = sumField(snapsPrev7, p, 'revenue');
+        const pct = rPrev > 0 ? ((r7 - rPrev) / rPrev * 100).toFixed(1) : null;
+        return r7 > 0 ? `  ${p}: $${(r7/100).toFixed(2)}${pct !== null ? ` (${pct}%)` : ''}` : null;
+      }).filter(Boolean);
+
     // Email / newsletter platforms
-    const emailPlatforms = ['mailchimp', 'klaviyo', 'beehiiv', 'convertkit', 'brevo'];
+    const emailPlatforms = ['mailchimp', 'klaviyo', 'beehiiv', 'convertkit', 'brevo', 'activecampaign'];
     const emailLines = emailPlatforms
       .filter(p => connectedProviders.includes(p))
       .map(p => {
@@ -4266,26 +4305,26 @@ async function sendDailyDigests() {
         const subsPrev = maxField(snapsPrev7, p, 'subscribers');
         const openRate = avgField(snaps7, p, 'openRate');
         const subChange = subsPrev > 0 ? ((subs - subsPrev) / subsPrev * 100).toFixed(1) : '—';
-        return `${p} Subscribers: ${subs} (${subChange}% vs prev week)${openRate > 0 ? `, Open Rate: ${openRate.toFixed(1)}%` : ''}`;
+        return `${p} Subscribers: ${subs} (${subChange}% vs prev week)${openRate > 0 ? `, Open Rate: ${(openRate*100).toFixed(1)}%` : ''}`;
       });
 
-    // Additional ad platforms
-    const adPlatforms = ['google-ads', 'tiktok-ads', 'twitter-ads', 'linkedin-ads'];
-    const adLines = adPlatforms
+    // Additional ad platforms breakdown
+    const adLines = ALL_ADS_PLATFORMS
       .filter(p => connectedProviders.includes(p))
       .map(p => {
         const adSpend = sumField(snaps7, p, 'spend');
         const clicks  = sumField(snaps7, p, 'clicks');
-        return `${p} Spend (7d): $${adSpend.toFixed(2)}${clicks > 0 ? ` — ${clicks} clicks` : ''}`;
-      });
+        const conv    = sumField(snaps7, p, 'conversions');
+        return adSpend > 0 ? `  ${p}: $${adSpend.toFixed(2)}${clicks > 0 ? ` — ${clicks} clicks` : ''}${conv > 0 ? ` — ${conv} conversions` : ''}` : null;
+      }).filter(Boolean);
 
     // % changes
-    const revChange  = revenuePrev  > 0 ? ((revenue7  - revenuePrev)  / revenuePrev  * 100) : 0;
-    const sessChange = sessionsPrev > 0 ? ((sessions7 - sessionsPrev) / sessionsPrev * 100) : 0;
-    const spendChange = spendPrev   > 0 ? ((spend7    - spendPrev)    / spendPrev    * 100) : 0;
-    const cacLine    = newCustomers7 > 0 && spend7 > 0
-      ? `CAC (Meta spend / new customers): $${(spend7 / newCustomers7).toFixed(2)}`
-      : 'CAC: N/A';
+    const revChange   = revenuePrev  > 0 ? ((revenue7  - revenuePrev)  / revenuePrev  * 100) : null;
+    const sessChange  = sessionsPrev > 0 ? ((sessions7 - sessionsPrev) / sessionsPrev * 100) : null;
+    const spendChange = spendPrev    > 0 ? ((spend7    - spendPrev)    / spendPrev    * 100) : null;
+    const cacLine     = newCustomers7 > 0 && spend7 > 0
+      ? `CAC (total ad spend / new customers): $${(spend7 / newCustomers7).toFixed(2)}`
+      : null;
 
     // ── 5. Fetch website profile for context ─────────────────────────────────
     let website = null;
@@ -4298,20 +4337,29 @@ async function sendDailyDigests() {
     const contextLines = [
       `DATE: ${today}`,
       `Connected platforms: ${connectedProviders.join(', ')}`,
+      `Primary analytics platform: ${primaryAn ?? 'none'}`,
       '',
       `=== REVENUE ===`,
-      `Total Revenue (7d): $${(revenue7 / 100).toFixed(2)} (${revChange >= 0 ? '+' : ''}${revChange.toFixed(1)}% vs prev week)`,
-      currentMRR > 0 ? `MRR: $${(currentMRR / 100).toFixed(2)}` : null,
-      activeSubs > 0 ? `Active Subscriptions: ${activeSubs}` : null,
+      `Total Revenue (7d): $${(revenue7 / 100).toFixed(2)}${revChange !== null ? ` (${revChange >= 0 ? '+' : ''}${revChange.toFixed(1)}% vs prev week)` : ' (no prior week data)'}`,
+      revByPlatform.length ? `Breakdown:\n${revByPlatform.join('\n')}` : null,
+      currentMRR > 0 ? `MRR: $${(currentMRR / 100).toFixed(2)}` : 'MRR: $0 (no active subscriptions or not tracked)',
+      activeSubs > 0 ? `Active Subscriptions: ${activeSubs}${trialingSubs > 0 ? ` + ${trialingSubs} trialing` : ''}` : null,
       churnedTotal > 0 ? `Churned Subscribers (7d): ${churnedTotal}` : null,
       newCustomers7 > 0 ? `New Customers (7d): ${newCustomers7}` : null,
       '',
-      `=== TRAFFIC ===`,
-      sessions7 > 0 ? `Sessions (7d): ${sessions7} (${sessChange >= 0 ? '+' : ''}${sessChange.toFixed(1)}% vs prev week)` : null,
+      `=== TRAFFIC (via ${primaryAn ?? 'no analytics connected'}) ===`,
+      sessions7 > 0
+        ? `Sessions (7d): ${sessions7}${sessChange !== null ? ` (${sessChange >= 0 ? '+' : ''}${sessChange.toFixed(1)}% vs prev week)` : ''}`
+        : primaryAn
+          ? `Sessions (7d): 0 — ${primaryAn} is connected but recorded no traffic this week`
+          : 'Sessions: N/A — no analytics platform connected',
       bounceRate7 > 0 ? `Bounce Rate (7d avg): ${bounceRate7.toFixed(1)}%` : null,
+      conversions7 > 0 ? `Conversions (7d): ${conversions7}` : null,
       '',
       `=== ADVERTISING ===`,
-      spend7 > 0 ? `Meta Ad Spend (7d): $${spend7.toFixed(2)} (${spendChange >= 0 ? '+' : ''}${spendChange.toFixed(1)}% vs prev week)` : null,
+      spend7 > 0
+        ? `Total Ad Spend (7d): $${spend7.toFixed(2)}${spendChange !== null ? ` (${spendChange >= 0 ? '+' : ''}${spendChange.toFixed(1)}% vs prev week)` : ''}`
+        : 'Ad Spend: $0 — no paid campaigns running',
       ...adLines,
       cacLine,
       '',
@@ -4338,19 +4386,29 @@ async function sendDailyDigests() {
           body: JSON.stringify({
             model:      'claude-opus-4-5',
             max_tokens: 900,
-            system: `You are a concise business intelligence assistant. Generate a daily digest JSON object based on the provided metrics. Return ONLY valid JSON, no markdown.
+            system: `You are a precise business intelligence assistant generating a weekly digest for a founder. Use ONLY the data provided — never invent metrics or assume missing data is a problem.
+
+CRITICAL RULES:
+- If a metric shows 0 or N/A because the platform is not connected, do NOT flag this as an anomaly — state it as "not tracked" or skip it.
+- If traffic shows 0 but the analytics platform is listed as connected, then flag it as a potential tracking issue.
+- If revenue came in with 0 sessions, acknowledge the disconnect but do not assume it is broken — it may be direct/API traffic.
+- Highlight actual changes vs prior week only when prior week data exists. If no prior week data, say "first week tracked" not "+0%".
+- Be concise, factual, and founder-friendly. Reference actual numbers.
+- MRR and active subscriptions reflect the current live state, not just this week's charges.
+
+Return ONLY valid JSON, no markdown fences.
 
 Schema:
 {
-  "summary": "2-3 sentence plain English overview",
+  "summary": "2-3 sentence plain English overview referencing real numbers",
   "highlights": [
     { "metric": "Revenue", "value": "$X.XX", "trend": "up|down|flat", "change": "+X%", "context": "brief note" }
   ],
   "anomalies": [
-    { "title": "short title", "description": "what happened", "severity": "high|medium|low", "dataSource": "Stripe|GA4|Meta" }
+    { "title": "short title", "description": "what happened and why it matters", "severity": "high|medium|low", "dataSource": "Stripe|GA4|Meta|etc" }
   ],
-  "cross_insight": "One sentence connecting two data sources",
-  "action": { "title": "Top action", "description": "what to do", "priority": "High|Medium|Low", "effort": "Low|Medium|High" }
+  "cross_insight": "One sentence connecting two data sources if a meaningful pattern exists, otherwise omit",
+  "action": { "title": "Top action", "description": "specific actionable step", "priority": "High|Medium|Low", "effort": "Low|Medium|High" }
 }`,
             messages: [
               { role: 'user', content: `Generate a daily business digest for this business:\n\n${contextLines}` },
@@ -4692,12 +4750,66 @@ async function generatePlaybooksForUser(uid) {
       return null;
     }
 
-    const intRes = await fetchRetry(
-      `[playbooks] integrations ${uid.slice(0, 8)}`,
-      `${SUPABASE_URL}/rest/v1/integrations?` + new URLSearchParams({ select: 'platform', user_id: `eq.${uid}` }),
+    // Fetch the LATEST stripe snapshot ever (not limited to 30d) to get accurate MRR/subs
+    // This handles cases where the last charge was >30 days ago (e.g. annual plans)
+    const latestStripeRes = await fetchRetry(
+      `[playbooks] latest stripe snap ${uid.slice(0, 8)}`,
+      `${SUPABASE_URL}/rest/v1/daily_snapshots?` +
+        new URLSearchParams({ select: 'data', user_id: `eq.${uid}`, provider: 'eq.stripe', order: 'date.desc', limit: '1' }),
       { headers: getHeaders },
     );
-    const connectedPlatforms = (intRes.ok ? (await intRes.json()) : []).map(i => i.platform);
+    const latestStripeSnap = latestStripeRes.ok ? (await latestStripeRes.json())[0] : null;
+
+    const intRes = await fetchRetry(
+      `[playbooks] integrations ${uid.slice(0, 8)}`,
+      `${SUPABASE_URL}/rest/v1/integrations?` + new URLSearchParams({ select: 'platform,access_token', user_id: `eq.${uid}` }),
+      { headers: getHeaders },
+    );
+    const integrations = intRes.ok ? (await intRes.json()) : [];
+    const connectedPlatforms = integrations.map(i => i.platform);
+
+    // If latestStripeSnap has 0 MRR but stripe is connected, fetch live from Stripe API
+    let liveMRR = latestStripeSnap?.data?.mrr ?? 0;
+    let liveActiveSubs = latestStripeSnap?.data?.activeSubscriptions ?? 0;
+    if (connectedPlatforms.includes('stripe') && (liveMRR === 0 || liveActiveSubs === 0)) {
+      try {
+        const stripeInt = integrations.find(i => i.platform === 'stripe');
+        if (stripeInt?.access_token) {
+          const stripeHeaders = { Authorization: `Bearer ${stripeInt.access_token}` };
+          let subsUrl = `https://api.stripe.com/v1/subscriptions?limit=100&status=active&expand[]=data.items.data.price`;
+          let fetchedMRR = 0, fetchedSubs = 0;
+          while (subsUrl) {
+            const res = await fetchRetry('Stripe live subs (playbooks)', subsUrl, { headers: stripeHeaders });
+            if (!res.ok) break;
+            const body = await res.json();
+            for (const s of (body.data ?? [])) {
+              fetchedSubs++;
+              for (const item of (s.items?.data ?? [])) {
+                const price = item.price ?? {};
+                const unitAmount = price.unit_amount ?? item.plan?.amount ?? 0;
+                const qty = item.quantity ?? 1;
+                const interval = price.recurring?.interval ?? item.plan?.interval ?? 'month';
+                const intervalCount = price.recurring?.interval_count ?? item.plan?.interval_count ?? 1;
+                let monthlyAmount = 0;
+                if (interval === 'month')  monthlyAmount = (unitAmount * qty) / intervalCount;
+                else if (interval === 'year')  monthlyAmount = (unitAmount * qty) / (intervalCount * 12);
+                else if (interval === 'week')  monthlyAmount = (unitAmount * qty * 52) / (intervalCount * 12);
+                else if (interval === 'day')   monthlyAmount = (unitAmount * qty * 365) / (intervalCount * 12);
+                fetchedMRR += Math.round(monthlyAmount);
+              }
+            }
+            subsUrl = body.has_more
+              ? `https://api.stripe.com/v1/subscriptions?limit=100&status=active&expand[]=data.items.data.price&starting_after=${body.data.at(-1).id}`
+              : null;
+          }
+          if (fetchedSubs > 0) {
+            liveMRR = fetchedMRR;
+            liveActiveSubs = fetchedSubs;
+            logOk(`[playbooks] Live Stripe fetch: ${fetchedSubs} subs, MRR=${fetchedMRR} cents`);
+          }
+        }
+      } catch (e) { logWarn(`[playbooks] Live Stripe fetch failed: ${e.message}`); }
+    }
 
     const REVENUE_P   = ['stripe','shopify','woocommerce','gumroad','lemon-squeezy','paddle','paypal'];
     const ANALYTICS_P = ['ga4','plausible','posthog','fathom','amplitude','heap'];
@@ -4735,18 +4847,15 @@ async function generatePlaybooksForUser(uid) {
     const refunds30 = sumP(snaps30, REVENUE_P, 'refunds');
     const sess7   = primaryAn ? sumS(snaps7, primaryAn, 'sessions') : 0;
     const sess30  = primaryAn ? sumS(snaps30, primaryAn, 'sessions') : 0;
-    const currentMRR = latestS(snaps, 'stripe', 'mrr');
-    const activeSubs = latestS(snaps, 'stripe', 'activeSubscriptions');
-    const arpu       = latestS(snaps, 'stripe', 'arpu');
+    // Use live-fetched values (most accurate) with fallback to latest snapshot
+    const currentMRR = liveMRR || latestS(snaps, 'stripe', 'mrr');
+    const activeSubs = liveActiveSubs || latestS(snaps, 'stripe', 'activeSubscriptions');
+    const arpu       = activeSubs > 0 ? Math.round(currentMRR / activeSubs) : latestS(snaps, 'stripe', 'arpu');
     const bounce30   = primaryAn ? avgS(snaps30, primaryAn, 'bounceRate') : 0;
     const metaClicks30 = sumS(snaps30, 'meta', 'clicks');
     const metaImpr30   = sumS(snaps30, 'meta', 'impressions');
     const cpc30  = metaClicks30 > 0 ? sumS(snaps30, 'meta', 'spend') / metaClicks30 : 0;
     const ctr30  = metaImpr30   > 0 ? metaClicks30 / metaImpr30 : 0;
-    const emailPlatform = connectedPlatforms.find(p => ['mailchimp','klaviyo','beehiiv'].includes(p));
-    const emailSent30   = emailPlatform ? sumS(snaps30, emailPlatform, 'emailsSent') : 0;
-    const openRate30    = emailSent30 > 0 ? sumS(snaps30, emailPlatform, 'opens') / emailSent30 : 0;
-    const clickRate30   = emailSent30 > 0 ? sumS(snaps30, emailPlatform, 'clicks') / emailSent30 : 0;
     const churnRate = activeSubs > 0 ? churned30 / activeSubs : 0;
     const cac30     = newCx30 > 0 && spend30 > 0 ? spend30 / newCx30 : 0;
     const convRate  = sess30  > 0 && newCx30 > 0  ? newCx30 / sess30  : 0;
@@ -4791,39 +4900,173 @@ async function generatePlaybooksForUser(uid) {
       }
     } catch (_) { /* non-critical — continue without feedback */ }
 
+    // ── Per-platform revenue breakdowns ──────────────────────────────────────
+    const stripeRev30    = sumS(snaps30, 'stripe', 'revenue');
+    const stripeRev7     = sumS(snaps7,  'stripe', 'revenue');
+    const stripeTx30     = sumS(snaps30, 'stripe', 'txCount');
+    const trialingSubs   = latestS(snaps, 'stripe', 'trialingSubscriptions');
+    const shopifyRev30   = sumS(snaps30, 'shopify',      'revenue');
+    const shopifyOrders30= sumS(snaps30, 'shopify',      'orders');
+    const shopifyAov30   = shopifyOrders30 > 0 ? shopifyRev30 / shopifyOrders30 : 0;
+    const wooRev30       = sumS(snaps30, 'woocommerce',  'revenue');
+    const wooOrders30    = sumS(snaps30, 'woocommerce',  'orders');
+    const gumRev30       = sumS(snaps30, 'gumroad',      'revenue');
+    const lsRev30        = sumS(snaps30, 'lemon-squeezy','revenue');
+    const paddleRev30    = sumS(snaps30, 'paddle',       'revenue');
+    const paypalRev30    = sumS(snaps30, 'paypal',       'revenue');
+    const paypalFees30   = sumS(snaps30, 'paypal',       'fees');
+    const amazonRev30    = sumS(snaps30, 'amazon-seller','revenue');
+    const etsyRev30      = sumS(snaps30, 'etsy',         'revenue');
+    const bigcRev30      = sumS(snaps30, 'bigcommerce',  'revenue');
+
+    // ── Traffic: all analytics platforms ─────────────────────────────────────
+    const ga4Sess30      = sumS(snaps30, 'ga4',       'sessions');
+    const ga4Users30     = sumS(snaps30, 'ga4',       'users');
+    const ga4Conv30      = sumS(snaps30, 'ga4',       'conversions');
+    const ga4Bounce30    = avgS(snaps30, 'ga4',       'bounceRate');
+    const ga4NewUsers30  = sumS(snaps30, 'ga4',       'newUsers');
+    const plausibleSess30= sumS(snaps30, 'plausible', 'visitors');
+    const posthogSess30  = sumS(snaps30, 'posthog',   'sessions');
+    const fathomSess30   = sumS(snaps30, 'fathom',    'visitors');
+    const mixpanelEv30   = sumS(snaps30, 'mixpanel',  'events');
+    const amplitudeEv30  = sumS(snaps30, 'amplitude', 'events');
+
+    // ── Paid ads: all platforms ───────────────────────────────────────────────
+    const metaSpend30    = sumS(snaps30, 'meta',          'spend');
+    const metaReach30    = sumS(snaps30, 'meta',          'reach');
+    const metaConv30     = sumS(snaps30, 'meta',          'conversions');
+    const gadsSpend30    = sumS(snaps30, 'google-ads',    'spend');
+    const gadsClicks30   = sumS(snaps30, 'google-ads',    'clicks');
+    const gadsConv30     = sumS(snaps30, 'google-ads',    'conversions');
+    const gadsCpc30      = gadsClicks30 > 0 ? gadsSpend30 / gadsClicks30 : 0;
+    const tiktokSpend30  = sumS(snaps30, 'tiktok-ads',   'spend');
+    const tiktokClicks30 = sumS(snaps30, 'tiktok-ads',   'clicks');
+    const linkedinSpend30= sumS(snaps30, 'linkedin-ads', 'spend');
+    const twitterSpend30 = sumS(snaps30, 'twitter-ads',  'spend');
+    const snapSpend30    = sumS(snaps30, 'snapchat-ads', 'spend');
+    const pinSpend30     = sumS(snaps30, 'pinterest-ads','spend');
+    const totalAdSpend30 = metaSpend30 + gadsSpend30 + tiktokSpend30 + linkedinSpend30 + twitterSpend30 + snapSpend30 + pinSpend30;
+    const totalAdSpend7  = sumP(snaps7, ADS_P, 'spend');
+
+    // ── Email marketing ───────────────────────────────────────────────────────
+    const mcSubs30       = sumS(snaps30, 'mailchimp', 'subscribers');
+    const mcOpen30       = avgS(snaps30, 'mailchimp', 'openRate');
+    const mcClick30      = avgS(snaps30, 'mailchimp', 'clickRate');
+    const mcSent30       = sumS(snaps30, 'mailchimp', 'emailsSent');
+    const klSubs30       = sumS(snaps30, 'klaviyo',   'subscribers');
+    const klOpen30       = avgS(snaps30, 'klaviyo',   'openRate');
+    const klRev30        = sumS(snaps30, 'klaviyo',   'revenue');
+    const beeSubs30      = sumS(snaps30, 'beehiiv',   'subscribers');
+    const beeOpen30      = avgS(snaps30, 'beehiiv',   'openRate');
+    const ckSubs30       = sumS(snaps30, 'convertkit','subscribers');
+    const acSubs30       = sumS(snaps30, 'activecampaign','subscribers');
+    const brevoSubs30    = sumS(snaps30, 'brevo',     'subscribers');
+
+    // ── CRM ───────────────────────────────────────────────────────────────────
+    const hsDeals30      = sumS(snaps30, 'hubspot',   'deals');
+    const hsRev30        = sumS(snaps30, 'hubspot',   'revenue');
+    const sfOpps30       = sumS(snaps30, 'salesforce','opportunities');
+    const sfRev30        = sumS(snaps30, 'salesforce','revenue');
+    const pdDeals30      = sumS(snaps30, 'pipedrive', 'deals');
+    const pdRev30        = sumS(snaps30, 'pipedrive', 'revenue');
+
+    // ── Support ───────────────────────────────────────────────────────────────
+    const zdTickets30    = sumS(snaps30, 'zendesk',   'tickets');
+    const zdSat30        = avgS(snaps30, 'zendesk',   'satisfactionScore');
+    const fdTickets30    = sumS(snaps30, 'freshdesk', 'tickets');
+
+    // ── Social / Content ──────────────────────────────────────────────────────
+    const igFollowers    = latestS(snaps, 'instagram', 'followers');
+    const igReach30      = sumS(snaps30, 'instagram', 'reach');
+    const igEngRate30    = avgS(snaps30, 'instagram', 'engagementRate');
+    const ytViews30      = sumS(snaps30, 'youtube',   'views');
+    const ytSubs         = latestS(snaps, 'youtube',  'subscribers');
+
     const dataContext = [
       `TODAY: ${today}`,
       `CONNECTED PLATFORMS: ${connectedPlatforms.join(', ') || 'none'}`,
       '',
-      '=== REVENUE (last 30d) ===',
-      `Revenue 7d: ${fmtUSD(rev7)} | Revenue 30d: ${fmtUSD(rev30)}`,
-      `MRR: ${fmtUSD(currentMRR)}/month`,
-      `Active subscriptions: ${activeSubs} | ARPU: ${fmtUSD(arpu)}/month`,
+      '=== STRIPE / SUBSCRIPTIONS ===',
+      `MRR: ${fmtUSD(currentMRR)}/month | Active subscriptions: ${activeSubs} | Trialing: ${trialingSubs}`,
+      `ARPU: ${fmtUSD(arpu)}/month`,
+      `Stripe revenue 7d: ${fmtUSD(stripeRev7)} | 30d: ${fmtUSD(stripeRev30)} | Transactions 30d: ${stripeTx30}`,
       `New customers 7d: ${newCx7} | 30d: ${newCx30}`,
       `Churned (30d): ${churned30} | Churn rate: ${churnRate > 0 ? (churnRate * 100).toFixed(2) + '%' : 'N/A'}`,
       `Refunds (30d): ${fmtUSD(refunds30)}`,
-      `CAC (30d): ${cac30 > 0 ? '$' + cac30.toFixed(2) : 'N/A'}`,
+      `CAC (30d): ${cac30 > 0 ? '$' + (cac30 / 100).toFixed(2) : 'N/A'}`,
       '',
-      `=== TRAFFIC (via ${primaryAn ?? 'no analytics connected'}) ===`,
-      `Sessions 7d: ${sess7} | 30d: ${sess30}`,
-      `Avg bounce rate (30d): ${bounce30 > 0 ? bounce30.toFixed(1) + '%' : 'N/A'}`,
-      `Conversion rate (30d): ${convRate > 0 ? (convRate * 100).toFixed(2) + '%' : 'N/A'}`,
+      ...(shopifyRev30 > 0 ? [
+        '=== SHOPIFY ===',
+        `Revenue 30d: ${fmtUSD(shopifyRev30)} | Orders: ${shopifyOrders30} | AOV: ${fmtUSD(shopifyAov30)}`,
+        '',
+      ] : []),
+      ...(wooRev30 > 0 ? [`=== WOOCOMMERCE ===`, `Revenue 30d: ${fmtUSD(wooRev30)} | Orders: ${wooOrders30}`, ''] : []),
+      ...(gumRev30 > 0 ? [`=== GUMROAD ===`, `Revenue 30d: ${fmtUSD(gumRev30)}`, ''] : []),
+      ...(lsRev30 > 0  ? [`=== LEMON SQUEEZY ===`, `Revenue 30d: ${fmtUSD(lsRev30)}`, ''] : []),
+      ...(paddleRev30 > 0 ? [`=== PADDLE ===`, `Revenue 30d: ${fmtUSD(paddleRev30)}`, ''] : []),
+      ...(paypalRev30 > 0 ? [`=== PAYPAL ===`, `Revenue 30d: ${fmtUSD(paypalRev30)} | Fees: ${fmtUSD(paypalFees30)} | Net: ${fmtUSD(paypalRev30 - paypalFees30)}`, ''] : []),
+      ...(amazonRev30 > 0 ? [`=== AMAZON SELLER ===`, `Revenue 30d: ${fmtUSD(amazonRev30)}`, ''] : []),
+      ...(etsyRev30 > 0   ? [`=== ETSY ===`, `Revenue 30d: ${fmtUSD(etsyRev30)}`, ''] : []),
+      ...(bigcRev30 > 0   ? [`=== BIGCOMMERCE ===`, `Revenue 30d: ${fmtUSD(bigcRev30)}`, ''] : []),
+      `=== TOTAL REVENUE (all platforms, 30d) ===`,
+      `Total: ${fmtUSD(rev30)} | Last 7d: ${fmtUSD(rev7)}`,
+      '',
+      '=== TRAFFIC ===',
+      ...(ga4Sess30 > 0 ? [
+        `GA4: Sessions 30d: ${ga4Sess30} | 7d: ${sess7} | Users: ${ga4Users30} | New users: ${ga4NewUsers30}`,
+        `GA4: Conversions 30d: ${ga4Conv30} | Bounce rate: ${ga4Bounce30 > 0 ? ga4Bounce30.toFixed(1) + '%' : 'N/A'}`,
+        `Conversion rate (sessions→customers, 30d): ${convRate > 0 ? (convRate * 100).toFixed(2) + '%' : 'N/A'}`,
+      ] : []),
+      ...(plausibleSess30 > 0 ? [`Plausible: Visitors 30d: ${plausibleSess30}`] : []),
+      ...(posthogSess30 > 0   ? [`PostHog: Sessions 30d: ${posthogSess30}`] : []),
+      ...(fathomSess30 > 0    ? [`Fathom: Visitors 30d: ${fathomSess30}`] : []),
+      ...(mixpanelEv30 > 0    ? [`Mixpanel: Events 30d: ${mixpanelEv30}`] : []),
+      ...(amplitudeEv30 > 0   ? [`Amplitude: Events 30d: ${amplitudeEv30}`] : []),
       '',
       '=== PAID ADS ===',
-      `Ad spend 7d: $${spend7.toFixed(2)} | 30d: $${spend30.toFixed(2)}`,
-      `30d CPC: ${cpc30 > 0 ? '$' + cpc30.toFixed(2) : 'N/A'}`,
-      `30d CTR: ${ctr30 > 0 ? (ctr30 * 100).toFixed(2) + '%' : 'N/A'}`,
+      `Total ad spend 7d: $${totalAdSpend7.toFixed(2)} | 30d: $${totalAdSpend30.toFixed(2)}`,
+      ...(metaSpend30 > 0 ? [
+        `Meta: Spend 30d: $${metaSpend30.toFixed(2)} | Reach: ${metaReach30} | Clicks: ${metaClicks30} | Conversions: ${metaConv30}`,
+        `Meta: CPC: ${cpc30 > 0 ? '$' + cpc30.toFixed(2) : 'N/A'} | CTR: ${ctr30 > 0 ? (ctr30 * 100).toFixed(2) + '%' : 'N/A'}`,
+      ] : []),
+      ...(gadsSpend30 > 0   ? [`Google Ads: Spend 30d: $${gadsSpend30.toFixed(2)} | Clicks: ${gadsClicks30} | CPC: ${gadsCpc30 > 0 ? '$' + gadsCpc30.toFixed(2) : 'N/A'} | Conversions: ${gadsConv30}`] : []),
+      ...(tiktokSpend30 > 0 ? [`TikTok Ads: Spend 30d: $${tiktokSpend30.toFixed(2)} | Clicks: ${tiktokClicks30}`] : []),
+      ...(linkedinSpend30 > 0 ? [`LinkedIn Ads: Spend 30d: $${linkedinSpend30.toFixed(2)}`] : []),
+      ...(twitterSpend30 > 0  ? [`Twitter Ads: Spend 30d: $${twitterSpend30.toFixed(2)}`] : []),
+      ...(snapSpend30 > 0     ? [`Snapchat Ads: Spend 30d: $${snapSpend30.toFixed(2)}`] : []),
+      ...(pinSpend30 > 0      ? [`Pinterest Ads: Spend 30d: $${pinSpend30.toFixed(2)}`] : []),
       '',
       '=== EMAIL MARKETING ===',
-      `Platform: ${emailPlatform ?? 'none'}`,
-      `Open rate (30d): ${openRate30 > 0 ? (openRate30 * 100).toFixed(1) + '%' : 'N/A'}`,
-      `Click rate (30d): ${clickRate30 > 0 ? (clickRate30 * 100).toFixed(1) + '%' : 'N/A'}`,
+      ...(mcSubs30 > 0   ? [`Mailchimp: Subscribers 30d: ${mcSubs30} | Sent: ${mcSent30} | Open rate: ${mcOpen30 > 0 ? (mcOpen30*100).toFixed(1)+'%' : 'N/A'} | Click rate: ${mcClick30 > 0 ? (mcClick30*100).toFixed(1)+'%' : 'N/A'}`] : []),
+      ...(klSubs30 > 0   ? [`Klaviyo: Subscribers 30d: ${klSubs30} | Open rate: ${klOpen30 > 0 ? (klOpen30*100).toFixed(1)+'%' : 'N/A'} | Revenue attr: ${fmtUSD(klRev30)}`] : []),
+      ...(beeSubs30 > 0  ? [`Beehiiv: Subscribers 30d: ${beeSubs30} | Open rate: ${beeOpen30 > 0 ? (beeOpen30*100).toFixed(1)+'%' : 'N/A'}`] : []),
+      ...(ckSubs30 > 0   ? [`ConvertKit: Subscribers 30d: ${ckSubs30}`] : []),
+      ...(acSubs30 > 0   ? [`ActiveCampaign: Subscribers 30d: ${acSubs30}`] : []),
+      ...(brevoSubs30 > 0? [`Brevo: Subscribers 30d: ${brevoSubs30}`] : []),
+      ...(!mcSubs30 && !klSubs30 && !beeSubs30 && !ckSubs30 && !acSubs30 && !brevoSubs30 ? ['No email platform connected.'] : []),
+      '',
+      '=== CRM / SALES PIPELINE ===',
+      ...(hsDeals30 > 0  ? [`HubSpot: Deals 30d: ${hsDeals30} | Revenue: ${fmtUSD(hsRev30)}`] : []),
+      ...(sfOpps30 > 0   ? [`Salesforce: Opportunities 30d: ${sfOpps30} | Revenue: ${fmtUSD(sfRev30)}`] : []),
+      ...(pdDeals30 > 0  ? [`Pipedrive: Deals 30d: ${pdDeals30} | Revenue: ${fmtUSD(pdRev30)}`] : []),
+      ...(!hsDeals30 && !sfOpps30 && !pdDeals30 ? ['No CRM connected.'] : []),
+      '',
+      '=== CUSTOMER SUPPORT ===',
+      ...(zdTickets30 > 0 ? [`Zendesk: Tickets 30d: ${zdTickets30} | Satisfaction: ${zdSat30 > 0 ? (zdSat30*100).toFixed(0)+'%' : 'N/A'}`] : []),
+      ...(fdTickets30 > 0 ? [`Freshdesk: Tickets 30d: ${fdTickets30}`] : []),
+      ...(!zdTickets30 && !fdTickets30 ? ['No support platform connected.'] : []),
+      '',
+      '=== SOCIAL / CONTENT ===',
+      ...(igFollowers > 0  ? [`Instagram: Followers: ${igFollowers} | Reach 30d: ${igReach30} | Engagement rate: ${igEngRate30 > 0 ? (igEngRate30*100).toFixed(2)+'%' : 'N/A'}`] : []),
+      ...(ytSubs > 0       ? [`YouTube: Subscribers: ${ytSubs} | Views 30d: ${ytViews30}`] : []),
+      ...(!igFollowers && !ytSubs ? ['No social platform connected.'] : []),
       '',
       '=== WEBSITE ===',
       `URL: ${website?.url ?? 'Not set'}`,
       `Health score: ${website?.score ?? 'N/A'}/100`,
+      ...(website?.description ? [`Description: ${website.description}`] : []),
       feedbackContext,
-    ].join('\n');
+    ].filter(l => l !== undefined).join('\n');
 
     const aiRes = await fetchRetry(
       `[playbooks] Anthropic ${uid.slice(0, 8)}`,
