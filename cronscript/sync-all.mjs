@@ -208,9 +208,12 @@ const SB = {
   },
 
   async upsert(table, row, onConflict) {
-    const r = await fetchRetry(`SB UPSERT ${table}`, `${SUPABASE_URL}/rest/v1/${table}`, {
+    const url = onConflict
+      ? `${SUPABASE_URL}/rest/v1/${table}?on_conflict=${encodeURIComponent(onConflict)}`
+      : `${SUPABASE_URL}/rest/v1/${table}`;
+    const r = await fetchRetry(`SB UPSERT ${table}`, url, {
       method: 'POST',
-      headers: { ...SB.headers, Prefer: 'resolution=merge-duplicates,return=minimal', ...(onConflict ? { 'on-conflict': onConflict } : {}) },
+      headers: { ...SB.headers, Prefer: 'resolution=merge-duplicates,return=minimal' },
       body: JSON.stringify(row),
     });
     if (!r.ok) { const b = await r.text().catch(() => ''); throw new Error(`SB UPSERT ${table}: ${r.status} ${b}`); }
@@ -1615,6 +1618,7 @@ async function backfillAmplitude(userId, integration, days = 365) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function syncPostHogDay(userId, apiKey, rawAccountId, date) {
+  if (!rawAccountId) throw new Error('PostHog account_id (project ID) is missing — reconnect the integration and enter your Project ID manually');
   const isEU = rawAccountId.startsWith('eu:');
   const host = isEU ? 'https://eu.posthog.com' : 'https://app.posthog.com';
   const projectId = isEU ? rawAccountId.slice(3) : rawAccountId;
@@ -1663,6 +1667,10 @@ async function backfillPostHog(userId, integration, days = 365) {
   log(`  [posthog backfill] ${days} days for user ${userId.slice(0, 8)} — single bulk HogQL query`);
   const apiKey      = integration.access_token;
   const rawAccountId = integration.account_id;
+  if (!rawAccountId) {
+    logFail(`  [posthog backfill] skipping user ${userId.slice(0, 8)} — account_id (project ID) is missing. Reconnect the integration and enter Project ID manually.`);
+    return;
+  }
   const isEU        = rawAccountId.startsWith('eu:');
   const host        = isEU ? 'https://eu.posthog.com' : 'https://app.posthog.com';
   const projectId   = isEU ? rawAccountId.slice(3) : rawAccountId;

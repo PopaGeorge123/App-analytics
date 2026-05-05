@@ -507,6 +507,27 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Strip one-shot URL params (syncing=, *=connected) after mount so the
+  // "Syncing your X data" banner doesn't persist across navigations/refreshes.
+  useEffect(() => {
+    const ONE_SHOT_PARAMS = ["syncing", "stripe", "ga4", "meta", "paypal", "paddle",
+      "lemon-squeezy", "gumroad", "posthog", "plausible", "mixpanel", "amplitude",
+      "fathom", "google-ads", "tiktok-ads", "twitter-ads", "linkedin-ads",
+      "snapchat-ads", "pinterest-ads", "mailchimp", "klaviyo", "convertkit",
+      "activecampaign", "brevo", "beehiiv", "shopify", "woocommerce", "bigcommerce",
+      "amazon-seller", "etsy", "hubspot", "salesforce", "pipedrive", "intercom",
+      "zendesk", "freshdesk", "instagram", "youtube", "connect", "upgraded"];
+    const hasOneShot = ONE_SHOT_PARAMS.some((p) => searchParams.has(p));
+    if (!hasOneShot) return;
+    const tab = searchParams.get("tab") ?? "overview";
+    // Brief delay so the banner is visible for a moment before it's cleaned up
+    const t = setTimeout(() => {
+      router.replace(`/dashboard?tab=${tab}`, { scroll: false });
+    }, 4_000);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function navigate(tab: Tab) {
     // Non-premium users trying to access a locked tab → show contextual upgrade modal
     const LOCKED_TABS: Tab[] = ["analytics", "growth", "customers", "ai"];

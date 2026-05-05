@@ -150,6 +150,56 @@ function GeneratingTipsModal({ onClose, onNeverShow }: { onClose: () => void; on
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Eligibility Blocked Modal — shown when user can't generate yet
+// ─────────────────────────────────────────────────────────────────────────────
+
+function EligibilityBlockedModal({
+  reason,
+  hint,
+  onClose,
+}: {
+  reason: string;
+  hint: string;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(6px)" }}
+    >
+      <div
+        className="relative w-full max-w-md rounded-2xl border p-7 shadow-2xl"
+        style={{ background: "#0f0f1c", borderColor: "#2a2a3e" }}
+      >
+        {/* Icon */}
+        <div
+          className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-full"
+          style={{ background: "rgba(176,96,96,0.15)", border: "1px solid rgba(176,96,96,0.3)" }}
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#b06060" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+          </svg>
+        </div>
+
+        {/* Text */}
+        <h3 className="mb-2 text-center text-base font-semibold text-white">{reason}</h3>
+        <p className="text-center text-sm leading-relaxed" style={{ color: "#8b8fa8" }}>{hint}</p>
+
+        {/* Close */}
+        <button
+          onClick={onClose}
+          className="mt-6 w-full rounded-xl py-2.5 text-sm font-medium transition-colors"
+          style={{ background: "#1e1e30", color: "#c0c4d8" }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = "#2a2a3e")}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "#1e1e30")}
+        >
+          Got it
+        </button>
+      </div>
+    </div>
+  );
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Category config
@@ -701,12 +751,15 @@ function PremiumGate() {
 export default function PlaybooksTab({
   isPremium,
   connectedPlatforms,
+  snapshots,
   isDemo = false,
 }: PlaybooksTabProps) {
   const [data, setData]         = useState<AiPlaybooksResponse | null>(null);
   const [loading, setLoading]   = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [checking, setChecking]     = useState(false);
   const [showTipsModal, setShowTipsModal] = useState(false);
+  const [eligibilityBlock, setEligibilityBlock] = useState<{ reason: string; hint: string } | null>(null);
   const [error, setError]       = useState<string | null>(null);
   const [openId, setOpenId]     = useState<string | null>(null);
   const [activeCategory, setActiveCategory]       = useState<Category>("all");
@@ -788,9 +841,59 @@ export default function PlaybooksTab({
 
   /** POST to generate endpoint → daemon runs generation → poll until generatedAt changes */
   const triggerGenerate = useCallback(async () => {
-    if (generating) return;
-    setGenerating(true);
+    if (generating || checking) return;
     setError(null);
+    setEligibilityBlock(null);
+
+    // ── Instant client-side checks (zero latency) ─────────────────────────
+    // We already have connectedPlatforms and snapshots from the dashboard shell.
+    if (!isDemo) {
+      if (connectedPlatforms.length === 0) {
+        setEligibilityBlock({
+          reason: "No integrations connected",
+          hint:   "Connect at least one platform (e.g. Stripe, GA4, Meta Ads) so the AI has real data to analyse.",
+        });
+        return;
+      }
+
+      // Count distinct snapshot days in the last 60 days
+      const cutoff = Date.now() - 60 * 24 * 60 * 60 * 1000;
+      const recentDays = new Set(
+        snapshots
+          .filter((s) => new Date(s.date).getTime() >= cutoff)
+          .map((s) => s.date),
+      ).size;
+
+      if (recentDays < 3) {
+        setEligibilityBlock({
+          reason: "Not enough historical data yet",
+          hint:   `We only have ${recentDays} day${recentDays !== 1 ? "s" : ""} of synced data. Come back after a few more daily syncs — playbooks need at least 3 days of data to give meaningful advice.`,
+        });
+        return;
+      }
+    }
+
+    // ── Server-side eligibility check ─────────────────────────────────────
+    setChecking(true);
+    try {
+      const checkRes = await fetch("/api/ai/playbooks/check-eligibility");
+      if (checkRes.ok) {
+        const check = await checkRes.json() as { eligible: boolean; reason?: string; hint?: string };
+        if (!check.eligible) {
+          setEligibilityBlock({
+            reason: check.reason ?? "Not eligible to generate playbooks",
+            hint:   check.hint   ?? "Please connect more integrations and let your data sync first.",
+          });
+          setChecking(false);
+          return;
+        }
+      }
+    } catch {
+      // Non-critical — proceed to generate; server will reject if truly ineligible
+    }
+    setChecking(false);
+
+    setGenerating(true);
     const prevGeneratedAt = data?.generatedAt ?? null;
 
     try {
@@ -826,7 +929,7 @@ export default function PlaybooksTab({
         setGenerating(false);
       }
     }, 5_000);
-  }, [generating, data?.generatedAt]);
+  }, [generating, checking, isDemo, connectedPlatforms, snapshots, data?.generatedAt]);
 
   // Cleanup poll on unmount
   useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current); }, []);
@@ -886,6 +989,14 @@ export default function PlaybooksTab({
   return (
     <div className="space-y-6">
 
+      {eligibilityBlock && (
+        <EligibilityBlockedModal
+          reason={eligibilityBlock.reason}
+          hint={eligibilityBlock.hint}
+          onClose={() => setEligibilityBlock(null)}
+        />
+      )}
+
       {showTipsModal && (
         <GeneratingTipsModal
           onClose={() => setShowTipsModal(false)}
@@ -909,16 +1020,16 @@ export default function PlaybooksTab({
         {isPremium && (
           <button
             onClick={triggerGenerate}
-            disabled={loading || generating}
+            disabled={loading || generating || checking}
             className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-300 hover:border-white/20 hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <svg
-              className={(loading || generating) ? "animate-spin" : ""}
+              className={(loading || generating || checking) ? "animate-spin" : ""}
               width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}
             >
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
             </svg>
-            {generating ? "Generating…" : loading ? "Loading…" : "Generate"}
+            {generating ? "Generating…" : checking ? "Checking…" : loading ? "Loading…" : "Generate"}
           </button>
         )}
       </div>

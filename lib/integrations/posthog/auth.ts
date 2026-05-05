@@ -56,6 +56,16 @@ export async function validatePostHogApiKey(
       const teams: { id: number }[] = data?.organization?.teams ?? [];
       const firstTeamId = teams[0]?.id;
       const resolved = projectId || (firstTeamId ? String(firstTeamId) : "");
+
+      if (!resolved) {
+        return {
+          valid: false,
+          error:
+            "Your API key is valid but we couldn't auto-detect a Project ID. " +
+            "Please enter your Project ID manually — find it in PostHog under Project Settings → Project ID.",
+        };
+      }
+
       return { valid: true, resolvedProjectId: resolved, resolvedHost: host };
     }
 

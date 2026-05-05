@@ -3732,7 +3732,20 @@ function LockScreen() {
   );
 }
 
-function EmptySection({ platform }: { platform: string }) {
+function EmptySection({ platform, hasDataOutsideRange = false }: { platform: string; hasDataOutsideRange?: boolean }) {
+  if (hasDataOutsideRange) {
+    return (
+      <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-10 text-center">
+        <div className="mx-auto mb-4 inline-flex items-center gap-2 rounded-full border border-[#f59e0b]/20 bg-[#f59e0b]/8 px-4 py-2">
+          <span className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#f59e0b]">No data in range</span>
+        </div>
+        <p className="text-sm text-[#bcbcd8]">
+          <span className="text-[#f8f8fc]">{platform}</span> has synced data, but none falls within the selected time range.
+        </p>
+        <p className="mt-2 text-xs text-[#6b6b88]">Try extending the time range to see historical data.</p>
+      </div>
+    );
+  }
   return (
     <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-10 text-center">
       <div className="mx-auto mb-4 inline-flex items-center gap-2 rounded-full border border-[#00d4aa]/20 bg-[#00d4aa]/8 px-4 py-2">
@@ -3740,8 +3753,9 @@ function EmptySection({ platform }: { platform: string }) {
         <span className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#00d4aa]">Syncing data</span>
       </div>
       <p className="text-sm text-[#bcbcd8]">
-        <span className="text-[#f8f8fc]">{platform}</span> is connected. Waiting for data to sync...
+        <span className="text-[#f8f8fc]">{platform}</span> is connected. Waiting for data to sync…
       </p>
+      <p className="mt-2 text-xs text-[#6b6b88]">First sync can take up to 24 hours.</p>
     </div>
   );
 }
@@ -3895,6 +3909,13 @@ export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots,
     return map;
   }, [filteredSnapshots]);
 
+  // Providers that have ANY snapshot in the DB (ignoring date filter).
+  // Used to distinguish "syncing for the first time" vs "data exists outside range".
+  const providersWithAnyData = useMemo(
+    () => new Set(snapshots.map((s) => s.provider)),
+    [snapshots],
+  );
+
   if (!isPremium) {
     return (
       <div className="w-full">
@@ -3963,7 +3984,7 @@ export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots,
           {/* Full-bleed: negative margin cancels the parent p-6/p-8, then we re-add px so tabs stay inset */}
           <div className="relative mb-4 -mx-6 lg:-mx-8">
             {/* Scroll fade — right edge hint */}
-            <div className="pointer-events-none absolute right-0 top-0 z-10 h-full w-16 bg-gradient-to-l from-[#13131f] to-transparent" />
+            <div className="pointer-events-none absolute right-0 top-0 z-10 h-full w-16 bg-linear-to-l from-[#13131f] to-transparent" />
             <div className="flex gap-2 border-b border-[#363650] overflow-x-auto scrollbar-none px-6 lg:px-8">
               {(["overview", ...availablePlatforms] as PlatformTab[]).map((p) => (
                 <button
