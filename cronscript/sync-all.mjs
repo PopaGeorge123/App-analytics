@@ -480,23 +480,35 @@ async function healStripeCurrency(userId, accessToken) {
 
     let currency = null;
 
-    // Try 1: account object
+    // Try 1: most recent charge currency (what they actually charge customers in)
     try {
-      const res = await fetch(`https://api.stripe.com/v1/accounts/${accountId}`, { headers: stripeHeaders });
+      const res = await fetch('https://api.stripe.com/v1/charges?limit=5', { headers: stripeHeaders });
       if (res.ok) {
-        const acc = await res.json();
-        if (acc.default_currency) currency = acc.default_currency.toUpperCase();
+        const body = await res.json();
+        const charge = body.data?.find(c => c.status === 'succeeded') ?? body.data?.[0];
+        if (charge?.currency) currency = charge.currency.toUpperCase();
       }
     } catch (_) { /* fall through */ }
 
-    // Try 2: balance object (always has a currency)
+    // Try 2: most recent payment intent
     if (!currency) {
       try {
-        const res = await fetch('https://api.stripe.com/v1/balance', { headers: stripeHeaders });
+        const res = await fetch('https://api.stripe.com/v1/payment_intents?limit=5', { headers: stripeHeaders });
         if (res.ok) {
-          const bal = await res.json();
-          const entry = bal.available?.[0] ?? bal.pending?.[0];
-          if (entry?.currency) currency = entry.currency.toUpperCase();
+          const body = await res.json();
+          const intent = body.data?.[0];
+          if (intent?.currency) currency = intent.currency.toUpperCase();
+        }
+      } catch (_) { /* fall through */ }
+    }
+
+    // Try 3: account default_currency (last resort — may be settlement currency not charge currency)
+    if (!currency) {
+      try {
+        const res = await fetch(`https://api.stripe.com/v1/accounts/${accountId}`, { headers: stripeHeaders });
+        if (res.ok) {
+          const acc = await res.json();
+          if (acc.default_currency) currency = acc.default_currency.toUpperCase();
         }
       } catch (_) { /* fall through */ }
     }

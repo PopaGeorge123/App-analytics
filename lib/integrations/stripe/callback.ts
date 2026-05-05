@@ -28,22 +28,37 @@ export async function handleStripeCallback(
   const accessToken = response.access_token as string;
   const accountId = response.stripe_user_id as string;
 
-  // Fetch the account's default currency from Stripe
+  // Detect the currency from actual charges — NOT account.default_currency.
+  // account.default_currency reflects the account's country settlement currency
+  // (e.g. RON for a Romanian account) which is often different from the
+  // currency the founder is actually charging customers in (e.g. USD).
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const stripe = new Stripe(accessToken, { apiVersion: "2026-02-25.clover" as any });
   let stripeCurrency = "USD";
   try {
-    const account = await stripe.accounts.retrieve(accountId);
-    if (account.default_currency) {
-      stripeCurrency = account.default_currency.toUpperCase();
+    // 1. Look at the most recent successful charge — most reliable signal
+    const charges = await stripe.charges.list({ limit: 5 });
+    const firstCharge = charges.data.find(c => c.status === "succeeded") ?? charges.data[0];
+    if (firstCharge?.currency) {
+      stripeCurrency = firstCharge.currency.toUpperCase();
     } else {
-      // Fallback: read from the account's balance (always has a currency)
-      const balance = await stripe.balance.retrieve({ stripeAccount: accountId });
-      const firstEntry = balance.available?.[0] ?? balance.pending?.[0];
-      if (firstEntry?.currency) stripeCurrency = firstEntry.currency.toUpperCase();
+      // 2. No charges yet — fall back to most recent payment intent
+      const intents = await stripe.paymentIntents.list({ limit: 5 });
+      const firstIntent = intents.data[0];
+      if (firstIntent?.currency) {
+        stripeCurrency = firstIntent.currency.toUpperCase();
+      }
+      // 3. Truly empty account — use account default_currency as last resort
+      // (better than nothing, user can correct it in settings)
+      else {
+        const account = await stripe.accounts.retrieve(accountId);
+        if (account.default_currency) {
+          stripeCurrency = account.default_currency.toUpperCase();
+        }
+      }
     }
   } catch (err) {
-    console.error("[stripe-callback] Could not detect account currency, defaulting to USD:", err);
+    console.error("[stripe-callback] Could not detect currency, defaulting to USD:", err);
   }
 
   // Fetch current account_id before overwriting so the daemon can detect a change
