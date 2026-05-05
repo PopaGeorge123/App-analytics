@@ -131,21 +131,53 @@ function fmtPeriod(key: string, granularity: Granularity): string {
   return "W " + d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 }
 
+/** Generate every period key between fromDate and toDate (inclusive) for a given granularity */
+function allPeriodsInRange(fromDate: string, toDate: string, granularity: Granularity): string[] {
+  const periods: string[] = [];
+  const seen = new Set<string>();
+  const cur = new Date(fromDate + "T00:00:00Z");
+  const end = new Date(toDate + "T00:00:00Z");
+  while (cur <= end) {
+    const pk = periodKey(cur.toISOString().slice(0, 10), granularity);
+    if (!seen.has(pk)) { seen.add(pk); periods.push(pk); }
+    cur.setUTCDate(cur.getUTCDate() + 1);
+  }
+  return periods;
+}
+
 /** Group snapshots by period, summing sum-fields, averaging avg-fields,
  *  and taking the last (most recent) value for latestFields (point-in-time metrics
- *  like MRR, active subscriptions, ARPU that should NOT be summed across days). */
+ *  like MRR, active subscriptions, ARPU that should NOT be summed across days).
+ *
+ *  Pass `dateRange` to zero-fill every period in the range — this ensures days
+ *  with no data appear as 0 on charts instead of being omitted entirely. */
 function groupSnapshots(
   snapshots: Snapshot[],
   granularity: Granularity,
   sumFields: string[],
   avgFields: string[],
-  latestFields: string[] = []
+  latestFields: string[] = [],
+  dateRange?: { from: string; to: string }
 ): { period: string; data: Record<string, number> }[] {
+  const allFields = [...sumFields, ...avgFields, ...latestFields];
+  const emptyData = () => Object.fromEntries(allFields.map((f) => [f, 0]));
+
   const grouped: Record<string, {
     sums: Record<string, number>;
     avgs: Record<string, number[]>;
     latests: Record<string, number>;
   }> = {};
+
+  // Pre-seed every period in range with zeros so gaps show up on charts
+  if (dateRange) {
+    for (const pk of allPeriodsInRange(dateRange.from, dateRange.to, granularity)) {
+      grouped[pk] = {
+        sums: Object.fromEntries(sumFields.map((f) => [f, 0])),
+        avgs: Object.fromEntries(avgFields.map((f) => [f, []])),
+        latests: Object.fromEntries(latestFields.map((f) => [f, 0])),
+      };
+    }
+  }
 
   for (const snap of snapshots) {
     const pk = periodKey(snap.date, granularity);
@@ -170,6 +202,7 @@ function groupSnapshots(
     .map(([period, { sums, avgs, latests }]) => ({
       period,
       data: {
+        ...emptyData(),
         ...sums,
         ...latests,
         ...Object.fromEntries(
@@ -233,6 +266,23 @@ function Sparkline({ values, color = "#00d4aa", formatter }: {
       </AreaChart>
     </ResponsiveContainer>
   );
+}
+
+// ── Date range context — main AnalyticsTab provides, sections read ───────────
+// Allows groupSnapshots to zero-fill missing days without threading props.
+const DateRangeCtx = createContext<{ from: string; to: string } | null>(null);
+
+/** Drop-in replacement for groupSnapshots that auto-reads the active date range
+ *  from context so every chart shows zero-filled gaps for missing days. */
+function useGroupedSnapshots(
+  snapshots: Snapshot[],
+  granularity: Granularity,
+  sumFields: string[],
+  avgFields: string[],
+  latestFields: string[] = [],
+) {
+  const dateRange = useContext(DateRangeCtx) ?? undefined;
+  return groupSnapshots(snapshots, granularity, sumFields, avgFields, latestFields, dateRange);
 }
 
 // ── Shared periods context — sections provide, StatCard reads ──────────────
@@ -444,7 +494,7 @@ function StatCard({
   );
 }
   function YouTubeSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
-    const grouped = groupSnapshots(snapshots, granularity, ["subscribers", "totalViews"], []);
+    const grouped = useGroupedSnapshots(snapshots, granularity, ["subscribers", "totalViews"], []);
     const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
     const subs = grouped.map((r) => r.data.subscribers);
     const views = grouped.map((r) => r.data.totalViews);
@@ -478,7 +528,7 @@ function StatCard({
   }
 
   function TwitterOrganicSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
-    const grouped = groupSnapshots(snapshots, granularity, ["followers", "tweetCount"], []);
+    const grouped = useGroupedSnapshots(snapshots, granularity, ["followers", "tweetCount"], []);
     const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
     const followers = grouped.map((r) => r.data.followers);
     const tweets = grouped.map((r) => r.data.tweetCount);
@@ -1571,7 +1621,7 @@ function MRRBenchmarks({ currentMRR, mrrSeries, churnRate, arpu, currency }: {
 // ── Stripe Section ────────────────────────────────────────────────────────
 
 function StripeSection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
-  const grouped = groupSnapshots(
+  const grouped = useGroupedSnapshots(
     snapshots, granularity,
     ["revenue", "txCount", "refunds", "newCustomers", "churnedToday"],
     [],
@@ -1954,7 +2004,7 @@ function CohortSection({ snapshots }: { snapshots: Snapshot[] }) {
 }
 
 function GA4Section({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
-  const grouped = groupSnapshots(snapshots, granularity,
+  const grouped = useGroupedSnapshots(snapshots, granularity,
     ["sessions", "users", "newUsers", "conversions"], ["bounceRate", "avgSessionDuration"]);
   const periods     = grouped.map((r) => fmtPeriod(r.period, granularity));
   const sessions    = grouped.map((r) => r.data.sessions);
@@ -2011,7 +2061,7 @@ function GA4Section({ snapshots, granularity }: { snapshots: Snapshot[]; granula
 }
 
 function MetaSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
-  const grouped = groupSnapshots(snapshots, granularity,
+  const grouped = useGroupedSnapshots(snapshots, granularity,
     ["spend", "impressions", "clicks", "conversions"], []);
   const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
 
@@ -2099,7 +2149,7 @@ function MetaSection({ snapshots, granularity }: { snapshots: Snapshot[]; granul
 }
 
 function PayPalSection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
-  const grouped = groupSnapshots(snapshots, granularity,
+  const grouped = useGroupedSnapshots(snapshots, granularity,
     ["revenue", "fees", "netRevenue", "txCount"], []);
   const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
 
@@ -2158,7 +2208,7 @@ function PayPalSection({ snapshots, granularity, currency = "USD" }: { snapshots
 }
 
 function PaddleSection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
-  const grouped = groupSnapshots(snapshots, granularity,
+  const grouped = useGroupedSnapshots(snapshots, granularity,
     ["revenue", "fees", "netRevenue", "txCount"], []);
   const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
 
@@ -2216,7 +2266,7 @@ function PaddleSection({ snapshots, granularity, currency = "USD" }: { snapshots
 }
 
 function LemonSqueezySection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
-  const grouped = groupSnapshots(snapshots, granularity,
+  const grouped = useGroupedSnapshots(snapshots, granularity,
     ["revenue", "fees", "netRevenue", "txCount"], []);
   const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
 
@@ -2274,7 +2324,7 @@ function LemonSqueezySection({ snapshots, granularity, currency = "USD" }: { sna
 }
 
 function GumroadSection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
-  const grouped = groupSnapshots(snapshots, granularity, ["revenue", "fees", "netRevenue", "txCount"], []);
+  const grouped = useGroupedSnapshots(snapshots, granularity, ["revenue", "fees", "netRevenue", "txCount"], []);
   const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const revenues    = grouped.map((r) => r.data.revenue);
   const fees        = grouped.map((r) => r.data.fees);
@@ -2322,7 +2372,7 @@ function GumroadSection({ snapshots, granularity, currency = "USD" }: { snapshot
 }
 
 function PlausibleSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
-  const grouped = groupSnapshots(snapshots, granularity, ["visitors", "pageviews", "bounceRate", "visitDuration"], []);
+  const grouped = useGroupedSnapshots(snapshots, granularity, ["visitors", "pageviews", "bounceRate", "visitDuration"], []);
   const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const visitors     = grouped.map((r) => r.data.visitors);
   const pageviews    = grouped.map((r) => r.data.pageviews);
@@ -2370,7 +2420,7 @@ function PlausibleSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
 }
 
 function MixpanelSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
-  const grouped    = groupSnapshots(snapshots, granularity, ["events", "uniqueUsers"], []);
+  const grouped    = useGroupedSnapshots(snapshots, granularity, ["events", "uniqueUsers"], []);
   const periods    = grouped.map((r) => fmtPeriod(r.period, granularity));
   const events     = grouped.map((r) => r.data.events);
   const users      = grouped.map((r) => r.data.uniqueUsers);
@@ -2407,7 +2457,7 @@ function MixpanelSection({ snapshots, granularity }: { snapshots: Snapshot[]; gr
 }
 
 function AmplitudeSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
-  const grouped     = groupSnapshots(snapshots, granularity, ["activeUsers", "totalEvents", "newUsers"], []);
+  const grouped     = useGroupedSnapshots(snapshots, granularity, ["activeUsers", "totalEvents", "newUsers"], []);
   const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const activeUsers = grouped.map((r) => r.data.activeUsers);
   const events      = grouped.map((r) => r.data.totalEvents);
@@ -2448,7 +2498,7 @@ function AmplitudeSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
 }
 
 function PostHogSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
-  const grouped     = groupSnapshots(snapshots, granularity, ["pageviews", "uniqueUsers", "sessions"], []);
+  const grouped     = useGroupedSnapshots(snapshots, granularity, ["pageviews", "uniqueUsers", "sessions"], []);
   const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const pageviews   = grouped.map((r) => r.data.pageviews);
   const users       = grouped.map((r) => r.data.uniqueUsers);
@@ -2489,7 +2539,7 @@ function PostHogSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
 }
 
 function FathomSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
-  const grouped     = groupSnapshots(snapshots, granularity, ["pageviews", "uniques", "visits", "bounceRate", "avgDuration"], []);
+  const grouped     = useGroupedSnapshots(snapshots, granularity, ["pageviews", "uniques", "visits", "bounceRate", "avgDuration"], []);
   const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const pageviews   = grouped.map((r) => r.data.pageviews);
   const uniques     = grouped.map((r) => r.data.uniques);
@@ -2535,7 +2585,7 @@ function FathomSection({ snapshots, granularity }: { snapshots: Snapshot[]; gran
 }
 
 function GoogleAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
-  const grouped     = groupSnapshots(snapshots, granularity, ["spend", "clicks", "impressions", "conversions", "ctr"], []);
+  const grouped     = useGroupedSnapshots(snapshots, granularity, ["spend", "clicks", "impressions", "conversions", "ctr"], []);
   const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const spends      = grouped.map((r) => r.data.spend);
   const clicks      = grouped.map((r) => r.data.clicks);
@@ -2585,7 +2635,7 @@ function GoogleAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
 }
 
 function TikTokAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
-  const grouped     = groupSnapshots(snapshots, granularity, ["spend", "impressions", "clicks", "conversions"], []);
+  const grouped     = useGroupedSnapshots(snapshots, granularity, ["spend", "impressions", "clicks", "conversions"], []);
   const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const spends      = grouped.map((r) => r.data.spend);
   const impressions = grouped.map((r) => r.data.impressions);
@@ -2632,7 +2682,7 @@ function TikTokAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
 }
 
 function TwitterAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
-  const grouped     = groupSnapshots(snapshots, granularity, ["spend", "impressions", "clicks", "conversions"], []);
+  const grouped     = useGroupedSnapshots(snapshots, granularity, ["spend", "impressions", "clicks", "conversions"], []);
   const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const spends      = grouped.map((r) => r.data.spend);
   const impressions = grouped.map((r) => r.data.impressions);
@@ -2679,7 +2729,7 @@ function TwitterAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; 
 }
 
 function LinkedInAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
-  const grouped     = groupSnapshots(snapshots, granularity, ["spend", "impressions", "clicks", "conversions"], []);
+  const grouped     = useGroupedSnapshots(snapshots, granularity, ["spend", "impressions", "clicks", "conversions"], []);
   const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const spends      = grouped.map((r) => r.data.spend);
   const impressions = grouped.map((r) => r.data.impressions);
@@ -2726,7 +2776,7 @@ function LinkedInAdsSection({ snapshots, granularity }: { snapshots: Snapshot[];
 }
 
 function SnapchatAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
-  const grouped     = groupSnapshots(snapshots, granularity, ["spend", "impressions", "swipes", "conversions"], []);
+  const grouped     = useGroupedSnapshots(snapshots, granularity, ["spend", "impressions", "swipes", "conversions"], []);
   const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const spends      = grouped.map((r) => r.data.spend);
   const impressions = grouped.map((r) => r.data.impressions);
@@ -2772,7 +2822,7 @@ function SnapchatAdsSection({ snapshots, granularity }: { snapshots: Snapshot[];
 }
 
 function PinterestAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
-  const grouped     = groupSnapshots(snapshots, granularity, ["spend", "impressions", "clicks", "conversions"], []);
+  const grouped     = useGroupedSnapshots(snapshots, granularity, ["spend", "impressions", "clicks", "conversions"], []);
   const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const spends      = grouped.map((r) => r.data.spend);
   const impressions = grouped.map((r) => r.data.impressions);
@@ -2819,7 +2869,7 @@ function PinterestAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]
 }
 
 function MailchimpSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
-  const grouped       = groupSnapshots(snapshots, granularity, ["emailsSent", "opens", "clicks", "subscribers", "unsubscribes"], []);
+  const grouped       = useGroupedSnapshots(snapshots, granularity, ["emailsSent", "opens", "clicks", "subscribers", "unsubscribes"], []);
   const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const sent          = grouped.map((r) => r.data.emailsSent);
   const opens         = grouped.map((r) => r.data.opens);
@@ -2868,7 +2918,7 @@ function MailchimpSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
 }
 
 function KlaviyoSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
-  const grouped     = groupSnapshots(snapshots, granularity, ["emailsSent", "opens", "clicks", "revenue"], []);
+  const grouped     = useGroupedSnapshots(snapshots, granularity, ["emailsSent", "opens", "clicks", "revenue"], []);
   const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const sent        = grouped.map((r) => r.data.emailsSent);
   const opens       = grouped.map((r) => r.data.opens);
@@ -2918,7 +2968,7 @@ function KlaviyoSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
 }
 
 function ConvertKitSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
-  const grouped     = groupSnapshots(snapshots, granularity, ["totalSubscribers", "newSubscribers", "broadcastsSent"], []);
+  const grouped     = useGroupedSnapshots(snapshots, granularity, ["totalSubscribers", "newSubscribers", "broadcastsSent"], []);
   const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const totals      = grouped.map((r) => r.data.totalSubscribers);
   const newSubs     = grouped.map((r) => r.data.newSubscribers);
@@ -2960,7 +3010,7 @@ function ConvertKitSection({ snapshots, granularity }: { snapshots: Snapshot[]; 
 
 // ── ActiveCampaign ────────────────────────────────────────────────────────────
 function ActiveCampaignSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
-  const grouped    = groupSnapshots(snapshots, granularity, ["emailsSent", "opens", "clicks", "unsubscribes", "newContacts"], []);
+  const grouped    = useGroupedSnapshots(snapshots, granularity, ["emailsSent", "opens", "clicks", "unsubscribes", "newContacts"], []);
   const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const sent       = grouped.map((r) => r.data.emailsSent);
   const opens      = grouped.map((r) => r.data.opens);
@@ -3003,7 +3053,7 @@ function ActiveCampaignSection({ snapshots, granularity }: { snapshots: Snapshot
 
 // ── Brevo ─────────────────────────────────────────────────────────────────────
 function BrevoSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
-  const grouped    = groupSnapshots(snapshots, granularity, ["emailsSent", "opens", "clicks", "unsubscribes", "newContacts"], []);
+  const grouped    = useGroupedSnapshots(snapshots, granularity, ["emailsSent", "opens", "clicks", "unsubscribes", "newContacts"], []);
   const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const sent       = grouped.map((r) => r.data.emailsSent);
   const opens      = grouped.map((r) => r.data.opens);
@@ -3046,7 +3096,7 @@ function BrevoSection({ snapshots, granularity }: { snapshots: Snapshot[]; granu
 
 // ── Beehiiv ───────────────────────────────────────────────────────────────────
 function BeehiivSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
-  const grouped    = groupSnapshots(snapshots, granularity, ["totalSubscribers", "newSubscribers", "postsPublished", "premiumSubscribers"], []);
+  const grouped    = useGroupedSnapshots(snapshots, granularity, ["totalSubscribers", "newSubscribers", "postsPublished", "premiumSubscribers"], []);
   const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const totals     = grouped.map((r) => r.data.totalSubscribers);
   const newSubs    = grouped.map((r) => r.data.newSubscribers);
@@ -3090,7 +3140,7 @@ function BeehiivSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
 
 // ── Shopify ───────────────────────────────────────────────────────────────────
 function ShopifySection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
-  const grouped   = groupSnapshots(snapshots, granularity, ["revenue", "orders", "refunds", "newCustomers"], []);
+  const grouped   = useGroupedSnapshots(snapshots, granularity, ["revenue", "orders", "refunds", "newCustomers"], []);
   const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const revenue   = grouped.map((r) => r.data.revenue);
   const orders    = grouped.map((r) => r.data.orders);
@@ -3136,7 +3186,7 @@ function ShopifySection({ snapshots, granularity, currency = "USD" }: { snapshot
 
 // ── WooCommerce ───────────────────────────────────────────────────────────────
 function WooCommerceSection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
-  const grouped   = groupSnapshots(snapshots, granularity, ["revenue", "orders", "refunds", "newCustomers"], []);
+  const grouped   = useGroupedSnapshots(snapshots, granularity, ["revenue", "orders", "refunds", "newCustomers"], []);
   const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const revenue   = grouped.map((r) => r.data.revenue);
   const orders    = grouped.map((r) => r.data.orders);
@@ -3174,7 +3224,7 @@ function WooCommerceSection({ snapshots, granularity, currency = "USD" }: { snap
 
 // ── BigCommerce ───────────────────────────────────────────────────────────────
 function BigCommerceSection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
-  const grouped   = groupSnapshots(snapshots, granularity, ["revenue", "orders", "refunds", "newCustomers"], []);
+  const grouped   = useGroupedSnapshots(snapshots, granularity, ["revenue", "orders", "refunds", "newCustomers"], []);
   const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const revenue   = grouped.map((r) => r.data.revenue);
   const orders    = grouped.map((r) => r.data.orders);
@@ -3212,7 +3262,7 @@ function BigCommerceSection({ snapshots, granularity, currency = "USD" }: { snap
 
 // ── Amazon Seller ─────────────────────────────────────────────────────────────
 function AmazonSellerSection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
-  const grouped  = groupSnapshots(snapshots, granularity, ["revenue", "orders", "units", "refunds"], []);
+  const grouped  = useGroupedSnapshots(snapshots, granularity, ["revenue", "orders", "units", "refunds"], []);
   const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const revenue  = grouped.map((r) => r.data.revenue);
   const orders   = grouped.map((r) => r.data.orders);
@@ -3250,7 +3300,7 @@ function AmazonSellerSection({ snapshots, granularity, currency = "USD" }: { sna
 
 // ── Etsy ──────────────────────────────────────────────────────────────────────
 function EtsySection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
-  const grouped  = groupSnapshots(snapshots, granularity, ["revenue", "orders", "views", "newCustomers"], []);
+  const grouped  = useGroupedSnapshots(snapshots, granularity, ["revenue", "orders", "views", "newCustomers"], []);
   const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const revenue  = grouped.map((r) => r.data.revenue);
   const orders   = grouped.map((r) => r.data.orders);
@@ -3288,7 +3338,7 @@ function EtsySection({ snapshots, granularity, currency = "USD" }: { snapshots: 
 
 // ── HubSpot ───────────────────────────────────────────────────────────────────
 function HubSpotSection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
-  const grouped       = groupSnapshots(snapshots, granularity, ["dealsWon", "closedRevenue", "newContacts", "pipelineValue"], []);
+  const grouped       = useGroupedSnapshots(snapshots, granularity, ["dealsWon", "closedRevenue", "newContacts", "pipelineValue"], []);
   const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const dealsWon      = grouped.map((r) => r.data.dealsWon);
   const closedRev     = grouped.map((r) => r.data.closedRevenue);
@@ -3329,7 +3379,7 @@ function HubSpotSection({ snapshots, granularity, currency = "USD" }: { snapshot
 // Duplicate SalesforceSection removed (already defined above)
 
 function SalesforceSection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
-  const grouped      = groupSnapshots(snapshots, granularity, ["dealsWon", "closedRevenue", "newLeads", "pipelineValue"], []);
+  const grouped      = useGroupedSnapshots(snapshots, granularity, ["dealsWon", "closedRevenue", "newLeads", "pipelineValue"], []);
   const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const dealsWon     = grouped.map((r) => r.data.dealsWon);
   const closedRev    = grouped.map((r) => r.data.closedRevenue);
@@ -3367,7 +3417,7 @@ function SalesforceSection({ snapshots, granularity, currency = "USD" }: { snaps
 }
 
 function PipedriveSection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
-  const grouped     = groupSnapshots(snapshots, granularity, ["dealsWon", "closedRevenue", "newContacts", "pipelineValue"], []);
+  const grouped     = useGroupedSnapshots(snapshots, granularity, ["dealsWon", "closedRevenue", "newContacts", "pipelineValue"], []);
   const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const dealsWon    = grouped.map((r) => r.data.dealsWon);
   const closedRev   = grouped.map((r) => r.data.closedRevenue);
@@ -3405,7 +3455,7 @@ function PipedriveSection({ snapshots, granularity, currency = "USD" }: { snapsh
 }
 
 function NotionSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
-  const grouped    = groupSnapshots(snapshots, granularity, ["newRows", "updatedRows", "totalRows"], []);
+  const grouped    = useGroupedSnapshots(snapshots, granularity, ["newRows", "updatedRows", "totalRows"], []);
   const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const newRows    = grouped.map((r) => r.data.newRows);
   const updated    = grouped.map((r) => r.data.updatedRows);
@@ -3438,7 +3488,7 @@ function NotionSection({ snapshots, granularity }: { snapshots: Snapshot[]; gran
 }
 
 function IntercomSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
-  const grouped   = groupSnapshots(snapshots, granularity, ["newConversations", "resolvedConversations", "newContacts", "csatScore"], []);
+  const grouped   = useGroupedSnapshots(snapshots, granularity, ["newConversations", "resolvedConversations", "newContacts", "csatScore"], []);
   const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const newConvos = grouped.map((r) => r.data.newConversations);
   const resolved  = grouped.map((r) => r.data.resolvedConversations);
@@ -3474,7 +3524,7 @@ function IntercomSection({ snapshots, granularity }: { snapshots: Snapshot[]; gr
 }
 
 function ZendeskSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
-  const grouped    = groupSnapshots(snapshots, granularity, ["newTickets", "solvedTickets", "reopenedTickets", "csatScore"], []);
+  const grouped    = useGroupedSnapshots(snapshots, granularity, ["newTickets", "solvedTickets", "reopenedTickets", "csatScore"], []);
   const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const newT       = grouped.map((r) => r.data.newTickets);
   const solved     = grouped.map((r) => r.data.solvedTickets);
@@ -3507,7 +3557,7 @@ function ZendeskSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
 }
 
 function FreshdeskSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
-  const grouped   = groupSnapshots(snapshots, granularity, ["newTickets", "resolvedTickets", "openTickets", "csatScore"], []);
+  const grouped   = useGroupedSnapshots(snapshots, granularity, ["newTickets", "resolvedTickets", "openTickets", "csatScore"], []);
   const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const newT      = grouped.map((r) => r.data.newTickets);
   const resolved  = grouped.map((r) => r.data.resolvedTickets);
@@ -3543,7 +3593,7 @@ function FreshdeskSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
 }
 
 function SegmentSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
-  const grouped    = groupSnapshots(snapshots, granularity, ["eventsDelivered", "eventsFailed", "sourceCount"], []);
+  const grouped    = useGroupedSnapshots(snapshots, granularity, ["eventsDelivered", "eventsFailed", "sourceCount"], []);
   const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const delivered  = grouped.map((r) => r.data.eventsDelivered);
   const failed     = grouped.map((r) => r.data.eventsFailed);
@@ -3575,7 +3625,7 @@ function SegmentSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
 }
 
 function HeapSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
-  const grouped   = groupSnapshots(snapshots, granularity, ["sessions", "uniqueUsers", "pageViews", "events"], []);
+  const grouped   = useGroupedSnapshots(snapshots, granularity, ["sessions", "uniqueUsers", "pageViews", "events"], []);
   const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const sessions  = grouped.map((r) => r.data.sessions);
   const users     = grouped.map((r) => r.data.uniqueUsers);
@@ -3610,7 +3660,7 @@ function HeapSection({ snapshots, granularity }: { snapshots: Snapshot[]; granul
 }
 
 function FullStorySection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
-  const grouped    = groupSnapshots(snapshots, granularity, ["sessions", "pageViews", "frustrationSignals", "errorClicks"], []);
+  const grouped    = useGroupedSnapshots(snapshots, granularity, ["sessions", "pageViews", "frustrationSignals", "errorClicks"], []);
   const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const sessions   = grouped.map((r) => r.data.sessions);
   const pv         = grouped.map((r) => r.data.pageViews);
@@ -3645,7 +3695,7 @@ function FullStorySection({ snapshots, granularity }: { snapshots: Snapshot[]; g
 }
 
 function HotjarSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
-  const grouped    = groupSnapshots(snapshots, granularity, ["sessions", "recordings", "heatmapViews", "feedbackResponses"], []);
+  const grouped    = useGroupedSnapshots(snapshots, granularity, ["sessions", "recordings", "heatmapViews", "feedbackResponses"], []);
   const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const sessions   = grouped.map((r) => r.data.sessions);
   const recs       = grouped.map((r) => r.data.recordings);
@@ -3680,7 +3730,7 @@ function HotjarSection({ snapshots, granularity }: { snapshots: Snapshot[]; gran
 }
 
 function InstagramSection({ snapshots, granularity }: { snapshots: Snapshot[]; granularity: Granularity }) {
-  const grouped     = groupSnapshots(snapshots, granularity, ["followers", "reach", "impressions", "profileVisits"], []);
+  const grouped     = useGroupedSnapshots(snapshots, granularity, ["followers", "reach", "impressions", "profileVisits"], []);
   const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const followers   = grouped.map((r) => r.data.followers);
   const reach       = grouped.map((r) => r.data.reach);
@@ -4011,6 +4061,7 @@ export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots,
           />
 
           {/* ── Sections ──────────────────────────────────────── */}
+          <DateRangeCtx.Provider value={{ from: cutoff, to: ceilDate }}>
           {activeSection === "overview" && (
             <OverviewSection
               snapshots={filteredSnapshots}
@@ -4241,6 +4292,7 @@ export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots,
               ? <TwitterOrganicSection snapshots={snapshotsByPlatform["twitter-organic"]} granularity={granularity} />
               : <EmptySection platform="X (Twitter)" />
           )}
+          </DateRangeCtx.Provider>
         </>
       )}
     </div>
