@@ -34,9 +34,16 @@ export async function handleStripeCallback(
   let stripeCurrency = "USD";
   try {
     const account = await stripe.accounts.retrieve(accountId);
-    stripeCurrency = (account.default_currency ?? "usd").toUpperCase();
-  } catch {
-    // Fall back to USD if we can't fetch the account details
+    if (account.default_currency) {
+      stripeCurrency = account.default_currency.toUpperCase();
+    } else {
+      // Fallback: read from the account's balance (always has a currency)
+      const balance = await stripe.balance.retrieve({ stripeAccount: accountId });
+      const firstEntry = balance.available?.[0] ?? balance.pending?.[0];
+      if (firstEntry?.currency) stripeCurrency = firstEntry.currency.toUpperCase();
+    }
+  } catch (err) {
+    console.error("[stripe-callback] Could not detect account currency, defaulting to USD:", err);
   }
 
   // Fetch current account_id before overwriting so the daemon can detect a change

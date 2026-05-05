@@ -461,7 +461,54 @@ async function syncStripe(userId, accessToken) {
   return { date, ...r };
 }
 
-/** Full backfill — paginate all transactions for the date range, group by date in JS */
+/** Auto-heal: if the integrations row for Stripe has no currency, detect it from
+ *  the Stripe account and persist it so the dashboard shows the right symbol. */
+async function healStripeCurrency(userId, accessToken) {
+  try {
+    const { data: row } = await SB.supabase
+      .from('integrations')
+      .select('currency, account_id')
+      .eq('user_id', userId)
+      .eq('platform', 'stripe')
+      .maybeSingle();
+
+    // Already has a currency — nothing to do
+    if (row?.currency) return;
+
+    const accountId = row?.account_id;
+    const stripeHeaders = { Authorization: `Bearer ${accessToken}`, 'Stripe-Version': '2024-12-18.acacia' };
+
+    let currency = null;
+
+    // Try 1: account object
+    try {
+      const res = await fetch(`https://api.stripe.com/v1/accounts/${accountId}`, { headers: stripeHeaders });
+      if (res.ok) {
+        const acc = await res.json();
+        if (acc.default_currency) currency = acc.default_currency.toUpperCase();
+      }
+    } catch (_) { /* fall through */ }
+
+    // Try 2: balance object (always has a currency)
+    if (!currency) {
+      try {
+        const res = await fetch('https://api.stripe.com/v1/balance', { headers: stripeHeaders });
+        if (res.ok) {
+          const bal = await res.json();
+          const entry = bal.available?.[0] ?? bal.pending?.[0];
+          if (entry?.currency) currency = entry.currency.toUpperCase();
+        }
+      } catch (_) { /* fall through */ }
+    }
+
+    if (!currency) return;
+
+    await SB.patch('integrations', { currency }, { user_id: userId, platform: 'stripe' });
+    logOk(`[stripe] Auto-healed currency → ${currency} for user ${userId.slice(0, 8)}`);
+  } catch (err) {
+    logWarn(`[stripe] healStripeCurrency failed for ${userId.slice(0, 8)}: ${err.message}`);
+  }
+}
 async function backfillStripe(userId, accessToken, days = BACKFILL_DAYS.stripe) {
   log(`  [stripe backfill] ${days} days for user ${userId.slice(0, 8)} — bulk paginated fetch`);
   const stripeHeaders = { Authorization: `Bearer ${accessToken}` };
@@ -3280,6 +3327,7 @@ async function runSync() {
 
     const results = await Promise.allSettled(activePlatforms.map(async (platform) => {
       if (platform === 'stripe') {
+        await healStripeCurrency(uid, plats.stripe.access_token);
         const r = await syncStripe(uid, plats.stripe.access_token);
         logOk(`stripe — ${r.date} | $${(r.revenue / 100).toFixed(2)} revenue | ${r.txCount} tx | ${r.newCustomers} new customers`);
       } else if (platform === 'ga4') {
@@ -4702,6 +4750,35 @@ async function generatePlaybooksForUser(uid) {
       website = wRows[0] ?? null;
     } catch (_) { /* optional */ }
 
+    // ── Fetch previous playbook feedback so the AI can learn ─────────────────
+    let feedbackContext = '';
+    try {
+      const fbRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/playbook_feedback?` +
+          new URLSearchParams({ select: 'playbook_id,playbook_title,rating,completed_steps', user_id: `eq.${uid}` }),
+        { headers: getHeaders },
+      );
+      const fbRows = fbRes.ok ? (await fbRes.json()) : [];
+      if (fbRows.length > 0) {
+        const helpful     = fbRows.filter(r => r.rating ===  1);
+        const notHelpful  = fbRows.filter(r => r.rating === -1);
+        const inProgress  = fbRows.filter(r => (r.completed_steps ?? []).length > 0 && (r.completed_steps ?? []).length < 5);
+        const completed   = fbRows.filter(r => (r.completed_steps ?? []).length >= 5);
+
+        const lines = ['', '=== PREVIOUS PLAYBOOK FEEDBACK (use this to learn) ==='];
+        if (helpful.length)
+          lines.push(`MARKED HELPFUL (keep generating similar insights): ${helpful.map(r => `"${r.playbook_title}"`).join(', ')}`);
+        if (notHelpful.length)
+          lines.push(`MARKED NOT USEFUL / INACCURATE (do not repeat these exact recommendations, try a different angle or skip if data does not support): ${notHelpful.map(r => `"${r.playbook_title}"`).join(', ')}`);
+        if (inProgress.length)
+          lines.push(`IN PROGRESS (user has started some steps — acknowledge progress, focus remaining steps on what's left): ${inProgress.map(r => `"${r.playbook_title}" (${(r.completed_steps ?? []).length} steps done)`).join(', ')}`);
+        if (completed.length)
+          lines.push(`FULLY COMPLETED (user has done all steps — either show measurable outcome if visible in data, or replace with a new playbook): ${completed.map(r => `"${r.playbook_title}"`).join(', ')}`);
+        lines.push('Use this history to avoid repeating useless advice, build on what worked, and surface new priorities the user has not yet addressed.');
+        feedbackContext = lines.join('\n');
+      }
+    } catch (_) { /* non-critical — continue without feedback */ }
+
     const dataContext = [
       `TODAY: ${today}`,
       `CONNECTED PLATFORMS: ${connectedPlatforms.join(', ') || 'none'}`,
@@ -4733,6 +4810,7 @@ async function generatePlaybooksForUser(uid) {
       '=== WEBSITE ===',
       `URL: ${website?.url ?? 'Not set'}`,
       `Health score: ${website?.score ?? 'N/A'}/100`,
+      feedbackContext,
     ].join('\n');
 
     const aiRes = await fetchRetry(

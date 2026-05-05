@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
   Tooltip, ReferenceLine, ResponsiveContainer,
@@ -233,12 +233,27 @@ function PlaybookListItem({
 // Playbook detail  (inline right-side panel)
 // ─────────────────────────────────────────────────────────────────────────────
 
-function PlaybookDetail({ playbook }: { playbook: AiPlaybook }) {
+function PlaybookDetail({
+  playbook,
+  feedback,
+  onRating,
+  onToggleStep,
+  isDemo,
+}: {
+  playbook: AiPlaybook;
+  feedback: { rating: number | null; completed_steps: number[] };
+  onRating: (r: 1 | -1 | null) => void;
+  onToggleStep: (idx: number) => void;
+  isDemo: boolean;
+}) {
   const sev      = SEV_CONFIG[playbook.severity] ?? SEV_CONFIG.opportunity;
   const catCfg   = CATEGORY_CONFIG[playbook.category as Exclude<Category, "all">];
   const catColor = catCfg?.color ?? "#8b8ba8";
   const catLabel = catCfg?.label ?? playbook.category;
   const hasTriggered = Array.isArray(playbook.triggeredBy) && playbook.triggeredBy.length > 0;
+  const completedSteps = feedback.completed_steps ?? [];
+  const doneCount = playbook.steps.filter((_, i) => completedSteps.includes(i)).length;
+  const allDone = doneCount === playbook.steps.length && playbook.steps.length > 0;
 
   return (
     <div
@@ -333,38 +348,121 @@ function PlaybookDetail({ playbook }: { playbook: AiPlaybook }) {
 
         {/* Action plan */}
         <div>
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Action plan</p>
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Action plan</p>
+            {playbook.steps.length > 0 && (
+              <span className="text-[10px] font-mono text-slate-600">
+                {doneCount}/{playbook.steps.length} done
+              </span>
+            )}
+          </div>
+          {allDone && (
+            <div className="mb-4 rounded-xl border border-green-500/20 bg-green-500/8 px-4 py-3 text-sm text-green-400 font-medium">
+              ✓ All steps completed — Fold will factor your progress into the next generation.
+            </div>
+          )}
           <ol className="space-y-4">
-            {playbook.steps.map((step, i) => (
-              <li key={i} className="flex gap-3">
-                <div
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold mt-0.5"
-                  style={{ background: catColor + "22", color: catColor, border: `1px solid ${catColor}30` }}
-                >
-                  {i + 1}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-white leading-snug">{step.action}</p>
-                  <p className="mt-1 text-[13px] text-slate-400 leading-relaxed">{step.detail}</p>
-                  {step.link && (
-                    <a
-                      href={step.link.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-2 inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-white/5"
-                      style={{ borderColor: catColor + "50", color: catColor }}
+            {playbook.steps.map((step, i) => {
+              const done = completedSteps.includes(i);
+              return (
+                <li key={i} className="flex gap-3">
+                  {/* Checkbox */}
+                  {!isDemo && (
+                    <button
+                      onClick={() => onToggleStep(i)}
+                      title={done ? "Mark as not done" : "Mark as done"}
+                      className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-all focus:outline-none"
+                      style={{
+                        borderColor: done ? catColor : "#3a3a54",
+                        background: done ? catColor + "22" : "transparent",
+                      }}
                     >
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-                      </svg>
-                      {step.link.label}
-                    </a>
+                      {done && (
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={catColor} strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </button>
                   )}
-                </div>
-              </li>
-            ))}
+                  {/* Step number (demo mode) */}
+                  {isDemo && (
+                    <div
+                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold mt-0.5"
+                      style={{ background: catColor + "22", color: catColor, border: `1px solid ${catColor}30` }}
+                    >
+                      {i + 1}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p
+                      className="text-sm font-semibold leading-snug transition-colors"
+                      style={{ color: done ? "#4a4a6a" : "#ffffff", textDecoration: done ? "line-through" : "none" }}
+                    >
+                      {step.action}
+                    </p>
+                    <p className="mt-1 text-[13px] text-slate-400 leading-relaxed">{step.detail}</p>
+                    {step.link && (
+                      <a
+                        href={step.link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-2 inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-white/5"
+                        style={{ borderColor: catColor + "50", color: catColor }}
+                      >
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                        </svg>
+                        {step.link.label}
+                      </a>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
           </ol>
         </div>
+
+        {/* ── Feedback ─────────────────────────────────────────────────────── */}
+        {!isDemo && (
+          <div
+            className="rounded-xl border px-4 py-3 flex items-center justify-between gap-4"
+            style={{ borderColor: "#1e1e30", background: "#0b0b18" }}
+          >
+            <p className="text-xs text-slate-500">Was this playbook accurate and useful?</p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => onRating(feedback.rating === 1 ? null : 1)}
+                title="Yes, helpful"
+                className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-all"
+                style={{
+                  borderColor: feedback.rating === 1 ? "#3d8a6880" : "#2a2a3e",
+                  background:  feedback.rating === 1 ? "rgba(61,138,104,0.12)" : "transparent",
+                  color:       feedback.rating === 1 ? "#4a9a78" : "#6b7280",
+                }}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill={feedback.rating === 1 ? "currentColor" : "none"} stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.633 10.5c.806 0 1.533-.446 2.031-1.08a9.041 9.041 0 012.861-2.4c.723-.384 1.35-.956 1.653-1.715a4.498 4.498 0 00.322-1.672V3a.75.75 0 01.75-.75A2.25 2.25 0 0116.5 4.5c0 1.152-.26 2.243-.723 3.218-.266.558.107 1.282.725 1.282h3.126c1.026 0 1.945.694 2.054 1.715.045.422.068.85.068 1.285a11.95 11.95 0 01-2.649 7.521c-.388.482-.987.729-1.605.729H13.48c-.483 0-.964-.078-1.423-.23l-3.114-1.04a4.501 4.501 0 00-1.423-.23H5.25M9 20.25h.008v.008H9v-.008zm-3.75 0h.008v.008H6v-.008z" />
+                </svg>
+                Helpful
+              </button>
+              <button
+                onClick={() => onRating(feedback.rating === -1 ? null : -1)}
+                title="Not accurate / not useful"
+                className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-all"
+                style={{
+                  borderColor: feedback.rating === -1 ? "#b0606080" : "#2a2a3e",
+                  background:  feedback.rating === -1 ? "rgba(176,96,96,0.12)" : "transparent",
+                  color:       feedback.rating === -1 ? "#b06060" : "#6b7280",
+                }}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill={feedback.rating === -1 ? "currentColor" : "none"} stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17.367 13.5c-.806 0-1.533.446-2.031 1.08a9.041 9.041 0 01-2.861 2.4c-.723.384-1.35.956-1.653 1.715a4.498 4.498 0 00-.322 1.672V21a.75.75 0 01-.75.75 2.25 2.25 0 01-2.25-2.25c0-1.152.26-2.243.723-3.218.266-.558-.107-1.282-.725-1.282H4.372c-1.026 0-1.945-.694-2.054-1.715A12.134 12.134 0 012.25 12c0-2.848.992-5.464 2.649-7.521.388-.482.987-.729 1.605-.729h9.768c.483 0 .964.078 1.423.23l3.114 1.04a4.501 4.501 0 001.423.23H21.75M15 3.75h-.008v.008H15V3.75zm3.75 0h-.008v.008H18.75V3.75z" />
+                </svg>
+                Not useful
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="pb-6" />
       </div>
@@ -473,6 +571,55 @@ export default function PlaybooksTab({
   const hasFetched = useRef(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // ── Feedback state ────────────────────────────────────────────────────────
+  // Map of playbook_id → { rating, completed_steps }
+  const [feedback, setFeedback] = useState<Record<string, { rating: number | null; completed_steps: number[] }>>({});
+  const [, startTransition] = useTransition();
+
+  const loadFeedback = useCallback(async () => {
+    if (isDemo) return;
+    try {
+      const res = await fetch("/api/ai/playbooks/feedback");
+      if (res.ok) setFeedback(await res.json());
+    } catch { /* non-critical */ }
+  }, [isDemo]);
+
+  const saveFeedback = useCallback(async (
+    playbookId: string,
+    playbookTitle: string,
+    patch: Partial<{ rating: number | null; completed_steps: number[] }>,
+  ) => {
+    if (isDemo) return;
+    // Optimistic update
+    setFeedback((prev) => ({
+      ...prev,
+      [playbookId]: {
+        rating: prev[playbookId]?.rating ?? null,
+        completed_steps: prev[playbookId]?.completed_steps ?? [],
+        ...patch,
+      },
+    }));
+    startTransition(() => {
+      fetch("/api/ai/playbooks/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ playbook_id: playbookId, playbook_title: playbookTitle, ...patch }),
+      }).catch(() => { /* swallow — optimistic already applied */ });
+    });
+  }, [isDemo, startTransition]);
+
+  const handleRating = useCallback((playbook: AiPlaybook, r: 1 | -1 | null) => {
+    saveFeedback(playbook.id, playbook.title, { rating: r });
+  }, [saveFeedback]);
+
+  const handleToggleStep = useCallback((playbook: AiPlaybook, stepIdx: number) => {
+    const current = feedback[playbook.id]?.completed_steps ?? [];
+    const next = current.includes(stepIdx)
+      ? current.filter((i) => i !== stepIdx)
+      : [...current, stepIdx];
+    saveFeedback(playbook.id, playbook.title, { completed_steps: next });
+  }, [feedback, saveFeedback]);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -550,8 +697,9 @@ export default function PlaybooksTab({
       setOpenId(DEMO_DATA.playbooks[0]?.id ?? null);
     } else {
       load();
+      loadFeedback();
     }
-  }, [isPremium, isDemo, load]);
+  }, [isPremium, isDemo, load, loadFeedback]);
 
   const playbooks = data?.playbooks ?? [];
 
@@ -757,7 +905,15 @@ export default function PlaybooksTab({
               <div className="flex-1 min-w-0">
                 {openId && (() => {
                   const selected = sorted.find((pb) => pb.id === openId);
-                  return selected ? <PlaybookDetail playbook={selected} /> : <PlaybookDetailEmpty />;
+                  return selected ? (
+                    <PlaybookDetail
+                      playbook={selected}
+                      feedback={feedback[selected.id] ?? { rating: null, completed_steps: [] }}
+                      onRating={(r) => handleRating(selected, r)}
+                      onToggleStep={(idx) => handleToggleStep(selected, idx)}
+                      isDemo={isDemo}
+                    />
+                  ) : <PlaybookDetailEmpty />;
                 })()}
                 {!openId && <PlaybookDetailEmpty />}
               </div>
