@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
-  AreaChart, Area, Tooltip, ResponsiveContainer,
+  AreaChart, Area, Bar, ComposedChart, Legend, Tooltip, ResponsiveContainer,
   XAxis, YAxis, CartesianGrid,
 } from "recharts";
 import type { Snapshot } from "./DashboardShell";
@@ -91,6 +91,223 @@ function trend(vals: number[]): { pct: number; up: boolean } | null {
   if (!prev) return null;
   const pct = ((curr - prev) / prev) * 100;
   return { pct: Math.abs(pct), up: curr >= prev };
+}
+
+// ── HeroStrip — instant full-picture summary below platform header ────────────
+interface HeroMetric {
+  label: string;
+  value: string;
+  trend: { up: boolean; pct: number } | null;
+  status?: "positive" | "warning" | "critical" | "neutral";
+}
+
+type ChartSeries = {
+  key: string;
+  label: string;
+  values: number[];
+  color: string;
+  chartType: "area" | "bar";
+  yAxis?: "left" | "right";
+  formatter?: (v: number) => string;
+};
+
+function HeroStrip({
+  metrics,
+  summary,
+  accentColor = "#00d4aa",
+}: {
+  metrics: HeroMetric[];
+  summary?: string;
+  accentColor?: string;
+}) {
+  const statusIcon = (s?: HeroMetric["status"]) => {
+    if (s === "positive") return <span title="Good signal" className="text-[#00d4aa] text-[10px]">✓</span>;
+    if (s === "warning")  return <span title="Worth monitoring" className="text-[#f59e0b] text-[10px]">⚠</span>;
+    if (s === "critical") return <span title="Needs attention" className="text-[#f87171] text-[10px]">✗</span>;
+    return null;
+  };
+
+  return (
+    <div
+      className="rounded-xl border border-[rgba(255,255,255,0.06)] bg-[#13131a] overflow-hidden"
+      style={{ borderLeftColor: accentColor, borderLeftWidth: 4 }}
+    >
+      <div className="flex flex-wrap divide-x divide-[rgba(255,255,255,0.05)]">
+        {metrics.map((m, i) => (
+          <div key={i} className="flex-1 min-w-[6.875rem] px-4 py-3">
+            <p className="font-mono text-[9px] uppercase tracking-widest text-[#64748b] mb-1.5 flex items-center gap-1">
+              {m.label} {statusIcon(m.status)}
+            </p>
+            <p
+              className="font-mono text-xl font-bold"
+              style={{
+                color:
+                  m.status === "critical" ? "#f87171" :
+                  m.status === "positive" ? "#00d4aa" :
+                  "#f8f8fc",
+              }}
+            >
+              {m.value}
+            </p>
+            {m.trend && (
+              <span
+                className="inline-flex items-center gap-0.5 font-mono text-[10px] font-bold px-1.5 py-0.5 rounded mt-1.5"
+                style={{
+                  color: m.trend.up ? "#00d4aa" : "#f87171",
+                  backgroundColor: m.trend.up ? "rgba(0,212,170,0.10)" : "rgba(248,113,113,0.10)",
+                }}
+              >
+                {m.trend.up ? "▲" : "▼"} {m.trend.pct.toFixed(1)}%
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+      {summary && (
+        <div className="border-t border-[rgba(255,255,255,0.05)] px-4 py-2.5">
+          <p className="text-[11px] italic text-[#64748b] leading-relaxed">{summary}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PlatformAreaChart({
+  periods,
+  series,
+  height = 280,
+}: {
+  periods: string[];
+  series: ChartSeries[];
+  height?: number;
+}) {
+  const [enabled, setEnabled] = useState<Record<string, boolean>>(
+    () => Object.fromEntries(series.map((s) => [s.key, true]))
+  );
+
+  const chartData = useMemo(
+    () =>
+      periods.map((p, i) => {
+        const row: Record<string, string | number> = { period: p };
+        for (const s of series) row[s.key] = s.values[i] ?? 0;
+        return row;
+      }),
+    [periods, series]
+  );
+
+  const activeSeries  = series.filter((s) => enabled[s.key]);
+  const areaSeries    = activeSeries.filter((s) => s.chartType === "area");
+  const barSeries     = activeSeries.filter((s) => s.chartType === "bar");
+  const hasRightAxis  = activeSeries.some((s) => s.yAxis === "right");
+
+  const fmtTick = (s: ChartSeries) => (v: number) =>
+    s.formatter ? s.formatter(v) : fmt(v);
+
+  return (
+    <div className="rounded-xl border border-[rgba(255,255,255,0.06)] bg-[#13131a] p-4 space-y-3">
+      <div className="flex flex-wrap gap-2">
+        {series.map((s) => (
+          <button
+            key={s.key}
+            onClick={() => setEnabled((prev) => ({ ...prev, [s.key]: !prev[s.key] }))}
+            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-mono text-[11px] font-semibold transition-all border"
+            style={
+              enabled[s.key]
+                ? { backgroundColor: `${s.color}15`, color: s.color, borderColor: `${s.color}30` }
+                : { backgroundColor: "transparent", color: "#64748b", borderColor: "rgba(255,255,255,0.06)" }
+            }
+          >
+            <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: enabled[s.key] ? s.color : "#64748b" }} />
+            {s.label}
+          </button>
+        ))}
+      </div>
+      <ResponsiveContainer width="100%" height={height}>
+        <ComposedChart data={chartData} margin={{ top: 4, right: hasRightAxis ? 16 : 4, left: 0, bottom: 4 }}>
+          <defs>
+            {areaSeries.map((s) => (
+              <linearGradient key={s.key} id={`pchart-${s.key}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%"   stopColor={s.color} stopOpacity={0.15} />
+                <stop offset="100%" stopColor={s.color} stopOpacity={0.01} />
+              </linearGradient>
+            ))}
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+          <XAxis
+            dataKey="period"
+            tick={{ fill: "#64748b", fontSize: 10, fontFamily: "monospace" }}
+            axisLine={false} tickLine={false}
+            interval="preserveStartEnd" tickMargin={8}
+          />
+          <YAxis
+            yAxisId="left"
+            tick={{ fill: "#64748b", fontSize: 10, fontFamily: "monospace" }}
+            axisLine={false} tickLine={false}
+            width={52}
+            tickFormatter={areaSeries[0] ? fmtTick(areaSeries[0]) : undefined}
+          />
+          {hasRightAxis && (
+            <YAxis
+              yAxisId="right"
+              orientation="right"
+              tick={{ fill: "#64748b", fontSize: 10, fontFamily: "monospace" }}
+              axisLine={false} tickLine={false}
+              width={40}
+              tickFormatter={barSeries[0] ? fmtTick(barSeries[0]) : undefined}
+            />
+          )}
+          <Tooltip
+            content={({ active, payload, label }) => {
+              if (!active || !payload?.length) return null;
+              return (
+                <div className="rounded-xl border border-[rgba(255,255,255,0.10)] bg-[#0d0d0f] px-3 py-2.5 shadow-2xl">
+                  <p className="font-mono text-[10px] text-[#64748b] mb-1.5">{label}</p>
+                  {payload.map((p) => {
+                    const ser = series.find((s) => s.key === p.dataKey);
+                    const fmtd = ser?.formatter ? ser.formatter(p.value as number) : (p.value as number).toLocaleString();
+                    return (
+                      <div key={p.dataKey as string} className="flex items-center gap-2 font-mono text-[11px]">
+                        <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: p.color }} />
+                        <span className="text-[#94a3b8]">{p.name}:</span>
+                        <span className="font-bold text-white">{fmtd}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            }}
+          />
+          {areaSeries.map((s) => (
+            <Area
+              key={s.key}
+              yAxisId={s.yAxis ?? "left"}
+              type="monotone"
+              dataKey={s.key}
+              name={s.label}
+              stroke={s.color}
+              strokeWidth={2}
+              fill={`url(#pchart-${s.key})`}
+              dot={false}
+              activeDot={{ r: 4, fill: s.color, strokeWidth: 0 }}
+              isAnimationActive={false}
+            />
+          ))}
+          {barSeries.map((s) => (
+            <Bar
+              key={s.key}
+              yAxisId={s.yAxis ?? "right"}
+              dataKey={s.key}
+              name={s.label}
+              fill={s.color}
+              opacity={0.65}
+              radius={[2, 2, 0, 0]}
+              isAnimationActive={false}
+            />
+          ))}
+        </ComposedChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }
 
 /** Returns YYYY-MM-DD for N days ago */
@@ -197,9 +414,21 @@ function groupSnapshots(
     }
   }
 
-  return Object.entries(grouped)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([period, { sums, avgs, latests }]) => ({
+  const sorted = Object.entries(grouped)
+    .sort(([a], [b]) => a.localeCompare(b));
+
+  // Forward-fill latestFields: once a gauge metric (MRR, active subs, ARPU) becomes
+  // non-zero, carry that value forward into periods that have no snapshot.
+  // This prevents false "drops to 0" on days Stripe didn't sync.
+  const carry: Record<string, number> = Object.fromEntries(latestFields.map((f) => [f, 0]));
+  for (const [, { latests }] of sorted) {
+    for (const f of latestFields) {
+      if (latests[f] > 0) carry[f] = latests[f];
+      else latests[f] = carry[f];
+    }
+  }
+
+  return sorted.map(([period, { sums, avgs, latests }]) => ({
       period,
       data: {
         ...emptyData(),
@@ -316,7 +545,7 @@ function StatCardGroup({
 // ── Stat card ─────────────────────────────────────────────────────────────
 
 function StatCard({
-  label, value, sub, values, color, sparkFormatter, periods,
+  label, value, sub, values, color, sparkFormatter, periods, isGauge,
 }: {
   label: string;
   value: string;
@@ -325,6 +554,7 @@ function StatCard({
   color?: string;
   sparkFormatter?: (v: number) => string;
   periods?: string[];
+  isGauge?: boolean;
 }) {
   const { active, setActive } = useContext(ExpandedCtx);
   const ctxPeriods  = useContext(PeriodsCtx);
@@ -338,7 +568,20 @@ function StatCard({
   const isOtherExpanded = active !== null && !isExpanded;
   const canExpand       = values.length >= 2;
   const accent          = color ?? "#00d4aa";
-  const t               = trend(values);
+
+  // Gauge metrics (MRR, active subs, ARPU): compare first non-zero to last non-zero
+  // Flow metrics (revenue, events): compare first-half sum to second-half sum
+  const t = isGauge
+    ? (() => {
+        const nonZero = values.filter((v) => v > 0);
+        if (nonZero.length < 2) return null;
+        const first = nonZero[0];
+        const last  = nonZero[nonZero.length - 1];
+        if (!first) return null;
+        const pct = ((last - first) / first) * 100;
+        return { pct: Math.abs(pct), up: last >= first };
+      })()
+    : trend(values);
 
   // Escape collapses
   useEffect(() => {
@@ -354,8 +597,10 @@ function StatCard({
       ? sparkFormatter(v)
       : v.toLocaleString("en-US", { maximumFractionDigits: 1 });
 
+  const nonZeroValues = values.filter((v) => v > 0);
+  const current  = nonZeroValues.length ? nonZeroValues[nonZeroValues.length - 1] : 0;
   const total    = values.reduce((a, b) => a + b, 0);
-  const avg      = values.length ? total / values.length : 0;
+  const avg      = nonZeroValues.length ? nonZeroValues.reduce((a, b) => a + b, 0) / nonZeroValues.length : 0;
   const peak     = Math.max(...values, 0);
   const tickStep = Math.max(1, Math.ceil(effectivePeriods.length / 8));
   const chartData = effectivePeriods.map((lbl, i) => ({ lbl, v: values[i] ?? 0 }));
@@ -426,9 +671,11 @@ function StatCard({
           {/* stats strip */}
           <div className="grid grid-cols-3 sm:grid-cols-4 mb-4 rounded-lg border border-[#1e1e2e] divide-x divide-[#1e1e2e] overflow-hidden">
             {[
-              { lbl: "Total",   val: fmtVal(total) },
-              { lbl: "Average", val: fmtVal(avg) },
-              { lbl: "Peak",    val: fmtVal(peak) },
+              { lbl: isGauge ? "Current" : "Total",   val: fmtVal(isGauge ? current : total) },
+              { lbl: isGauge ? "Peak" : "Average",    val: fmtVal(isGauge ? peak : avg) },
+              { lbl: isGauge ? "Active Since" : "Peak", val: isGauge
+                  ? (() => { const i = values.findIndex((v) => v > 0); return i >= 0 ? (effectivePeriods[i] ?? `Period ${i + 1}`) : "—"; })()
+                  : fmtVal(peak) },
               { lbl: "Periods", val: String(effectivePeriods.length) },
             ].map((s) => (
               <div key={s.lbl} className="px-4 py-2.5 hidden sm:block last:block first:block nth-3:block">
@@ -510,12 +757,25 @@ function StatCard({
       primary: { label: "Subscribers", values: subs },
       secondary: [{ label: "Total Views", values: views }],
     });
+    const ytTrend = trend(subs);
+    const ytHeroMetrics: HeroMetric[] = [
+      { label: "Subscribers", value: fmt(lastSubs),                   trend: ytTrend ? { up: ytTrend.up, pct: ytTrend.pct } : null, status: ytTrend ? (ytTrend.up ? "positive" : "warning") : "neutral" },
+      { label: "Total Views",  value: fmt(views.reduce((a,b)=>a+b,0)), trend: null, status: "neutral" },
+    ];
+    const ytHeroSummary = `${ytTrend ? `Subscribers are ${ytTrend.up ? "up" : "down"} ${ytTrend.pct.toFixed(1)}% vs the prior half.` : ""} ${views.reduce((a,b)=>a+b,0) > 0 ? `${fmt(views.reduce((a,b)=>a+b,0))} total views this period.` : ""}`.trim() || "YouTube channel activity for this period.";
+    const ytChartSeries: ChartSeries[] = [
+      { key: "subs",  label: "Subscribers", values: subs,  color: "#FF0000", chartType: "area", yAxis: "left" },
+      { key: "views", label: "Total Views", values: views, color: "#f87171", chartType: "bar",  yAxis: "right" },
+    ];
     return (
+      <PeriodsCtx.Provider value={periods}>
       <div className="space-y-5">
         <div className="flex items-center gap-3 rounded-xl border border-[#FF0000]/15 bg-[#FF0000]/5 px-4 py-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FF0000]/15 font-mono text-[10px] font-bold text-[#FF0000]">YT</div>
           <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">YouTube</h3>
         </div>
+        <HeroStrip metrics={ytHeroMetrics} summary={ytHeroSummary} accentColor="#FF0000" />
+        {periods.length >= 2 && <PlatformAreaChart periods={periods} series={ytChartSeries} />}
         <PeriodCompare values={subs} label="Subscribers" />
         <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <StatCard label="Subscribers" value={fmt(lastSubs)} values={subs} color="#FF0000" />
@@ -524,6 +784,7 @@ function StatCard({
         <DataTable rows={tableRows} />
         <PlatformInsights insights={youtubeInsights} />
       </div>
+      </PeriodsCtx.Provider>
     );
   }
 
@@ -544,12 +805,25 @@ function StatCard({
       primary: { label: "Followers", values: followers },
       secondary: [{ label: "Tweets", values: tweets }],
     });
+    const xTrend = trend(followers);
+    const xHeroMetrics: HeroMetric[] = [
+      { label: "Followers", value: fmt(lastFollowers),                 trend: xTrend ? { up: xTrend.up, pct: xTrend.pct } : null, status: xTrend ? (xTrend.up ? "positive" : "warning") : "neutral" },
+      { label: "Tweets",    value: fmt(tweets.reduce((a,b)=>a+b,0)),   trend: null, status: "neutral" },
+    ];
+    const xHeroSummary = `${xTrend ? `Followers are ${xTrend.up ? "up" : "down"} ${xTrend.pct.toFixed(1)}% vs the prior half.` : ""} ${tweets.reduce((a,b)=>a+b,0) > 0 ? `${tweets.reduce((a,b)=>a+b,0)} tweets posted this period.` : ""}`.trim() || "X (Twitter) organic activity for this period.";
+    const xChartSeries: ChartSeries[] = [
+      { key: "followers", label: "Followers", values: followers, color: "#1d9bf0", chartType: "area", yAxis: "left" },
+      { key: "tweets",    label: "Tweets",    values: tweets,    color: "#60a5fa", chartType: "bar",  yAxis: "right" },
+    ];
     return (
+      <PeriodsCtx.Provider value={periods}>
       <div className="space-y-5">
         <div className="flex items-center gap-3 rounded-xl border border-[#1d9bf0]/15 bg-[#1d9bf0]/5 px-4 py-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1d9bf0]/15 font-mono text-[10px] font-bold text-[#1d9bf0]">XA</div>
           <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">X (Twitter)</h3>
         </div>
+        <HeroStrip metrics={xHeroMetrics} summary={xHeroSummary} accentColor="#1d9bf0" />
+        {periods.length >= 2 && <PlatformAreaChart periods={periods} series={xChartSeries} />}
         <PeriodCompare values={followers} label="Followers" />
         <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <StatCard label="Followers" value={fmt(lastFollowers)} values={followers} color="#1d9bf0" />
@@ -558,6 +832,7 @@ function StatCard({
         <DataTable rows={tableRows} />
         <PlatformInsights insights={twitterInsights} />
       </div>
+      </PeriodsCtx.Provider>
     );
   }
 
@@ -1700,6 +1975,10 @@ function StripeSection({ snapshots, granularity, currency = "USD" }: { snapshots
 
       {/* ── Revenue row ── */}
       <RunRateStrip snapshots={snapshots} field="revenue" currency={currency} label="Revenue" />
+      {periods.length >= 2 && <PlatformAreaChart periods={periods} series={[
+        { key: "revenue",      label: "Revenue",       values: revenue,      color: "#635bff", chartType: "area", yAxis: "left",  formatter: (v) => fmt(v, "currency", currency) },
+        { key: "newCustomers", label: "New Customers", values: newCustomers, color: "#00d4aa", chartType: "bar",  yAxis: "right" },
+      ]} />}
       <PeriodCompare values={revenue} label="Revenue" isCurrency currency={currency} />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Total Revenue"   value={fmt(totalRevenue, "currency", currency)} values={revenue}      color="#635bff" sparkFormatter={(v) => fmt(v, "currency", currency)} periods={periods} />
@@ -1725,6 +2004,7 @@ function StripeSection({ snapshots, granularity, currency = "USD" }: { snapshots
               color="#a78bfa"
               sparkFormatter={(v) => fmt(v, "currency", currency)}
               periods={periods}
+              isGauge
             />
             <StatCard
               label="Active Subs"
@@ -1733,6 +2013,7 @@ function StripeSection({ snapshots, granularity, currency = "USD" }: { snapshots
               values={grouped.map((r) => r.data.activeSubscriptions)}
               color="#00d4aa"
               periods={periods}
+              isGauge
             />
             <StatCard
               label="ARPU"
@@ -1742,6 +2023,7 @@ function StripeSection({ snapshots, granularity, currency = "USD" }: { snapshots
               color="#635bff"
               sparkFormatter={(v) => fmt(v, "currency", currency)}
               periods={periods}
+              isGauge
             />
             <StatCard
               label="Churn"
@@ -2037,6 +2319,20 @@ function GA4Section({ snapshots, granularity }: { snapshots: Snapshot[]; granula
     ],
   });
 
+  const ga4Trend = trend(sessions);
+  const ga4HeroMetrics: HeroMetric[] = [
+    { label: "Sessions",     value: fmt(totalSessions),    trend: ga4Trend ? { up: ga4Trend.up, pct: ga4Trend.pct } : null, status: ga4Trend ? (ga4Trend.up ? "positive" : "warning") : "neutral" },
+    { label: "Users",        value: fmt(totalUsers),       trend: null, status: "neutral" },
+    { label: "Conversions",  value: fmt(totalConversions), trend: null, status: totalConversions > 0 ? "positive" : "neutral" },
+    { label: "Bounce Rate",  value: fmt(avgBounce, "percent"), trend: null, status: avgBounce < 40 && avgBounce > 0 ? "positive" : avgBounce > 70 ? "warning" : "neutral" },
+  ];
+  const ga4HeroSummary = `${ga4Trend ? `Sessions are ${ga4Trend.up ? "up" : "down"} ${ga4Trend.pct.toFixed(1)}% vs the prior half.` : "Not enough data for a trend."} ${convRate > 0 ? `${convRate.toFixed(1)}% conversion rate across ${totalSessions} sessions.` : ""}`.trim();
+  const ga4ChartSeries: ChartSeries[] = [
+    { key: "sessions",    label: "Sessions",    values: sessions,    color: "#f59e0b", chartType: "area", yAxis: "left" },
+    { key: "users",       label: "Users",       values: users,       color: "#fbbf24", chartType: "area", yAxis: "left" },
+    { key: "conversions", label: "Conversions", values: conversions, color: "#00d4aa", chartType: "bar",  yAxis: "right" },
+  ];
+
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
@@ -2046,6 +2342,8 @@ function GA4Section({ snapshots, granularity }: { snapshots: Snapshot[]; granula
         </div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Google Analytics 4</h3>
       </div>
+      <HeroStrip metrics={ga4HeroMetrics} summary={ga4HeroSummary} accentColor="#f59e0b" />
+      {periods.length >= 2 && <PlatformAreaChart periods={periods} series={ga4ChartSeries} />}
       <PeriodCompare values={sessions} label="Sessions" />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Sessions"        value={fmt(totalSessions)}    values={sessions}    color="#f59e0b" periods={periods} />
@@ -2119,6 +2417,19 @@ function MetaSection({ snapshots, granularity }: { snapshots: Snapshot[]; granul
     }] : [],
   });
 
+  const metaTrend = trend(spend);
+  const heroMetrics: HeroMetric[] = [
+    { label: "Ad Spend",    value: fmtSpend(totalSpend),  trend: metaTrend ? { up: metaTrend.up, pct: metaTrend.pct } : null, status: "neutral" },
+    { label: "Clicks",      value: fmt(totalClicks),       trend: null, status: totalClicks > 0 ? "positive" : "neutral" },
+    { label: "CTR",         value: `${ctr.toFixed(2)}%`,   trend: null, status: ctr >= 2 ? "positive" : ctr >= 0.5 ? "warning" : "neutral" },
+    { label: "Conversions", value: fmt(totalConversions),  trend: null, status: totalConversions > 0 ? "positive" : "warning" },
+  ];
+  const heroSummary = `${totalClicks.toLocaleString()} clicks from ${totalImpressions.toLocaleString()} impressions (${ctr.toFixed(2)}% CTR). ${totalConversions > 0 ? `${totalConversions} conversions recorded.` : "No conversions yet — review targeting."}`;
+  const chartSeries: ChartSeries[] = [
+    { key: "spend",       label: "Ad Spend",    values: spend,       color: "#1877f2", chartType: "area", yAxis: "left",  formatter: (v) => fmtSpend(v) },
+    { key: "clicks",      label: "Clicks",      values: clicks,      color: "#00d4aa", chartType: "area", yAxis: "left" },
+    { key: "conversions", label: "Conversions", values: conversions, color: "#f59e0b", chartType: "bar",  yAxis: "right" },
+  ];
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
@@ -2133,6 +2444,8 @@ function MetaSection({ snapshots, granularity }: { snapshots: Snapshot[]; granul
           </span>
         )}
       </div>
+      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#1877f2" />
+      {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
       <RunRateStrip snapshots={snapshots} field="spend" currency={currency} label="Ad Spend" />
       <PeriodCompare values={spend} label="Ad Spend" isCurrency currency={currency} />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -2180,6 +2493,19 @@ function PayPalSection({ snapshots, granularity, currency = "USD" }: { snapshots
     rateMetrics: totalRevenue > 0 ? [{ label: "Fee rate", numerator: totalFees, denominator: totalRevenue, suffix: "%", goodThreshold: 4, badThreshold: 6, lowerIsBetter: true }] : [],
   });
 
+  const paypalTrend = trend(revenues);
+  const heroMetrics: HeroMetric[] = [
+    { label: "Revenue",      value: fmt(totalRevenue,  "currency", currency), trend: paypalTrend ? { up: paypalTrend.up, pct: paypalTrend.pct } : null, status: paypalTrend ? (paypalTrend.up ? "positive" : "warning") : "neutral" },
+    { label: "Net Revenue",  value: fmt(totalNet,      "currency", currency), trend: null, status: "neutral" },
+    { label: "Transactions", value: fmt(totalTx),                             trend: null, status: totalTx > 0 ? "positive" : "neutral" },
+    { label: "Avg Order",    value: fmt(avgOrderValue, "currency", currency), trend: null, status: "neutral" },
+  ];
+  const heroSummary = `${paypalTrend ? `Revenue is ${paypalTrend.up ? "up" : "down"} ${paypalTrend.pct.toFixed(1)}% vs the prior half of this period.` : "Not enough data for a trend."} ${totalTx > 0 ? `${totalTx} transactions averaging ${fmt(avgOrderValue, "currency", currency)}.` : ""}`.trim();
+  const chartSeries: ChartSeries[] = [
+    { key: "revenue", label: "Revenue",      values: revenues,    color: "#009cde", chartType: "area", yAxis: "left",  formatter: (v) => fmt(v, "currency", currency) },
+    { key: "net",     label: "Net Revenue",  values: netRevenues, color: "#00d4aa", chartType: "area", yAxis: "left",  formatter: (v) => fmt(v, "currency", currency) },
+    { key: "txCount", label: "Transactions", values: txCounts,    color: "#a78bfa", chartType: "bar",  yAxis: "right" },
+  ];
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
@@ -2192,6 +2518,8 @@ function PayPalSection({ snapshots, granularity, currency = "USD" }: { snapshots
         </div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">PayPal</h3>
       </div>
+      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#009cde" />
+      {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
       <RunRateStrip snapshots={snapshots} field="revenue" currency={currency} label="Revenue" />
       <PeriodCompare values={revenues} label="Revenue" isCurrency currency={currency} />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -2239,6 +2567,19 @@ function PaddleSection({ snapshots, granularity, currency = "USD" }: { snapshots
     rateMetrics: totalRevenue > 0 ? [{ label: "Fee rate", numerator: totalFees, denominator: totalRevenue, suffix: "%", goodThreshold: 5, badThreshold: 8, lowerIsBetter: true }] : [],
   });
 
+  const paddleTrend = trend(revenues);
+  const heroMetrics: HeroMetric[] = [
+    { label: "Revenue",      value: fmt(totalRevenue,  "currency", currency), trend: paddleTrend ? { up: paddleTrend.up, pct: paddleTrend.pct } : null, status: paddleTrend ? (paddleTrend.up ? "positive" : "warning") : "neutral" },
+    { label: "Net Revenue",  value: fmt(totalNet,      "currency", currency), trend: null, status: "neutral" },
+    { label: "Transactions", value: fmt(totalTx),                             trend: null, status: totalTx > 0 ? "positive" : "neutral" },
+    { label: "Avg Order",    value: fmt(avgOrderValue, "currency", currency), trend: null, status: "neutral" },
+  ];
+  const heroSummary = `${paddleTrend ? `Revenue is ${paddleTrend.up ? "up" : "down"} ${paddleTrend.pct.toFixed(1)}% vs the prior half.` : "Not enough data for a trend."} ${totalTx > 0 ? `${totalTx} transactions averaging ${fmt(avgOrderValue, "currency", currency)}.` : ""}`.trim();
+  const chartSeries: ChartSeries[] = [
+    { key: "revenue", label: "Revenue",      values: revenues,    color: "#3ddc97", chartType: "area", yAxis: "left",  formatter: (v) => fmt(v, "currency", currency) },
+    { key: "net",     label: "Net Revenue",  values: netRevenues, color: "#00d4aa", chartType: "area", yAxis: "left",  formatter: (v) => fmt(v, "currency", currency) },
+    { key: "tx",      label: "Transactions", values: txCounts,    color: "#a78bfa", chartType: "bar",  yAxis: "right" },
+  ];
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
@@ -2250,6 +2591,8 @@ function PaddleSection({ snapshots, granularity, currency = "USD" }: { snapshots
         </div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Paddle</h3>
       </div>
+      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#3ddc97" />
+      {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
       <RunRateStrip snapshots={snapshots} field="revenue" currency={currency} label="Revenue" />
       <PeriodCompare values={revenues} label="Revenue" isCurrency currency={currency} />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -2297,6 +2640,19 @@ function LemonSqueezySection({ snapshots, granularity, currency = "USD" }: { sna
     rateMetrics: totalRevenue > 0 ? [{ label: "Fee rate", numerator: totalFees, denominator: totalRevenue, suffix: "%", goodThreshold: 5, badThreshold: 10, lowerIsBetter: true }] : [],
   });
 
+  const lemonTrend = trend(revenues);
+  const heroMetrics: HeroMetric[] = [
+    { label: "Revenue",      value: fmt(totalRevenue,  "currency", currency), trend: lemonTrend ? { up: lemonTrend.up, pct: lemonTrend.pct } : null, status: lemonTrend ? (lemonTrend.up ? "positive" : "warning") : "neutral" },
+    { label: "Net Revenue",  value: fmt(totalNet,      "currency", currency), trend: null, status: "neutral" },
+    { label: "Transactions", value: fmt(totalTx),                             trend: null, status: totalTx > 0 ? "positive" : "neutral" },
+    { label: "Avg Order",    value: fmt(avgOrderValue, "currency", currency), trend: null, status: "neutral" },
+  ];
+  const heroSummary = `${lemonTrend ? `Revenue is ${lemonTrend.up ? "up" : "down"} ${lemonTrend.pct.toFixed(1)}% vs the prior half.` : "Not enough data for a trend."} ${totalTx > 0 ? `${totalTx} sales averaging ${fmt(avgOrderValue, "currency", currency)}.` : ""}`.trim();
+  const chartSeries: ChartSeries[] = [
+    { key: "revenue", label: "Revenue",      values: revenues,    color: "#FFC233", chartType: "area", yAxis: "left",  formatter: (v) => fmt(v, "currency", currency) },
+    { key: "net",     label: "Net Revenue",  values: netRevenues, color: "#f59e0b", chartType: "area", yAxis: "left",  formatter: (v) => fmt(v, "currency", currency) },
+    { key: "tx",      label: "Transactions", values: txCounts,    color: "#00d4aa", chartType: "bar",  yAxis: "right" },
+  ];
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
@@ -2308,6 +2664,8 @@ function LemonSqueezySection({ snapshots, granularity, currency = "USD" }: { sna
         </div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Lemon Squeezy</h3>
       </div>
+      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#FFC233" />
+      {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
       <RunRateStrip snapshots={snapshots} field="revenue" currency={currency} label="Revenue" />
       <PeriodCompare values={revenues} label="Revenue" isCurrency currency={currency} />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -2349,6 +2707,19 @@ function GumroadSection({ snapshots, granularity, currency = "USD" }: { snapshot
     secondary: [{ label: "Transactions", values: txCounts }],
     rateMetrics: totalRevenue > 0 ? [{ label: "Fee rate", numerator: totalFees, denominator: totalRevenue, suffix: "%", goodThreshold: 8, badThreshold: 12, lowerIsBetter: true }] : [],
   });
+  const gumroadTrend = trend(revenues);
+  const heroMetrics: HeroMetric[] = [
+    { label: "Revenue",      value: fmt(totalRevenue,  "currency", currency), trend: gumroadTrend ? { up: gumroadTrend.up, pct: gumroadTrend.pct } : null, status: gumroadTrend ? (gumroadTrend.up ? "positive" : "warning") : "neutral" },
+    { label: "Net Revenue",  value: fmt(totalNet,      "currency", currency), trend: null, status: "neutral" },
+    { label: "Transactions", value: fmt(totalTx),                             trend: null, status: totalTx > 0 ? "positive" : "neutral" },
+    { label: "Avg Order",    value: fmt(avgOrderValue, "currency", currency), trend: null, status: "neutral" },
+  ];
+  const heroSummary = `${gumroadTrend ? `Revenue is ${gumroadTrend.up ? "up" : "down"} ${gumroadTrend.pct.toFixed(1)}% vs the prior half.` : "Not enough data for a trend."} ${totalTx > 0 ? `${totalTx} sales averaging ${fmt(avgOrderValue, "currency", currency)}.` : ""}`.trim();
+  const chartSeries: ChartSeries[] = [
+    { key: "revenue", label: "Revenue",      values: revenues,    color: "#ff90e8", chartType: "area", yAxis: "left",  formatter: (v) => fmt(v, "currency", currency) },
+    { key: "net",     label: "Net Revenue",  values: netRevenues, color: "#f59e0b", chartType: "area", yAxis: "left",  formatter: (v) => fmt(v, "currency", currency) },
+    { key: "tx",      label: "Transactions", values: txCounts,    color: "#00d4aa", chartType: "bar",  yAxis: "right" },
+  ];
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
@@ -2356,6 +2727,8 @@ function GumroadSection({ snapshots, granularity, currency = "USD" }: { snapshot
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#ff90e8]/15 font-mono text-sm font-bold text-[#ff90e8]">G</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Gumroad</h3>
       </div>
+      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#ff90e8" />
+      {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
       <RunRateStrip snapshots={snapshots} field="revenue" currency={currency} label="Revenue" />
       <PeriodCompare values={revenues} label="Revenue" isCurrency currency={currency} />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -2398,6 +2771,19 @@ function PlausibleSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
       { label: "Bounce rate", numerator: avgBounce * bounceRates.length, denominator: bounceRates.length || 1, suffix: "%", goodThreshold: 40, badThreshold: 70, lowerIsBetter: true },
     ],
   });
+  const plausibleTrend = trend(visitors);
+  const heroMetrics: HeroMetric[] = [
+    { label: "Visitors",     value: fmt(totalVisitors),           trend: plausibleTrend ? { up: plausibleTrend.up, pct: plausibleTrend.pct } : null, status: plausibleTrend ? (plausibleTrend.up ? "positive" : "warning") : "neutral" },
+    { label: "Pageviews",    value: fmt(totalPageviews),          trend: null, status: "neutral" },
+    { label: "Bounce Rate",  value: `${avgBounce.toFixed(1)}%`,  trend: null, status: avgBounce < 40 && avgBounce > 0 ? "positive" : avgBounce > 70 ? "warning" : "neutral" },
+    { label: "Avg Duration", value: `${Math.round(avgDuration)}s`, trend: null, status: avgDuration > 120 ? "positive" : avgDuration > 30 ? "neutral" : "warning" },
+  ];
+  const heroSummary = `${plausibleTrend ? `Visitors are ${plausibleTrend.up ? "up" : "down"} ${plausibleTrend.pct.toFixed(1)}% vs the prior half.` : "Not enough data for a trend."} ${avgBounce > 0 ? `Avg bounce rate: ${avgBounce.toFixed(1)}%.` : ""}`.trim();
+  const chartSeries: ChartSeries[] = [
+    { key: "visitors",  label: "Visitors",  values: visitors,    color: "#5850ec", chartType: "area", yAxis: "left" },
+    { key: "pageviews", label: "Pageviews", values: pageviews,   color: "#818cf8", chartType: "area", yAxis: "left" },
+    { key: "bounce",    label: "Bounce %",  values: bounceRates, color: "#f87171", chartType: "area", yAxis: "right" },
+  ];
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
@@ -2405,6 +2791,8 @@ function PlausibleSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#5850ec]/15 font-mono text-sm font-bold text-[#5850ec]">P</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Plausible</h3>
       </div>
+      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#5850ec" />
+      {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
       <PeriodCompare values={visitors} label="Visitors" />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Visitors"    value={fmt(totalVisitors)}                            values={visitors}    color="#5850ec" />
@@ -2437,6 +2825,16 @@ function MixpanelSection({ snapshots, granularity }: { snapshots: Snapshot[]; gr
     primary: { label: "Events", values: events },
     secondary: [{ label: "Unique Users", values: users }],
   });
+  const mixTrend = trend(events);
+  const heroMetrics: HeroMetric[] = [
+    { label: "Events",       value: fmt(totalEvents), trend: mixTrend ? { up: mixTrend.up, pct: mixTrend.pct } : null, status: mixTrend ? (mixTrend.up ? "positive" : "warning") : "neutral" },
+    { label: "Unique Users", value: fmt(totalUsers),  trend: null, status: "neutral" },
+  ];
+  const heroSummary = `${mixTrend ? `Events are ${mixTrend.up ? "up" : "down"} ${mixTrend.pct.toFixed(1)}% vs the prior half.` : "Not enough data for a trend."} ${totalUsers > 0 ? `${totalUsers} unique users tracked.` : ""}`.trim();
+  const chartSeries: ChartSeries[] = [
+    { key: "events", label: "Events",       values: events, color: "#7856ff", chartType: "area", yAxis: "left" },
+    { key: "users",  label: "Unique Users", values: users,  color: "#a78bfa", chartType: "bar",  yAxis: "right" },
+  ];
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
@@ -2444,6 +2842,8 @@ function MixpanelSection({ snapshots, granularity }: { snapshots: Snapshot[]; gr
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#7856ff]/15 font-mono text-[10px] font-bold text-[#7856ff]">MX</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Mixpanel</h3>
       </div>
+      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#7856ff" />
+      {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
       <PeriodCompare values={events} label="Events" />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-2">
         <StatCard label="Total Events"  value={fmt(totalEvents)} values={events} color="#7856ff" />
@@ -2477,6 +2877,18 @@ function AmplitudeSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
     primary: { label: "Active Users", values: activeUsers },
     secondary: [{ label: "New Users", values: newUsers }, { label: "Events", values: events }],
   });
+  const ampTrend = trend(activeUsers);
+  const heroMetrics: HeroMetric[] = [
+    { label: "Active Users", value: fmt(totalActive), trend: ampTrend ? { up: ampTrend.up, pct: ampTrend.pct } : null, status: ampTrend ? (ampTrend.up ? "positive" : "warning") : "neutral" },
+    { label: "New Users",    value: fmt(totalNew),    trend: null, status: "neutral" },
+    { label: "Total Events", value: fmt(totalEvents), trend: null, status: "neutral" },
+  ];
+  const heroSummary = `${ampTrend ? `Active users are ${ampTrend.up ? "up" : "down"} ${ampTrend.pct.toFixed(1)}% vs the prior half.` : "Not enough data for a trend."} ${totalNew > 0 ? `${totalNew} new users acquired.` : ""}`.trim();
+  const chartSeries: ChartSeries[] = [
+    { key: "activeUsers", label: "Active Users", values: activeUsers, color: "#1e73be", chartType: "area", yAxis: "left" },
+    { key: "newUsers",    label: "New Users",    values: newUsers,    color: "#00d4aa", chartType: "area", yAxis: "left" },
+    { key: "events",      label: "Events",       values: events,      color: "#3b82f6", chartType: "bar",  yAxis: "right" },
+  ];
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
@@ -2484,6 +2896,8 @@ function AmplitudeSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1e73be]/15 font-mono text-sm font-bold text-[#1e73be]">A</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Amplitude</h3>
       </div>
+      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#1e73be" />
+      {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
       <PeriodCompare values={activeUsers} label="Active Users" />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <StatCard label="Active Users" value={fmt(totalActive)} values={activeUsers} color="#1e73be" />
@@ -2518,6 +2932,18 @@ function PostHogSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
     primary: { label: "Pageviews", values: pageviews },
     secondary: [{ label: "Unique Users", values: users }, { label: "Sessions", values: sessions }],
   });
+  const phTrend = trend(pageviews);
+  const heroMetrics: HeroMetric[] = [
+    { label: "Pageviews",    value: fmt(totalPV),    trend: phTrend ? { up: phTrend.up, pct: phTrend.pct } : null, status: phTrend ? (phTrend.up ? "positive" : "warning") : "neutral" },
+    { label: "Unique Users", value: fmt(totalUsers), trend: null, status: "neutral" },
+    { label: "Sessions",     value: fmt(totalSess),  trend: null, status: "neutral" },
+  ];
+  const heroSummary = `${phTrend ? `Pageviews are ${phTrend.up ? "up" : "down"} ${phTrend.pct.toFixed(1)}% vs the prior half.` : "Not enough data for a trend."} ${totalSess > 0 ? `${totalSess} sessions across ${totalUsers} unique users.` : ""}`.trim();
+  const chartSeries: ChartSeries[] = [
+    { key: "pageviews", label: "Pageviews",    values: pageviews, color: "#f76300", chartType: "area", yAxis: "left" },
+    { key: "users",     label: "Unique Users", values: users,     color: "#fb923c", chartType: "area", yAxis: "left" },
+    { key: "sessions",  label: "Sessions",     values: sessions,  color: "#f59e0b", chartType: "bar",  yAxis: "right" },
+  ];
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
@@ -2525,6 +2951,8 @@ function PostHogSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f76300]/15 font-mono text-[10px] font-bold text-[#f76300]">PH</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">PostHog</h3>
       </div>
+      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#f76300" />
+      {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
       <PeriodCompare values={pageviews} label="Pageviews" />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <StatCard label="Pageviews"    value={fmt(totalPV)}    values={pageviews} color="#f76300" />
@@ -2563,6 +2991,19 @@ function FathomSection({ snapshots, granularity }: { snapshots: Snapshot[]; gran
     secondary: [{ label: "Uniques", values: uniques }],
     rateMetrics: [{ label: "Bounce rate", numerator: avgBounce * bounceRates.length, denominator: bounceRates.length || 1, suffix: "%", goodThreshold: 40, badThreshold: 70, lowerIsBetter: true }],
   });
+  const fathomTrend = trend(pageviews);
+  const heroMetrics: HeroMetric[] = [
+    { label: "Pageviews",    value: fmt(totalPV),               trend: fathomTrend ? { up: fathomTrend.up, pct: fathomTrend.pct } : null, status: fathomTrend ? (fathomTrend.up ? "positive" : "warning") : "neutral" },
+    { label: "Uniques",      value: fmt(totalUniq),             trend: null, status: "neutral" },
+    { label: "Bounce Rate",  value: `${avgBounce.toFixed(1)}%`, trend: null, status: avgBounce < 40 && avgBounce > 0 ? "positive" : avgBounce > 70 ? "warning" : "neutral" },
+    { label: "Avg Duration", value: `${Math.round(avgDur)}s`,   trend: null, status: avgDur > 120 ? "positive" : avgDur > 30 ? "neutral" : "warning" },
+  ];
+  const heroSummary = `${fathomTrend ? `Pageviews are ${fathomTrend.up ? "up" : "down"} ${fathomTrend.pct.toFixed(1)}% vs the prior half.` : "Not enough data for a trend."} ${avgBounce > 0 ? `Avg bounce rate ${avgBounce.toFixed(1)}%, avg session ${Math.round(avgDur)}s.` : ""}`.trim();
+  const chartSeries: ChartSeries[] = [
+    { key: "pageviews",  label: "Pageviews", values: pageviews,   color: "#9333ea", chartType: "area", yAxis: "left" },
+    { key: "uniques",    label: "Uniques",   values: uniques,     color: "#c084fc", chartType: "area", yAxis: "left" },
+    { key: "bounceRate", label: "Bounce %",  values: bounceRates, color: "#f87171", chartType: "area", yAxis: "right" },
+  ];
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
@@ -2570,6 +3011,8 @@ function FathomSection({ snapshots, granularity }: { snapshots: Snapshot[]; gran
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#9333ea]/15 font-mono text-[10px] font-bold text-[#9333ea]">FA</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Fathom</h3>
       </div>
+      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#9333ea" />
+      {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
       <PeriodCompare values={pageviews} label="Pageviews" />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Pageviews"    value={fmt(totalPV)}            values={pageviews}   color="#9333ea" />
@@ -2612,6 +3055,19 @@ function GoogleAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
       { label: "Conv rate", numerator: totalConv, denominator: totalClicks, suffix: "%", goodThreshold: 3, badThreshold: 1, lowerIsBetter: false },
     ] : [],
   });
+  const gAdsTrend = trend(spends);
+  const heroMetrics: HeroMetric[] = [
+    { label: "Ad Spend",    value: `$${totalSpend.toFixed(2)}`, trend: gAdsTrend ? { up: gAdsTrend.up, pct: gAdsTrend.pct } : null, status: "neutral" },
+    { label: "Clicks",      value: fmt(totalClicks),             trend: null, status: totalClicks > 0 ? "positive" : "neutral" },
+    { label: "Impressions", value: fmt(totalImpr),               trend: null, status: "neutral" },
+    { label: "Conversions", value: fmt(totalConv),               trend: null, status: totalConv > 0 ? "positive" : "warning" },
+  ];
+  const heroSummary = `${totalClicks} clicks from ${totalImpr.toLocaleString()} impressions. ${totalConv > 0 ? `${totalConv} conversions.` : "No conversions recorded yet."}`.trim();
+  const chartSeries: ChartSeries[] = [
+    { key: "spend",       label: "Spend",       values: spends,      color: "#4285F4", chartType: "area", yAxis: "left",  formatter: (v) => `$${v.toFixed(2)}` },
+    { key: "clicks",      label: "Clicks",      values: clicks,      color: "#34A853", chartType: "area", yAxis: "left" },
+    { key: "conversions", label: "Conversions", values: conversions, color: "#EA4335", chartType: "bar",  yAxis: "right" },
+  ];
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
@@ -2619,6 +3075,8 @@ function GoogleAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#4285F4]/15 font-mono text-[10px] font-bold text-[#4285F4]">GA</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Google Ads</h3>
       </div>
+      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#4285F4" />
+      {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
       <RunRateStrip snapshots={snapshots} field="spend" currency="USD" label="Ad Spend" />
       <PeriodCompare values={spends} label="Ad Spend" isCurrency />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -2659,6 +3117,19 @@ function TikTokAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
     secondary: [{ label: "Conversions", values: conversions }],
     rateMetrics: totalClicks > 0 ? [{ label: "CTR", numerator: totalClicks, denominator: totalImpr || 1, suffix: "%", goodThreshold: 1.5, badThreshold: 0.5, lowerIsBetter: false }] : [],
   });
+  const tiktokTrend = trend(spends);
+  const heroMetrics: HeroMetric[] = [
+    { label: "Ad Spend",    value: `$${totalSpend.toFixed(2)}`, trend: tiktokTrend ? { up: tiktokTrend.up, pct: tiktokTrend.pct } : null, status: "neutral" },
+    { label: "Impressions", value: fmt(totalImpr),              trend: null, status: "neutral" },
+    { label: "Clicks",      value: fmt(totalClicks),            trend: null, status: totalClicks > 0 ? "positive" : "neutral" },
+    { label: "Conversions", value: fmt(totalConv),              trend: null, status: totalConv > 0 ? "positive" : "warning" },
+  ];
+  const heroSummary = `${tiktokTrend ? `Spend is ${tiktokTrend.up ? "up" : "down"} ${tiktokTrend.pct.toFixed(1)}% vs the prior half.` : ""} ${totalConv > 0 ? `${totalConv} conversions from ${totalClicks} clicks.` : "No conversions yet."}`.trim();
+  const chartSeries: ChartSeries[] = [
+    { key: "spend",       label: "Spend",       values: spends,      color: "#69C9D0", chartType: "area", yAxis: "left",  formatter: (v) => `$${v.toFixed(2)}` },
+    { key: "clicks",      label: "Clicks",      values: clicks,      color: "#ee1d52", chartType: "area", yAxis: "left" },
+    { key: "conversions", label: "Conversions", values: conversions, color: "#f59e0b", chartType: "bar",  yAxis: "right" },
+  ];
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
@@ -2666,6 +3137,8 @@ function TikTokAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#69C9D0]/15 font-mono text-[10px] font-bold text-[#69C9D0]">TT</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">TikTok Ads</h3>
       </div>
+      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#69C9D0" />
+      {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
       <RunRateStrip snapshots={snapshots} field="spend" currency="USD" label="Ad Spend" />
       <PeriodCompare values={spends} label="Ad Spend" isCurrency />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -2706,6 +3179,19 @@ function TwitterAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; 
     secondary: [{ label: "Conversions", values: conversions }],
     rateMetrics: totalClicks > 0 ? [{ label: "CTR", numerator: totalClicks, denominator: totalImpr || 1, suffix: "%", goodThreshold: 1, badThreshold: 0.3, lowerIsBetter: false }] : [],
   });
+  const xAdsTrend = trend(spends);
+  const heroMetrics: HeroMetric[] = [
+    { label: "Ad Spend",    value: `$${totalSpend.toFixed(2)}`, trend: xAdsTrend ? { up: xAdsTrend.up, pct: xAdsTrend.pct } : null, status: "neutral" },
+    { label: "Impressions", value: fmt(totalImpr),              trend: null, status: "neutral" },
+    { label: "Clicks",      value: fmt(totalClicks),            trend: null, status: totalClicks > 0 ? "positive" : "neutral" },
+    { label: "Conversions", value: fmt(totalConv),              trend: null, status: totalConv > 0 ? "positive" : "warning" },
+  ];
+  const heroSummary = `${xAdsTrend ? `Spend is ${xAdsTrend.up ? "up" : "down"} ${xAdsTrend.pct.toFixed(1)}% vs prior half.` : ""} ${totalConv > 0 ? `${totalConv} conversions from ${totalClicks} clicks.` : "No conversions yet."}`.trim();
+  const chartSeries: ChartSeries[] = [
+    { key: "spend",       label: "Spend",       values: spends,      color: "#1d9bf0", chartType: "area", yAxis: "left",  formatter: (v) => `$${v.toFixed(2)}` },
+    { key: "clicks",      label: "Clicks",      values: clicks,      color: "#60a5fa", chartType: "area", yAxis: "left" },
+    { key: "conversions", label: "Conversions", values: conversions, color: "#f59e0b", chartType: "bar",  yAxis: "right" },
+  ];
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
@@ -2713,6 +3199,8 @@ function TwitterAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; 
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1d9bf0]/15 font-mono text-[10px] font-bold text-[#1d9bf0]">XA</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">X (Twitter) Ads</h3>
       </div>
+      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#1d9bf0" />
+      {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
       <RunRateStrip snapshots={snapshots} field="spend" currency="USD" label="Ad Spend" />
       <PeriodCompare values={spends} label="Ad Spend" isCurrency />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -2753,6 +3241,19 @@ function LinkedInAdsSection({ snapshots, granularity }: { snapshots: Snapshot[];
     secondary: [{ label: "Conversions", values: conversions }],
     rateMetrics: totalClicks > 0 ? [{ label: "CTR", numerator: totalClicks, denominator: totalImpr || 1, suffix: "%", goodThreshold: 0.6, badThreshold: 0.2, lowerIsBetter: false }] : [],
   });
+  const liTrend = trend(spends);
+  const heroMetrics: HeroMetric[] = [
+    { label: "Ad Spend",    value: `$${totalSpend.toFixed(2)}`, trend: liTrend ? { up: liTrend.up, pct: liTrend.pct } : null, status: "neutral" },
+    { label: "Impressions", value: fmt(totalImpr),              trend: null, status: "neutral" },
+    { label: "Clicks",      value: fmt(totalClicks),            trend: null, status: totalClicks > 0 ? "positive" : "neutral" },
+    { label: "Conversions", value: fmt(totalConv),              trend: null, status: totalConv > 0 ? "positive" : "warning" },
+  ];
+  const heroSummary = `${liTrend ? `Spend is ${liTrend.up ? "up" : "down"} ${liTrend.pct.toFixed(1)}% vs prior half.` : ""} ${totalConv > 0 ? `${totalConv} conversions from ${totalClicks} clicks.` : "No conversions yet."}`.trim();
+  const chartSeries: ChartSeries[] = [
+    { key: "spend",       label: "Spend",       values: spends,      color: "#0a66c2", chartType: "area", yAxis: "left",  formatter: (v) => `$${v.toFixed(2)}` },
+    { key: "clicks",      label: "Clicks",      values: clicks,      color: "#3b82f6", chartType: "area", yAxis: "left" },
+    { key: "conversions", label: "Conversions", values: conversions, color: "#f59e0b", chartType: "bar",  yAxis: "right" },
+  ];
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
@@ -2760,6 +3261,8 @@ function LinkedInAdsSection({ snapshots, granularity }: { snapshots: Snapshot[];
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0a66c2]/15 font-mono text-[10px] font-bold text-[#0a66c2]">LI</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">LinkedIn Ads</h3>
       </div>
+      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#0a66c2" />
+      {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
       <RunRateStrip snapshots={snapshots} field="spend" currency="USD" label="Ad Spend" />
       <PeriodCompare values={spends} label="Ad Spend" isCurrency />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -2799,6 +3302,19 @@ function SnapchatAdsSection({ snapshots, granularity }: { snapshots: Snapshot[];
     primary: { label: "Spend", values: spends, isCurrency: true },
     secondary: [{ label: "Conversions", values: conversions }],
   });
+  const scTrend = trend(spends);
+  const heroMetrics: HeroMetric[] = [
+    { label: "Ad Spend",    value: `$${totalSpend.toFixed(2)}`, trend: scTrend ? { up: scTrend.up, pct: scTrend.pct } : null, status: "neutral" },
+    { label: "Impressions", value: fmt(totalImpr),              trend: null, status: "neutral" },
+    { label: "Swipes",      value: fmt(totalSwipes),            trend: null, status: totalSwipes > 0 ? "positive" : "neutral" },
+    { label: "Conversions", value: fmt(totalConv),              trend: null, status: totalConv > 0 ? "positive" : "warning" },
+  ];
+  const heroSummary = `${scTrend ? `Spend is ${scTrend.up ? "up" : "down"} ${scTrend.pct.toFixed(1)}% vs prior half.` : ""} ${totalConv > 0 ? `${totalConv} conversions from ${totalSwipes} swipes.` : "No conversions yet."}`.trim();
+  const chartSeries: ChartSeries[] = [
+    { key: "spend",       label: "Spend",       values: spends,      color: "#f5c518", chartType: "area", yAxis: "left",  formatter: (v) => `$${v.toFixed(2)}` },
+    { key: "swipes",      label: "Swipes",      values: swipes,      color: "#00d4aa", chartType: "area", yAxis: "left" },
+    { key: "conversions", label: "Conversions", values: conversions, color: "#f87171", chartType: "bar",  yAxis: "right" },
+  ];
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
@@ -2806,6 +3322,8 @@ function SnapchatAdsSection({ snapshots, granularity }: { snapshots: Snapshot[];
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f5c518]/15 font-mono text-[10px] font-bold text-[#f5c518]">SC</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Snapchat Ads</h3>
       </div>
+      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#f5c518" />
+      {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
       <RunRateStrip snapshots={snapshots} field="spend" currency="USD" label="Ad Spend" />
       <PeriodCompare values={spends} label="Ad Spend" isCurrency />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -2846,6 +3364,19 @@ function PinterestAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]
     secondary: [{ label: "Conversions", values: conversions }],
     rateMetrics: totalClicks > 0 ? [{ label: "CTR", numerator: totalClicks, denominator: totalImpr || 1, suffix: "%", goodThreshold: 0.5, badThreshold: 0.2, lowerIsBetter: false }] : [],
   });
+  const ptTrend = trend(spends);
+  const heroMetrics: HeroMetric[] = [
+    { label: "Ad Spend",    value: `$${totalSpend.toFixed(2)}`, trend: ptTrend ? { up: ptTrend.up, pct: ptTrend.pct } : null, status: "neutral" },
+    { label: "Impressions", value: fmt(totalImpr),              trend: null, status: "neutral" },
+    { label: "Clicks",      value: fmt(totalClicks),            trend: null, status: totalClicks > 0 ? "positive" : "neutral" },
+    { label: "Conversions", value: fmt(totalConv),              trend: null, status: totalConv > 0 ? "positive" : "warning" },
+  ];
+  const heroSummary = `${ptTrend ? `Spend is ${ptTrend.up ? "up" : "down"} ${ptTrend.pct.toFixed(1)}% vs prior half.` : ""} ${totalConv > 0 ? `${totalConv} conversions from ${totalClicks} clicks.` : "No conversions yet."}`.trim();
+  const chartSeries: ChartSeries[] = [
+    { key: "spend",       label: "Spend",       values: spends,      color: "#E60023", chartType: "area", yAxis: "left",  formatter: (v) => `$${v.toFixed(2)}` },
+    { key: "clicks",      label: "Clicks",      values: clicks,      color: "#f87171", chartType: "area", yAxis: "left" },
+    { key: "conversions", label: "Conversions", values: conversions, color: "#f59e0b", chartType: "bar",  yAxis: "right" },
+  ];
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
@@ -2853,6 +3384,8 @@ function PinterestAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#E60023]/15 font-mono text-[10px] font-bold text-[#E60023]">PT</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Pinterest Ads</h3>
       </div>
+      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#E60023" />
+      {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
       <RunRateStrip snapshots={snapshots} field="spend" currency="USD" label="Ad Spend" />
       <PeriodCompare values={spends} label="Ad Spend" isCurrency />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -2896,6 +3429,20 @@ function MailchimpSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
       { label: "Click rate", numerator: totalClicks, denominator: totalSent, suffix: "%", goodThreshold: 3, badThreshold: 1, lowerIsBetter: false },
     ] : [],
   });
+  const mcTrend = trend(subs);
+  const openRate = totalSent > 0 ? (totalOpens / totalSent) * 100 : 0;
+  const heroMetrics: HeroMetric[] = [
+    { label: "Subscribers", value: fmt(lastSubs),             trend: mcTrend ? { up: mcTrend.up, pct: mcTrend.pct } : null, status: mcTrend ? (mcTrend.up ? "positive" : "warning") : "neutral" },
+    { label: "Emails Sent", value: fmt(totalSent),            trend: null, status: "neutral" },
+    { label: "Opens",       value: fmt(totalOpens),           trend: null, status: "neutral" },
+    { label: "Open Rate",   value: `${openRate.toFixed(1)}%`, trend: null, status: openRate >= 25 ? "positive" : openRate >= 15 ? "neutral" : "warning" },
+  ];
+  const heroSummary = `${mcTrend ? `Subscriber count is ${mcTrend.up ? "up" : "down"} ${mcTrend.pct.toFixed(1)}% vs the prior half.` : ""} ${totalSent > 0 ? `${openRate.toFixed(1)}% open rate across ${totalSent} emails sent.` : ""}`.trim();
+  const chartSeries: ChartSeries[] = [
+    { key: "subs",   label: "Subscribers", values: subs,   color: "#f59e0b", chartType: "area", yAxis: "left" },
+    { key: "opens",  label: "Opens",       values: opens,  color: "#fbbf24", chartType: "area", yAxis: "left" },
+    { key: "clicks", label: "Clicks",      values: clicks, color: "#00d4aa", chartType: "bar",  yAxis: "right" },
+  ];
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
@@ -2903,6 +3450,8 @@ function MailchimpSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f59e0b]/15 font-mono text-[10px] font-bold text-[#f59e0b]">MC</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Mailchimp</h3>
       </div>
+      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#f59e0b" />
+      {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
       <PeriodCompare values={subs} label="Subscribers" />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Emails Sent" value={fmt(totalSent)}   values={sent}   color="#f59e0b" />
@@ -2945,6 +3494,20 @@ function KlaviyoSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
       { label: "Click rate", numerator: totalClicks, denominator: totalSent, suffix: "%", goodThreshold: 4, badThreshold: 2, lowerIsBetter: false },
     ] : [],
   });
+  const klavTrend = trend(revenues);
+  const klavOpenRate = totalSent > 0 ? (totalOpens / totalSent) * 100 : 0;
+  const heroMetrics: HeroMetric[] = [
+    { label: "Revenue",     value: `$${totalRev.toFixed(2)}`,        trend: klavTrend ? { up: klavTrend.up, pct: klavTrend.pct } : null, status: klavTrend ? (klavTrend.up ? "positive" : "warning") : "neutral" },
+    { label: "Emails Sent", value: fmt(totalSent),                   trend: null, status: "neutral" },
+    { label: "Opens",       value: fmt(totalOpens),                  trend: null, status: "neutral" },
+    { label: "Open Rate",   value: `${klavOpenRate.toFixed(1)}%`,    trend: null, status: klavOpenRate >= 30 ? "positive" : klavOpenRate >= 20 ? "neutral" : "warning" },
+  ];
+  const heroSummary = `${klavTrend ? `Revenue is ${klavTrend.up ? "up" : "down"} ${klavTrend.pct.toFixed(1)}% vs prior half.` : ""} ${totalSent > 0 ? `${klavOpenRate.toFixed(1)}% open rate.` : ""}`.trim();
+  const chartSeries: ChartSeries[] = [
+    { key: "revenue", label: "Revenue", values: revenues, color: "#6366f1", chartType: "area", yAxis: "left",  formatter: (v) => `$${v.toFixed(2)}` },
+    { key: "opens",   label: "Opens",   values: opens,   color: "#818cf8", chartType: "area", yAxis: "left" },
+    { key: "clicks",  label: "Clicks",  values: clicks,  color: "#00d4aa", chartType: "bar",  yAxis: "right" },
+  ];
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
@@ -2952,6 +3515,8 @@ function KlaviyoSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#6366f1]/15 font-mono text-[10px] font-bold text-[#6366f1]">KL</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Klaviyo</h3>
       </div>
+      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#6366f1" />
+      {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
       <RunRateStrip snapshots={snapshots} field="revenue" currency="USD" label="Revenue" />
       <PeriodCompare values={revenues} label="Revenue" isCurrency />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -2988,6 +3553,17 @@ function ConvertKitSection({ snapshots, granularity }: { snapshots: Snapshot[]; 
     primary: { label: "Subscribers", values: totals },
     secondary: [{ label: "New Subscribers", values: newSubs }],
   });
+  const ckTrend = trend(totals);
+  const heroMetrics: HeroMetric[] = [
+    { label: "Subscribers",     value: fmt(lastTotal),  trend: ckTrend ? { up: ckTrend.up, pct: ckTrend.pct } : null, status: ckTrend ? (ckTrend.up ? "positive" : "warning") : "neutral" },
+    { label: "New Subscribers", value: fmt(totalNew),   trend: null, status: totalNew > 0 ? "positive" : "neutral" },
+    { label: "Broadcasts Sent", value: fmt(totalBcast), trend: null, status: "neutral" },
+  ];
+  const heroSummary = `${ckTrend ? `Subscriber count is ${ckTrend.up ? "up" : "down"} ${ckTrend.pct.toFixed(1)}% vs prior half.` : ""} ${totalNew > 0 ? `${totalNew} new subscribers this period.` : ""}`.trim();
+  const chartSeries: ChartSeries[] = [
+    { key: "totals",  label: "Subscribers",     values: totals,  color: "#FB6970", chartType: "area", yAxis: "left" },
+    { key: "newSubs", label: "New Subscribers", values: newSubs, color: "#f87171", chartType: "bar",  yAxis: "right" },
+  ];
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
@@ -2995,6 +3571,8 @@ function ConvertKitSection({ snapshots, granularity }: { snapshots: Snapshot[]; 
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FB6970]/15 font-mono text-[10px] font-bold text-[#FB6970]">CK</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">ConvertKit</h3>
       </div>
+      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#FB6970" />
+      {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
       <PeriodCompare values={totals} label="Subscribers" />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <StatCard label="Subscribers"     value={fmt(lastTotal)}  values={totals}     color="#FB6970" />
@@ -3030,6 +3608,24 @@ function ActiveCampaignSection({ snapshots, granularity }: { snapshots: Snapshot
     secondary: [{ label: "Opens", values: opens }],
     rateMetrics: sent.reduce((a,b)=>a+b,0) > 0 ? [{ label: "Open rate", numerator: opens.reduce((a,b)=>a+b,0), denominator: sent.reduce((a,b)=>a+b,0), suffix: "%", goodThreshold: 25, badThreshold: 15, lowerIsBetter: false }] : [],
   });
+  const acTotalSent   = sent.reduce((a,b)=>a+b,0);
+  const acTotalOpens  = opens.reduce((a,b)=>a+b,0);
+  const acTotalClicks = clicks.reduce((a,b)=>a+b,0);
+  const acTotalNew    = newContacts.reduce((a,b)=>a+b,0);
+  const acOpenRate    = acTotalSent > 0 ? (acTotalOpens / acTotalSent) * 100 : 0;
+  const acTrend       = trend(newContacts);
+  const heroMetrics: HeroMetric[] = [
+    { label: "New Contacts", value: fmt(acTotalNew),            trend: acTrend ? { up: acTrend.up, pct: acTrend.pct } : null, status: acTrend ? (acTrend.up ? "positive" : "warning") : "neutral" },
+    { label: "Emails Sent",  value: fmt(acTotalSent),           trend: null, status: "neutral" },
+    { label: "Opens",        value: fmt(acTotalOpens),          trend: null, status: "neutral" },
+    { label: "Open Rate",    value: `${acOpenRate.toFixed(1)}%`, trend: null, status: acOpenRate >= 25 ? "positive" : acOpenRate >= 15 ? "neutral" : "warning" },
+  ];
+  const heroSummary = `${acTrend ? `New contacts are ${acTrend.up ? "up" : "down"} ${acTrend.pct.toFixed(1)}% vs prior half.` : ""} ${acTotalSent > 0 ? `${acOpenRate.toFixed(1)}% open rate.` : ""}`.trim();
+  const chartSeries: ChartSeries[] = [
+    { key: "newContacts", label: "New Contacts", values: newContacts, color: "#356AE6", chartType: "area", yAxis: "left" },
+    { key: "opens",       label: "Opens",        values: opens,       color: "#60a5fa", chartType: "area", yAxis: "left" },
+    { key: "clicks",      label: "Clicks",       values: clicks,      color: "#00d4aa", chartType: "bar",  yAxis: "right" },
+  ];
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
@@ -3037,6 +3633,8 @@ function ActiveCampaignSection({ snapshots, granularity }: { snapshots: Snapshot
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#356AE6]/15 font-mono text-[10px] font-bold text-[#356AE6]">AC</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">ActiveCampaign</h3>
       </div>
+      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#356AE6" />
+      {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
       <PeriodCompare values={newContacts} label="New Contacts" />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Emails Sent"  value={fmt(sent.reduce((a,b)=>a+b,0))}       values={sent}       color="#356AE6" />
@@ -3073,6 +3671,24 @@ function BrevoSection({ snapshots, granularity }: { snapshots: Snapshot[]; granu
     secondary: [{ label: "Opens", values: opens }],
     rateMetrics: sent.reduce((a,b)=>a+b,0) > 0 ? [{ label: "Open rate", numerator: opens.reduce((a,b)=>a+b,0), denominator: sent.reduce((a,b)=>a+b,0), suffix: "%", goodThreshold: 25, badThreshold: 15, lowerIsBetter: false }] : [],
   });
+  const brevoTotalSent   = sent.reduce((a,b)=>a+b,0);
+  const brevoTotalOpens  = opens.reduce((a,b)=>a+b,0);
+  const brevoTotalClicks = clicks.reduce((a,b)=>a+b,0);
+  const brevoTotalNew    = newContacts.reduce((a,b)=>a+b,0);
+  const brevoOpenRate    = brevoTotalSent > 0 ? (brevoTotalOpens / brevoTotalSent) * 100 : 0;
+  const brevoTrend       = trend(newContacts);
+  const heroMetrics: HeroMetric[] = [
+    { label: "New Contacts", value: fmt(brevoTotalNew),             trend: brevoTrend ? { up: brevoTrend.up, pct: brevoTrend.pct } : null, status: brevoTrend ? (brevoTrend.up ? "positive" : "warning") : "neutral" },
+    { label: "Emails Sent",  value: fmt(brevoTotalSent),            trend: null, status: "neutral" },
+    { label: "Opens",        value: fmt(brevoTotalOpens),           trend: null, status: "neutral" },
+    { label: "Open Rate",    value: `${brevoOpenRate.toFixed(1)}%`, trend: null, status: brevoOpenRate >= 25 ? "positive" : brevoOpenRate >= 15 ? "neutral" : "warning" },
+  ];
+  const heroSummary = `${brevoTrend ? `New contacts are ${brevoTrend.up ? "up" : "down"} ${brevoTrend.pct.toFixed(1)}% vs prior half.` : ""} ${brevoTotalSent > 0 ? `${brevoOpenRate.toFixed(1)}% open rate.` : ""}`.trim();
+  const chartSeries: ChartSeries[] = [
+    { key: "newContacts", label: "New Contacts", values: newContacts, color: "#0092FF", chartType: "area", yAxis: "left" },
+    { key: "opens",       label: "Opens",        values: opens,       color: "#38bdf8", chartType: "area", yAxis: "left" },
+    { key: "clicks",      label: "Clicks",       values: clicks,      color: "#00d4aa", chartType: "bar",  yAxis: "right" },
+  ];
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
@@ -3080,6 +3696,8 @@ function BrevoSection({ snapshots, granularity }: { snapshots: Snapshot[]; granu
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0092FF]/15 font-mono text-[10px] font-bold text-[#0092FF]">BR</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Brevo</h3>
       </div>
+      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#0092FF" />
+      {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
       <PeriodCompare values={newContacts} label="New Contacts" />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Emails Sent"  value={fmt(sent.reduce((a,b)=>a+b,0))}        values={sent}        color="#0092FF" />
@@ -3117,6 +3735,18 @@ function BeehiivSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
     primary: { label: "Subscribers", values: totals },
     secondary: [{ label: "New Subscribers", values: newSubs }, { label: "Premium", values: premium }],
   });
+  const beehiivTrend = trend(totals);
+  const heroMetrics: HeroMetric[] = [
+    { label: "Subscribers",  value: fmt(lastTotal),                      trend: beehiivTrend ? { up: beehiivTrend.up, pct: beehiivTrend.pct } : null, status: beehiivTrend ? (beehiivTrend.up ? "positive" : "warning") : "neutral" },
+    { label: "New Subs",     value: fmt(newSubs.reduce((a,b)=>a+b,0)),  trend: null, status: "positive" },
+    { label: "Premium Subs", value: fmt(lastPrem),                       trend: null, status: lastPrem > 0 ? "positive" : "neutral" },
+    { label: "Posts",        value: fmt(posts.reduce((a,b)=>a+b,0)),    trend: null, status: "neutral" },
+  ];
+  const heroSummary = `${beehiivTrend ? `Subscriber count is ${beehiivTrend.up ? "up" : "down"} ${beehiivTrend.pct.toFixed(1)}% vs prior half.` : ""} ${lastPrem > 0 ? `${lastPrem} premium subscribers.` : ""}`.trim();
+  const chartSeries: ChartSeries[] = [
+    { key: "totals",  label: "Subscribers",     values: totals,  color: "#FF6B35", chartType: "area", yAxis: "left" },
+    { key: "newSubs", label: "New Subscribers", values: newSubs, color: "#fb923c", chartType: "bar",  yAxis: "right" },
+  ];
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
@@ -3124,6 +3754,8 @@ function BeehiivSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FF6B35]/15 font-mono text-[10px] font-bold text-[#FF6B35]">BH</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Beehiiv</h3>
       </div>
+      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#FF6B35" />
+      {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
       <PeriodCompare values={totals} label="Subscribers" />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Subscribers"  value={fmt(lastTotal)}                         values={totals}  color="#FF6B35" />
@@ -3162,6 +3794,24 @@ function ShopifySection({ snapshots, granularity, currency = "USD" }: { snapshot
     secondary: [{ label: "Orders", values: orders }, { label: "New Customers", values: customers }],
     rateMetrics: totalRevenue > 0 ? [{ label: "Refund rate", numerator: totalRefunds, denominator: totalRevenue, suffix: "%", goodThreshold: 2, badThreshold: 5, lowerIsBetter: true }] : [],
   });
+  const shopTotalRev  = revenue.reduce((a,b)=>a+b,0);
+  const shopTotalOrd  = orders.reduce((a,b)=>a+b,0);
+  const shopTotalRef  = refunds.reduce((a,b)=>a+b,0);
+  const shopTotalCust = customers.reduce((a,b)=>a+b,0);
+  const shopAvgOrder  = shopTotalOrd > 0 ? shopTotalRev / shopTotalOrd : 0;
+  const shopTrend     = trend(revenue);
+  const heroMetrics: HeroMetric[] = [
+    { label: "Revenue",       value: fmt(shopTotalRev,  "currency", currency), trend: shopTrend ? { up: shopTrend.up, pct: shopTrend.pct } : null, status: shopTrend ? (shopTrend.up ? "positive" : "warning") : "neutral" },
+    { label: "Orders",        value: fmt(shopTotalOrd),                        trend: null, status: shopTotalOrd > 0 ? "positive" : "neutral" },
+    { label: "New Customers", value: fmt(shopTotalCust),                       trend: null, status: shopTotalCust > 0 ? "positive" : "neutral" },
+    { label: "Avg Order",     value: fmt(shopAvgOrder,  "currency", currency), trend: null, status: "neutral" },
+  ];
+  const heroSummary = `${shopTrend ? `Revenue is ${shopTrend.up ? "up" : "down"} ${shopTrend.pct.toFixed(1)}% vs the prior half.` : ""} ${shopTotalOrd > 0 ? `${shopTotalOrd} orders averaging ${fmt(shopAvgOrder, "currency", currency)}.` : ""}`.trim();
+  const chartSeries: ChartSeries[] = [
+    { key: "revenue",   label: "Revenue",   values: revenue,   color: "#96bf48", chartType: "area", yAxis: "left",  formatter: (v) => fmt(v, "currency", currency) },
+    { key: "orders",    label: "Orders",    values: orders,    color: "#a3e635", chartType: "area", yAxis: "left" },
+    { key: "customers", label: "Customers", values: customers, color: "#00d4aa", chartType: "bar",  yAxis: "right" },
+  ];
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
@@ -3169,6 +3819,8 @@ function ShopifySection({ snapshots, granularity, currency = "USD" }: { snapshot
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#96bf48]/15 font-mono text-[10px] font-bold text-[#96bf48]">SH</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Shopify</h3>
       </div>
+      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#96bf48" />
+      {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
       <RunRateStrip snapshots={snapshots} field="revenue" currency={currency} label="Revenue" />
       <PeriodCompare values={revenue} label="Revenue" isCurrency currency={currency} />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -3201,6 +3853,29 @@ function WooCommerceSection({ snapshots, granularity, currency = "USD" }: { snap
       { label: "New Customers", value: fmt(r.data.newCustomers) },
     ],
   }));
+  const wooTotalRev  = revenue.reduce((a,b)=>a+b,0);
+  const wooTotalOrd  = orders.reduce((a,b)=>a+b,0);
+  const wooTotalRef  = refunds.reduce((a,b)=>a+b,0);
+  const wooTotalCust = customers.reduce((a,b)=>a+b,0);
+  const wooAvgOrder  = wooTotalOrd > 0 ? wooTotalRev / wooTotalOrd : 0;
+  const wooTrend     = trend(revenue);
+  const heroMetrics: HeroMetric[] = [
+    { label: "Revenue",       value: fmt(wooTotalRev,  "currency", currency), trend: wooTrend ? { up: wooTrend.up, pct: wooTrend.pct } : null, status: wooTrend ? (wooTrend.up ? "positive" : "warning") : "neutral" },
+    { label: "Orders",        value: fmt(wooTotalOrd),                        trend: null, status: wooTotalOrd > 0 ? "positive" : "neutral" },
+    { label: "New Customers", value: fmt(wooTotalCust),                       trend: null, status: wooTotalCust > 0 ? "positive" : "neutral" },
+    { label: "Avg Order",     value: fmt(wooAvgOrder,  "currency", currency), trend: null, status: "neutral" },
+  ];
+  const heroSummary = `${wooTrend ? `Revenue is ${wooTrend.up ? "up" : "down"} ${wooTrend.pct.toFixed(1)}% vs the prior half.` : ""} ${wooTotalOrd > 0 ? `${wooTotalOrd} orders averaging ${fmt(wooAvgOrder, "currency", currency)}.` : ""}`.trim();
+  const chartSeries: ChartSeries[] = [
+    { key: "revenue",   label: "Revenue",   values: revenue,   color: "#7f54b3", chartType: "area", yAxis: "left",  formatter: (v) => fmt(v, "currency", currency) },
+    { key: "orders",    label: "Orders",    values: orders,    color: "#a78bfa", chartType: "area", yAxis: "left" },
+    { key: "customers", label: "Customers", values: customers, color: "#00d4aa", chartType: "bar",  yAxis: "right" },
+  ];
+  const wooInsights = buildInsights({
+    primary: { label: "Revenue", values: revenue, isCurrency: true, currency },
+    secondary: [{ label: "Orders", values: orders }, { label: "New Customers", values: customers }],
+    rateMetrics: wooTotalRev > 0 ? [{ label: "Refund rate", numerator: wooTotalRef, denominator: wooTotalRev, suffix: "%", goodThreshold: 2, badThreshold: 5, lowerIsBetter: true }] : [],
+  });
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
@@ -3208,6 +3883,8 @@ function WooCommerceSection({ snapshots, granularity, currency = "USD" }: { snap
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#7f54b3]/15 font-mono text-[10px] font-bold text-[#7f54b3]">WC</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">WooCommerce</h3>
       </div>
+      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#7f54b3" />
+      {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
       <RunRateStrip snapshots={snapshots} field="revenue" currency={currency} label="Revenue" />
       <PeriodCompare values={revenue} label="Revenue" isCurrency currency={currency} />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -3217,12 +3894,11 @@ function WooCommerceSection({ snapshots, granularity, currency = "USD" }: { snap
         <StatCard label="New Customers" value={fmt(customers.reduce((a,b)=>a+b,0))}       values={customers} color="#00d4aa" />
       </StatCardGroup>
       <DataTable rows={tableRows} />
+      <PlatformInsights insights={wooInsights} />
     </div>
     </PeriodsCtx.Provider>
   );
 }
-
-// ── BigCommerce ───────────────────────────────────────────────────────────────
 function BigCommerceSection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
   const grouped   = useGroupedSnapshots(snapshots, granularity, ["revenue", "orders", "refunds", "newCustomers"], []);
   const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
@@ -3239,6 +3915,27 @@ function BigCommerceSection({ snapshots, granularity, currency = "USD" }: { snap
       { label: "New Customers", value: fmt(r.data.newCustomers) },
     ],
   }));
+  const bcTotalRev  = revenue.reduce((a,b)=>a+b,0);
+  const bcTotalOrd  = orders.reduce((a,b)=>a+b,0);
+  const bcTotalCust = customers.reduce((a,b)=>a+b,0);
+  const bcAvgOrder  = bcTotalOrd > 0 ? bcTotalRev / bcTotalOrd : 0;
+  const bcTrend     = trend(revenue);
+  const heroMetrics: HeroMetric[] = [
+    { label: "Revenue",       value: fmt(bcTotalRev,  "currency", currency), trend: bcTrend ? { up: bcTrend.up, pct: bcTrend.pct } : null, status: bcTrend ? (bcTrend.up ? "positive" : "warning") : "neutral" },
+    { label: "Orders",        value: fmt(bcTotalOrd),                        trend: null, status: bcTotalOrd > 0 ? "positive" : "neutral" },
+    { label: "New Customers", value: fmt(bcTotalCust),                       trend: null, status: bcTotalCust > 0 ? "positive" : "neutral" },
+    { label: "Avg Order",     value: fmt(bcAvgOrder,  "currency", currency), trend: null, status: "neutral" },
+  ];
+  const heroSummary = `${bcTrend ? `Revenue is ${bcTrend.up ? "up" : "down"} ${bcTrend.pct.toFixed(1)}% vs the prior half.` : ""} ${bcTotalOrd > 0 ? `${bcTotalOrd} orders averaging ${fmt(bcAvgOrder, "currency", currency)}.` : ""}`.trim();
+  const chartSeries: ChartSeries[] = [
+    { key: "revenue",   label: "Revenue",   values: revenue,   color: "#bcbcd8", chartType: "area", yAxis: "left",  formatter: (v) => fmt(v, "currency", currency) },
+    { key: "orders",    label: "Orders",    values: orders,    color: "#a78bfa", chartType: "area", yAxis: "left" },
+    { key: "customers", label: "Customers", values: customers, color: "#00d4aa", chartType: "bar",  yAxis: "right" },
+  ];
+  const bcInsights = buildInsights({
+    primary: { label: "Revenue", values: revenue, isCurrency: true, currency },
+    secondary: [{ label: "Orders", values: orders }, { label: "New Customers", values: customers }],
+  });
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
@@ -3246,6 +3943,8 @@ function BigCommerceSection({ snapshots, granularity, currency = "USD" }: { snap
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#34313F]/30 font-mono text-[10px] font-bold text-[#bcbcd8]">BC</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">BigCommerce</h3>
       </div>
+      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#bcbcd8" />
+      {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
       <RunRateStrip snapshots={snapshots} field="revenue" currency={currency} label="Revenue" />
       <PeriodCompare values={revenue} label="Revenue" isCurrency currency={currency} />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -3255,12 +3954,11 @@ function BigCommerceSection({ snapshots, granularity, currency = "USD" }: { snap
         <StatCard label="New Customers" value={fmt(customers.reduce((a,b)=>a+b,0))}       values={customers} color="#00d4aa" />
       </StatCardGroup>
       <DataTable rows={tableRows} />
+      <PlatformInsights insights={bcInsights} />
     </div>
     </PeriodsCtx.Provider>
   );
 }
-
-// ── Amazon Seller ─────────────────────────────────────────────────────────────
 function AmazonSellerSection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
   const grouped  = useGroupedSnapshots(snapshots, granularity, ["revenue", "orders", "units", "refunds"], []);
   const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
@@ -3277,6 +3975,29 @@ function AmazonSellerSection({ snapshots, granularity, currency = "USD" }: { sna
       { label: "Refunds", value: fmt(r.data.refunds) },
     ],
   }));
+  const amzTotalRev = revenue.reduce((a,b)=>a+b,0);
+  const amzTotalOrd = orders.reduce((a,b)=>a+b,0);
+  const amzTotalUni = units.reduce((a,b)=>a+b,0);
+  const amzTotalRef = refunds.reduce((a,b)=>a+b,0);
+  const amzAvgOrder = amzTotalOrd > 0 ? amzTotalRev / amzTotalOrd : 0;
+  const amzTrend    = trend(revenue);
+  const heroMetrics: HeroMetric[] = [
+    { label: "Revenue",    value: fmt(amzTotalRev, "currency", currency), trend: amzTrend ? { up: amzTrend.up, pct: amzTrend.pct } : null, status: amzTrend ? (amzTrend.up ? "positive" : "warning") : "neutral" },
+    { label: "Orders",     value: fmt(amzTotalOrd),                       trend: null, status: amzTotalOrd > 0 ? "positive" : "neutral" },
+    { label: "Units Sold", value: fmt(amzTotalUni),                       trend: null, status: "neutral" },
+    { label: "Avg Order",  value: fmt(amzAvgOrder, "currency", currency), trend: null, status: "neutral" },
+  ];
+  const heroSummary = `${amzTrend ? `Revenue is ${amzTrend.up ? "up" : "down"} ${amzTrend.pct.toFixed(1)}% vs the prior half.` : ""} ${amzTotalOrd > 0 ? `${amzTotalOrd} orders, ${amzTotalUni} units sold.` : ""}`.trim();
+  const chartSeries: ChartSeries[] = [
+    { key: "revenue", label: "Revenue", values: revenue, color: "#FF9900", chartType: "area", yAxis: "left",  formatter: (v) => fmt(v, "currency", currency) },
+    { key: "orders",  label: "Orders",  values: orders,  color: "#fbbf24", chartType: "area", yAxis: "left" },
+    { key: "units",   label: "Units",   values: units,   color: "#00d4aa", chartType: "bar",  yAxis: "right" },
+  ];
+  const amzInsights = buildInsights({
+    primary: { label: "Revenue", values: revenue, isCurrency: true, currency },
+    secondary: [{ label: "Orders", values: orders }, { label: "Units", values: units }],
+    rateMetrics: amzTotalRev > 0 ? [{ label: "Refund rate", numerator: amzTotalRef, denominator: amzTotalRev, suffix: "%", goodThreshold: 2, badThreshold: 5, lowerIsBetter: true }] : [],
+  });
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
@@ -3284,6 +4005,8 @@ function AmazonSellerSection({ snapshots, granularity, currency = "USD" }: { sna
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FF9900]/15 font-mono text-[10px] font-bold text-[#FF9900]">AMZ</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Amazon Seller</h3>
       </div>
+      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#FF9900" />
+      {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
       <RunRateStrip snapshots={snapshots} field="revenue" currency={currency} label="Revenue" />
       <PeriodCompare values={revenue} label="Revenue" isCurrency currency={currency} />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -3293,12 +4016,11 @@ function AmazonSellerSection({ snapshots, granularity, currency = "USD" }: { sna
         <StatCard label="Refunds" value={fmt(refunds.reduce((a,b)=>a+b,0))}      values={refunds} color="#f87171" />
       </StatCardGroup>
       <DataTable rows={tableRows} />
+      <PlatformInsights insights={amzInsights} />
     </div>
     </PeriodsCtx.Provider>
   );
 }
-
-// ── Etsy ──────────────────────────────────────────────────────────────────────
 function EtsySection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
   const grouped  = useGroupedSnapshots(snapshots, granularity, ["revenue", "orders", "views", "newCustomers"], []);
   const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
@@ -3315,6 +4037,29 @@ function EtsySection({ snapshots, granularity, currency = "USD" }: { snapshots: 
       { label: "New Customers", value: fmt(r.data.newCustomers) },
     ],
   }));
+  const etsyTotalRev  = revenue.reduce((a,b)=>a+b,0);
+  const etsyTotalOrd  = orders.reduce((a,b)=>a+b,0);
+  const etsyTotalVw   = views.reduce((a,b)=>a+b,0);
+  const etsyTotalCust = customers.reduce((a,b)=>a+b,0);
+  const etsyAvgOrder  = etsyTotalOrd > 0 ? etsyTotalRev / etsyTotalOrd : 0;
+  const etsyTrend     = trend(revenue);
+  const heroMetrics: HeroMetric[] = [
+    { label: "Revenue",       value: fmt(etsyTotalRev,  "currency", currency), trend: etsyTrend ? { up: etsyTrend.up, pct: etsyTrend.pct } : null, status: etsyTrend ? (etsyTrend.up ? "positive" : "warning") : "neutral" },
+    { label: "Orders",        value: fmt(etsyTotalOrd),                         trend: null, status: etsyTotalOrd > 0 ? "positive" : "neutral" },
+    { label: "Views",         value: fmt(etsyTotalVw),                          trend: null, status: "neutral" },
+    { label: "New Customers", value: fmt(etsyTotalCust),                        trend: null, status: etsyTotalCust > 0 ? "positive" : "neutral" },
+  ];
+  const heroSummary = `${etsyTrend ? `Revenue is ${etsyTrend.up ? "up" : "down"} ${etsyTrend.pct.toFixed(1)}% vs the prior half.` : ""} ${etsyTotalOrd > 0 ? `${etsyTotalOrd} orders from ${etsyTotalVw} listing views.` : ""}`.trim();
+  const chartSeries: ChartSeries[] = [
+    { key: "revenue", label: "Revenue", values: revenue, color: "#F56400", chartType: "area", yAxis: "left",  formatter: (v) => fmt(v, "currency", currency) },
+    { key: "orders",  label: "Orders",  values: orders,  color: "#fb923c", chartType: "area", yAxis: "left" },
+    { key: "views",   label: "Views",   values: views,   color: "#60a5fa", chartType: "bar",  yAxis: "right" },
+  ];
+  const etsyInsights = buildInsights({
+    primary: { label: "Revenue", values: revenue, isCurrency: true, currency },
+    secondary: [{ label: "Orders", values: orders }, { label: "Views", values: views }],
+    rateMetrics: etsyTotalVw > 0 ? [{ label: "View-to-order rate", numerator: etsyTotalOrd, denominator: etsyTotalVw, suffix: "%", goodThreshold: 2, badThreshold: 0.5 }] : [],
+  });
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
@@ -3322,6 +4067,8 @@ function EtsySection({ snapshots, granularity, currency = "USD" }: { snapshots: 
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F56400]/15 font-mono text-[10px] font-bold text-[#F56400]">ET</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Etsy</h3>
       </div>
+      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#F56400" />
+      {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
       <RunRateStrip snapshots={snapshots} field="revenue" currency={currency} label="Revenue" />
       <PeriodCompare values={revenue} label="Revenue" isCurrency currency={currency} />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -3331,6 +4078,7 @@ function EtsySection({ snapshots, granularity, currency = "USD" }: { snapshots: 
         <StatCard label="New Customers" value={fmt(customers.reduce((a,b)=>a+b,0))}       values={customers} color="#00d4aa" />
       </StatCardGroup>
       <DataTable rows={tableRows} />
+      <PlatformInsights insights={etsyInsights} />
     </div>
     </PeriodsCtx.Provider>
   );
@@ -3354,6 +4102,26 @@ function HubSpotSection({ snapshots, granularity, currency = "USD" }: { snapshot
       { label: "Pipeline Value",  value: fmt(r.data.pipelineValue, "currency", currency) },
     ],
   }));
+  const hsTotalRev   = closedRev.reduce((a,b)=>a+b,0);
+  const hsTotalDeals = dealsWon.reduce((a,b)=>a+b,0);
+  const hsTotalNew   = newContacts.reduce((a,b)=>a+b,0);
+  const hsTrend      = trend(closedRev);
+  const heroMetrics: HeroMetric[] = [
+    { label: "Closed Revenue", value: fmt(hsTotalRev,   "currency", currency), trend: hsTrend ? { up: hsTrend.up, pct: hsTrend.pct } : null, status: hsTrend ? (hsTrend.up ? "positive" : "warning") : "neutral" },
+    { label: "Deals Won",      value: fmt(hsTotalDeals),                        trend: null, status: hsTotalDeals > 0 ? "positive" : "neutral" },
+    { label: "New Contacts",   value: fmt(hsTotalNew),                          trend: null, status: hsTotalNew > 0 ? "positive" : "neutral" },
+    { label: "Pipeline",       value: fmt(lastPipeline, "currency", currency),  trend: null, status: "neutral" },
+  ];
+  const heroSummary = `${hsTrend ? `Closed revenue is ${hsTrend.up ? "up" : "down"} ${hsTrend.pct.toFixed(1)}% vs the prior half.` : ""} ${hsTotalDeals > 0 ? `${hsTotalDeals} deals won, ${hsTotalNew} new contacts.` : ""}`.trim();
+  const chartSeries: ChartSeries[] = [
+    { key: "closedRev",   label: "Closed Revenue", values: closedRev,   color: "#ff7a59", chartType: "area", yAxis: "left",  formatter: (v) => fmt(v, "currency", currency) },
+    { key: "dealsWon",    label: "Deals Won",      values: dealsWon,    color: "#fb923c", chartType: "bar",  yAxis: "right" },
+    { key: "newContacts", label: "New Contacts",   values: newContacts, color: "#00d4aa", chartType: "area", yAxis: "left" },
+  ];
+  const hsInsights = buildInsights({
+    primary: { label: "Closed Revenue", values: closedRev, isCurrency: true, currency },
+    secondary: [{ label: "Deals Won", values: dealsWon }, { label: "New Contacts", values: newContacts }],
+  });
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
@@ -3361,6 +4129,8 @@ function HubSpotSection({ snapshots, granularity, currency = "USD" }: { snapshot
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#ff7a59]/15 font-mono text-[10px] font-bold text-[#ff7a59]">HS</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">HubSpot</h3>
       </div>
+      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#ff7a59" />
+      {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
       <RunRateStrip snapshots={snapshots} field="closedRevenue" currency={currency} label="Closed Revenue" />
       <PeriodCompare values={closedRev} label="Closed Revenue" isCurrency currency={currency} />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -3370,12 +4140,11 @@ function HubSpotSection({ snapshots, granularity, currency = "USD" }: { snapshot
         <StatCard label="Pipeline"       value={fmt(lastPipeline, "currency", currency)}                    values={pipeline}    color="#a78bfa" />
       </StatCardGroup>
       <DataTable rows={tableRows} />
+      <PlatformInsights insights={hsInsights} />
     </div>
     </PeriodsCtx.Provider>
   );
 }
-
-// ── Salesforce ────────────────────────────────────────────────────────────────
 // Duplicate SalesforceSection removed (already defined above)
 
 function SalesforceSection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
@@ -3395,6 +4164,26 @@ function SalesforceSection({ snapshots, granularity, currency = "USD" }: { snaps
       { label: "Pipeline Value", value: fmt(r.data.pipelineValue, "currency", currency) },
     ],
   }));
+  const sfTotalRev   = closedRev.reduce((a,b)=>a+b,0);
+  const sfTotalDeals = dealsWon.reduce((a,b)=>a+b,0);
+  const sfTotalLeads = newLeads.reduce((a,b)=>a+b,0);
+  const sfTrend      = trend(closedRev);
+  const heroMetrics: HeroMetric[] = [
+    { label: "Closed Revenue", value: fmt(sfTotalRev,    "currency", currency), trend: sfTrend ? { up: sfTrend.up, pct: sfTrend.pct } : null, status: sfTrend ? (sfTrend.up ? "positive" : "warning") : "neutral" },
+    { label: "Deals Won",      value: fmt(sfTotalDeals),                         trend: null, status: sfTotalDeals > 0 ? "positive" : "neutral" },
+    { label: "New Leads",      value: fmt(sfTotalLeads),                         trend: null, status: sfTotalLeads > 0 ? "positive" : "neutral" },
+    { label: "Pipeline",       value: fmt(lastPipeline, "currency", currency),   trend: null, status: "neutral" },
+  ];
+  const heroSummary = `${sfTrend ? `Closed revenue is ${sfTrend.up ? "up" : "down"} ${sfTrend.pct.toFixed(1)}% vs the prior half.` : ""} ${sfTotalDeals > 0 ? `${sfTotalDeals} deals won, ${sfTotalLeads} new leads.` : ""}`.trim();
+  const chartSeries: ChartSeries[] = [
+    { key: "closedRev", label: "Closed Revenue", values: closedRev, color: "#00A1E0", chartType: "area", yAxis: "left",  formatter: (v) => fmt(v, "currency", currency) },
+    { key: "dealsWon",  label: "Deals Won",      values: dealsWon,  color: "#38bdf8", chartType: "bar",  yAxis: "right" },
+    { key: "newLeads",  label: "New Leads",      values: newLeads,  color: "#00d4aa", chartType: "area", yAxis: "left" },
+  ];
+  const sfInsights = buildInsights({
+    primary: { label: "Closed Revenue", values: closedRev, isCurrency: true, currency },
+    secondary: [{ label: "Deals Won", values: dealsWon }, { label: "New Leads", values: newLeads }],
+  });
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
@@ -3402,6 +4191,8 @@ function SalesforceSection({ snapshots, granularity, currency = "USD" }: { snaps
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#00A1E0]/15 font-mono text-[10px] font-bold text-[#00A1E0]">SF</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Salesforce</h3>
       </div>
+      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#00A1E0" />
+      {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
       <RunRateStrip snapshots={snapshots} field="closedRevenue" currency={currency} label="Closed Revenue" />
       <PeriodCompare values={closedRev} label="Closed Revenue" isCurrency currency={currency} />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -3411,6 +4202,7 @@ function SalesforceSection({ snapshots, granularity, currency = "USD" }: { snaps
         <StatCard label="Pipeline"       value={fmt(lastPipeline, "currency", currency)}                    values={pipeline}  color="#a78bfa" />
       </StatCardGroup>
       <DataTable rows={tableRows} />
+      <PlatformInsights insights={sfInsights} />
     </div>
     </PeriodsCtx.Provider>
   );
@@ -3433,6 +4225,26 @@ function PipedriveSection({ snapshots, granularity, currency = "USD" }: { snapsh
       { label: "Pipeline Value", value: fmt(r.data.pipelineValue, "currency", currency) },
     ],
   }));
+  const pdTotalRev   = closedRev.reduce((a,b)=>a+b,0);
+  const pdTotalDeals = dealsWon.reduce((a,b)=>a+b,0);
+  const pdTotalNew   = newContacts.reduce((a,b)=>a+b,0);
+  const pdTrend      = trend(closedRev);
+  const heroMetrics: HeroMetric[] = [
+    { label: "Closed Revenue", value: fmt(pdTotalRev,   "currency", currency), trend: pdTrend ? { up: pdTrend.up, pct: pdTrend.pct } : null, status: pdTrend ? (pdTrend.up ? "positive" : "warning") : "neutral" },
+    { label: "Deals Won",      value: fmt(pdTotalDeals),                        trend: null, status: pdTotalDeals > 0 ? "positive" : "neutral" },
+    { label: "New Contacts",   value: fmt(pdTotalNew),                          trend: null, status: pdTotalNew > 0 ? "positive" : "neutral" },
+    { label: "Pipeline",       value: fmt(lastPipe, "currency", currency),      trend: null, status: "neutral" },
+  ];
+  const heroSummary = `${pdTrend ? `Closed revenue is ${pdTrend.up ? "up" : "down"} ${pdTrend.pct.toFixed(1)}% vs the prior half.` : ""} ${pdTotalDeals > 0 ? `${pdTotalDeals} deals won, ${pdTotalNew} new contacts.` : ""}`.trim();
+  const chartSeries: ChartSeries[] = [
+    { key: "closedRev",   label: "Closed Revenue", values: closedRev,   color: "#30a04c", chartType: "area", yAxis: "left",  formatter: (v) => fmt(v, "currency", currency) },
+    { key: "dealsWon",    label: "Deals Won",      values: dealsWon,    color: "#4ade80", chartType: "bar",  yAxis: "right" },
+    { key: "newContacts", label: "New Contacts",   values: newContacts, color: "#00d4aa", chartType: "area", yAxis: "left" },
+  ];
+  const pdInsights = buildInsights({
+    primary: { label: "Closed Revenue", values: closedRev, isCurrency: true, currency },
+    secondary: [{ label: "Deals Won", values: dealsWon }, { label: "New Contacts", values: newContacts }],
+  });
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
@@ -3440,6 +4252,8 @@ function PipedriveSection({ snapshots, granularity, currency = "USD" }: { snapsh
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#30a04c]/15 font-mono text-[10px] font-bold text-[#30a04c]">PD</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Pipedrive</h3>
       </div>
+      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#30a04c" />
+      {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
       <RunRateStrip snapshots={snapshots} field="closedRevenue" currency={currency} label="Closed Revenue" />
       <PeriodCompare values={closedRev} label="Closed Revenue" isCurrency currency={currency} />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -3449,6 +4263,7 @@ function PipedriveSection({ snapshots, granularity, currency = "USD" }: { snapsh
         <StatCard label="Pipeline"       value={fmt(lastPipe, "currency", currency)}                        values={pipeline}    color="#a78bfa" />
       </StatCardGroup>
       <DataTable rows={tableRows} />
+      <PlatformInsights insights={pdInsights} />
     </div>
     </PeriodsCtx.Provider>
   );
@@ -3469,6 +4284,19 @@ function NotionSection({ snapshots, granularity }: { snapshots: Snapshot[]; gran
       { label: "Total Rows",   value: fmt(r.data.totalRows) },
     ],
   }));
+  const notionTotalNew = newRows.reduce((a,b)=>a+b,0);
+  const notionTotalUpd = updated.reduce((a,b)=>a+b,0);
+  const notionTrend    = trend(newRows);
+  const heroMetrics: HeroMetric[] = [
+    { label: "Total Rows", value: fmt(lastTotal),      trend: null, status: "neutral" },
+    { label: "New Rows",   value: fmt(notionTotalNew), trend: notionTrend ? { up: notionTrend.up, pct: notionTrend.pct } : null, status: notionTrend ? (notionTrend.up ? "positive" : "neutral") : "neutral" },
+    { label: "Updated",    value: fmt(notionTotalUpd), trend: null, status: "neutral" },
+  ];
+  const heroSummary = `${notionTrend ? `New rows are ${notionTrend.up ? "up" : "down"} ${notionTrend.pct.toFixed(1)}% vs the prior half.` : ""} ${notionTotalNew > 0 ? `${notionTotalNew} rows added, ${notionTotalUpd} updated.` : ""}`.trim() || "Notion database activity for this period.";
+  const chartSeries: ChartSeries[] = [
+    { key: "newRows",  label: "New Rows", values: newRows,  color: "#e5e5e5", chartType: "area", yAxis: "left" },
+    { key: "updated",  label: "Updated",  values: updated,  color: "#a3a3a3", chartType: "bar",  yAxis: "right" },
+  ];
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
@@ -3476,12 +4304,16 @@ function NotionSection({ snapshots, granularity }: { snapshots: Snapshot[]; gran
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 font-mono text-[10px] font-bold text-white">NO</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Notion</h3>
       </div>
+      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#e5e5e5" />
+      {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
+      <PeriodCompare values={newRows} label="New Rows" />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <StatCard label="New Rows"     value={fmt(newRows.reduce((a,b)=>a+b,0))}   values={newRows}   color="#e5e5e5" />
         <StatCard label="Updated Rows" value={fmt(updated.reduce((a,b)=>a+b,0))}   values={updated}   color="#a3a3a3" />
         <StatCard label="Total Rows"   value={fmt(lastTotal)}                       values={totalRows} color="#737373" />
       </StatCardGroup>
       <DataTable rows={tableRows} />
+      <PlatformInsights insights={buildInsights({ primary: { label: "New Rows", values: newRows }, secondary: [{ label: "Updated Rows", values: updated }, { label: "Total Rows", values: totalRows }] })} />
     </div>
     </PeriodsCtx.Provider>
   );
@@ -3504,6 +4336,22 @@ function IntercomSection({ snapshots, granularity }: { snapshots: Snapshot[]; gr
       { label: "CSAT",                   value: `${(r.data.csatScore ?? 0).toFixed(1)}%` },
     ],
   }));
+  const icTotalNew  = newConvos.reduce((a,b)=>a+b,0);
+  const icTotalRes  = resolved.reduce((a,b)=>a+b,0);
+  const icTotalCont = contacts.reduce((a,b)=>a+b,0);
+  const icTrend     = trend(newConvos);
+  const heroMetrics: HeroMetric[] = [
+    { label: "New Conversations", value: fmt(icTotalNew),          trend: icTrend ? { up: icTrend.up, pct: icTrend.pct } : null, status: "neutral" },
+    { label: "Resolved",          value: fmt(icTotalRes),          trend: null, status: icTotalRes > 0 ? "positive" : "neutral" },
+    { label: "New Contacts",      value: fmt(icTotalCont),         trend: null, status: icTotalCont > 0 ? "positive" : "neutral" },
+    { label: "CSAT",              value: `${lastCsat.toFixed(1)}%`, trend: null, status: lastCsat >= 80 ? "positive" : lastCsat >= 60 ? "neutral" : "warning" },
+  ];
+  const heroSummary = `${icTrend ? `Conversations are ${icTrend.up ? "up" : "down"} ${icTrend.pct.toFixed(1)}% vs the prior half.` : ""} ${lastCsat > 0 ? `CSAT score: ${lastCsat.toFixed(1)}%.` : ""}`.trim();
+  const chartSeries: ChartSeries[] = [
+    { key: "newConvos", label: "New Conversations", values: newConvos, color: "#1f8ded", chartType: "area", yAxis: "left" },
+    { key: "resolved",  label: "Resolved",          values: resolved,  color: "#00d4aa", chartType: "area", yAxis: "left" },
+    { key: "contacts",  label: "New Contacts",      values: contacts,  color: "#a78bfa", chartType: "bar",  yAxis: "right" },
+  ];
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
@@ -3511,6 +4359,9 @@ function IntercomSection({ snapshots, granularity }: { snapshots: Snapshot[]; gr
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1f8ded]/15 font-mono text-[10px] font-bold text-[#1f8ded]">IC</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Intercom</h3>
       </div>
+      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#1f8ded" />
+      {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
+      <PeriodCompare values={newConvos} label="New Conversations" />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="New Convos"   value={fmt(newConvos.reduce((a,b)=>a+b,0))} values={newConvos} color="#1f8ded" />
         <StatCard label="Resolved"     value={fmt(resolved.reduce((a,b)=>a+b,0))}  values={resolved}  color="#38bdf8" />
@@ -3518,6 +4369,7 @@ function IntercomSection({ snapshots, granularity }: { snapshots: Snapshot[]; gr
         <StatCard label="CSAT"         value={`${lastCsat.toFixed(1)}%`}            values={csat}      color="#a78bfa" />
       </StatCardGroup>
       <DataTable rows={tableRows} />
+      <PlatformInsights insights={buildInsights({ primary: { label: "New Conversations", values: newConvos }, secondary: [{ label: "Resolved", values: resolved }, { label: "New Contacts", values: contacts }] })} />
     </div>
     </PeriodsCtx.Provider>
   );
@@ -3538,6 +4390,22 @@ function ZendeskSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
       { label: "CSAT",           value: `${(r.data.csatScore ?? 0).toFixed(1)}%` },
     ],
   }));
+  const zdTotalNew  = newT.reduce((a,b)=>a+b,0);
+  const zdTotalSolv = solved.reduce((a,b)=>a+b,0);
+  const zdResRate   = zdTotalNew > 0 ? (zdTotalSolv / zdTotalNew) * 100 : 0;
+  const zdTrend     = trend(newT);
+  const heroMetrics: HeroMetric[] = [
+    { label: "New Tickets",     value: fmt(zdTotalNew),           trend: zdTrend ? { up: zdTrend.up, pct: zdTrend.pct } : null, status: "neutral" },
+    { label: "Solved Tickets",  value: fmt(zdTotalSolv),          trend: null, status: zdTotalSolv > 0 ? "positive" : "neutral" },
+    { label: "Resolution Rate", value: `${zdResRate.toFixed(1)}%`, trend: null, status: zdResRate >= 80 ? "positive" : zdResRate >= 60 ? "neutral" : "warning" },
+    { label: "CSAT",            value: `${lastCsat.toFixed(1)}%`, trend: null, status: lastCsat >= 80 ? "positive" : lastCsat >= 60 ? "neutral" : "warning" },
+  ];
+  const heroSummary = `${zdTrend ? `Ticket volume is ${zdTrend.up ? "up" : "down"} ${zdTrend.pct.toFixed(1)}% vs the prior half.` : ""} ${zdResRate > 0 ? `${zdResRate.toFixed(1)}% resolution rate.` : ""}`.trim();
+  const chartSeries: ChartSeries[] = [
+    { key: "newT",   label: "New Tickets",    values: newT,   color: "#2ECC71", chartType: "area", yAxis: "left" },
+    { key: "solved", label: "Solved Tickets", values: solved, color: "#00d4aa", chartType: "area", yAxis: "left" },
+    { key: "csat",   label: "CSAT %",         values: csat,   color: "#a78bfa", chartType: "bar",  yAxis: "right" },
+  ];
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
@@ -3545,12 +4413,16 @@ function ZendeskSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#03363D]/40 font-mono text-[10px] font-bold text-[#2ECC71]">ZD</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Zendesk</h3>
       </div>
+      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#2ECC71" />
+      {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
+      <PeriodCompare values={newT} label="New Tickets" />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <StatCard label="New Tickets"    value={fmt(newT.reduce((a,b)=>a+b,0))}    values={newT}   color="#2ECC71" />
         <StatCard label="Solved Tickets" value={fmt(solved.reduce((a,b)=>a+b,0))}  values={solved} color="#00d4aa" />
         <StatCard label="CSAT"           value={`${lastCsat.toFixed(1)}%`}          values={csat}   color="#a78bfa" />
       </StatCardGroup>
       <DataTable rows={tableRows} />
+      <PlatformInsights insights={buildInsights({ primary: { label: "New Tickets", values: newT }, secondary: [{ label: "Solved Tickets", values: solved }] })} />
     </div>
     </PeriodsCtx.Provider>
   );
@@ -3573,6 +4445,23 @@ function FreshdeskSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
       { label: "CSAT",             value: `${(r.data.csatScore ?? 0).toFixed(1)}%` },
     ],
   }));
+  const fdTotalNew  = newT.reduce((a,b)=>a+b,0);
+  const fdTotalRes  = resolved.reduce((a,b)=>a+b,0);
+  const fdTotalOpen = open.reduce((a,b)=>a+b,0);
+  const fdResRate   = fdTotalNew > 0 ? (fdTotalRes / fdTotalNew) * 100 : 0;
+  const fdTrend     = trend(newT);
+  const heroMetrics: HeroMetric[] = [
+    { label: "New Tickets",  value: fmt(fdTotalNew),           trend: fdTrend ? { up: fdTrend.up, pct: fdTrend.pct } : null, status: "neutral" },
+    { label: "Resolved",     value: fmt(fdTotalRes),           trend: null, status: fdTotalRes > 0 ? "positive" : "neutral" },
+    { label: "Open Tickets", value: fmt(fdTotalOpen),          trend: null, status: fdTotalOpen === 0 ? "positive" : fdTotalOpen > 50 ? "warning" : "neutral" },
+    { label: "CSAT",         value: `${lastCsat.toFixed(1)}%`, trend: null, status: lastCsat >= 80 ? "positive" : lastCsat >= 60 ? "neutral" : "warning" },
+  ];
+  const heroSummary = `${fdTrend ? `Ticket volume is ${fdTrend.up ? "up" : "down"} ${fdTrend.pct.toFixed(1)}% vs the prior half.` : ""} ${fdResRate > 0 ? `${fdResRate.toFixed(1)}% of tickets resolved.` : ""}`.trim();
+  const chartSeries: ChartSeries[] = [
+    { key: "newT",     label: "New Tickets", values: newT,     color: "#25C16F", chartType: "area", yAxis: "left" },
+    { key: "resolved", label: "Resolved",    values: resolved, color: "#4ade80", chartType: "area", yAxis: "left" },
+    { key: "open",     label: "Open",        values: open,     color: "#fbbf24", chartType: "bar",  yAxis: "right" },
+  ];
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
@@ -3580,6 +4469,9 @@ function FreshdeskSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#25C16F]/15 font-mono text-[10px] font-bold text-[#25C16F]">FD</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Freshdesk</h3>
       </div>
+      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#25C16F" />
+      {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
+      <PeriodCompare values={newT} label="New Tickets" />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="New Tickets"  value={fmt(newT.reduce((a,b)=>a+b,0))}     values={newT}     color="#25C16F" />
         <StatCard label="Resolved"     value={fmt(resolved.reduce((a,b)=>a+b,0))} values={resolved} color="#4ade80" />
@@ -3587,6 +4479,7 @@ function FreshdeskSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
         <StatCard label="CSAT"         value={`${lastCsat.toFixed(1)}%`}           values={csat}     color="#a78bfa" />
       </StatCardGroup>
       <DataTable rows={tableRows} />
+      <PlatformInsights insights={buildInsights({ primary: { label: "New Tickets", values: newT }, secondary: [{ label: "Resolved", values: resolved }, { label: "Open Tickets", values: open }] })} />
     </div>
     </PeriodsCtx.Provider>
   );
@@ -3606,6 +4499,21 @@ function SegmentSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
       { label: "Sources",      value: fmt(r.data.sourceCount) },
     ],
   }));
+  const sgTotalDel  = delivered.reduce((a,b)=>a+b,0);
+  const sgTotalFail = failed.reduce((a,b)=>a+b,0);
+  const sgFailRate  = sgTotalDel + sgTotalFail > 0 ? (sgTotalFail / (sgTotalDel + sgTotalFail)) * 100 : 0;
+  const sgTrend     = trend(delivered);
+  const heroMetrics: HeroMetric[] = [
+    { label: "Events Delivered", value: fmt(sgTotalDel),            trend: sgTrend ? { up: sgTrend.up, pct: sgTrend.pct } : null, status: sgTrend ? (sgTrend.up ? "positive" : "warning") : "neutral" },
+    { label: "Failed Events",    value: fmt(sgTotalFail),           trend: null, status: sgTotalFail === 0 ? "positive" : sgFailRate > 5 ? "critical" : "warning" },
+    { label: "Failure Rate",     value: `${sgFailRate.toFixed(1)}%`, trend: null, status: sgFailRate === 0 ? "positive" : sgFailRate > 5 ? "critical" : "warning" },
+    { label: "Sources",          value: fmt(sources.length > 0 ? sources[sources.length - 1] : 0), trend: null, status: "neutral" },
+  ];
+  const heroSummary = `${sgTrend ? `Event delivery is ${sgTrend.up ? "up" : "down"} ${sgTrend.pct.toFixed(1)}% vs the prior half.` : ""} ${sgFailRate > 0 ? `${sgFailRate.toFixed(1)}% failure rate — investigate pipeline.` : "All events delivered successfully."}`.trim();
+  const chartSeries: ChartSeries[] = [
+    { key: "delivered", label: "Delivered", values: delivered, color: "#52BD94", chartType: "area", yAxis: "left" },
+    { key: "failed",    label: "Failed",    values: failed,    color: "#f87171", chartType: "bar",  yAxis: "right" },
+  ];
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
@@ -3613,12 +4521,16 @@ function SegmentSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#52BD94]/15 font-mono text-[10px] font-bold text-[#52BD94]">SG</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Segment</h3>
       </div>
+      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#52BD94" />
+      {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
+      <PeriodCompare values={delivered} label="Events Delivered" />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <StatCard label="Delivered" value={fmt(delivered.reduce((a,b)=>a+b,0))} values={delivered} color="#52BD94" />
         <StatCard label="Failed"    value={fmt(failed.reduce((a,b)=>a+b,0))}    values={failed}    color="#f87171" />
         <StatCard label="Sources"   value={fmt(sources.length > 0 ? sources[sources.length - 1] : 0)} values={sources} color="#a78bfa" />
       </StatCardGroup>
       <DataTable rows={tableRows} />
+      <PlatformInsights insights={buildInsights({ primary: { label: "Events Delivered", values: delivered }, secondary: [{ label: "Failed Events", values: failed }, { label: "Sources", values: sources }] })} />
     </div>
     </PeriodsCtx.Provider>
   );
@@ -3640,6 +4552,23 @@ function HeapSection({ snapshots, granularity }: { snapshots: Snapshot[]; granul
       { label: "Events",        value: fmt(r.data.events) },
     ],
   }));
+  const heapTotalSess  = sessions.reduce((a,b)=>a+b,0);
+  const heapTotalUsers = users.reduce((a,b)=>a+b,0);
+  const heapTotalPV    = pv.reduce((a,b)=>a+b,0);
+  const heapTotalEvts  = events.reduce((a,b)=>a+b,0);
+  const heapTrend      = trend(sessions);
+  const heroMetrics: HeroMetric[] = [
+    { label: "Sessions",     value: fmt(heapTotalSess),  trend: heapTrend ? { up: heapTrend.up, pct: heapTrend.pct } : null, status: heapTrend ? (heapTrend.up ? "positive" : "warning") : "neutral" },
+    { label: "Unique Users", value: fmt(heapTotalUsers), trend: null, status: "neutral" },
+    { label: "Page Views",   value: fmt(heapTotalPV),    trend: null, status: "neutral" },
+    { label: "Events",       value: fmt(heapTotalEvts),  trend: null, status: "neutral" },
+  ];
+  const heroSummary = `${heapTrend ? `Sessions are ${heapTrend.up ? "up" : "down"} ${heapTrend.pct.toFixed(1)}% vs the prior half.` : ""} ${heapTotalUsers > 0 ? `${heapTotalUsers} unique users, ${heapTotalEvts} events tracked.` : ""}`.trim();
+  const chartSeries: ChartSeries[] = [
+    { key: "sessions", label: "Sessions",     values: sessions, color: "#FF5B5B", chartType: "area", yAxis: "left" },
+    { key: "users",    label: "Unique Users", values: users,    color: "#fb923c", chartType: "area", yAxis: "left" },
+    { key: "events",   label: "Events",       values: events,   color: "#a78bfa", chartType: "bar",  yAxis: "right" },
+  ];
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
@@ -3647,6 +4576,9 @@ function HeapSection({ snapshots, granularity }: { snapshots: Snapshot[]; granul
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FF5B5B]/15 font-mono text-[10px] font-bold text-[#FF5B5B]">HP</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Heap</h3>
       </div>
+      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#FF5B5B" />
+      {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
+      <PeriodCompare values={sessions} label="Sessions" />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Sessions"     value={fmt(sessions.reduce((a,b)=>a+b,0))} values={sessions} color="#FF5B5B" />
         <StatCard label="Unique Users" value={fmt(users.reduce((a,b)=>a+b,0))}    values={users}    color="#fb923c" />
@@ -3654,6 +4586,7 @@ function HeapSection({ snapshots, granularity }: { snapshots: Snapshot[]; granul
         <StatCard label="Events"       value={fmt(events.reduce((a,b)=>a+b,0))}   values={events}   color="#a78bfa" />
       </StatCardGroup>
       <DataTable rows={tableRows} />
+      <PlatformInsights insights={buildInsights({ primary: { label: "Sessions", values: sessions }, secondary: [{ label: "Unique Users", values: users }, { label: "Page Views", values: pv }, { label: "Events", values: events }] })} />
     </div>
     </PeriodsCtx.Provider>
   );
@@ -3675,6 +4608,23 @@ function FullStorySection({ snapshots, granularity }: { snapshots: Snapshot[]; g
       { label: "Error Clicks",          value: fmt(r.data.errorClicks) },
     ],
   }));
+  const fsTotalSess = sessions.reduce((a,b)=>a+b,0);
+  const fsTotalPV   = pv.reduce((a,b)=>a+b,0);
+  const fsTotalFrus = frust.reduce((a,b)=>a+b,0);
+  const fsTotalErr  = errors.reduce((a,b)=>a+b,0);
+  const fsTrend     = trend(sessions);
+  const heroMetrics: HeroMetric[] = [
+    { label: "Sessions",     value: fmt(fsTotalSess), trend: fsTrend ? { up: fsTrend.up, pct: fsTrend.pct } : null, status: fsTrend ? (fsTrend.up ? "positive" : "warning") : "neutral" },
+    { label: "Page Views",   value: fmt(fsTotalPV),   trend: null, status: "neutral" },
+    { label: "Frustrations", value: fmt(fsTotalFrus), trend: null, status: fsTotalFrus === 0 ? "positive" : fsTotalFrus > 50 ? "critical" : "warning" },
+    { label: "Error Clicks", value: fmt(fsTotalErr),  trend: null, status: fsTotalErr === 0 ? "positive" : fsTotalErr > 20 ? "critical" : "warning" },
+  ];
+  const heroSummary = `${fsTrend ? `Sessions are ${fsTrend.up ? "up" : "down"} ${fsTrend.pct.toFixed(1)}% vs prior half.` : ""} ${fsTotalFrus > 0 ? `${fsTotalFrus} frustration signals detected — investigate UX.` : "No frustration signals recorded."}`.trim();
+  const chartSeries: ChartSeries[] = [
+    { key: "sessions", label: "Sessions",    values: sessions, color: "#7c3aed", chartType: "area", yAxis: "left" },
+    { key: "pv",       label: "Page Views",  values: pv,       color: "#a78bfa", chartType: "area", yAxis: "left" },
+    { key: "frust",    label: "Frustration", values: frust,    color: "#f87171", chartType: "bar",  yAxis: "right" },
+  ];
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
@@ -3682,6 +4632,9 @@ function FullStorySection({ snapshots, granularity }: { snapshots: Snapshot[]; g
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#3B1D8E]/30 font-mono text-[10px] font-bold text-[#a78bfa]">FS</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">FullStory</h3>
       </div>
+      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#7c3aed" />
+      {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
+      <PeriodCompare values={sessions} label="Sessions" />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Sessions"    value={fmt(sessions.reduce((a,b)=>a+b,0))} values={sessions} color="#7c3aed" />
         <StatCard label="Page Views"  value={fmt(pv.reduce((a,b)=>a+b,0))}       values={pv}       color="#a78bfa" />
@@ -3689,6 +4642,7 @@ function FullStorySection({ snapshots, granularity }: { snapshots: Snapshot[]; g
         <StatCard label="Error Clicks" value={fmt(errors.reduce((a,b)=>a+b,0))}  values={errors}   color="#fb923c" />
       </StatCardGroup>
       <DataTable rows={tableRows} />
+      <PlatformInsights insights={buildInsights({ primary: { label: "Sessions", values: sessions }, secondary: [{ label: "Page Views", values: pv }, { label: "Frustration Signals", values: frust }, { label: "Error Clicks", values: errors }] })} />
     </div>
     </PeriodsCtx.Provider>
   );
@@ -3710,6 +4664,23 @@ function HotjarSection({ snapshots, granularity }: { snapshots: Snapshot[]; gran
       { label: "Feedback Responses", value: fmt(r.data.feedbackResponses) },
     ],
   }));
+  const hjTotalSess = sessions.reduce((a,b)=>a+b,0);
+  const hjTotalRecs = recs.reduce((a,b)=>a+b,0);
+  const hjTotalHeat = heatmaps.reduce((a,b)=>a+b,0);
+  const hjTotalFeed = feedback.reduce((a,b)=>a+b,0);
+  const hjTrend     = trend(sessions);
+  const heroMetrics: HeroMetric[] = [
+    { label: "Sessions",   value: fmt(hjTotalSess), trend: hjTrend ? { up: hjTrend.up, pct: hjTrend.pct } : null, status: hjTrend ? (hjTrend.up ? "positive" : "warning") : "neutral" },
+    { label: "Recordings", value: fmt(hjTotalRecs), trend: null, status: "neutral" },
+    { label: "Heatmaps",   value: fmt(hjTotalHeat), trend: null, status: "neutral" },
+    { label: "Feedback",   value: fmt(hjTotalFeed), trend: null, status: hjTotalFeed > 0 ? "positive" : "neutral" },
+  ];
+  const heroSummary = `${hjTrend ? `Sessions are ${hjTrend.up ? "up" : "down"} ${hjTrend.pct.toFixed(1)}% vs prior half.` : ""} ${hjTotalRecs > 0 ? `${hjTotalRecs} session recordings captured.` : ""}`.trim();
+  const chartSeries: ChartSeries[] = [
+    { key: "sessions",   label: "Sessions",   values: sessions, color: "#FD3A5C", chartType: "area", yAxis: "left" },
+    { key: "recordings", label: "Recordings", values: recs,     color: "#f87171", chartType: "area", yAxis: "left" },
+    { key: "heatmaps",   label: "Heatmaps",   values: heatmaps, color: "#fbbf24", chartType: "bar",  yAxis: "right" },
+  ];
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
@@ -3717,6 +4688,9 @@ function HotjarSection({ snapshots, granularity }: { snapshots: Snapshot[]; gran
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FD3A5C]/15 font-mono text-[10px] font-bold text-[#FD3A5C]">HJ</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Hotjar</h3>
       </div>
+      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#FD3A5C" />
+      {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
+      <PeriodCompare values={sessions} label="Sessions" />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Sessions"   value={fmt(sessions.reduce((a,b)=>a+b,0))} values={sessions} color="#FD3A5C" />
         <StatCard label="Recordings" value={fmt(recs.reduce((a,b)=>a+b,0))}     values={recs}     color="#f87171" />
@@ -3724,6 +4698,7 @@ function HotjarSection({ snapshots, granularity }: { snapshots: Snapshot[]; gran
         <StatCard label="Feedback"   value={fmt(feedback.reduce((a,b)=>a+b,0))} values={feedback} color="#a78bfa" />
       </StatCardGroup>
       <DataTable rows={tableRows} />
+      <PlatformInsights insights={buildInsights({ primary: { label: "Sessions", values: sessions }, secondary: [{ label: "Recordings", values: recs }, { label: "Heatmaps", values: heatmaps }, { label: "Feedback", values: feedback }] })} />
     </div>
     </PeriodsCtx.Provider>
   );
@@ -3746,6 +4721,23 @@ function InstagramSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
       { label: "Profile Visits", value: fmt(r.data.profileVisits) },
     ],
   }));
+  const igTrend     = trend(followers);
+  const igTotalReach = reach.reduce((a,b)=>a+b,0);
+  const igTotalImpr  = impressions.reduce((a,b)=>a+b,0);
+  const igTotalVis   = visits.reduce((a,b)=>a+b,0);
+  const heroMetrics: HeroMetric[] = [
+    { label: "Followers",      value: fmt(lastFollows),     trend: igTrend ? { up: igTrend.up, pct: igTrend.pct } : null, status: igTrend ? (igTrend.up ? "positive" : "warning") : "neutral" },
+    { label: "Reach",          value: fmt(igTotalReach),    trend: null, status: "neutral" },
+    { label: "Impressions",    value: fmt(igTotalImpr),     trend: null, status: "neutral" },
+    { label: "Profile Visits", value: fmt(igTotalVis),      trend: null, status: "neutral" },
+  ];
+  const heroSummary = `${igTrend ? `Followers are ${igTrend.up ? "up" : "down"} ${igTrend.pct.toFixed(1)}% vs the prior half.` : ""} ${igTotalReach > 0 ? `${fmt(igTotalReach)} total reach, ${fmt(igTotalImpr)} impressions.` : ""}`.trim() || "Instagram profile activity for this period.";
+  const chartSeries: ChartSeries[] = [
+    { key: "followers",   label: "Followers",      values: followers,   color: "#E1306C", chartType: "area", yAxis: "left" },
+    { key: "reach",       label: "Reach",          values: reach,       color: "#f472b6", chartType: "area", yAxis: "left" },
+    { key: "impressions", label: "Impressions",    values: impressions, color: "#fb923c", chartType: "bar",  yAxis: "right" },
+  ];
+  const igInsights = buildInsights({ primary: { label: "Followers", values: followers }, secondary: [{ label: "Reach", values: reach }, { label: "Impressions", values: impressions }, { label: "Profile Visits", values: visits }] });
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
@@ -3753,6 +4745,9 @@ function InstagramSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#E1306C]/15 font-mono text-[10px] font-bold text-[#E1306C]">IG</div>
         <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Instagram</h3>
       </div>
+      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#E1306C" />
+      {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
+      <PeriodCompare values={followers} label="Followers" />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Followers"      value={fmt(lastFollows)}                          values={followers}   color="#E1306C" />
         <StatCard label="Reach"          value={fmt(reach.reduce((a,b)=>a+b,0))}           values={reach}       color="#f472b6" />
@@ -3760,6 +4755,7 @@ function InstagramSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
         <StatCard label="Profile Visits" value={fmt(visits.reduce((a,b)=>a+b,0))}          values={visits}      color="#a78bfa" />
       </StatCardGroup>
       <DataTable rows={tableRows} />
+      <PlatformInsights insights={igInsights} />
     </div>
     </PeriodsCtx.Provider>
   );

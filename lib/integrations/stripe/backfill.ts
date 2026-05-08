@@ -48,7 +48,11 @@ export async function backfillStripeHistory(userId: string): Promise<void> {
     const refunds = 0; // tracked separately
     const txCount = succeeded.length;
     const newCustomers = new Set(
-      succeeded.filter((pi) => pi.customer).map((pi) => String(pi.customer))
+      succeeded.map((pi) =>
+        pi.customer
+          ? `cus_${String(pi.customer)}`
+          : (pi.receipt_email ?? (pi.payment_method ? String(pi.payment_method) : pi.id))
+      )
     ).size;
 
     await db.from("daily_snapshots").upsert(

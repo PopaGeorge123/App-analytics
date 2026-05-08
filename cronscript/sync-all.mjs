@@ -280,7 +280,20 @@ async function syncStripeDay(userId, accessToken, date) {
   const succeeded    = intents.filter(pi => pi.status === 'succeeded');
   const revenue      = succeeded.reduce((s, pi) => s + (pi.amount_received ?? 0), 0);
   const txCount      = succeeded.length;
-  const newCustomers = new Set(succeeded.filter(pi => pi.customer).map(pi => String(pi.customer))).size;
+  // Count unique buyers: use Stripe customer ID if attached, otherwise fall back
+  // to receipt_email (guest checkouts), or treat each transaction as a new customer.
+  // This ensures one-time payments without a Customer object are still counted.
+  const newCustomers = new Set(succeeded.map(pi =>
+    pi.customer
+      ? `cus_${String(pi.customer)}`
+      : (pi.receipt_email ?? pi.payment_method ?? pi.id)
+  )).size;
+
+  // Subscription gauge metrics (MRR, active subs, ARPU) reflect the CURRENT live state.
+  // Writing them to historical dates would misrepresent when subscriptions started.
+  // Only fetch and store them when syncing today's snapshot.
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const isToday  = date === todayStr;
 
   // ── 2. Refunds for this day ──────────────────────────────────────────────
   let refunds = 0;
@@ -302,10 +315,12 @@ async function syncStripeDay(userId, accessToken, date) {
 
   // ── 3. Active subscriptions snapshot (current state) ────────────────────
   // We fetch all active + trialing subscriptions to compute MRR.
+  // Only done for today's snapshot — not backfill — to avoid backfilling
+  // current MRR onto dates before the subscription existed.
   let activeSubscriptions = 0;
   let mrr = 0; // in cents
   let trialingSubscriptions = 0;
-  try {
+  if (isToday) try {
     for (const status of ['active', 'trialing']) {
       let sa = null;
       while (true) {
@@ -1783,7 +1798,7 @@ async function backfillPostHog(userId, integration, days = 365) {
     body: JSON.stringify({
       query: {
         kind: 'HogQLQuery',
-        query: `SELECT toDate(timestamp) AS date, count() AS pageviews, count(distinct person_id) AS unique_users, count(distinct properties.\`$session_id\`) AS sessions FROM events WHERE event = '$pageview' AND toDate(timestamp) >= '${startDate}' AND toDate(timestamp) <= '${endDate}' GROUP BY date ORDER BY date`,
+        query: `SELECT toDate(timestamp) AS date, count() AS pageviews, count(distinct person_id) AS unique_users, count(distinct properties.\`$session_id\`) AS sessions FROM events WHERE event = '$pageview' AND toDate(timestamp) >= '${startDate}' AND toDate(timestamp) <= '${endDate}' GROUP BY date ORDER BY date LIMIT 10000`,
       },
     }),
   });

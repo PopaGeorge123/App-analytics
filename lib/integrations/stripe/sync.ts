@@ -47,8 +47,15 @@ export async function syncStripeData(userId: string): Promise<void> {
 
   const txCount = succeeded.length;
 
+  // Count unique buyers: use Stripe customer ID if attached (subscriptions/returning),
+  // otherwise fall back to receipt_email (guest checkouts) or payment ID.
+  // This ensures one-time payments without a Customer object are still counted.
   const newCustomers = new Set(
-    succeeded.filter((pi) => pi.customer).map((pi) => String(pi.customer))
+    succeeded.map((pi) =>
+      pi.customer
+        ? `cus_${String(pi.customer)}`
+        : (pi.receipt_email ?? (pi.payment_method ? String(pi.payment_method) : pi.id))
+    )
   ).size;
 
   await db.from("daily_snapshots").upsert(

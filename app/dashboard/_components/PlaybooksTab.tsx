@@ -228,33 +228,64 @@ const CATEGORY_CONFIG: Record<Exclude<Category, "all">, { label: string; color: 
 const categories: Category[] = ["all", "paid-ads", "revenue", "email", "seo", "ecommerce", "conversion", "retention"];
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Health ring
+// Health dial — speedometer arc
 // ─────────────────────────────────────────────────────────────────────────────
 
-function HealthRing({ score, label }: { score: number; label: string }) {
-  const r = 32;
-  const circ = 2 * Math.PI * r;
-  const fill = circ - (score / 100) * circ;
-  const color = score >= 75 ? "#3d8a68" : score >= 50 ? "#a07840" : "#b06060";
+function HealthDial({ score, label }: { score: number; label: string }) {
+  const size = 96;
+  const sw   = 9;
+  const r    = size / 2 - sw - 1;
+  const cx   = size / 2;
+  const cy   = size / 2;
+
+  const color = score >= 70 ? "#10b981" : score >= 40 ? "#f59e0b" : "#ef4444";
+
+  // Gauge: clock-angle 220° (lower-left) → CW 280° → 140° (lower-right)
+  const startClock = 220;
+  const totalSweep = 280;
+
+  const toXY = (clockDeg: number) => {
+    const rad = ((clockDeg - 90) * Math.PI) / 180;
+    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+  };
+
+  const s = toXY(startClock);
+  const e = toXY(startClock + totalSweep);
+
+  // Track: 280° CW arc — large-arc=1, sweep=1
+  const trackD = `M ${s.x.toFixed(2)} ${s.y.toFixed(2)} A ${r} ${r} 0 1 1 ${e.x.toFixed(2)} ${e.y.toFixed(2)}`;
+
+  const scoreSweep = Math.max(0, (score / 100) * totalSweep);
+  const scoreEnd   = toXY(startClock + scoreSweep);
+  const scoreLarge = scoreSweep > 180 ? 1 : 0;
+  const scoreD     = scoreSweep > 2
+    ? `M ${s.x.toFixed(2)} ${s.y.toFixed(2)} A ${r} ${r} 0 ${scoreLarge} 1 ${scoreEnd.x.toFixed(2)} ${scoreEnd.y.toFixed(2)}`
+    : "";
+
   return (
-    <div className="relative flex h-20 w-20 items-center justify-center">
-      <svg width="80" height="80" className="-rotate-90">
-        <circle cx="40" cy="40" r={r} fill="none" stroke="#2a2a3e" strokeWidth="6" />
-        <circle
-          cx="40" cy="40" r={r} fill="none"
-          stroke={color} strokeWidth="6"
-          strokeDasharray={circ}
-          strokeDashoffset={fill}
-          strokeLinecap="round"
-          style={{ transition: "stroke-dashoffset 1s ease" }}
-        />
+    <div className="relative flex items-center justify-center shrink-0" style={{ width: size, height: size }}>
+      <svg width={size} height={size}>
+        <path d={trackD} fill="none" stroke="#1e1e30" strokeWidth={sw} strokeLinecap="round" />
+        {scoreD && (
+          <path d={scoreD} fill="none" stroke={color} strokeWidth={sw} strokeLinecap="round" />
+        )}
       </svg>
-      <div className="absolute flex flex-col items-center">
-        <span className="text-lg font-bold leading-none" style={{ color }}>{score}</span>
-        <span className="text-[10px] text-slate-400 mt-0.5">{label}</span>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="font-mono text-2xl font-bold leading-none" style={{ color }}>{score}</span>
+        <span className="mt-1 text-[9px] font-bold uppercase tracking-wide" style={{ color }}>{label}</span>
       </div>
     </div>
   );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Effort helper
+// ─────────────────────────────────────────────────────────────────────────────
+
+function getEffort(stepsCount: number): { label: string; color: string } {
+  if (stepsCount <= 2) return { label: "Quick",  color: "#10b981" };
+  if (stepsCount <= 4) return { label: "Medium", color: "#f59e0b" };
+  return { label: "Deep", color: "#6366f1" };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -366,55 +397,86 @@ function ProofChart({ chart, accentColor, uid }: { chart: AiPlaybookChart; accen
 // ─────────────────────────────────────────────────────────────────────────────
 
 const SEV_CONFIG = {
-  critical:    { color: "#b06060", label: "Critical",    bg: "rgba(176,96,96,0.09)",   icon: "🔴" },
-  warning:     { color: "#a07840", label: "Warning",     bg: "rgba(160,120,64,0.09)",  icon: "🟡" },
-  opportunity: { color: "#3d8a68", label: "Opportunity", bg: "rgba(61,138,104,0.09)",  icon: "🟢" },
+  critical:    { color: "#ef4444", label: "Critical",    bg: "rgba(239,68,68,0.1)",    icon: "🔴" },
+  warning:     { color: "#f59e0b", label: "Warning",     bg: "rgba(245,158,11,0.1)",   icon: "🟡" },
+  opportunity: { color: "#10b981", label: "Opportunity", bg: "rgba(16,185,129,0.1)",   icon: "🟢" },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Playbook list item  (compact left-column row)
+// Playbook list item  (compact card, left-column sidebar)
 // ─────────────────────────────────────────────────────────────────────────────
 
 function PlaybookListItem({
   playbook,
   isSelected,
+  isCompleted,
   onSelect,
 }: {
   playbook: AiPlaybook;
   isSelected: boolean;
+  isCompleted: boolean;
   onSelect: () => void;
 }) {
-  const sev = SEV_CONFIG[playbook.severity] ?? SEV_CONFIG.opportunity;
+  const sev        = SEV_CONFIG[playbook.severity] ?? SEV_CONFIG.opportunity;
+  const catCfg     = CATEGORY_CONFIG[playbook.category as Exclude<Category, "all">];
+  const catLabel   = catCfg?.label ?? playbook.category;
   const hasTriggered = Array.isArray(playbook.triggeredBy) && playbook.triggeredBy.length > 0;
+  const effort     = getEffort(playbook.steps.length);
+  const borderColor = isCompleted ? "#10b981" : sev.color;
 
   return (
     <button
       onClick={onSelect}
-      className="group w-full text-left rounded-lg overflow-hidden transition-all duration-150 focus:outline-none"
+      className="group w-full text-left rounded-xl overflow-hidden transition-all duration-150 focus:outline-none"
       style={{
-        background: isSelected ? "#18182a" : "transparent",
-        border: `1px solid ${isSelected ? "#2a2a40" : "transparent"}`,
+        background:  isSelected ? "#1e1e2e" : "transparent",
+        borderLeft:  `3px solid ${borderColor}`,
+        border:      `1px solid ${isSelected ? "rgba(255,255,255,0.07)" : "transparent"}`,
+        borderLeftWidth: "3px",
+        borderLeftColor: borderColor,
+        boxShadow:   isSelected ? `0 0 0 0px transparent, inset 0 0 24px ${sev.color}06` : "none",
       }}
     >
-      <div className="flex items-stretch">
-        {/* Left severity bar */}
-        <div
-          className="w-0.5 shrink-0 rounded-l-lg"
-          style={{ background: sev.color, opacity: isSelected ? 0.8 : 0.25 }}
-        />
-
-        <div className="flex-1 px-3 py-2.5 min-w-0 flex items-center gap-2">
-          {/* Live dot */}
-          {hasTriggered && (
-            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-red-400/50 animate-pulse" />
-          )}
-          {/* Title */}
-          <p
-            className="text-xs leading-snug line-clamp-2 transition-colors"
-            style={{ color: isSelected ? "#c8cfe0" : "#5a6070" }}
+      <div className="px-3 py-2.5 space-y-1.5">
+        {/* Top: severity + category */}
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span
+            className="shrink-0 text-[9px] font-bold uppercase tracking-widest"
+            style={{ color: isCompleted ? "#10b981" : sev.color }}
           >
-            {playbook.title}
-          </p>
+            {isCompleted ? "✓ Done" : sev.label}
+          </span>
+          <span className="text-[#2a2a3e] shrink-0">·</span>
+          <span
+            className="text-[9px] uppercase tracking-wide font-medium truncate"
+            style={{ color: catCfg?.color ?? "#6b7280" }}
+          >
+            {catLabel}
+          </span>
+        </div>
+
+        {/* Title */}
+        <p
+          className="text-xs font-medium leading-snug line-clamp-2"
+          style={{
+            color: isCompleted ? "#4a4a6a" : isSelected ? "#e2e8f0" : "#94a3b8",
+            textDecoration: isCompleted ? "line-through" : "none",
+          }}
+        >
+          {playbook.title}
+        </p>
+
+        {/* Bottom: live pill + effort */}
+        <div className="flex items-center gap-2">
+          {hasTriggered && (
+            <span className="inline-flex items-center gap-1 text-[9px] font-semibold" style={{ color: "#ef4444" }}>
+              <span className="h-1.5 w-1.5 rounded-full bg-red-400 animate-pulse inline-block" />
+              Live data
+            </span>
+          )}
+          <span className="text-[9px] font-medium" style={{ color: effort.color }}>
+            {effort.label}
+          </span>
         </div>
       </div>
     </button>
@@ -427,49 +489,81 @@ function PlaybookListItem({
 
 function PlaybookDetail({
   playbook,
+  allPlaybooks,
   feedback,
+  isCompleted,
   onRating,
   onToggleStep,
+  onMarkComplete,
   isDemo,
 }: {
   playbook: AiPlaybook;
+  allPlaybooks: AiPlaybook[];
   feedback: { rating: number | null; completed_steps: number[] };
+  isCompleted: boolean;
   onRating: (r: 1 | -1 | null) => void;
   onToggleStep: (idx: number) => void;
+  onMarkComplete: () => void;
   isDemo: boolean;
 }) {
   const sev      = SEV_CONFIG[playbook.severity] ?? SEV_CONFIG.opportunity;
   const catCfg   = CATEGORY_CONFIG[playbook.category as Exclude<Category, "all">];
   const catColor = catCfg?.color ?? "#8b8ba8";
   const catLabel = catCfg?.label ?? playbook.category;
-  const hasTriggered = Array.isArray(playbook.triggeredBy) && playbook.triggeredBy.length > 0;
+  const hasTriggered   = Array.isArray(playbook.triggeredBy) && playbook.triggeredBy.length > 0;
+  const hasChart       = !!(playbook.chart && playbook.chart.points.length >= 3);
   const completedSteps = feedback.completed_steps ?? [];
-  const doneCount = playbook.steps.filter((_, i) => completedSteps.includes(i)).length;
-  const allDone = doneCount === playbook.steps.length && playbook.steps.length > 0;
+  const doneCount      = playbook.steps.filter((_, i) => completedSteps.includes(i)).length;
+  const allStepsDone   = doneCount === playbook.steps.length && playbook.steps.length > 0;
+  const effort         = getEffort(playbook.steps.length);
+  const implTime       = playbook.steps.length <= 2 ? "~24 hours" : playbook.steps.length <= 4 ? "~48 hours" : "~72 hours";
+
+  // Section numbering — computed once
+  const sn = (() => {
+    let n = 1;
+    const next = () => (n++).toString().padStart(2, "0");
+    return {
+      problem:       next(),
+      whyItMatters:  next(),
+      proof:         hasChart ? next() : null,
+      detected:      hasTriggered ? next() : null,
+      get steps()    { return n.toString().padStart(2, "0"); },
+    };
+  })();
+
+  // Related playbooks: same category first, then by severity
+  const related = allPlaybooks
+    .filter((p) => p.id !== playbook.id)
+    .sort((a, b) => {
+      const aCat = a.category === playbook.category ? 0 : 1;
+      const bCat = b.category === playbook.category ? 0 : 1;
+      if (aCat !== bCat) return aCat - bCat;
+      const sO = { critical: 0, warning: 1, opportunity: 2 } as const;
+      return sO[a.severity] - sO[b.severity];
+    })
+    .slice(0, 2);
 
   return (
     <div
       key={playbook.id}
       className="h-full flex flex-col overflow-hidden rounded-2xl"
-      style={{
-        background: "#0f0f1c",
-        border: `1px solid ${sev.color}25`,
-      }}
+      style={{ background: "#0f0f1c", border: `1px solid ${sev.color}22` }}
     >
-      {/* Top accent bar */}
-      <div className="h-0.5 w-full shrink-0" style={{ background: sev.color }} />
-
-      {/* Header */}
+      {/* Top accent gradient bar */}
       <div
-        className="shrink-0 px-6 py-5 border-b"
-        style={{ borderColor: "#1a1a2e" }}
-      >
+        className="h-0.5 w-full shrink-0"
+        style={{ background: `linear-gradient(90deg, ${sev.color}, transparent 60%)` }}
+      />
+
+      {/* ── Header ── */}
+      <div className="shrink-0 px-6 py-4 border-b" style={{ borderColor: "#1a1a2e" }}>
+        {/* Badges + action buttons row */}
         <div className="flex flex-wrap items-center gap-2 mb-3">
           <span
-            className="rounded-full px-2.5 py-0.5 text-[11px] font-bold"
-            style={{ background: sev.bg, color: sev.color }}
+            className="rounded-full px-3 py-0.5 text-[11px] font-bold uppercase tracking-wide"
+            style={{ background: sev.bg, color: sev.color, border: `1px solid ${sev.color}30` }}
           >
-            {sev.label.toUpperCase()}
+            {sev.label}
           </span>
           <span
             className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
@@ -478,143 +572,258 @@ function PlaybookDetail({
             {catLabel}
           </span>
           {hasTriggered && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2 py-0.5 text-[11px] font-semibold text-red-400">
+            <span className="inline-flex items-center gap-1 rounded-full border border-red-500/20 bg-red-500/10 px-2 py-0.5 text-[11px] font-semibold text-red-400">
               <span className="h-1.5 w-1.5 rounded-full bg-red-400 animate-pulse" />
               Live data
             </span>
           )}
+
+          {/* Right-side actions */}
+          <div className="ml-auto flex items-center gap-2">
+            {!isDemo && (
+              <button
+                onClick={onMarkComplete}
+                className="inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all"
+                style={{
+                  background:  isCompleted ? "rgba(16,185,129,0.18)" : "rgba(16,185,129,0.1)",
+                  color:       "#10b981",
+                  border:      `1px solid ${isCompleted ? "#10b98160" : "#10b98130"}`,
+                  boxShadow:   (allStepsDone && !isCompleted) ? "0 0 14px rgba(16,185,129,0.35)" : "none",
+                }}
+              >
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                {isCompleted ? "Completed" : "Mark Complete"}
+              </button>
+            )}
+            <button
+              className="inline-flex items-center gap-1.5 rounded-xl border border-white/8 px-3 py-1.5 text-xs font-medium text-slate-400 hover:text-white hover:border-white/20 transition-colors"
+              onClick={() => { navigator.clipboard?.writeText(window.location.href).catch(() => {}); }}
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13" />
+              </svg>
+              Share
+            </button>
+          </div>
         </div>
-        <h3 className="text-base font-bold text-white leading-snug">{playbook.title}</h3>
+
+        {/* Title — 24px bold */}
+        <h3 className="text-2xl font-bold text-white leading-snug">{playbook.title}</h3>
       </div>
 
-      {/* Scrollable body */}
-      <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+      {/* ── Scrollable body ── */}
+      <div className="flex-1 overflow-y-auto px-6 py-5 space-y-7">
 
-          {/* Expected gain */}
-          <div
-            className="rounded-xl border p-3.5 flex items-center gap-3"
-            style={{ borderColor: "#2a3a30", background: "rgba(61,138,104,0.06)" }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4a8a6a" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
+        {/* Completed banner */}
+        {isCompleted && (
+          <div className="flex items-center gap-3 rounded-xl border border-green-500/25 bg-green-500/8 px-4 py-3">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <div>
-              <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">Expected gain</p>
-              <p className="text-sm font-semibold text-slate-300">{playbook.expectedGain}</p>
-            </div>
-          </div>        {/* Problem */}
-        <div>
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Problem</p>
-          <p className="text-sm text-slate-200 leading-relaxed">{playbook.problem}</p>
-        </div>
-
-        {/* Why it matters */}
-        <div>
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Why it matters</p>
-          <p className="text-sm text-slate-300 leading-relaxed">{playbook.impact}</p>
-        </div>
-
-        {/* Proof chart */}
-        {playbook.chart && playbook.chart.points.length >= 3 && (
-          <div>
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Proof</p>
-            <ProofChart chart={playbook.chart} accentColor={sev.color} uid={playbook.id} />
+            <p className="text-sm text-green-400 font-medium">
+              Marked complete — Fold will re-check this issue in your next nightly update.
+            </p>
           </div>
         )}
 
-        {/* Triggered metrics */}
-        {hasTriggered && (
+        {/* ── Expected Gain — 2-column card ── */}
+        <div
+          className="rounded-xl border p-4 grid grid-cols-2 gap-4"
+          style={{ borderColor: "#2a3a30", background: "rgba(16,185,129,0.05)" }}
+        >
           <div>
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Detected in your data</p>
+            <div className="flex items-center gap-1.5 mb-2">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
+              </svg>
+              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Expected Gain</p>
+            </div>
+            <p className="text-sm font-semibold text-slate-200 leading-snug">{playbook.expectedGain}</p>
+          </div>
+          <div className="border-l border-white/5 pl-4 flex flex-col gap-2 justify-center">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] text-slate-500">⏱</span>
+              <span className="text-xs text-slate-400 font-medium">{implTime} to implement</span>
+            </div>
+            <div>
+              <span
+                className="rounded-full px-2 py-0.5 text-[10px] font-bold"
+                style={{ background: effort.color + "20", color: effort.color }}
+              >
+                {effort.label} effort
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] text-slate-500">📋</span>
+              <span className="text-xs text-slate-400">{playbook.steps.length} action step{playbook.steps.length !== 1 ? "s" : ""}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* ── 01 Problem ── */}
+        <div>
+          <p className="mb-2.5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+            <span className="font-mono text-[#2a2a3e]">{sn.problem}</span> Problem
+          </p>
+          <p className="text-[15px] text-slate-200 leading-[1.7]">{playbook.problem}</p>
+        </div>
+
+        {/* ── 02 Why It Matters — amber left border ── */}
+        <div
+          className="rounded-r-xl border-l-2 pl-4 py-1"
+          style={{ borderLeftColor: "#f59e0b", background: "rgba(245,158,11,0.03)" }}
+        >
+          <p className="mb-2.5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+            <span className="font-mono text-[#2a2a3e]">{sn.whyItMatters}</span> Why It Matters
+          </p>
+          <p className="text-[15px] text-slate-300 leading-[1.7]">{playbook.impact}</p>
+        </div>
+
+        {/* ── 03 Proof chart ── */}
+        {sn.proof && playbook.chart && (
+          <div>
+            <p className="mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+              <span className="font-mono text-[#2a2a3e]">{sn.proof}</span> Proof
+            </p>
+            <div className="rounded-xl border border-white/5 bg-[#0a0a14] overflow-hidden">
+              <div className="px-4 pt-4 pb-2">
+                <p className="text-xs font-semibold text-slate-300">{playbook.chart.title}</p>
+                <p className="text-[10px] text-slate-500 mt-0.5">
+                  Your data{playbook.chart.benchmarkLabel ? ` · ${playbook.chart.benchmarkLabel}` : ""}
+                </p>
+                {/* Legend */}
+                <div className="mt-2 flex items-center gap-4">
+                  <div className="flex items-center gap-1.5">
+                    <div className="h-1.5 w-5 rounded-full" style={{ background: sev.color }} />
+                    <span className="text-[10px] text-slate-500">Your data</span>
+                  </div>
+                  {playbook.chart.benchmark != null && (
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-5 border-t-2 border-dashed" style={{ borderColor: sev.color + "70" }} />
+                      <span className="text-[10px] text-slate-500">{playbook.chart.benchmarkLabel ?? "Target"}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <ProofChart chart={playbook.chart} accentColor={sev.color} uid={playbook.id} />
+            </div>
+          </div>
+        )}
+
+        {/* ── 04 Detected metrics ── */}
+        {sn.detected && hasTriggered && (
+          <div>
+            <p className="mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+              <span className="font-mono text-[#2a2a3e]">{sn.detected}</span> Detected in Your Data
+            </p>
             <div className="grid grid-cols-2 gap-2">
               {playbook.triggeredBy!.map((t, i) => (
-                <div key={i} className="rounded-xl border border-white/5 bg-white/3 p-3">
-                  <p className="text-xs text-slate-500 mb-0.5">{t.label}</p>
-                  <p className="text-base font-semibold text-slate-300">{t.value}</p>
-                  <p className="text-[11px] text-slate-600 mt-0.5">Target: {t.benchmark}</p>
+                <div key={i} className="rounded-xl border border-white/5 bg-white/2 p-3">
+                  <p className="text-[10px] text-slate-500 mb-0.5">{t.label}</p>
+                  <p className="font-mono text-base font-semibold" style={{ color: sev.color }}>{t.value}</p>
+                  <p className="text-[10px] text-slate-600 mt-0.5">Target: {t.benchmark}</p>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* Action plan */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Action plan</p>
-            {playbook.steps.length > 0 && (
-              <span className="text-[10px] font-mono text-slate-600">
-                {doneCount}/{playbook.steps.length} done
-              </span>
-            )}
-          </div>
-          {allDone && (
-            <div className="mb-4 rounded-xl border border-green-500/20 bg-green-500/8 px-4 py-3 text-sm text-green-400 font-medium">
-              ✓ All steps completed — Fold will factor your progress into the next generation.
+        {/* ── Action Steps ── */}
+        {playbook.steps.length > 0 && (
+          <div>
+            <div className="mb-3 flex items-center justify-between">
+              <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                <span className="font-mono text-[#2a2a3e]">{sn.steps}</span> Action Steps
+              </p>
+              {!isDemo && (
+                <span className="font-mono text-[10px] text-slate-600">
+                  {doneCount} / {playbook.steps.length} complete
+                </span>
+              )}
             </div>
-          )}
-          <ol className="space-y-4">
-            {playbook.steps.map((step, i) => {
-              const done = completedSteps.includes(i);
-              return (
-                <li key={i} className="flex gap-3">
-                  {/* Checkbox */}
-                  {!isDemo && (
-                    <button
-                      onClick={() => onToggleStep(i)}
-                      title={done ? "Mark as not done" : "Mark as done"}
-                      className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-all focus:outline-none"
-                      style={{
-                        borderColor: done ? catColor : "#3a3a54",
-                        background: done ? catColor + "22" : "transparent",
-                      }}
-                    >
-                      {done && (
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={catColor} strokeWidth={3}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
-                    </button>
-                  )}
-                  {/* Step number (demo mode) */}
-                  {isDemo && (
-                    <div
-                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold mt-0.5"
-                      style={{ background: catColor + "22", color: catColor, border: `1px solid ${catColor}30` }}
-                    >
-                      {i + 1}
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p
-                      className="text-sm font-semibold leading-snug transition-colors"
-                      style={{ color: done ? "#4a4a6a" : "#ffffff", textDecoration: done ? "line-through" : "none" }}
-                    >
-                      {step.action}
-                    </p>
-                    <p className="mt-1 text-[13px] text-slate-400 leading-relaxed">{step.detail}</p>
-                    {step.link && (
-                      <a
-                        href={step.link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-2 inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-white/5"
-                        style={{ borderColor: catColor + "50", color: catColor }}
-                      >
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-                        </svg>
-                        {step.link.label}
-                      </a>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
-          </ol>
-        </div>
 
-        {/* ── Feedback ─────────────────────────────────────────────────────── */}
+            {/* Progress bar */}
+            {!isDemo && (
+              <div className="mb-5">
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#1a1a2e]">
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: `${(doneCount / playbook.steps.length) * 100}%`,
+                      background: allStepsDone ? "#10b981" : catColor,
+                    }}
+                  />
+                </div>
+                {allStepsDone && (
+                  <p className="mt-1.5 text-[11px] font-medium text-green-400">
+                    ✓ All steps done — press &ldquo;Mark Complete&rdquo; above to finalise.
+                  </p>
+                )}
+              </div>
+            )}
+
+            <ol className="space-y-5">
+              {playbook.steps.map((step, i) => {
+                const done = completedSteps.includes(i);
+                return (
+                  <li key={i} className="flex gap-3">
+                    {!isDemo ? (
+                      <button
+                        onClick={() => onToggleStep(i)}
+                        title={done ? "Mark as not done" : "Mark as done"}
+                        className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-all focus:outline-none"
+                        style={{
+                          borderColor: done ? catColor : "#3a3a54",
+                          background:  done ? catColor + "22" : "transparent",
+                        }}
+                      >
+                        {done && (
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={catColor} strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </button>
+                    ) : (
+                      <div
+                        className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold"
+                        style={{ background: catColor + "22", color: catColor, border: `1px solid ${catColor}30` }}
+                      >
+                        {i + 1}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p
+                        className="text-[14px] font-semibold leading-snug transition-colors"
+                        style={{ color: done ? "#4a4a6a" : "#ffffff", textDecoration: done ? "line-through" : "none" }}
+                      >
+                        {step.action}
+                      </p>
+                      <p className="mt-1 text-[13px] text-slate-400 leading-relaxed">{step.detail}</p>
+                      {step.link && (
+                        <a
+                          href={step.link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-2 inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-white/5"
+                          style={{ borderColor: catColor + "50", color: catColor }}
+                        >
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                          </svg>
+                          {step.link.label}
+                        </a>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
+        )}
+
+        {/* ── Feedback ── */}
         {!isDemo && (
           <div
             className="rounded-xl border px-4 py-3 flex items-center justify-between gap-4"
@@ -627,9 +836,9 @@ function PlaybookDetail({
                 title="Yes, helpful"
                 className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-all"
                 style={{
-                  borderColor: feedback.rating === 1 ? "#3d8a6880" : "#2a2a3e",
-                  background:  feedback.rating === 1 ? "rgba(61,138,104,0.12)" : "transparent",
-                  color:       feedback.rating === 1 ? "#4a9a78" : "#6b7280",
+                  borderColor: feedback.rating === 1 ? "#10b98180" : "#2a2a3e",
+                  background:  feedback.rating === 1 ? "rgba(16,185,129,0.12)" : "transparent",
+                  color:       feedback.rating === 1 ? "#10b981" : "#6b7280",
                 }}
               >
                 <svg width="13" height="13" viewBox="0 0 24 24" fill={feedback.rating === 1 ? "currentColor" : "none"} stroke="currentColor" strokeWidth={2}>
@@ -642,9 +851,9 @@ function PlaybookDetail({
                 title="Not accurate / not useful"
                 className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-all"
                 style={{
-                  borderColor: feedback.rating === -1 ? "#b0606080" : "#2a2a3e",
-                  background:  feedback.rating === -1 ? "rgba(176,96,96,0.12)" : "transparent",
-                  color:       feedback.rating === -1 ? "#b06060" : "#6b7280",
+                  borderColor: feedback.rating === -1 ? "#ef444480" : "#2a2a3e",
+                  background:  feedback.rating === -1 ? "rgba(239,68,68,0.12)" : "transparent",
+                  color:       feedback.rating === -1 ? "#ef4444" : "#6b7280",
                 }}
               >
                 <svg width="13" height="13" viewBox="0 0 24 24" fill={feedback.rating === -1 ? "currentColor" : "none"} stroke="currentColor" strokeWidth={2}>
@@ -652,6 +861,42 @@ function PlaybookDetail({
                 </svg>
                 Not useful
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Related playbooks strip ── */}
+        {related.length > 0 && (
+          <div>
+            <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-slate-600">You might also need</p>
+            <div className="flex flex-col gap-2">
+              {related.map((rp) => {
+                const rsev    = SEV_CONFIG[rp.severity] ?? SEV_CONFIG.opportunity;
+                const rcatCfg = CATEGORY_CONFIG[rp.category as Exclude<Category, "all">];
+                return (
+                  <div
+                    key={rp.id}
+                    className="flex items-center gap-3 rounded-xl border p-3"
+                    style={{
+                      borderColor:     "#1e1e2e",
+                      background:      "#0b0b18",
+                      borderLeft:      `3px solid ${rsev.color}`,
+                      borderLeftWidth: "3px",
+                      borderLeftColor: rsev.color,
+                    }}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[9px] font-bold uppercase tracking-widest mb-0.5" style={{ color: rsev.color }}>
+                        {rsev.label} · {rcatCfg?.label ?? rp.category}
+                      </p>
+                      <p className="text-xs text-slate-300 truncate">{rp.title}</p>
+                    </div>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3a3a5a" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                    </svg>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -668,7 +913,8 @@ function PlaybookDetailEmpty() {
       <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="#2a2a3e" strokeWidth={1.5} className="mb-3">
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
       </svg>
-      <p className="text-xs text-slate-600">Select a playbook to view details</p>
+      <p className="text-xs text-slate-500 mb-1">Select a playbook to view details</p>
+      <p className="text-[11px] text-slate-700">← Choose from the list on the left</p>
     </div>
   );
 }
@@ -700,7 +946,7 @@ function PlaybookSkeleton() {
           <div className="h-5 w-16 rounded-full bg-[#2a2a3e]" />
           <div className="h-5 w-20 rounded-full bg-[#2a2a3e]" />
         </div>
-        <div className="h-5 w-2/3 rounded bg-[#2a2a3e]" />
+        <div className="h-6 w-2/3 rounded bg-[#2a2a3e]" />
         <div className="h-14 rounded-xl bg-[#1a2a1e]" />
         <div className="space-y-2">
           <div className="h-3 w-16 rounded bg-[#2a2a3e]" />
@@ -764,8 +1010,30 @@ export default function PlaybooksTab({
   const [openId, setOpenId]     = useState<string | null>(null);
   const [activeCategory, setActiveCategory]       = useState<Category>("all");
   const [showOnlyTriggered, setShowOnlyTriggered] = useState(false);
+  const [sortBy, setSortBy]     = useState<"priority" | "az" | "category">("priority");
+  // Track completed playbooks — persisted to localStorage
+  const [completedPlaybooks, setCompletedPlaybooks] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+    try {
+      const stored = localStorage.getItem("fold_completed_playbooks");
+      return stored ? new Set(JSON.parse(stored) as string[]) : new Set();
+    } catch { return new Set(); }
+  });
   const hasFetched = useRef(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const handleMarkComplete = useCallback((playbookId: string) => {
+    setCompletedPlaybooks((prev) => {
+      const next = new Set(prev);
+      if (next.has(playbookId)) {
+        next.delete(playbookId);
+      } else {
+        next.add(playbookId);
+      }
+      try { localStorage.setItem("fold_completed_playbooks", JSON.stringify([...next])); } catch { /* ignore */ }
+      return next;
+    });
+  }, []);
 
   // ── Feedback state ────────────────────────────────────────────────────────
   // Map of playbook_id → { rating, completed_steps }
@@ -967,6 +1235,9 @@ export default function PlaybooksTab({
   });
 
   const sorted = [...filtered].sort((a, b) => {
+    if (sortBy === "az") return a.title.localeCompare(b.title);
+    if (sortBy === "category") return a.category.localeCompare(b.category);
+    // "priority": triggered first, then severity
     const sevOrder = { critical: 0, warning: 1, opportunity: 2 } as const;
     const aHas = a.triggeredBy && a.triggeredBy.length > 0 ? -1 : 0;
     const bHas = b.triggeredBy && b.triggeredBy.length > 0 ? -1 : 0;
@@ -974,8 +1245,10 @@ export default function PlaybooksTab({
     return sevOrder[a.severity] - sevOrder[b.severity];
   });
 
-  const criticalCount  = playbooks.filter((p) => p.severity === "critical").length;
-  const detectedCount  = playbooks.filter((p) => p.triggeredBy && p.triggeredBy.length > 0).length;
+  const criticalCount   = playbooks.filter((p) => p.severity === "critical").length;
+  const detectedCount   = playbooks.filter((p) => p.triggeredBy && p.triggeredBy.length > 0).length;
+  const completedCount  = playbooks.filter((p) => completedPlaybooks.has(p.id)).length;
+  const allComplete     = playbooks.length > 0 && completedCount === playbooks.length;
 
   const generatedAgo = data?.generatedAt
     ? (() => {
@@ -1007,69 +1280,128 @@ export default function PlaybooksTab({
         />
       )}
 
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h2 className="text-lg font-bold text-white">AI Fix-It Playbooks</h2>
-          <p className="mt-1 text-sm text-slate-400">
-            {data
-              ? `${playbooks.length} personalised action plan${playbooks.length !== 1 ? "s" : ""} based on your live data`
-              : "Claude analyses your real data and builds personalised, step-by-step action plans"}
-          </p>
+      {/* ══════════════════════════════════════════════════════════════════════
+          BUSINESS HEALTH COMMAND CENTER
+      ══════════════════════════════════════════════════════════════════════ */}
+      {isPremium && data && !loading ? (
+        <div
+          className="rounded-2xl border overflow-hidden"
+          style={{ borderColor: "rgba(255,255,255,0.06)", background: "#13131a", minHeight: 180 }}
+        >
+          <div className="flex flex-col sm:flex-row gap-0 divide-y sm:divide-y-0 sm:divide-x divide-white/5">
+            {/* ── Left zone (60%) ── */}
+            <div className="flex-1 p-5 flex items-start gap-5">
+              <HealthDial score={data.healthScore} label={data.healthLabel} />
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-2">Business Health Summary</p>
+                <p className="text-[15px] text-[#cbd5e1] leading-[1.6]">{data.summary}</p>
+                <div className="mt-3 flex items-center gap-3">
+                  {generatedAgo && (
+                    <p className="text-[11px] text-slate-600">Generated {generatedAgo} · updates nightly</p>
+                  )}
+                  <button
+                    onClick={triggerGenerate}
+                    disabled={loading || generating || checking}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-white/8 px-2.5 py-1 text-[11px] text-slate-400 hover:text-white hover:border-white/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <svg
+                      className={(loading || generating || checking) ? "animate-spin" : ""}
+                      width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                    </svg>
+                    {generating ? "Generating…" : checking ? "Checking…" : "↻ Regenerate now"}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Right zone (40%) ── */}
+            <div className="sm:w-72 shrink-0 p-5 flex flex-col gap-3">
+              {/* 3 stat boxes */}
+              <div className="grid grid-cols-3 gap-2">
+                {/* Critical issues */}
+                <div
+                  className="rounded-xl border p-3 text-center"
+                  style={{
+                    borderColor: criticalCount > 0 ? "#ef444430" : "rgba(255,255,255,0.06)",
+                    background:  criticalCount > 0 ? "rgba(239,68,68,0.07)" : "#0f0f14",
+                  }}
+                >
+                  <p className="font-mono text-xl font-bold" style={{ color: criticalCount > 0 ? "#ef4444" : "#94a3b8" }}>
+                    {criticalCount}
+                  </p>
+                  <p className="text-[10px] text-slate-500 mt-0.5">Critical</p>
+                </div>
+                {/* Playbooks */}
+                <div className="rounded-xl border p-3 text-center" style={{ borderColor: "rgba(255,255,255,0.06)", background: "#0f0f14" }}>
+                  <p className="font-mono text-xl font-bold text-white">{playbooks.length}</p>
+                  <p className="text-[10px] text-slate-500 mt-0.5">Playbooks</p>
+                </div>
+                {/* Completed */}
+                <div
+                  className="rounded-xl border p-3 text-center"
+                  style={{
+                    borderColor: completedCount > 0 ? "#10b98130" : "rgba(255,255,255,0.06)",
+                    background:  completedCount > 0 ? "rgba(16,185,129,0.07)" : "#0f0f14",
+                  }}
+                >
+                  <p className="font-mono text-xl font-bold" style={{ color: completedCount > 0 ? "#10b981" : "#4a5568" }}>
+                    {completedCount}
+                  </p>
+                  <p className="text-[10px] text-slate-500 mt-0.5">Done</p>
+                </div>
+              </div>
+              {/* Progress bar */}
+              {playbooks.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <p className="text-[10px] text-slate-600">Playbook completion</p>
+                    <p className="text-[10px] font-mono text-slate-500">{completedCount} of {playbooks.length}</p>
+                  </div>
+                  <div className="h-1.5 w-full rounded-full overflow-hidden" style={{ background: "#1a1a2e" }}>
+                    <div
+                      className="h-full rounded-full transition-all duration-700"
+                      style={{
+                        width:      `${Math.round((completedCount / playbooks.length) * 100)}%`,
+                        background: completedCount === playbooks.length && playbooks.length > 0
+                          ? "#10b981"
+                          : criticalCount > 0 ? "#ef4444" : "#6366f1",
+                      }}
+                    />
+                  </div>
+                  {criticalCount > 0 && completedCount < playbooks.length && (
+                    <p className="mt-1 text-[10px] text-slate-600">Start with Critical issues ↑</p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-        {isPremium && (
+      ) : isPremium ? (
+        /* No data yet — show generate prompt */
+        <div className="rounded-2xl border border-white/6 bg-[#13131a] p-8 flex flex-col sm:flex-row items-center gap-6">
+          <div className="flex-1">
+            <h2 className="text-lg font-bold text-white mb-1">AI Fix-It Playbooks</h2>
+            <p className="text-sm text-slate-400 leading-relaxed">
+              Claude analyses your live data and generates personalised, step-by-step action plans for every problem detected in your business.
+            </p>
+          </div>
           <button
             onClick={triggerGenerate}
             disabled={loading || generating || checking}
-            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-300 hover:border-white/20 hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="shrink-0 inline-flex items-center gap-2 rounded-xl bg-[#6366f1] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#5558dd] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            <svg
-              className={(loading || generating || checking) ? "animate-spin" : ""}
-              width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+            <svg className={(loading || generating || checking) ? "animate-spin" : ""} width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
             </svg>
-            {generating ? "Generating…" : checking ? "Checking…" : loading ? "Loading…" : "Generate"}
+            {generating ? "Generating…" : checking ? "Checking…" : loading ? "Loading…" : "Generate my playbooks"}
           </button>
-        )}
-      </div>
+        </div>
+      ) : null}
 
       {/* ── Not premium ────────────────────────────────────────────────────── */}
       {!isPremium && <PremiumGate />}
-
-      {/* ── Summary bar ────────────────────────────────────────────────────── */}
-      {isPremium && data && !loading && (
-        <div className="rounded-2xl border border-white/8 bg-[#16162a] p-5 flex flex-col gap-5 sm:flex-row sm:items-center">
-          <div className="shrink-0 flex justify-center sm:justify-start">
-            <HealthRing score={data.healthScore} label={data.healthLabel} />
-          </div>
-          <div className="flex-1">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Business health</p>
-            <p className="text-sm text-slate-200 leading-relaxed">{data.summary}</p>
-            {generatedAgo && (
-              <p className="mt-2 text-xs text-slate-500">Generated {generatedAgo} · updates nightly</p>
-            )}
-          </div>
-          <div className="flex gap-3 sm:flex-col sm:items-end shrink-0">
-            {criticalCount > 0 && (
-              <div className="rounded-xl border border-white/8 bg-white/4 px-4 py-2.5 text-center min-w-15">
-                <p className="text-xl font-bold text-slate-300">{criticalCount}</p>
-                <p className="text-xs text-slate-600 mt-0.5">Critical</p>
-              </div>
-            )}
-            <div className="rounded-xl border border-white/8 bg-white/4 px-4 py-2.5 text-center min-w-15">
-              <p className="text-xl font-bold text-white">{playbooks.length}</p>
-              <p className="text-xs text-slate-500 mt-0.5">Playbooks</p>
-            </div>
-            {detectedCount > 0 && (
-              <div className="rounded-xl border border-white/8 bg-white/4 px-4 py-2.5 text-center min-w-15">
-                <p className="text-xl font-bold text-slate-300">{detectedCount}</p>
-                <p className="text-xs text-slate-600 mt-0.5">Detected</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* ── Loading ─────────────────────────────────────────────────────────── */}
       {isPremium && loading && (
@@ -1101,15 +1433,27 @@ export default function PlaybooksTab({
         </div>
       )}
 
+      {/* ── All complete celebration ──────────────────────────────────────── */}
+      {isPremium && data && !loading && allComplete && (
+        <div className="rounded-2xl border border-green-500/25 bg-green-500/8 p-8 text-center">
+          <p className="text-3xl mb-3">🎉</p>
+          <h3 className="text-base font-bold text-white mb-1">All {playbooks.length} playbooks complete!</h3>
+          <p className="text-sm text-slate-400">Your next update generates tonight. Fold will re-check all issues.</p>
+        </div>
+      )}
+
       {/* ── Filters ─────────────────────────────────────────────────────────── */}
-      {isPremium && data && !loading && (
+      {isPremium && data && !loading && !allComplete && (
         <div className="flex flex-wrap items-center gap-2">
           {categories.map((cat) => {
             const cfg    = cat === "all" ? null : CATEGORY_CONFIG[cat];
             const active = activeCategory === cat;
             const count  = cat === "all" ? playbooks.length : playbooks.filter((p) => p.category === cat).length;
             if (cat !== "all" && count === 0) return null;
-            const color = cfg?.color ?? "#34d399";
+            const color  = cfg?.color ?? "#6366f1";
+            // Severity dots for this category
+            const catPlaybooks = cat === "all" ? playbooks : playbooks.filter((p) => p.category === cat);
+            const sevDots = cat === "all" ? [] : catPlaybooks.slice(0, 4).map((p) => SEV_CONFIG[p.severity]?.color ?? "#6b7280");
             return (
               <button
                 key={cat}
@@ -1122,6 +1466,13 @@ export default function PlaybooksTab({
                 }}
               >
                 {cat === "all" ? "All" : cfg!.label}
+                {sevDots.length > 0 && (
+                  <span className="flex items-center gap-0.5">
+                    {sevDots.map((c, i) => (
+                      <span key={i} className="h-1.5 w-1.5 rounded-full" style={{ background: c }} />
+                    ))}
+                  </span>
+                )}
                 <span
                   className="rounded-md px-1.5 py-0 text-[10px] font-semibold"
                   style={{ background: active ? color + "22" : "#2a2a3e", color: active ? color : "#6b7280" }}
@@ -1132,60 +1483,107 @@ export default function PlaybooksTab({
             );
           })}
 
-          {detectedCount > 0 && (
-            <button
-              onClick={() => setShowOnlyTriggered((v) => !v)}
-              className="ml-auto inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-all"
-              style={{
-                borderColor: showOnlyTriggered ? "#60404080" : "#2a2a3e",
-                color:       showOnlyTriggered ? "#a06060" : "#6b7280",
-                background:  showOnlyTriggered ? "rgba(160,96,96,0.08)" : "transparent",
-              }}
+          <div className="ml-auto flex items-center gap-3">
+            {/* Live data toggle */}
+            <label className="flex items-center gap-2 cursor-pointer">
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  className="sr-only"
+                  checked={showOnlyTriggered}
+                  onChange={(e) => setShowOnlyTriggered(e.target.checked)}
+                />
+                <div
+                  className="h-5 w-9 rounded-full transition-colors"
+                  style={{ background: showOnlyTriggered ? "#ef444440" : "#2a2a3e" }}
+                />
+                <div
+                  className="absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform"
+                  style={{
+                    left:      showOnlyTriggered ? "calc(100% - 18px)" : "2px",
+                    background: showOnlyTriggered ? "#ef4444" : "#6b7280",
+                  }}
+                />
+              </div>
+              <span className="text-xs text-slate-400">Live data only</span>
+            </label>
+
+            {/* Sort dropdown */}
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as "priority" | "az" | "category")}
+              className="rounded-lg border border-[#2a2a3e] bg-transparent px-2 py-1.5 text-xs text-slate-400 focus:outline-none focus:border-white/20"
             >
-              <span
-                className="h-1.5 w-1.5 rounded-full"
-                style={{ backgroundColor: showOnlyTriggered ? "#a06060" : "#6b7280" }}
-              />
-              {showOnlyTriggered ? "Detected only" : "Show detected only"}
-            </button>
-          )}
+              <option value="priority">Sort: Priority</option>
+              <option value="az">Sort: A–Z</option>
+              <option value="category">Sort: Category</option>
+            </select>
+          </div>
         </div>
       )}
 
       {/* ── Playbook split layout ─────────────────────────────────────────── */}
-      {isPremium && data && !loading && (
+      {isPremium && data && !loading && !allComplete && (
         <div>
           {sorted.length === 0 ? (
-            <div className="rounded-2xl border border-white/5 bg-[#16162a] p-10 text-center">
+            <div className="rounded-2xl border border-white/5 bg-[#13131a] p-10 text-center">
               <p className="text-sm text-slate-500">No playbooks match the current filter.</p>
             </div>
           ) : (
-            <div className="flex gap-3" style={{ height: 600 }}>
-              {/* ── Left: compact list ─────────────────────────────────── */}
+            <div className="flex gap-4" style={{ minHeight: 640 }}>
+              {/* ── Left: 280px sidebar ─────────────────────────────────── */}
               <div
-                className="w-64 shrink-0 flex flex-col gap-0.5 overflow-y-auto rounded-2xl border p-2"
-                style={{ borderColor: "#1e1e30", background: "#0b0b18" }}
+                className="shrink-0 flex flex-col overflow-hidden rounded-2xl border"
+                style={{ width: 280, borderColor: "#1e1e30", background: "#0b0b18" }}
               >
-                {sorted.map((pb) => (
-                  <PlaybookListItem
-                    key={pb.id}
-                    playbook={pb}
-                    isSelected={openId === pb.id}
-                    onSelect={() => setOpenId(openId === pb.id ? null : pb.id)}
-                  />
-                ))}
+                {/* Sticky sidebar header */}
+                <div
+                  className="shrink-0 flex items-center justify-between gap-2 px-3 py-2.5 border-b"
+                  style={{ borderColor: "#1e1e30", background: "#0d0d12" }}
+                >
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                    {sorted.length} playbook{sorted.length !== 1 ? "s" : ""}
+                    {criticalCount > 0 ? ` · ` : ""}
+                    {criticalCount > 0 && (
+                      <span style={{ color: "#ef4444" }}>{criticalCount} critical</span>
+                    )}
+                  </span>
+                  {sortBy !== "priority" && (
+                    <button
+                      onClick={() => setSortBy("priority")}
+                      className="text-[9px] text-slate-600 hover:text-slate-400 transition-colors"
+                    >
+                      ↓ Priority
+                    </button>
+                  )}
+                </div>
+                {/* Scrollable list */}
+                <div className="flex-1 overflow-y-auto p-1.5 space-y-1">
+                  {sorted.map((pb) => (
+                    <PlaybookListItem
+                      key={pb.id}
+                      playbook={pb}
+                      isSelected={openId === pb.id}
+                      isCompleted={completedPlaybooks.has(pb.id)}
+                      onSelect={() => setOpenId(openId === pb.id ? null : pb.id)}
+                    />
+                  ))}
+                </div>
               </div>
 
-              {/* ── Right: detail ──────────────────────────────────────── */}
+              {/* ── Right: detail panel ─────────────────────────────────── */}
               <div className="flex-1 min-w-0">
                 {openId && (() => {
                   const selected = sorted.find((pb) => pb.id === openId);
                   return selected ? (
                     <PlaybookDetail
                       playbook={selected}
+                      allPlaybooks={playbooks}
                       feedback={feedback[selected.id] ?? { rating: null, completed_steps: [] }}
+                      isCompleted={completedPlaybooks.has(selected.id)}
                       onRating={(r) => handleRating(selected, r)}
                       onToggleStep={(idx) => handleToggleStep(selected, idx)}
+                      onMarkComplete={() => handleMarkComplete(selected.id)}
                       isDemo={isDemo}
                     />
                   ) : <PlaybookDetailEmpty />;

@@ -105,10 +105,11 @@ const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
   },
   {
     id: "danger" as Tab,
-    label: "Danger Zone",
+    label: "Advanced",
     icon: (
       <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
       </svg>
     ),
   },
@@ -485,6 +486,7 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [upgradeModal, setUpgradeModal] = useState<Tab | null>(null);
+  const [trialBannerDismissed, setTrialBannerDismissed] = useState(false);
 
   // Sync tab from URL — runs after hydration so SSR and client HTML always match.
   // Only update when the tab value actually changes to avoid fighting user clicks.
@@ -597,41 +599,46 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
 
         <nav className="flex flex-col gap-0.5 p-3 flex-1">
           <p className="px-2 pb-2 pt-1 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#8585aa]">Navigation</p>
-          {tabs.filter((tab) => !(isDemo && tab.id === "danger")).map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => navigate(tab.id)}
-              className={`relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-all ${
-                tab.id === "danger"
-                  ? activeTab === "danger"
-                    ? "bg-red-500/10 text-red-400 border border-red-500/20"
-                    : "text-red-400/60 hover:bg-red-500/8 hover:text-red-400 border border-transparent"
-                  : activeTab === tab.id
-                  ? "bg-[#00d4aa]/10 text-[#00d4aa] border border-[#00d4aa]/20"
-                  : "text-[#bcbcd8] hover:bg-[#363650]/80 hover:text-[#f8f8fc] border border-transparent"
-              }`}
-            >
-              {/* Active left-border indicator */}
-              {activeTab === tab.id && (
-                <span className={`absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 rounded-r-full ${tab.id === "danger" ? "bg-red-400" : "bg-[#00d4aa]"}`} />
+        {tabs.filter((tab) => !(isDemo && tab.id === "danger")).map((tab) => (
+            <div key={tab.id}>
+              {/* Visual separator above Advanced (settings sub-section) */}
+              {tab.id === "danger" && (
+                <div className="mt-1 mb-1 border-t border-[#363650]/50" />
               )}
-              <span className={
-                tab.id === "danger"
-                  ? activeTab === "danger" ? "text-red-400" : "text-red-400/50"
-                  : activeTab === tab.id ? "text-[#00d4aa]" : "text-[#8585aa]"
-              }>
-                {tab.icon}
-              </span>
-              {tab.label}
-              {/* Premium lock badge for non-premium tabs */}
-              {!isPremium && (tab.id === "analytics" || tab.id === "growth" || tab.id === "customers" || tab.id === "ai") && (
-                <span className="ml-auto">
-                  <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className="text-[#8585aa]">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-                  </svg>
+              <button
+                onClick={() => navigate(tab.id)}
+                className={`relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-all ${
+                  tab.id === "danger"
+                    ? activeTab === "danger"
+                      ? "bg-[#363650]/60 text-[#bcbcd8] border border-[#454560]"
+                      : "text-[#8585aa] hover:bg-[#363650]/50 hover:text-[#bcbcd8] border border-transparent pl-5"
+                    : activeTab === tab.id
+                    ? "bg-[#00d4aa]/10 text-[#00d4aa] border border-[#00d4aa]/20"
+                    : "text-[#bcbcd8] hover:bg-[#363650]/80 hover:text-[#f8f8fc] border border-transparent"
+                }`}
+              >
+                {/* Active left-border indicator */}
+                {activeTab === tab.id && tab.id !== "danger" && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 rounded-r-full bg-[#00d4aa]" />
+                )}
+                <span className={
+                  tab.id === "danger"
+                    ? activeTab === "danger" ? "text-[#8585aa]" : "text-[#58588a]"
+                    : activeTab === tab.id ? "text-[#00d4aa]" : "text-[#8585aa]"
+                }>
+                  {tab.icon}
                 </span>
-              )}
-            </button>
+                <span className={tab.id === "danger" ? "text-[13px]" : ""}>{tab.label}</span>
+                {/* Premium lock badge for non-premium tabs */}
+                {!isPremium && (tab.id === "analytics" || tab.id === "growth" || tab.id === "customers" || tab.id === "ai") && (
+                  <span className="ml-auto">
+                    <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className="text-[#8585aa]">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                    </svg>
+                  </span>
+                )}
+              </button>
+            </div>
           ))}
         </nav>
 
@@ -718,6 +725,33 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
         </div>
 
         <div className="p-6 lg:p-8">
+          {/* ── Dismissable trial banner — shown at top of content when on trial ── */}
+          {isOnTrial && !trialBannerDismissed && !isDemo && (
+            <div className="mb-6 flex items-center gap-3 rounded-xl border border-[#f59e0b]/30 bg-[#f59e0b]/8 px-4 py-3">
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#f59e0b" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z" />
+              </svg>
+              <p className="flex-1 font-mono text-xs text-[#f8f8fc]">
+                <span className="font-bold text-[#f59e0b]">⏳ {trialDaysLeft}d left on your trial</span>
+                {" — "}Upgrade now to keep your data and unlock all features after your trial ends.
+              </p>
+              <a
+                href="/api/stripe/checkout"
+                className="shrink-0 rounded-lg bg-[#f59e0b] px-3 py-1.5 font-mono text-[10px] font-bold text-[#13131f] hover:bg-[#e08a00] transition"
+              >
+                Upgrade →
+              </a>
+              <button
+                onClick={() => setTrialBannerDismissed(true)}
+                className="shrink-0 flex h-6 w-6 items-center justify-center rounded-lg text-[#f59e0b]/60 hover:bg-[#f59e0b]/15 hover:text-[#f59e0b] transition"
+                aria-label="Dismiss"
+              >
+                <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          )}
           {/* Syncing banner — shown right after a platform connects */}
           {isSyncing && (
             <div className="mb-6 flex items-center gap-3 rounded-xl border border-[#00d4aa]/30 bg-[#00d4aa]/10 px-4 py-3">
