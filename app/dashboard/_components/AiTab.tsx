@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { Tab } from "./DashboardShell";
+import React from "react";
 
 interface Message {
   id: string;
@@ -32,7 +33,7 @@ interface AiTabProps {
 type Goal = "grow_mrr" | "reduce_churn" | "scale_ads" | null;
 
 // ── Goal helpers ───────────────────────────────────────────────────────────
-const GOAL_OPTIONS: { id: Goal; label: string; icon: JSX.Element; color: string }[] = [
+const GOAL_OPTIONS: { id: Goal; label: string; icon: React.ReactNode; color: string }[] = [
   { id: "grow_mrr",      label: "Grow MRR",     color: "#00d4aa", icon: <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
   { id: "reduce_churn",  label: "Reduce Churn", color: "#f59e0b", icon: <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg> },
   { id: "scale_ads",     label: "Scale Ads",    color: "#a78bfa", icon: <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" /></svg> },
@@ -50,9 +51,9 @@ function saveGoal(g: Goal) {
 }
 
 /** Map content keywords → tabs to suggest */
-function inferInvestigateTabs(content: string): { tab: Tab; label: string; icon: JSX.Element }[] {
+function inferInvestigateTabs(content: string): { tab: Tab; label: string; icon: React.ReactNode }[] {
   const c = content.toLowerCase();
-  const tabs: { tab: Tab; label: string; icon: JSX.Element }[] = [];
+  const tabs: { tab: Tab; label: string; icon: React.ReactNode }[] = [];
 
   // overview
   if (c.includes("overview") || c.includes("dashboard") || c.includes("summary") || c.includes("overall"))
@@ -880,7 +881,7 @@ function ConvItem({
 }
 
 // ── EmptyNewChat ───────────────────────────────────────────────────────────
-const SUGGESTED_QUESTIONS: { icon: JSX.Element; label: string; q: string }[] = [
+const SUGGESTED_QUESTIONS: { icon: React.ReactNode; label: string; q: string }[] = [
   { icon: <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>, label: "Analyze this week", q: "Analyze my business performance this week" },
   { icon: <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>, label: "Find my biggest risk", q: "What is my biggest business risk right now?" },
   { icon: <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>, label: "Suggest growth ideas", q: "Give me 3 growth ideas based on my data" },
