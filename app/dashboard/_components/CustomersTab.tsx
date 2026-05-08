@@ -317,7 +317,9 @@ function EmailModal({ customer, onClose }: { customer: ScoredCustomer; onClose: 
             <h3 className="font-mono text-sm font-bold text-[#f8f8fc]">Re-engagement Email</h3>
             <p className="font-mono text-[9px] text-[#8585aa] mt-0.5">{customer.name} · {daysSince(customer.lastSeen)}d silent</p>
           </div>
-          <button onClick={onClose} className="font-mono text-[#8585aa] hover:text-[#f8f8fc] text-lg leading-none">✕</button>
+          <button onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-lg text-[#8585aa] hover:text-[#f8f8fc] hover:bg-[#363650] transition-colors">
+            <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
         </div>
         <div className="mb-3 space-y-1">
           <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">To</p>
@@ -339,7 +341,12 @@ function EmailModal({ customer, onClose }: { customer: ScoredCustomer; onClose: 
           </button>
           <button onClick={copyAll} className="flex-1 rounded-xl py-2 font-mono text-[11px] font-bold transition-colors"
             style={{ backgroundColor: copied ? "#10b981" : "#f59e0b", color: "#0d0d0f" }}>
-            {copied ? "✓ Copied!" : "Copy Email"}
+            {copied ? (
+              <span className="flex items-center justify-center gap-1">
+                <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                Copied!
+              </span>
+            ) : "Copy Email"}
           </button>
         </div>
       </div>
@@ -596,10 +603,10 @@ export default function CustomersTab({
 
   // Revenue concentration risk
   const concentrationRisk = stats.top10pct > 60
-    ? { label: "High Risk",         color: "#ef4444", emoji: "🔴" }
+    ? { label: "High Risk",         color: "#ef4444", icon: <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#ef4444" /></svg> }
     : stats.top10pct > 35
-    ? { label: "Medium Risk",       color: "#f59e0b", emoji: "🟡" }
-    : { label: "Well Diversified",  color: "#10b981", emoji: "🟢" };
+    ? { label: "Medium Risk",       color: "#f59e0b", icon: <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#f59e0b" /></svg> }
+    : { label: "Well Diversified",  color: "#10b981", icon: <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#10b981" /></svg> };
 
   const topCustomer    = customers[0];
   const topCustomerPct = stats.totalRevenue > 0 && topCustomer
@@ -616,13 +623,15 @@ export default function CustomersTab({
           className="flex items-start gap-3 rounded-xl border bg-[#f59e0b]/08 px-4 py-3"
           style={{ borderColor: "#f59e0b50", borderLeftWidth: 4, borderLeftColor: "#f59e0b", background: "#f59e0b08" }}
         >
-          <span className="text-[#f59e0b] text-base mt-0.5 shrink-0">⚠</span>
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#f59e0b" strokeWidth={2} className="mt-0.5 shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
           <p className="flex-1 font-mono text-[11px] text-[#f8f8fc] leading-relaxed">
             <span className="font-bold text-[#f59e0b]">{atRiskList.length} of {stats.totalCustomers}</span> customers haven&apos;t purchased in 30+ days —{" "}
             <span className="font-bold text-[#f59e0b]">{fmtCents(atRiskLtv, revCurrency)}</span> combined LTV at risk.{" "}
             <a href="#at-risk" className="text-[#f59e0b] underline underline-offset-2 hover:text-[#fbbf24]">Start a re-engagement campaign →</a>
           </p>
-          <button onClick={() => setAlertDismissed(true)} className="font-mono text-[#8585aa] hover:text-[#f8f8fc] text-sm shrink-0">✕</button>
+          <button onClick={() => setAlertDismissed(true)} className="flex h-6 w-6 items-center justify-center rounded-lg text-[#8585aa] hover:text-[#f8f8fc] hover:bg-[#f59e0b]/10 shrink-0 transition-colors">
+            <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
         </div>
       )}
 
@@ -637,10 +646,10 @@ export default function CustomersTab({
       {/* ── KPI pills ───────────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-2">
         {[
-          { emoji: "👥", label: "Total", value: String(stats.totalCustomers), color: "#8585aa" },
-          { emoji: "✓",  label: "Active", value: String(stats.activeCount), color: "#10b981" },
-          { emoji: "💰", label: "Avg LTV", value: fmtCents(stats.avgLtv, revCurrency), color: "#f59e0b" },
-          { emoji: "🔴", label: "At Risk", value: `${stats.atRiskCount} (${stats.totalCustomers > 0 ? Math.round((stats.atRiskCount / stats.totalCustomers) * 100) : 0}%)`,
+          { icon: <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg>, label: "Total", value: String(stats.totalCustomers), color: "#8585aa" },
+          { icon: <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>, label: "Active", value: String(stats.activeCount), color: "#10b981" },
+          { icon: <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>, label: "Avg LTV", value: fmtCents(stats.avgLtv, revCurrency), color: "#f59e0b" },
+          { icon: <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>, label: "At Risk", value: `${stats.atRiskCount} (${stats.totalCustomers > 0 ? Math.round((stats.atRiskCount / stats.totalCustomers) * 100) : 0}%)`,
             color: stats.atRiskCount > stats.totalCustomers * 0.5 ? "#ef4444" : "#f59e0b", urgent: stats.atRiskCount > stats.totalCustomers * 0.5 },
         ].map((p) => (
           <span
@@ -652,7 +661,7 @@ export default function CustomersTab({
               color: p.color,
             }}
           >
-            <span>{p.emoji}</span>
+            <span>{p.icon}</span>
             <span className="text-[#8585aa]">{p.label}</span>
             <span className="font-bold text-[#f8f8fc]">{p.value}</span>
           </span>
@@ -762,7 +771,7 @@ export default function CustomersTab({
           {/* AI insight callout */}
           <div className="mt-5 rounded-xl border border-[#6366f1]/25 bg-[#6366f1]/08 p-4" style={{ background: "#6366f108" }}>
             <div className="flex items-start gap-2 mb-2">
-              <span className="text-sm">💡</span>
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#a5b4fc" strokeWidth={1.8} className="mt-px shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" /></svg>
               <p className="font-mono text-[10px] font-bold text-[#a5b4fc]">Key Insight</p>
             </div>
             <div className="space-y-1 font-mono text-[10px] text-[#8585aa] leading-relaxed pl-5">
@@ -791,7 +800,7 @@ export default function CustomersTab({
           {/* Table controls */}
           <div className="flex flex-wrap items-center gap-2 mb-4">
             <div className="relative flex-1 min-w-40">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8585aa] text-sm">🔍</span>
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8585aa]"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 15.803a7.5 7.5 0 0010.607 0z" /></svg>
               <input
                 className="w-full rounded-xl border border-[rgba(255,255,255,0.08)] bg-[#0d0d0f] pl-8 pr-3 py-1.5 font-mono text-[11px] text-[#f8f8fc] focus:border-[#6366f1] focus:outline-none"
                 placeholder="Search customers..."
@@ -883,7 +892,7 @@ export default function CustomersTab({
                                 title="Send re-engagement email"
                                 className="flex h-7 w-7 items-center justify-center rounded-lg border border-[rgba(255,255,255,0.08)] text-[#8585aa] hover:border-[#f59e0b] hover:text-[#f59e0b] transition-colors"
                               >
-                                ✉
+                                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /></svg>
                               </button>
                             </div>
                           </td>
@@ -917,9 +926,10 @@ export default function CustomersTab({
                                 <div className="flex gap-2">
                                   <button
                                     onClick={() => setEmailCustomer(c)}
-                                    className="rounded-xl border border-[#f59e0b]/40 px-3 py-1.5 font-mono text-[10px] text-[#f59e0b] hover:border-[#f59e0b] transition-colors"
+                                    className="rounded-xl border border-[#f59e0b]/40 px-3 py-1.5 font-mono text-[10px] text-[#f59e0b] hover:border-[#f59e0b] transition-colors flex items-center gap-1.5"
                                   >
-                                    ✉ Send re-engagement
+                                    <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /></svg>
+                                    Send re-engagement
                                   </button>
                                   <button className="rounded-xl border border-[#6366f1]/40 px-3 py-1.5 font-mono text-[10px] text-[#a5b4fc] hover:border-[#6366f1] transition-colors">
                                     → AI Advisor
@@ -1057,12 +1067,14 @@ export default function CustomersTab({
               </div>
               <div className="flex gap-2">
                 {selectedAtRisk.size > 0 && (
-                  <button className="rounded-xl border border-[#f59e0b]/40 px-3 py-1.5 font-mono text-[10px] text-[#f59e0b] hover:border-[#f59e0b] transition-colors">
-                    ✉ Email {selectedAtRisk.size} selected
+                  <button className="rounded-xl border border-[#f59e0b]/40 px-3 py-1.5 font-mono text-[10px] text-[#f59e0b] hover:border-[#f59e0b] transition-colors flex items-center gap-1.5">
+                    <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /></svg>
+                    Email {selectedAtRisk.size} selected
                   </button>
                 )}
-                {/* <button className="rounded-xl border border-[#f59e0b]/40 px-3 py-1.5 font-mono text-[10px] text-[#f59e0b] hover:border-[#f59e0b] transition-colors">
-                  ✉ Email all at-risk
+                {/* <button className="rounded-xl border border-[#f59e0b]/40 px-3 py-1.5 font-mono text-[10px] text-[#f59e0b] hover:border-[#f59e0b] transition-colors flex items-center gap-1.5">
+                  <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /></svg>
+                  Email all at-risk
                 </button> */}
                 {/* <button className="rounded-xl bg-[#f59e0b] px-3 py-1.5 font-mono text-[10px] font-bold text-[#0d0d0f] hover:bg-[#fbbf24] transition-colors">
                   → Win-back playbook
@@ -1104,15 +1116,17 @@ export default function CustomersTab({
                           </p>
                         </div>
                         <div className="text-right shrink-0">
-                          <p className="font-mono text-[11px] font-bold" style={{ color: urgencyColor }}>
-                            {days >= 120 ? "⚠ " : ""}{days}d silent
+                          <p className="font-mono text-[11px] font-bold flex items-center gap-1" style={{ color: urgencyColor }}>
+                            {days >= 120 && <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>}
+                            {days}d silent
                           </p>
                         </div>
                         <button
                           onClick={() => setEmailCustomer(c)}
-                          className="shrink-0 rounded-xl border border-[#ef4444]/30 px-2.5 py-1 font-mono text-[9px] text-[#ef4444] hover:border-[#ef4444] transition-colors"
+                          className="shrink-0 rounded-xl border border-[#ef4444]/30 px-2.5 py-1 font-mono text-[9px] text-[#ef4444] hover:border-[#ef4444] transition-colors flex items-center gap-1"
                         >
-                          ✉ Re-engage
+                          <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /></svg>
+                          Re-engage
                         </button>
                       </div>
                     );
@@ -1158,9 +1172,10 @@ export default function CustomersTab({
                         </div>
                         <button
                           onClick={() => setEmailCustomer(c)}
-                          className="shrink-0 rounded-xl border border-[#f59e0b]/30 px-2.5 py-1 font-mono text-[9px] text-[#f59e0b] hover:border-[#f59e0b] transition-colors"
+                          className="shrink-0 rounded-xl border border-[#f59e0b]/30 px-2.5 py-1 font-mono text-[9px] text-[#f59e0b] hover:border-[#f59e0b] transition-colors flex items-center gap-1"
                         >
-                          ✉ Re-engage
+                          <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /></svg>
+                          Re-engage
                         </button>
                       </div>
                     );
@@ -1191,7 +1206,7 @@ export default function CustomersTab({
             className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 font-mono text-[9px] font-bold"
             style={{ borderColor: concentrationRisk.color + "50", background: concentrationRisk.color + "15", color: concentrationRisk.color }}
           >
-            {concentrationRisk.emoji} {concentrationRisk.label}
+            {concentrationRisk.icon} {concentrationRisk.label}
           </span>
         </div>
 
@@ -1201,7 +1216,7 @@ export default function CustomersTab({
               label: `Top 10% of customers (${Math.max(1, Math.floor(stats.totalCustomers * 0.1))})`,
               pct: stats.top10pct,
               color: stats.top10pct > 60 ? "#ef4444" : stats.top10pct > 35 ? "#f59e0b" : "#10b981",
-              verdict: stats.top10pct > 60 ? "⚠ High concentration — losing 1-2 customers hurts" : stats.top10pct > 35 ? "Moderate — worth nurturing top customers" : "Healthy — no single customer dominates",
+              verdict: stats.top10pct > 60 ? "High concentration — losing 1-2 customers hurts" : stats.top10pct > 35 ? "Moderate — worth nurturing top customers" : "Healthy — no single customer dominates",
             },
             {
               label: `Top 25% of customers (${Math.max(1, Math.floor(stats.totalCustomers * 0.25))})`,

@@ -470,16 +470,30 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
   const trialMsLeft = trialEndsAt
     ? Math.max(0, new Date(trialEndsAt).getTime() - Date.now())
     : null;
-  // Ceiling so "47h 59m left" shows as "2d left", not "1d left"
+  // Floor days so last 23h shows as hours, not "1d left"
   const trialDaysLeft = trialMsLeft !== null
-    ? Math.ceil(trialMsLeft / (1000 * 60 * 60 * 24))
+    ? Math.floor(trialMsLeft / (1000 * 60 * 60 * 24))
     : null;
+  const trialHoursLeft = trialMsLeft !== null
+    ? Math.ceil(trialMsLeft / (1000 * 60 * 60))
+    : null;
+  // Human-readable label: days → hours when < 2 days remain
+  const trialTimeLabel =
+    trialMsLeft === null || trialMsLeft === 0
+      ? null
+      : trialDaysLeft! >= 2
+      ? `${trialDaysLeft}d left`
+      : trialHoursLeft! > 0
+      ? `${trialHoursLeft}h left`
+      : "Expires soon";
+  // Urgent when less than 24 h remain
+  const trialUrgent = trialMsLeft !== null && trialMsLeft < 24 * 60 * 60 * 1000;
   // Exact fraction elapsed (0 = just started, 1 = expired) for the progress bar
-  const TRIAL_DURATION_MS = 3 * 24 * 60 * 60 * 1000;
+  const TRIAL_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7-day trial
   const trialElapsedPct = trialMsLeft !== null
     ? Math.min(100, Math.max(5, ((TRIAL_DURATION_MS - trialMsLeft) / TRIAL_DURATION_MS) * 100))
     : 0;
-  const isOnTrial = trialDaysLeft !== null && trialDaysLeft > 0;
+  const isOnTrial = trialMsLeft !== null && trialMsLeft > 0;
 
   // Always start with "overview" on server/first render to avoid hydration mismatch.
   // The useEffect below immediately corrects the tab from the URL on the client.
@@ -646,28 +660,28 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
         <div className="relative p-3 border-t border-[#363650]/60">
           {isOnTrial ? (
             /* ── Trial countdown badge ── */
-            <div className="rounded-xl border border-[#f59e0b]/25 bg-[#f59e0b]/5 px-3 py-2.5">
+            <div className={`rounded-xl border px-3 py-2.5 ${trialUrgent ? "border-red-500/30 bg-red-500/5" : "border-[#f59e0b]/25 bg-[#f59e0b]/5"}`}>
               <div className="flex items-center justify-between gap-1 mb-1.5">
                 <div className="flex items-center gap-1.5">
-                  <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="#f59e0b" strokeWidth={2.5}>
+                  <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke={trialUrgent ? "#ef4444" : "#f59e0b"} strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z" />
                   </svg>
-                  <p className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#f59e0b]">Free Trial</p>
+                  <p className={`font-mono text-[9px] font-semibold uppercase tracking-widest ${trialUrgent ? "text-red-400" : "text-[#f59e0b]"}`}>Free Trial</p>
                 </div>
-                <p className="font-mono text-[9px] font-bold text-[#f59e0b]">
-                  {trialDaysLeft === 0 ? "Expires today" : `${trialDaysLeft}d left`}
+                <p className={`font-mono text-[9px] font-bold ${trialUrgent ? "text-red-400" : "text-[#f59e0b]"}`}>
+                  {trialTimeLabel}
                 </p>
               </div>
               {/* Progress bar */}
               <div className="h-1 w-full rounded-full bg-[#363650] overflow-hidden mb-2">
                 <div
-                  className="h-full rounded-full bg-[#f59e0b] transition-all"
-                  style={{ width: `${trialElapsedPct}%` }}
+                  className="h-full rounded-full transition-all"
+                  style={{ width: `${trialElapsedPct}%`, backgroundColor: trialUrgent ? "#ef4444" : "#f59e0b" }}
                 />
               </div>
               <a
                 href="/api/stripe/checkout"
-                className="block w-full rounded-lg bg-[#f59e0b]/10 border border-[#f59e0b]/20 px-2 py-1.5 text-center font-mono text-[9px] font-semibold text-[#f59e0b] hover:bg-[#f59e0b]/20 transition"
+                className={`block w-full rounded-lg border px-2 py-1.5 text-center font-mono text-[9px] font-semibold transition ${trialUrgent ? "border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20" : "border-[#f59e0b]/20 bg-[#f59e0b]/10 text-[#f59e0b] hover:bg-[#f59e0b]/20"}`}
               >
                 Upgrade now →
               </a>
@@ -727,17 +741,19 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
         <div className="p-6 lg:p-8">
           {/* ── Dismissable trial banner — shown at top of content when on trial ── */}
           {isOnTrial && !trialBannerDismissed && !isDemo && (
-            <div className="mb-6 flex items-center gap-3 rounded-xl border border-[#f59e0b]/30 bg-[#f59e0b]/8 px-4 py-3">
-              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#f59e0b" strokeWidth={2}>
+            <div className={`mb-6 flex items-center gap-3 rounded-xl border px-4 py-3 ${trialUrgent ? "border-red-500/30 bg-red-500/8" : "border-[#f59e0b]/30 bg-[#f59e0b]/8"}`}>
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke={trialUrgent ? "#ef4444" : "#f59e0b"} strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z" />
               </svg>
               <p className="flex-1 font-mono text-xs text-[#f8f8fc]">
-                <span className="font-bold text-[#f59e0b]">⏳ {trialDaysLeft}d left on your trial</span>
+                <span className={`font-bold ${trialUrgent ? "text-red-400" : "text-[#f59e0b]"}`}>
+                  ⏳ {trialTimeLabel} on your trial
+                </span>
                 {" — "}Upgrade now to keep your data and unlock all features after your trial ends.
               </p>
               <a
                 href="/api/stripe/checkout"
-                className="shrink-0 rounded-lg bg-[#f59e0b] px-3 py-1.5 font-mono text-[10px] font-bold text-[#13131f] hover:bg-[#e08a00] transition"
+                className={`shrink-0 rounded-lg px-3 py-1.5 font-mono text-[10px] font-bold transition ${trialUrgent ? "bg-red-500 text-white hover:bg-red-600" : "bg-[#f59e0b] text-[#13131f] hover:bg-[#e08a00]"}`}
               >
                 Upgrade →
               </a>

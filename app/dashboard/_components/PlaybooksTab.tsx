@@ -14,32 +14,58 @@ import type { AiPlaybook, AiPlaybookChart, AiPlaybooksResponse } from "@/app/api
 
 const TIPS = [
   {
-    icon: "🎯",
+    icon: (
+      <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="#00d4aa" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5a7.5 7.5 0 100 15 7.5 7.5 0 000-15zm0 0V3m0 18v-1.5M12 12a2.25 2.25 0 100-4.5 2.25 2.25 0 000 4.5z" />
+        <circle cx="12" cy="12" r="2.25" stroke="#00d4aa" strokeWidth={1.8} fill="none" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 12l4.5-4.5" />
+      </svg>
+    ),
     title: "Connect more platforms for better insights",
     body: "The more data sources you connect (Stripe, GA4, Meta Ads…), the more specific and actionable your playbooks become. Generic advice is worthless — real numbers unlock real recommendations.",
   },
   {
-    icon: "📊",
+    icon: (
+      <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="#6366f1" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z" />
+      </svg>
+    ),
     title: "Playbooks reference your actual metrics",
     body: "Every recommendation cites your real revenue, sessions, churn rate and ad spend — not industry averages. If a number looks wrong, check your integration is syncing correctly.",
   },
   {
-    icon: "⚡",
+    icon: (
+      <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="#f59e0b" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+      </svg>
+    ),
     title: "Critical issues are ranked first",
     body: "Your playbooks are ordered from most urgent to biggest opportunity. Start with Critical — those are issues that are actively costing you money or growth right now.",
   },
   {
-    icon: "✅",
+    icon: (
+      <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="#10b981" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    ),
     title: "Check off steps as you complete them",
     body: "Each playbook has 4–6 concrete steps. Tick them off as you go — the AI will track your progress and avoid repeating advice you've already acted on in future generations.",
   },
   {
-    icon: "👍",
+    icon: (
+      <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="#a78bfa" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M6.633 10.5c.806 0 1.533-.446 2.031-1.08a9.041 9.041 0 012.861-2.4c.723-.384 1.35-.956 1.653-1.715a4.498 4.498 0 00.322-1.672V3a.75.75 0 01.75-.75A2.25 2.25 0 0116.5 4.5c0 1.152-.26 2.243-.723 3.218-.266.558.107 1.282.725 1.282h3.126c1.026 0 1.945.694 2.054 1.715.045.422.068.85.068 1.285a11.95 11.95 0 01-2.649 7.521c-.388.482-.987.729-1.605.729H13.48c-.483 0-.964-.078-1.423-.23l-3.114-1.04a4.501 4.501 0 00-1.423-.23H5.904M14.25 9h2.25M5.904 18.75c.083.205.173.405.27.602.197.4-.078.898-.523.898h-.908c-.889 0-1.713-.518-1.972-1.368a12 12 0 01-.521-3.507c0-1.553.295-3.036.831-4.398C3.387 10.203 4.167 9.75 5 9.75h1.053c.472 0 .745.556.5.96a8.958 8.958 0 00-1.302 4.665c0 1.194.232 2.333.654 3.375z" />
+      </svg>
+    ),
     title: "Rate playbooks to teach the AI",
     body: "Thumbs up / down on each playbook teaches the AI what works for your business. Over time it gets sharper, avoids unhelpful patterns, and surfaces better opportunities.",
   },
   {
-    icon: "🔄",
+    icon: (
+      <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="#60a5fa" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+      </svg>
+    ),
     title: "Playbooks refresh automatically every week",
     body: "You don't need to manually regenerate — the daemon runs every Sunday night and produces fresh playbooks based on the latest 30 days of data. You can also trigger a manual refresh anytime.",
   },
@@ -105,7 +131,7 @@ function GeneratingTipsModal({ onClose, onNeverShow }: { onClose: () => void; on
           style={{ borderColor: "#1e2040", background: "#13141f" }}
         >
           <div className="flex items-start gap-3">
-            <span className="text-2xl leading-none mt-0.5">{tip.icon}</span>
+            <span className="shrink-0 mt-0.5">{tip.icon}</span>
             <div>
               <p className="text-sm font-semibold text-white mb-1">{tip.title}</p>
               <p className="text-sm text-slate-400 leading-relaxed">{tip.body}</p>
@@ -397,9 +423,9 @@ function ProofChart({ chart, accentColor, uid }: { chart: AiPlaybookChart; accen
 // ─────────────────────────────────────────────────────────────────────────────
 
 const SEV_CONFIG = {
-  critical:    { color: "#ef4444", label: "Critical",    bg: "rgba(239,68,68,0.1)",    icon: "🔴" },
-  warning:     { color: "#f59e0b", label: "Warning",     bg: "rgba(245,158,11,0.1)",   icon: "🟡" },
-  opportunity: { color: "#10b981", label: "Opportunity", bg: "rgba(16,185,129,0.1)",   icon: "🟢" },
+  critical:    { color: "#ef4444", label: "Critical",    bg: "rgba(239,68,68,0.1)",    icon: <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#ef4444" /></svg> },
+  warning:     { color: "#f59e0b", label: "Warning",     bg: "rgba(245,158,11,0.1)",   icon: <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#f59e0b" /></svg> },
+  opportunity: { color: "#10b981", label: "Opportunity", bg: "rgba(16,185,129,0.1)",   icon: <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#10b981" /></svg> },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -441,10 +467,15 @@ function PlaybookListItem({
         {/* Top: severity + category */}
         <div className="flex items-center gap-1.5 min-w-0">
           <span
-            className="shrink-0 text-[9px] font-bold uppercase tracking-widest"
+            className="shrink-0 flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest"
             style={{ color: isCompleted ? "#10b981" : sev.color }}
           >
-            {isCompleted ? "✓ Done" : sev.label}
+            {isCompleted ? (
+              <>
+                <svg width="9" height="9" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                Done
+              </>
+            ) : sev.label}
           </span>
           <span className="text-[#2a2a3e] shrink-0">·</span>
           <span
@@ -495,6 +526,7 @@ function PlaybookDetail({
   onRating,
   onToggleStep,
   onMarkComplete,
+  onSelect,
   isDemo,
 }: {
   playbook: AiPlaybook;
@@ -504,6 +536,7 @@ function PlaybookDetail({
   onRating: (r: 1 | -1 | null) => void;
   onToggleStep: (idx: number) => void;
   onMarkComplete: () => void;
+  onSelect: (id: string) => void;
   isDemo: boolean;
 }) {
   const sev      = SEV_CONFIG[playbook.severity] ?? SEV_CONFIG.opportunity;
@@ -517,6 +550,11 @@ function PlaybookDetail({
   const allStepsDone   = doneCount === playbook.steps.length && playbook.steps.length > 0;
   const effort         = getEffort(playbook.steps.length);
   const implTime       = playbook.steps.length <= 2 ? "~24 hours" : playbook.steps.length <= 4 ? "~48 hours" : "~72 hours";
+
+  const [shareLoading, setShareLoading] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
+  const [shareError, setShareError] = useState("");
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   // Section numbering — computed once
   const sn = (() => {
@@ -598,13 +636,47 @@ function PlaybookDetail({
               </button>
             )}
             <button
-              className="inline-flex items-center gap-1.5 rounded-xl border border-white/8 px-3 py-1.5 text-xs font-medium text-slate-400 hover:text-white hover:border-white/20 transition-colors"
-              onClick={() => { navigator.clipboard?.writeText(window.location.href).catch(() => {}); }}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-white/8 px-3 py-1.5 text-xs font-medium text-slate-400 hover:text-white hover:border-white/20 transition-colors disabled:opacity-50"
+              disabled={shareLoading}
+              onClick={async () => {
+                setShareLoading(true);
+                setShareError("");
+                try {
+                  const res = await fetch("/api/playbook/share", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ playbook }),
+                  });
+                  if (!res.ok) throw new Error("Failed");
+                  const { url } = await res.json();
+                  await navigator.clipboard.writeText(url);
+                  setShareCopied(true);
+                  setTimeout(() => setShareCopied(false), 2500);
+                } catch {
+                  setShareError("Could not create link");
+                  setTimeout(() => setShareError(""), 3000);
+                } finally {
+                  setShareLoading(false);
+                }
+              }}
             >
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13" />
-              </svg>
-              Share
+              {shareLoading ? (
+                <svg className="animate-spin" width="11" height="11" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeOpacity="0.3" strokeWidth="3" />
+                  <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                </svg>
+              ) : shareCopied ? (
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13" />
+                </svg>
+              )}
+              <span style={{ color: shareCopied ? "#10b981" : shareError ? "#ef4444" : undefined }}>
+                {shareLoading ? "Creating link…" : shareCopied ? "Link copied!" : shareError || "Share"}
+              </span>
             </button>
           </div>
         </div>
@@ -614,7 +686,7 @@ function PlaybookDetail({
       </div>
 
       {/* ── Scrollable body ── */}
-      <div className="flex-1 overflow-y-auto px-6 py-5 space-y-7">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-5 space-y-7">
 
         {/* Completed banner */}
         {isCompleted && (
@@ -644,7 +716,7 @@ function PlaybookDetail({
           </div>
           <div className="border-l border-white/5 pl-4 flex flex-col gap-2 justify-center">
             <div className="flex items-center gap-1.5">
-              <span className="text-[11px] text-slate-500">⏱</span>
+              <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} className="text-slate-500"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z" /></svg>
               <span className="text-xs text-slate-400 font-medium">{implTime} to implement</span>
             </div>
             <div>
@@ -656,7 +728,7 @@ function PlaybookDetail({
               </span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="text-[11px] text-slate-500">📋</span>
+              <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} className="text-slate-500"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
               <span className="text-xs text-slate-400">{playbook.steps.length} action step{playbook.steps.length !== 1 ? "s" : ""}</span>
             </div>
           </div>
@@ -757,8 +829,9 @@ function PlaybookDetail({
                   />
                 </div>
                 {allStepsDone && (
-                  <p className="mt-1.5 text-[11px] font-medium text-green-400">
-                    ✓ All steps done — press &ldquo;Mark Complete&rdquo; above to finalise.
+                  <p className="mt-1.5 flex items-center gap-1 text-[11px] font-medium text-green-400">
+                    <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                    All steps done — press &ldquo;Mark Complete&rdquo; above to finalise.
                   </p>
                 )}
               </div>
@@ -876,7 +949,8 @@ function PlaybookDetail({
                 return (
                   <div
                     key={rp.id}
-                    className="flex items-center gap-3 rounded-xl border p-3"
+                    onClick={() => { onSelect(rp.id); scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" }); }}
+                    className="flex items-center gap-3 rounded-xl border p-3 cursor-pointer hover:border-[#2a2a3e] transition-colors"
                     style={{
                       borderColor:     "#1e1e2e",
                       background:      "#0b0b18",
@@ -1436,7 +1510,11 @@ export default function PlaybooksTab({
       {/* ── All complete celebration ──────────────────────────────────────── */}
       {isPremium && data && !loading && allComplete && (
         <div className="rounded-2xl border border-green-500/25 bg-green-500/8 p-8 text-center">
-          <p className="text-3xl mb-3">🎉</p>
+          <div className="flex justify-center mb-3">
+            <svg width="36" height="36" fill="none" viewBox="0 0 24 24" stroke="#10b981" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 002.748 1.35m8.272-6.842V4.5c0 2.108-.966 3.99-2.48 5.228m2.48-5.492a46.32 46.32 0 012.916.52 6.003 6.003 0 01-5.395 4.972m0 0a6.726 6.726 0 01-2.749 1.35m0 0a6.772 6.772 0 01-3.044 0" />
+            </svg>
+          </div>
           <h3 className="text-base font-bold text-white mb-1">All {playbooks.length} playbooks complete!</h3>
           <p className="text-sm text-slate-400">Your next update generates tonight. Fold will re-check all issues.</p>
         </div>
@@ -1584,6 +1662,7 @@ export default function PlaybooksTab({
                       onRating={(r) => handleRating(selected, r)}
                       onToggleStep={(idx) => handleToggleStep(selected, idx)}
                       onMarkComplete={() => handleMarkComplete(selected.id)}
+                      onSelect={(id) => setOpenId(id)}
                       isDemo={isDemo}
                     />
                   ) : <PlaybookDetailEmpty />;
@@ -1782,7 +1861,7 @@ const DEMO_DATA: AiPlaybooksResponse = {
         },
         {
           action: "Add a single social proof element above the fold on your pricing page",
-          detail: "Place a strip of 3–5 customer logos, or a single pull-quote from a recognisable customer, immediately below your hero headline — before any pricing table. Studies consistently show this single change improves conversion by 10–25%. If you don't have recognisable logos, use a '⭐⭐⭐⭐⭐ Rated 4.8/5 by 120+ teams' trust badge instead. This reduces the psychological risk of clicking 'Start free trial'.",
+          detail: "Place a strip of 3–5 customer logos, or a single pull-quote from a recognisable customer, immediately below your hero headline — before any pricing table. Studies consistently show this single change improves conversion by 10–25%. If you don't have recognisable logos, use a '★★★★★ Rated 4.8/5 by 120+ teams' trust badge instead. This reduces the psychological risk of clicking 'Start free trial'.",
         },
         {
           action: "Simplify to 2 pricing tiers and rename your primary CTA",

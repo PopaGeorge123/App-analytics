@@ -1035,12 +1035,86 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("Popular");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [authProvider, setAuthProvider] = useState<string>("email");
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
+  const [emailLoading, setEmailLoading] = useState(false);
+  const [emailMsg, setEmailMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [pwLoading, setPwLoading] = useState(false);
+  const [pwMsg, setPwMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [subDetails, setSubDetails] = useState<{ price: string; renewal: string } | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
 
   const POPULAR_INTEGRATION_IDS = ["stripe", "ga4", "meta", "shopify", "youtube", "mailchimp"];
   const totalIntegrations = UI_INTEGRATIONS.length;
   const connectedCount = connectedPlatforms.filter((p) => UI_INTEGRATIONS.some((i) => i.id === p)).length;
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      if (data?.user?.app_metadata?.provider) {
+        setAuthProvider(data.user.app_metadata.provider as string);
+      }
+    });
+    if (isPremium) {
+      fetch("/api/stripe/subscription")
+        .then((r) => r.ok ? r.json() : null)
+        .then((d) => {
+          if (d?.price && d?.renewal) setSubDetails({ price: d.price, renewal: d.renewal });
+        })
+        .catch(() => {});
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function handleChangeEmail() {
+    if (!newEmail.trim()) return;
+    setEmailLoading(true);
+    setEmailMsg(null);
+    const supabase = createClient();
+    const { error } = await supabase.auth.updateUser({ email: newEmail.trim() });
+    setEmailLoading(false);
+    if (error) {
+      setEmailMsg({ ok: false, text: error.message });
+    } else {
+      setEmailMsg({ ok: true, text: "Confirmation sent to your new email." });
+      setNewEmail("");
+      setShowEmailForm(false);
+    }
+  }
+
+  async function handleChangePassword() {
+    setPwLoading(true);
+    setPwMsg(null);
+    const supabase = createClient();
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/reset-password`,
+    });
+    setPwLoading(false);
+    if (error) {
+      setPwMsg({ ok: false, text: error.message });
+    } else {
+      setPwMsg({ ok: true, text: "Password reset link sent to your email." });
+      setShowPasswordForm(false);
+    }
+  }
+
+  async function handleDeleteAccount() {
+    setDeleteLoading(true);
+    try {
+      const res = await fetch("/api/user/delete", { method: "POST" });
+      if (!res.ok) throw new Error("Failed");
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      router.push("/");
+    } catch {
+      setDeleteLoading(false);
+      setShowDeleteConfirm(false);
+    }
+  }
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -1183,7 +1257,12 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
 
           {/* Page header */}
           <div className="flex items-center justify-between gap-4">
-            <h1 className="font-mono text-xl font-bold text-[#f8f8fc]">⚙ Settings</h1>
+            <div className="flex items-center gap-2.5">
+              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#f8f8fc" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z" /><circle cx="12" cy="12" r="3" />
+              </svg>
+              <h1 className="font-mono text-xl font-bold text-[#f8f8fc]">Settings</h1>
+            </div>
             {isPremium && (
               <div className="flex items-center gap-1.5 rounded-full border border-[#10b981]/30 bg-[#10b981]/10 px-3 py-1">
                 <span className="h-1.5 w-1.5 rounded-full bg-[#10b981] animate-pulse" />
@@ -1203,18 +1282,60 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-[#f8f8fc] truncate">{email}</p>
-                  <p className="font-mono text-[10px] text-[#8585aa] mt-0.5">Signed in via Google</p>
+                  <p className="font-mono text-[10px] text-[#8585aa] mt-0.5">Signed in via {authProvider.charAt(0).toUpperCase() + authProvider.slice(1)}</p>
                 </div>
               </div>
 
               {/* Actions */}
-              <div className="flex items-center gap-2 flex-wrap">
-                {/* <button className="rounded-lg border border-white/[0.06] bg-[#0d0d0f] px-3.5 py-2 font-mono text-xs text-[#bcbcd8] hover:border-[#6366f1]/30 hover:text-[#6366f1] transition-all">
-                  Change email
-                </button>
-                <button className="rounded-lg border border-white/[0.06] bg-[#0d0d0f] px-3.5 py-2 font-mono text-xs text-[#bcbcd8] hover:border-[#6366f1]/30 hover:text-[#6366f1] transition-all">
-                  Change password
-                </button> */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    onClick={() => { setShowEmailForm((v) => !v); setEmailMsg(null); }}
+                    className="rounded-lg border border-white/[0.06] bg-[#0d0d0f] px-3.5 py-2 font-mono text-xs text-[#bcbcd8] hover:border-[#6366f1]/30 hover:text-[#6366f1] transition-all"
+                  >
+                    Change email
+                  </button>
+                  <button
+                    onClick={() => { setShowPasswordForm((v) => !v); setPwMsg(null); }}
+                    className="rounded-lg border border-white/[0.06] bg-[#0d0d0f] px-3.5 py-2 font-mono text-xs text-[#bcbcd8] hover:border-[#6366f1]/30 hover:text-[#6366f1] transition-all"
+                  >
+                    Change password
+                  </button>
+                </div>
+                {showEmailForm && (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <input
+                      type="email"
+                      value={newEmail}
+                      onChange={(e) => setNewEmail(e.target.value)}
+                      placeholder="New email address"
+                      className="rounded-lg border border-white/[0.06] bg-[#0d0d0f] px-3 py-1.5 font-mono text-xs text-[#f8f8fc] placeholder-[#58588a] focus:outline-none focus:border-[#6366f1]/40 transition-all w-56"
+                    />
+                    <button
+                      onClick={handleChangeEmail}
+                      disabled={emailLoading || !newEmail.trim()}
+                      className="rounded-lg bg-[#6366f1] px-3.5 py-1.5 font-mono text-xs font-semibold text-white hover:bg-[#5254cc] disabled:opacity-50 transition-all"
+                    >
+                      {emailLoading ? "Saving…" : "Update"}
+                    </button>
+                    <button onClick={() => setShowEmailForm(false)} className="font-mono text-[11px] text-[#8585aa] hover:text-[#bcbcd8] transition-colors">Cancel</button>
+                  </div>
+                )}
+                {emailMsg && <p className={`font-mono text-[11px] ${emailMsg.ok ? "text-[#10b981]" : "text-red-400"}`}>{emailMsg.text}</p>}
+                {showPasswordForm && (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-mono text-[11px] text-[#bcbcd8]">A reset link will be sent to <span className="text-[#f8f8fc]">{email}</span>.</p>
+                    <button
+                      onClick={handleChangePassword}
+                      disabled={pwLoading}
+                      className="rounded-lg bg-[#6366f1] px-3.5 py-1.5 font-mono text-xs font-semibold text-white hover:bg-[#5254cc] disabled:opacity-50 transition-all"
+                    >
+                      {pwLoading ? "Sending…" : "Send reset link"}
+                    </button>
+                    <button onClick={() => setShowPasswordForm(false)} className="font-mono text-[11px] text-[#8585aa] hover:text-[#bcbcd8] transition-colors">Cancel</button>
+                  </div>
+                )}
+                {pwMsg && <p className={`font-mono text-[11px] ${pwMsg.ok ? "text-[#10b981]" : "text-red-400"}`}>{pwMsg.text}</p>}
               </div>
 
               {/* Danger zone */}
@@ -1230,8 +1351,12 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
                 ) : (
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-mono text-xs text-[#f8f8fc]">Are you sure? This is permanent.</p>
-                    <button className="rounded-lg bg-red-500 px-3.5 py-2 font-mono text-xs font-bold text-white hover:bg-red-600 transition-all">
-                      Yes, delete
+                    <button
+                      onClick={handleDeleteAccount}
+                      disabled={deleteLoading}
+                      className="rounded-lg bg-red-500 px-3.5 py-2 font-mono text-xs font-bold text-white hover:bg-red-600 disabled:opacity-60 transition-all"
+                    >
+                      {deleteLoading ? "Deleting…" : "Yes, delete"}
                     </button>
                     <button onClick={() => setShowDeleteConfirm(false)} className="rounded-lg border border-white/[0.06] px-3.5 py-2 font-mono text-xs text-[#8585aa] hover:text-[#bcbcd8] transition-all">
                       Cancel
@@ -1258,7 +1383,9 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
                         <p className="text-sm font-semibold text-[#f8f8fc]">Premium — Active</p>
                         <span className="rounded-full border border-[#10b981]/30 bg-[#10b981]/10 px-2 py-0.5 font-mono text-[9px] font-semibold text-[#10b981]">✓ Active</span>
                       </div>
-                      <p className="font-mono text-[10px] text-[#8585aa] mt-0.5">$19 / month</p>
+                      <p className="font-mono text-[10px] text-[#8585aa] mt-0.5">
+                        {subDetails ? `${subDetails.price} · Renews ${subDetails.renewal}` : "$19 / month"}
+                      </p>
                     </div>
                   </div>
 
