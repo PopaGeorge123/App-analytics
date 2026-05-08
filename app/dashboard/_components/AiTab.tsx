@@ -519,6 +519,30 @@ function AiMessageBody({
     const t = line.trim();
     if (!t) return null;
     if (t === closingQuestion && onReply) return null; // rendered as chip below
+
+    // Markdown headings
+    if (t.startsWith("### ")) {
+      return (
+        <p key={i} style={{ fontWeight: 700, margin: "14px 0 4px 0", fontSize: 13, textTransform: "uppercase", letterSpacing: "0.07em", color: "#a5b4fc" }}>
+          {t.slice(4).replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, "").trim()}
+        </p>
+      );
+    }
+    if (t.startsWith("## ")) {
+      return (
+        <p key={i} style={{ fontWeight: 700, color: "#f8f8fc", margin: "18px 0 6px 0", fontSize: 16, borderBottom: "1px solid rgba(255,255,255,0.07)", paddingBottom: 4 }}>
+          {t.slice(3).replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, "").trim()}
+        </p>
+      );
+    }
+    if (t.startsWith("# ")) {
+      return (
+        <p key={i} style={{ fontWeight: 800, color: "#f8f8fc", margin: "0 0 12px 0", fontSize: 18 }}>
+          {t.slice(2).replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, "").trim()}
+        </p>
+      );
+    }
+
     if (t.startsWith("**") && t.endsWith("**")) {
       return (
         <p key={i} style={{ fontWeight: 600, color: "#e2e8f0", margin: "10px 0 4px 0", fontSize: 14 }}>

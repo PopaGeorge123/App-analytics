@@ -116,7 +116,12 @@ function ComingSoonSection() {
                 : "border-white/10 text-[#8585aa] hover:border-[#6366f1]/40 hover:text-[#6366f1] hover:bg-[#6366f1]/5"
             } disabled:opacity-60`}
           >
-            {loading === intg.id ? "…" : notified[intg.id] ? "✓ Noted" : "Notify me"}
+            {loading === intg.id ? "…" : notified[intg.id] ? (
+              <span className="flex items-center gap-1">
+                <svg width="9" height="9" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                Noted
+              </span>
+            ) : "Notify me"}
           </button>
         </div>
       ))}
@@ -467,7 +472,8 @@ function AlertsSection({ email, currencies }: { email: string; currencies: Recor
                   </div>
                   {isOn && isZero && (
                     <p className="font-mono text-[10px] text-[#f59e0b] flex items-center gap-1">
-                      <span>⚠</span> Set to 0 — alert is disabled. Enter a value to enable.
+                      <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                      Set to 0 — alert is disabled. Enter a value to enable.
                     </p>
                   )}
                   <p className="font-mono text-[10px] text-[#58588a]">{row.suggestion}</p>
@@ -507,7 +513,12 @@ function AlertsSection({ email, currencies }: { email: string; currencies: Recor
         >
           {saving ? "Saving…" : "Save alerts"}
         </button>
-        {saved && <span className="font-mono text-[10px] text-[#10b981]">✓ Saved</span>}
+        {saved && (
+          <span className="font-mono text-[10px] text-[#10b981] flex items-center gap-1">
+            <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Saved
+          </span>
+        )}
         <button onClick={clearRules} className="font-mono text-[10px] text-[#8585aa] hover:text-red-400 transition ml-auto">
           Clear all
         </button>
@@ -519,6 +530,138 @@ function AlertsSection({ email, currencies }: { email: string; currencies: Recor
         {lastSaved && <p className="font-mono text-[9px] text-[#58588a]">Last saved: {lastSaved}</p>}
         {!lastSaved && <p className="font-mono text-[9px] text-[#f59e0b]">Last saved: never</p>}
       </div>
+    </div>
+  );
+}
+
+// ── Share Dashboard ───────────────────────────────────────────────────────
+
+interface ShareLink {
+  token: string;
+  label: string;
+  expires_at: string;
+  view_count: number;
+  created_at: string;
+}
+
+function ShareSection() {
+  const [links, setLinks] = useState<ShareLink[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const [revoking, setRevoking] = useState<string | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
+  const [error, setError] = useState("");
+
+  async function fetchLinks() {
+    try {
+      const res = await fetch("/api/dashboard/share");
+      if (res.ok) {
+        const data = await res.json();
+        setLinks(data.links ?? []);
+      }
+    } catch {}
+    finally { setLoading(false); }
+  }
+
+  useEffect(() => { fetchLinks(); }, []);
+
+  async function generate() {
+    setGenerating(true);
+    setError("");
+    try {
+      const res = await fetch("/api/dashboard/share", { method: "POST" });
+      if (!res.ok) { setError("Failed to generate link."); return; }
+      const data = await res.json();
+      await navigator.clipboard.writeText(data.url.startsWith("http") ? data.url : `${window.location.origin}${data.url}`);
+      await fetchLinks();
+      setCopied(data.token);
+      setTimeout(() => setCopied(null), 2500);
+    } catch { setError("Something went wrong."); }
+    finally { setGenerating(false); }
+  }
+
+  async function revoke(token: string) {
+    setRevoking(token);
+    try {
+      await fetch(`/api/dashboard/share?token=${token}`, { method: "DELETE" });
+      setLinks((prev) => prev.filter((l) => l.token !== token));
+    } catch {}
+    finally { setRevoking(null); }
+  }
+
+  async function copy(token: string) {
+    const url = `${window.location.origin}/share/${token}`;
+    await navigator.clipboard.writeText(url);
+    setCopied(token);
+    setTimeout(() => setCopied(null), 2000);
+  }
+
+  function daysLeft(exp: string) {
+    const d = Math.ceil((new Date(exp).getTime() - Date.now()) / 86400000);
+    return d <= 0 ? "Expired" : `${d}d left`;
+  }
+
+  return (
+    <div className="space-y-4">
+      <p className="font-mono text-[10px] text-[#8585aa] leading-relaxed">
+        Generate a read-only link to share your dashboard snapshot with investors, teammates, or clients. Links expire in 7 days.
+      </p>
+
+      <button
+        onClick={generate}
+        disabled={generating || links.length >= 5}
+        className="flex items-center gap-2 rounded-xl bg-[#6366f1] px-4 py-2 font-mono text-xs font-bold text-white hover:bg-[#4f46e5] disabled:opacity-60 transition"
+      >
+        {generating ? (
+          <svg className="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>
+        ) : (
+          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8" /><polyline points="16 6 12 2 8 6" /><line x1="12" y1="2" x2="12" y2="15" />
+          </svg>
+        )}
+        {generating ? "Generating…" : "Generate shareable link"}
+      </button>
+      {links.length >= 5 && (
+        <p className="font-mono text-[9px] text-[#f59e0b]">Max 5 active links. Revoke one to create another.</p>
+      )}
+      {error && <p className="font-mono text-[9px] text-red-400">{error}</p>}
+
+      {loading ? (
+        <p className="font-mono text-[10px] text-[#58588a]">Loading links…</p>
+      ) : links.length === 0 ? (
+        <p className="font-mono text-[10px] text-[#58588a]">No active share links.</p>
+      ) : (
+        <div className="space-y-2">
+          {links.map((link) => (
+            <div key={link.token} className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-[#0d0d0f] px-4 py-3">
+              <div className="flex-1 min-w-0">
+                <p className="font-mono text-[10px] text-[#e0e0f0] truncate">/share/{link.token}</p>
+                <p className="font-mono text-[9px] text-[#58588a] mt-0.5">
+                  {daysLeft(link.expires_at)} · {link.view_count} view{link.view_count !== 1 ? "s" : ""}
+                </p>
+              </div>
+              <button
+                onClick={() => copy(link.token)}
+                className="flex items-center gap-1 rounded-lg border border-white/[0.08] px-2.5 py-1.5 font-mono text-[9px] text-[#8585aa] hover:text-[#f8f8fc] transition"
+              >
+                {copied === link.token ? (
+                  <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="#10b981" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                ) : (
+                  <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                )}
+                {copied === link.token ? "Copied!" : "Copy"}
+              </button>
+              <button
+                onClick={() => revoke(link.token)}
+                disabled={revoking === link.token}
+                className="rounded-lg border border-red-500/20 px-2.5 py-1.5 font-mono text-[9px] text-red-400/60 hover:text-red-400 hover:border-red-500/40 transition disabled:opacity-50"
+              >
+                {revoking === link.token ? "…" : "Revoke"}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -719,7 +862,12 @@ function NewsletterToggle() {
           Tips, new integrations, and product updates. Transactional emails (digest, alerts) are always delivered regardless.
         </p>
         {saving && <p className="mt-1 font-mono text-[10px] text-[#58588a]">Saving…</p>}
-        {saved && !saving && <p className="mt-1 font-mono text-[10px] text-[#10b981]">✓ Saved</p>}
+        {saved && !saving && (
+          <p className="mt-1 font-mono text-[10px] text-[#10b981] flex items-center gap-1">
+            <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Saved
+          </p>
+        )}
         {!enabled && !saving && !saved && <p className="mt-1 font-mono text-[10px] text-[#58588a]">Opted out of newsletter emails.</p>}
       </div>
       <Toggle checked={enabled} onChange={toggle} disabled={saving || !loaded} color="#10b981" />
@@ -1012,13 +1160,14 @@ function ConnectModalShell({ title, description, onClose, children }: { title: s
 // ── NAV ITEMS ─────────────────────────────────────────────────────────────
 
 const NAV_ITEMS = [
-  { id: "account",      label: "Account",      color: "#6366f1" },
-  { id: "subscription", label: "Subscription", color: "#10b981" },
-  { id: "integrations", label: "Integrations", color: "#14b8a6" },
-  { id: "goals",        label: "Goals & KPIs", color: "#eab308" },
-  { id: "alerts",       label: "Alert Rules",  color: "#ef4444" },
-  { id: "email",        label: "Email Digest", color: "#3b82f6" },
-  { id: "preferences",  label: "Preferences",  color: "#8b5cf6" },
+  { id: "account",      label: "Account",        color: "#6366f1" },
+  { id: "subscription", label: "Subscription",   color: "#10b981" },
+  { id: "integrations", label: "Integrations",   color: "#14b8a6" },
+  { id: "goals",        label: "Goals & KPIs",   color: "#eab308" },
+  { id: "alerts",       label: "Alert Rules",    color: "#ef4444" },
+  { id: "email",        label: "Email Digest",   color: "#3b82f6" },
+  // { id: "share",        label: "Share Dashboard", color: "#6366f1" },
+  { id: "preferences",  label: "Preferences",    color: "#8b5cf6" },
 ];
 
 // ── MAIN COMPONENT ────────────────────────────────────────────────────────
@@ -1552,6 +1701,15 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
               </div>
             </section>
           )}
+
+          {/* ── SHARE DASHBOARD ──────────────────────────────────────── */}
+          {/* <section id="share" ref={(el) => { sectionRefs.current.share = el; }}>
+            <SectionLabel color="#6366f1">Share Dashboard</SectionLabel>
+            <p className="mt-1 font-mono text-[10px] text-[#8585aa]">Share a read-only snapshot with anyone — no login required.</p>
+            <div className="mt-3 rounded-2xl border border-white/[0.06] bg-[#13131a] p-6">
+              <ShareSection />
+            </div>
+          </section> */}
 
           {/* ── PREFERENCES ──────────────────────────────────────────── */}
           <section id="preferences" ref={(el) => { sectionRefs.current.preferences = el; }}>
