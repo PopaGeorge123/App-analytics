@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { LIVE_INTEGRATIONS, INTEGRATION_CATEGORIES, SOON_INTEGRATIONS } from "@/lib/integrations/catalog";
@@ -12,7 +12,6 @@ interface SettingsTabProps {
   email: string;
   isPremium: boolean;
   connectedPlatforms: string[];
-  /** platform → ISO currency code. e.g. { stripe: "EUR", meta: "USD" } */
   currencies: Record<string, string>;
 }
 
@@ -28,15 +27,57 @@ const UI_INTEGRATIONS = LIVE_INTEGRATIONS.map((cat) => ({
   category: cat.category,
 }));
 
-// Platforms that need an extra param collected before we can build the OAuth URL.
-// key = platform id, value = { param: query param name, label, placeholder }
 const PARAM_REQUIRED: Record<string, { param: string; label: string; placeholder: string }> = {
   shopify: { param: "shop", label: "Store domain", placeholder: "yourstore.myshopify.com" },
   zendesk: { param: "subdomain", label: "Zendesk subdomain", placeholder: "yourcompany (from yourcompany.zendesk.com)" },
   freshdesk: { param: "subdomain", label: "Freshdesk subdomain", placeholder: "yourcompany (from yourcompany.freshdesk.com)" },
 };
 
-// ── Coming Soon section with Notify Me buttons ────────────────────────────
+// ── Toggle component ──────────────────────────────────────────────────────
+
+function Toggle({
+  checked,
+  onChange,
+  disabled,
+  color = "#10b981",
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  disabled?: boolean;
+  color?: string;
+}) {
+  return (
+    <button
+      role="switch"
+      aria-checked={checked}
+      onClick={() => !disabled && onChange(!checked)}
+      disabled={disabled}
+      className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 disabled:opacity-50"
+      style={{ backgroundColor: checked ? color : "#2a2a3a" }}
+    >
+      <span
+        className="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition duration-200"
+        style={{ transform: checked ? "translateX(20px)" : "translateX(0)" }}
+      />
+    </button>
+  );
+}
+
+// ── Section label ─────────────────────────────────────────────────────────
+
+function SectionLabel({ color, children }: { color: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-2 mb-1">
+      <div className="h-3.5 w-0.5 rounded-full" style={{ backgroundColor: color }} />
+      <p className="font-mono text-[9px] font-bold uppercase tracking-[0.15em]" style={{ color }}>
+        {children}
+      </p>
+    </div>
+  );
+}
+
+// ── Coming Soon ───────────────────────────────────────────────────────────
+
 function ComingSoonSection() {
   const [notified, setNotified] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState<string | null>(null);
@@ -50,62 +91,40 @@ function ComingSoonSection() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ integration_id: integrationId }),
       });
-      if (res.ok) {
-        setNotified((prev) => ({ ...prev, [integrationId]: true }));
-      }
-    } catch {
-      // silently ignore
-    } finally {
-      setLoading(null);
-    }
+      if (res.ok) setNotified((prev) => ({ ...prev, [integrationId]: true }));
+    } catch {}
+    finally { setLoading(null); }
   }
 
   return (
-    <section className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-6">
-      <div className="mb-5 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#a78bfa]/10 text-[#a78bfa]">
-            <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z" />
-            </svg>
+    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      {SOON_INTEGRATIONS.map((intg) => (
+        <div key={intg.id} className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.02] px-3 py-2.5">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: intg.color + "18" }}>
+            <img src={intg.icon} alt={intg.name} width={14} height={14} className="object-contain opacity-50" />
           </div>
-          <p className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#8585aa]">Coming Soon</p>
-        </div>
-        <p className="font-mono text-[10px] text-[#58588a]">Click &ldquo;Notify me&rdquo; to get an email when an integration launches</p>
-      </div>
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-        {SOON_INTEGRATIONS.map((intg) => (
-          <div
-            key={intg.id}
-            className="flex items-center gap-3 rounded-xl border border-[#363650] bg-[#222235] px-3 py-2.5"
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-[#bcbcd8] truncate">{intg.name}</p>
+            <p className="font-mono text-[9px] text-[#58588a] truncate">{intg.category}</p>
+          </div>
+          <button
+            onClick={() => handleNotify(intg.id)}
+            disabled={!!notified[intg.id] || loading === intg.id}
+            className={`shrink-0 font-mono text-[10px] font-semibold px-2.5 py-1 rounded-lg border transition-all ${
+              notified[intg.id]
+                ? "border-[#10b981]/30 bg-[#10b981]/10 text-[#10b981] cursor-default"
+                : "border-white/10 text-[#8585aa] hover:border-[#6366f1]/40 hover:text-[#6366f1] hover:bg-[#6366f1]/5"
+            } disabled:opacity-60`}
           >
-            <div
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
-              style={{ backgroundColor: intg.color + "18" }}
-            >
-              <img src={intg.icon} alt={intg.name} width={14} height={14} className="object-contain opacity-60" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-mono text-[11px] font-semibold text-[#bcbcd8] truncate">{intg.name}</p>
-              <p className="font-mono text-[9px] text-[#58588a] truncate">{intg.category}</p>
-            </div>
-            <button
-              onClick={() => handleNotify(intg.id)}
-              disabled={!!notified[intg.id] || loading === intg.id}
-              className={`shrink-0 font-mono text-[10px] font-semibold px-2.5 py-1 rounded-lg border transition-all ${
-                notified[intg.id]
-                  ? "border-[#00d4aa]/30 bg-[#00d4aa]/10 text-[#00d4aa] cursor-default"
-                  : "border-[#363650] text-[#8585aa] hover:border-[#a78bfa]/40 hover:text-[#a78bfa] hover:bg-[#a78bfa]/5"
-              } disabled:opacity-60`}
-            >
-              {loading === intg.id ? "…" : notified[intg.id] ? "✓ Noted" : "Notify me"}
-            </button>
-          </div>
-        ))}
-      </div>
-    </section>
+            {loading === intg.id ? "…" : notified[intg.id] ? "✓ Noted" : "Notify me"}
+          </button>
+        </div>
+      ))}
+    </div>
   );
 }
+
+// ── Integration Row ───────────────────────────────────────────────────────
 
 function IntegrationRow({
   integration,
@@ -115,16 +134,17 @@ function IntegrationRow({
   connected: boolean;
 }) {
   const router = useRouter();
-  const [loading, setLoading] = useState<"disconnect" | null>(null);
+  const [loading, setLoading] = useState<"disconnect" | "sync" | null>(null);
   const [error, setError] = useState("");
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
   const [paramValue, setParamValue] = useState("");
   const [showParamInput, setShowParamInput] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(false);
 
   const paramConfig = PARAM_REQUIRED[integration.id];
 
   function handleConnectClick(e: React.MouseEvent<HTMLAnchorElement>) {
-    if (!paramConfig) return; // no extra param needed — let the <a> navigate normally
+    if (!paramConfig) return;
     e.preventDefault();
     setShowParamInput(true);
     setError("");
@@ -133,23 +153,27 @@ function IntegrationRow({
   function handleParamSubmit(e: React.FormEvent) {
     e.preventDefault();
     const val = paramValue.trim();
-    if (!val) {
-      setError(`Please enter your ${paramConfig.label.toLowerCase()}.`);
-      return;
-    }
-    // For Shopify ensure it ends with .myshopify.com
+    if (!val) { setError(`Please enter your ${paramConfig.label.toLowerCase()}.`); return; }
     let finalVal = val;
-    if (integration.id === "shopify" && !val.includes(".")) {
-      finalVal = `${val}.myshopify.com`;
-    }
+    if (integration.id === "shopify" && !val.includes(".")) finalVal = `${val}.myshopify.com`;
     window.location.href = `${integration.connectUrl}?${paramConfig.param}=${encodeURIComponent(finalVal)}`;
   }
 
+  async function handleSync() {
+    setLoading("sync");
+    try {
+      await fetch(`/api/integrations/sync`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ platform: integration.id }),
+      });
+      router.refresh();
+    } catch {}
+    finally { setLoading(null); }
+  }
+
   async function handleDisconnect() {
-    if (!confirmDisconnect) {
-      setConfirmDisconnect(true);
-      return;
-    }
+    if (!confirmDisconnect) { setConfirmDisconnect(true); return; }
     setLoading("disconnect");
     setError("");
     try {
@@ -159,11 +183,7 @@ function IntegrationRow({
         body: JSON.stringify({ platform: integration.id }),
       });
       const data = await res.json();
-      if (!res.ok) {
-        setError(data.error ?? "Failed to disconnect.");
-        setLoading(null);
-        return;
-      }
+      if (!res.ok) { setError(data.error ?? "Failed to disconnect."); setLoading(null); return; }
       router.refresh();
     } catch {
       setError("Network error.");
@@ -172,66 +192,88 @@ function IntegrationRow({
   }
 
   return (
-    <div className="rounded-xl border border-[#363650] bg-[#222235] p-4 transition-all hover:border-[#454560]">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
+    <div className="rounded-xl border border-white/[0.06] bg-[#13131a] p-4 transition-all hover:border-white/10">
+      <div className="flex items-start justify-between gap-3">
+        {/* Left: icon + info */}
+        <div className="flex items-start gap-3 min-w-0">
           <div
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
-            style={{ backgroundColor: connected ? `${integration.color}18` : "#222235", color: connected ? integration.color : "#8585aa" }}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg mt-0.5"
+            style={{ backgroundColor: connected ? `${integration.color}18` : "#1e1e28", color: connected ? integration.color : "#58588a" }}
           >
             {integration.icon}
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <p className="text-sm font-semibold text-[#f8f8fc]">{integration.name}</p>
-              {connected && (
-                <span
-                  className="inline-flex items-center gap-1 font-mono text-[9px] font-semibold px-1.5 py-0.5 rounded-md"
-                  style={{ color: integration.color, backgroundColor: `${integration.color}15` }}
-                >
-                  <span className="h-1 w-1 rounded-full" style={{ backgroundColor: integration.color }} />
-                  Connected
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <p
+                className="text-sm font-semibold text-[#f8f8fc] cursor-default"
+                onMouseEnter={() => !connected && setShowTooltip(true)}
+                onMouseLeave={() => setShowTooltip(false)}
+              >
+                {integration.name}
+              </p>
+              {connected ? (
+                <span className="inline-flex items-center gap-1 font-mono text-[9px] font-semibold px-1.5 py-0.5 rounded-md" style={{ color: "#10b981", backgroundColor: "#10b98118" }}>
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#10b981]" />
+                  Connected · Last sync: 2h ago
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 font-mono text-[9px] text-[#58588a]">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#58588a]" />
+                  Not connected
                 </span>
               )}
             </div>
-            <p className="text-xs text-[#8585aa]">{integration.description}</p>
+            <p className="text-xs text-[#8585aa] mt-0.5">{integration.description}</p>
+            {/* Tooltip */}
+            {showTooltip && !connected && (
+              <div className="mt-1.5 rounded-lg border border-[#14b8a6]/20 bg-[#14b8a6]/5 px-2.5 py-1.5">
+                <p className="font-mono text-[9px] text-[#14b8a6]">
+                  Unlocks data from {integration.name} in your Overview & AI Advisor
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
+        {/* Right: actions */}
         {connected ? (
-          <div className="flex items-center gap-2">
-            {/* Switch account */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              onClick={handleSync}
+              disabled={loading === "sync"}
+              title="Sync now"
+              className="flex items-center justify-center h-8 w-8 rounded-lg border border-white/[0.06] text-[#58588a] hover:text-[#14b8a6] hover:border-[#14b8a6]/30 transition-all disabled:opacity-50"
+            >
+              {loading === "sync" ? (
+                <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                </svg>
+              ) : (
+                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" />
+                </svg>
+              )}
+            </button>
             <a
               href={integration.connectUrl}
               onClick={handleConnectClick}
-              className="rounded-lg border border-[#363650] bg-[#1c1c2a] px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#bcbcd8] transition-all hover:border-[#00d4aa]/30 hover:text-[#00d4aa]"
-              title="Connect a different account"
+              className="rounded-lg border border-white/[0.06] bg-[#0d0d0f] px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#bcbcd8] transition-all hover:border-[#6366f1]/30 hover:text-[#6366f1]"
             >
               Switch
             </a>
-            {/* Disconnect */}
             {confirmDisconnect ? (
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1">
                 <span className="font-mono text-[10px] text-[#bcbcd8]">Sure?</span>
-                <button
-                  onClick={handleDisconnect}
-                  disabled={loading === "disconnect"}
-                  className="rounded-lg bg-red-500/15 border border-red-500/30 px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-red-400 transition-all hover:bg-red-500/25 disabled:opacity-50"
-                >
-                  {loading === "disconnect" ? "…" : "Yes, disconnect"}
+                <button onClick={handleDisconnect} disabled={loading === "disconnect"} className="rounded-lg bg-red-500/15 border border-red-500/30 px-2.5 py-1.5 font-mono text-[10px] font-semibold text-red-400 hover:bg-red-500/25 disabled:opacity-50 transition-all">
+                  {loading === "disconnect" ? "…" : "Yes"}
                 </button>
-                <button
-                  onClick={() => setConfirmDisconnect(false)}
-                  className="rounded-lg border border-[#363650] px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#8585aa] transition-all hover:text-[#bcbcd8]"
-                >
-                  Cancel
+                <button onClick={() => setConfirmDisconnect(false)} className="rounded-lg border border-white/[0.06] px-2.5 py-1.5 font-mono text-[10px] text-[#8585aa] hover:text-[#bcbcd8] transition-all">
+                  No
                 </button>
               </div>
             ) : (
-              <button
-                onClick={handleDisconnect}
-                className="rounded-lg border border-[#363650] bg-[#1c1c2a] px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#8585aa] transition-all hover:border-red-500/30 hover:text-red-400"
-              >
+              <button onClick={handleDisconnect} className="rounded-lg border border-white/[0.06] bg-[#0d0d0f] px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#8585aa] transition-all hover:border-red-500/30 hover:text-red-400">
                 Disconnect
               </button>
             )}
@@ -240,40 +282,26 @@ function IntegrationRow({
           <a
             href={integration.connectUrl}
             onClick={handleConnectClick}
-            className="rounded-xl border border-[#363650] bg-[#1c1c2a] px-4 py-2 font-mono text-[11px] font-semibold uppercase tracking-wider text-[#bcbcd8] transition-all hover:border-[#00d4aa]/30 hover:bg-[#0f1420] hover:text-[#00d4aa]"
+            className="shrink-0 rounded-xl border border-white/[0.06] bg-[#0d0d0f] px-4 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#bcbcd8] transition-all hover:border-[#6366f1]/30 hover:text-[#6366f1]"
           >
-            Connect →
+            Connect
           </a>
         )}
       </div>
 
-      {/* Inline param input for platforms that need a shop/subdomain before OAuth */}
+      {/* Inline param input */}
       {showParamInput && paramConfig && (
         <form onSubmit={handleParamSubmit} className="mt-3 flex items-center gap-2">
           <input
-            autoFocus
-            type="text"
-            value={paramValue}
+            autoFocus type="text" value={paramValue}
             onChange={(e) => { setParamValue(e.target.value); setError(""); }}
             placeholder={paramConfig.placeholder}
-            className="flex-1 rounded-lg border border-[#363650] bg-[#1c1c2a] px-3 py-2 font-mono text-xs text-[#f8f8fc] placeholder-[#58588a] outline-none focus:border-[#00d4aa]/50 focus:ring-1 focus:ring-[#00d4aa]/20"
+            className="flex-1 rounded-lg border border-white/[0.06] bg-[#0d0d0f] px-3 py-2 font-mono text-xs text-[#f8f8fc] placeholder-[#58588a] outline-none focus:border-[#6366f1]/50 focus:ring-1 focus:ring-[#6366f1]/20"
           />
-          <button
-            type="submit"
-            className="rounded-lg border border-[#00d4aa]/30 bg-[#00d4aa]/10 px-3 py-2 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#00d4aa] transition-all hover:bg-[#00d4aa]/20"
-          >
-            Go →
-          </button>
-          <button
-            type="button"
-            onClick={() => { setShowParamInput(false); setParamValue(""); setError(""); }}
-            className="rounded-lg border border-[#363650] px-3 py-2 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#8585aa] transition-all hover:text-[#bcbcd8]"
-          >
-            Cancel
-          </button>
+          <button type="submit" className="rounded-lg border border-[#6366f1]/30 bg-[#6366f1]/10 px-3 py-2 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#6366f1] hover:bg-[#6366f1]/20 transition-all">Go</button>
+          <button type="button" onClick={() => { setShowParamInput(false); setParamValue(""); setError(""); }} className="rounded-lg border border-white/[0.06] px-3 py-2 font-mono text-[10px] font-semibold text-[#8585aa] hover:text-[#bcbcd8] transition-all">Cancel</button>
         </form>
       )}
-
       {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
     </div>
   );
@@ -282,39 +310,41 @@ function IntegrationRow({
 // ── Alert Rules ───────────────────────────────────────────────────────────
 
 export interface AlertRules {
-  revenueDropPct: number;  // alert if revenue drops by X% vs prev 7d (0 = disabled)
-  bounceSpikeThreshold: number; // alert if bounce rate exceeds X% (0 = disabled)
-  spendSpikeThreshold: number; // alert if ad spend > $X/day (0 = disabled)
+  revenueDropPct: number;
+  bounceSpikeThreshold: number;
+  spendSpikeThreshold: number;
+  newCustomerAlert: boolean;
 }
 
 export const DEFAULT_ALERTS: AlertRules = {
   revenueDropPct: 0,
   bounceSpikeThreshold: 0,
   spendSpikeThreshold: 0,
+  newCustomerAlert: false,
 };
 
-function AlertsSection({ currencies }: { currencies: Record<string, string> }) {
+function AlertsSection({ email, currencies }: { email: string; currencies: Record<string, string> }) {
   const [rules, setRules] = useState<AlertRules>(DEFAULT_ALERTS);
+  const [toggles, setToggles] = useState({ revenue: false, bounce: false, spend: false });
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<string | null>(null);
 
-  // Derive the ads currency from connected ad platforms.
-  // Fall back to the revenue platform currency (e.g. RON from Stripe)
-  // so the label is always in the user's actual currency, not hardcoded USD.
   const revCurrencyForAlerts = REVENUE_PROVIDERS_LOCAL.map((p) => currencies[p]).find(Boolean);
-  const adsCurrency =
-    ADS_PROVIDERS_LOCAL.map((p) => currencies[p]).find(Boolean) ??
-    revCurrencyForAlerts ??
-    "USD";
-  const adsLabel = adsCurrency; // always show ISO code (e.g. "RON", "USD", "EUR")
+  const adsCurrency = ADS_PROVIDERS_LOCAL.map((p) => currencies[p]).find(Boolean) ?? revCurrencyForAlerts ?? "USD";
 
   useEffect(() => {
-    fetch("/api/user/settings")
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.alertRules) setRules(d.alertRules);
-      })
-      .catch(() => {});
+    fetch("/api/user/settings").then((r) => r.json()).then((d) => {
+      if (d.alertRules) {
+        setRules({ ...DEFAULT_ALERTS, ...d.alertRules });
+        setToggles({
+          revenue: (d.alertRules.revenueDropPct ?? 0) > 0,
+          bounce: (d.alertRules.bounceSpikeThreshold ?? 0) > 0,
+          spend: (d.alertRules.spendSpikeThreshold ?? 0) > 0,
+        });
+      }
+      if (d.alertRulesLastSaved) setLastSaved(d.alertRulesLastSaved);
+    }).catch(() => {});
   }, []);
 
   async function saveRules() {
@@ -326,14 +356,14 @@ function AlertsSection({ currencies }: { currencies: Record<string, string> }) {
         body: JSON.stringify({ alertRules: rules }),
       });
       setSaved(true);
+      setLastSaved(new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }));
       setTimeout(() => setSaved(false), 2000);
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   }
 
   async function clearRules() {
     setRules(DEFAULT_ALERTS);
+    setToggles({ revenue: false, bounce: false, spend: false });
     await fetch("/api/user/settings", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -341,181 +371,584 @@ function AlertsSection({ currencies }: { currencies: Record<string, string> }) {
     });
   }
 
+  const alertRows = [
+    {
+      key: "revenueDropPct" as keyof AlertRules,
+      toggleKey: "revenue" as const,
+      label: "Revenue drop alert",
+      desc: "Alert if 7-day revenue drops by X% vs previous week",
+      unit: "%",
+      unitPos: "right" as const,
+      suggestion: "Suggested: 20% for early-stage founders",
+      iconColor: "#ef4444",
+      icon: (
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="23 18 13.5 8.5 8.5 13.5 1 6" /><polyline points="17 18 23 18 23 12" />
+        </svg>
+      ),
+    },
+    {
+      key: "bounceSpikeThreshold" as keyof AlertRules,
+      toggleKey: "bounce" as const,
+      label: "Bounce rate spike",
+      desc: "Alert if 7-day average bounce rate exceeds X%",
+      unit: "%",
+      unitPos: "right" as const,
+      suggestion: "Suggested: 70% — typical healthy sites stay under 60%",
+      iconColor: "#f59e0b",
+      icon: (
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" />
+        </svg>
+      ),
+    },
+    {
+      key: "spendSpikeThreshold" as keyof AlertRules,
+      toggleKey: "spend" as const,
+      label: "Ad spend cap",
+      desc: `Alert if a single day's ad spend exceeds ${adsCurrency} X`,
+      unit: adsCurrency,
+      unitPos: "left" as const,
+      suggestion: "Suggested: set to your daily budget × 1.3 as a safety net",
+      iconColor: "#f97316",
+      icon: (
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+        </svg>
+      ),
+    },
+  ];
+
+  return (
+    <div className="space-y-5">
+      {/* Delivery note */}
+      <div className="flex items-center gap-2 rounded-lg border border-[#3b82f6]/20 bg-[#3b82f6]/5 px-3 py-2">
+        <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="#3b82f6" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        </svg>
+        <p className="font-mono text-[10px] text-[#93c5fd]">Alerts delivered to: <span className="text-[#bfdbfe]">{email}</span></p>
+      </div>
+
+      {/* Alert rows */}
+      <div className="space-y-3">
+        {alertRows.map((row) => {
+          const isOn = toggles[row.toggleKey];
+          const val = rules[row.key] as number;
+          const isZero = val === 0;
+          return (
+            <div key={row.key} className="rounded-xl border border-white/[0.06] bg-[#13131a] overflow-hidden">
+              <div className="flex items-center gap-3 px-4 py-3">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: `${row.iconColor}15`, color: row.iconColor }}>
+                  {row.icon}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-[#e0e0f0]">{row.label}</p>
+                  <p className="font-mono text-[9px] text-[#8585aa]">{row.desc}</p>
+                </div>
+                {/* Toggle */}
+                <Toggle
+                  checked={isOn}
+                  onChange={(v) => setToggles((t) => ({ ...t, [row.toggleKey]: v }))}
+                  color="#10b981"
+                />
+              </div>
+              {isOn && (
+                <div className="border-t border-white/[0.04] px-4 py-3 bg-[#0d0d0f]/40 space-y-2">
+                  <div className="flex items-center gap-2">
+                    {row.unitPos === "left" && <span className="font-mono text-[10px] text-[#8585aa] w-8">{row.unit}</span>}
+                    <input
+                      type="number" min={0} max={row.unit === "%" ? 100 : undefined}
+                      placeholder="0"
+                      value={val || ""}
+                      onChange={(e) => setRules((r) => ({ ...r, [row.key]: parseInt(e.target.value) || 0 }))}
+                      className="w-24 rounded-lg border border-white/[0.06] bg-[#13131a] px-3 py-1.5 font-mono text-xs text-[#f8f8fc] text-right placeholder:text-[#58588a] focus:outline-none focus:border-[#6366f1]/40 focus:ring-1 focus:ring-[#6366f1]/20 transition-colors"
+                    />
+                    {row.unitPos === "right" && <span className="font-mono text-[10px] text-[#8585aa]">{row.unit}</span>}
+                  </div>
+                  {isOn && isZero && (
+                    <p className="font-mono text-[10px] text-[#f59e0b] flex items-center gap-1">
+                      <span>⚠</span> Set to 0 — alert is disabled. Enter a value to enable.
+                    </p>
+                  )}
+                  <p className="font-mono text-[10px] text-[#58588a]">{row.suggestion}</p>
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {/* New customer alert */}
+        <div className="rounded-xl border border-white/[0.06] bg-[#13131a] px-4 py-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#10b981]/10 text-[#10b981]">
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" />
+                <line x1="18" y1="8" x2="23" y2="13" /><line x1="23" y1="8" x2="18" y2="13" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-[#e0e0f0]">New customer alert</p>
+              <p className="font-mono text-[9px] text-[#8585aa]">Notify me every time I get a new paying customer</p>
+            </div>
+            <Toggle
+              checked={rules.newCustomerAlert}
+              onChange={(v) => setRules((r) => ({ ...r, newCustomerAlert: v }))}
+              color="#10b981"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Save */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <button
+          onClick={saveRules} disabled={saving}
+          className="rounded-xl bg-[#10b981] px-5 py-2 font-mono text-xs font-bold text-white hover:bg-[#059669] transition disabled:opacity-60"
+        >
+          {saving ? "Saving…" : "Save alerts"}
+        </button>
+        {saved && <span className="font-mono text-[10px] text-[#10b981]">✓ Saved</span>}
+        <button onClick={clearRules} className="font-mono text-[10px] text-[#8585aa] hover:text-red-400 transition ml-auto">
+          Clear all
+        </button>
+      </div>
+      <div className="flex items-center gap-3">
+        <p className="font-mono text-[9px] text-[#58588a]">
+          Alert thresholds are tied to your account and checked nightly.
+        </p>
+        {lastSaved && <p className="font-mono text-[9px] text-[#58588a]">Last saved: {lastSaved}</p>}
+        {!lastSaved && <p className="font-mono text-[9px] text-[#f59e0b]">Last saved: never</p>}
+      </div>
+    </div>
+  );
+}
+
+// ── Email Digest ──────────────────────────────────────────────────────────
+
+function DigestSectionInline({ email }: { email: string }) {
+  const [subscribed, setSubscribed] = useState(false);
+  const [digestFrequency, setDigestFrequency] = useState<"daily" | "weekly" | "monthly">("weekly");
+  const [digestDay, setDigestDay] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [sendStatus, setSendStatus] = useState<"idle" | "sent" | "error">("idle");
+  const [sendError, setSendError] = useState("");
+  const [lastSent, setLastSent] = useState<string | null>(null);
+
+  const DOW_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+  useEffect(() => {
+    fetch("/api/user/settings").then((r) => r.json()).then((d) => {
+      if (typeof d.digestSubscribed === "boolean") setSubscribed(d.digestSubscribed);
+      if (typeof d.digestDay === "number") setDigestDay(d.digestDay);
+      if (d.digestFrequency) setDigestFrequency(d.digestFrequency);
+      if (d.digestLastSent) setLastSent(d.digestLastSent);
+    }).catch(() => {}).finally(() => setLoading(false));
+  }, []);
+
+  async function savePrefs(nextSubscribed: boolean, nextDay: number, nextFreq: string) {
+    setSaving(true);
+    try {
+      await fetch("/api/user/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ digestSubscribed: nextSubscribed, digestDay: nextDay, digestFrequency: nextFreq }),
+      });
+    } finally { setSaving(false); }
+  }
+
+  async function sendDigest() {
+    setSending(true);
+    setSendStatus("idle");
+    setSendError("");
+    try {
+      const res = await fetch("/api/digest/send", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) { setSendError(data.error ?? "Failed to send digest."); setSendStatus("error"); }
+      else { setSendStatus("sent"); setLastSent("Just now"); }
+    } catch {
+      setSendError("Network error.");
+      setSendStatus("error");
+    } finally { setSending(false); }
+  }
+
+  if (loading) return <div className="h-32 animate-pulse rounded-xl bg-[#13131a]" />;
+
   return (
     <div className="space-y-4">
-      <p className="text-sm text-[#bcbcd8]">
-        Get notified on your Overview dashboard when key metrics cross these thresholds.
-      </p>
-
-      <div className="space-y-3">
-        {/* Revenue drop */}
-        <div className="flex items-center gap-3 rounded-xl border border-[#363650] bg-[#222235] px-4 py-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#f87171]/10 text-[#f87171]">
-            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="23 18 13.5 8.5 8.5 13.5 1 6" /><polyline points="17 18 23 18 23 12" />
-            </svg>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-mono text-[11px] font-semibold text-[#e0e0f0]">Revenue drop alert</p>
-            <p className="font-mono text-[9px] text-[#8585aa]">Alert if 7d revenue drops by X% vs previous week</p>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <input
-              type="number"
-              min={0}
-              max={100}
-              placeholder="0"
-              value={rules.revenueDropPct || ""}
-              onChange={(e) => setRules((r) => ({ ...r, revenueDropPct: parseInt(e.target.value) || 0 }))}
-              className="w-16 bg-[#1c1c2a] border border-[#363650] rounded-lg px-2 py-1.5 font-mono text-xs text-[#f8f8fc] text-right placeholder:text-[#58588a] focus:outline-none focus:border-[#00d4aa]/30"
-            />
-            <span className="font-mono text-[10px] text-[#8585aa]">%</span>
-          </div>
+      {/* Sample preview card */}
+      {/* <div className="rounded-xl border border-[#3b82f6]/20 bg-[#3b82f6]/5 p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <svg width="13" height="13" fill="#3b82f6" viewBox="0 0 24 24">
+            <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke="#3b82f6" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          <p className="font-mono text-[10px] font-semibold text-[#93c5fd]">Sample digest preview</p>
         </div>
-
-        {/* Bounce spike */}
-        <div className="flex items-center gap-3 rounded-xl border border-[#363650] bg-[#222235] px-4 py-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#f59e0b]/10 text-[#f59e0b]">
-            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" />
-            </svg>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-mono text-[11px] font-semibold text-[#e0e0f0]">Bounce rate spike</p>
-            <p className="font-mono text-[9px] text-[#8585aa]">Alert if 7d average bounce rate exceeds X%</p>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <input
-              type="number"
-              min={0}
-              max={100}
-              placeholder="0"
-              value={rules.bounceSpikeThreshold || ""}
-              onChange={(e) => setRules((r) => ({ ...r, bounceSpikeThreshold: parseInt(e.target.value) || 0 }))}
-              className="w-16 bg-[#1c1c2a] border border-[#363650] rounded-lg px-2 py-1.5 font-mono text-xs text-[#f8f8fc] text-right placeholder:text-[#58588a] focus:outline-none focus:border-[#00d4aa]/30"
-            />
-            <span className="font-mono text-[10px] text-[#8585aa]">%</span>
-          </div>
+        <div className="border-t border-[#3b82f6]/10 pt-3 space-y-1">
+          <p className="font-mono text-[10px] text-[#8585aa]">Week of May 5–11, 2026</p>
+          <p className="font-mono text-[11px] text-[#bfdbfe]">Revenue: $20 · Sessions: 52 · Top insight: Fix GA4 tracking</p>
         </div>
+        <button className="mt-3 font-mono text-[10px] text-[#3b82f6] hover:text-[#60a5fa] transition-colors">
+          View full sample →
+        </button>
+      </div> */}
 
-        {/* Daily ad spend cap */}
-        <div className="flex items-center gap-3 rounded-xl border border-[#363650] bg-[#222235] px-4 py-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#1877f2]/10 text-[#1877f2]">
-            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
-            </svg>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-mono text-[11px] font-semibold text-[#e0e0f0]">Ad spend cap</p>
-            <p className="font-mono text-[9px] text-[#8585aa]">Alert if a single day&apos;s ad spend exceeds {adsLabel} X</p>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="font-mono text-[10px] text-[#8585aa]">{adsLabel}</span>
-            <input
-              type="number"
-              min={0}
-              placeholder="0"
-              value={rules.spendSpikeThreshold || ""}
-              onChange={(e) => setRules((r) => ({ ...r, spendSpikeThreshold: parseInt(e.target.value) || 0 }))}
-              className="w-16 bg-[#1c1c2a] border border-[#363650] rounded-lg px-2 py-1.5 font-mono text-xs text-[#f8f8fc] text-right placeholder:text-[#58588a] focus:outline-none focus:border-[#00d4aa]/30"
-            />
-          </div>
+      {/* Toggle */}
+      <div className="flex items-center justify-between rounded-xl border border-white/[0.06] bg-[#13131a] px-4 py-3">
+        <div>
+          <p className="text-xs font-semibold text-[#f8f8fc]">Weekly email digest</p>
+          <p className="mt-0.5 font-mono text-[10px] text-[#8585aa]">
+            {subscribed ? `Delivered every ${["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][[0,1,2,3,4,5,6][digestDay]]} to ${email}` : "Disabled — no automatic emails"}
+          </p>
         </div>
+        <Toggle checked={subscribed} onChange={(v) => { setSubscribed(v); savePrefs(v, digestDay, digestFrequency); }} disabled={saving} color="#3b82f6" />
       </div>
 
-      <div className="flex items-center gap-3">
+      {subscribed && (
+        <>
+          {/* Frequency selector */}
+          <div className="rounded-xl border border-white/[0.06] bg-[#13131a] px-4 py-3 space-y-3">
+            <p className="font-mono text-[10px] uppercase tracking-widest text-[#8585aa]">Frequency</p>
+            <div className="flex gap-2">
+              {(["daily", "weekly", "monthly"] as const).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => { setDigestFrequency(f); savePrefs(subscribed, digestDay, f); }}
+                  className={`flex-1 rounded-lg px-3 py-2 font-mono text-[11px] font-semibold border transition-all ${
+                    digestFrequency === f
+                      ? "border-[#3b82f6]/40 bg-[#3b82f6]/10 text-[#3b82f6]"
+                      : "border-white/[0.06] text-[#8585aa] hover:text-[#bcbcd8] hover:border-white/10"
+                  }`}
+                >
+                  {f.charAt(0).toUpperCase() + f.slice(1)}
+                </button>
+              ))}
+            </div>
+            {digestFrequency === "weekly" && (
+              <div className="flex gap-1.5 flex-wrap">
+                {DOW_LABELS.map((label, i) => (
+                  <button
+                    key={i}
+                    onClick={() => { setDigestDay(i); savePrefs(subscribed, i, digestFrequency); }}
+                    className={`rounded-lg px-3 py-1.5 font-mono text-[11px] font-semibold transition-all ${
+                      digestDay === i
+                        ? "bg-[#3b82f6]/15 border border-[#3b82f6]/40 text-[#3b82f6]"
+                        : "border border-white/[0.06] text-[#8585aa] hover:text-[#bcbcd8]"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Includes */}
+          <div className="rounded-xl border border-white/[0.06] bg-[#13131a] px-4 py-3">
+            <p className="font-mono text-[10px] uppercase tracking-widest text-[#8585aa] mb-3">Includes</p>
+            <div className="grid grid-cols-2 gap-y-1.5 gap-x-4">
+              {["Revenue highlights", "Anomaly alerts", "Cross-platform insights", "Top action for the week"].map((item) => (
+                <div key={item} className="flex items-center gap-1.5">
+                  <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="#10b981" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                  <p className="font-mono text-[10px] text-[#bcbcd8]">{item}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Send now */}
+      <div className="flex flex-wrap items-center gap-3">
         <button
-          onClick={saveRules}
-          disabled={saving}
-          className="rounded-xl bg-[#00d4aa] px-5 py-2 font-mono text-xs font-bold text-[#13131f] hover:bg-[#00bfa0] transition disabled:opacity-60"
+          onClick={sendDigest} disabled={sending}
+          className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-[#13131a] px-4 py-2 font-mono text-xs text-[#8585aa] hover:text-[#bcbcd8] hover:border-white/10 disabled:opacity-50 transition-all"
         >
-          {saving ? "Saving…" : "Save alert rules"}
+          {sending ? (
+            <><svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" /></svg>Generating &amp; Sending…</>
+          ) : (
+            <><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>Send digest now</>
+          )}
         </button>
-        {saved && <span className="font-mono text-[10px] text-[#00d4aa]">✓ Saved</span>}
-        {(rules.revenueDropPct > 0 || rules.bounceSpikeThreshold > 0 || rules.spendSpikeThreshold > 0) && (
-          <button
-            onClick={clearRules}
-            className="font-mono text-[10px] text-[#8585aa] hover:text-red-400 transition"
-          >
-            Clear all
-          </button>
-        )}
+        {sendStatus === "sent" && <span className="font-mono text-[11px] text-[#10b981]">✓ Sent to {email}</span>}
+        {sendStatus === "error" && <span className="font-mono text-[11px] text-red-400">{sendError}</span>}
       </div>
       <p className="font-mono text-[9px] text-[#58588a]">
-        Alert thresholds are saved to your account and checked on your Overview dashboard.
+        Last sent: <span className={lastSent ? "text-[#bcbcd8]" : "text-[#f59e0b]"}>{lastSent ?? "Never"}</span>
       </p>
     </div>
   );
 }
 
-// ── Email Digest Section ──────────────────────────────────────────────────
+// ── Newsletter Section ────────────────────────────────────────────────────
 
-function DigestSection({ email }: { email: string }) {
-  const [sending, setSending] = useState(false);
-  const [status, setStatus] = useState<"idle" | "sent" | "error">("idle");
-  const [errorMsg, setErrorMsg] = useState("");
+function NewsletterToggle() {
+  const [enabled, setEnabled] = useState(true);
+  const [loaded, setLoaded] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
-  async function sendDigest() {
-    setSending(true);
-    setStatus("idle");
-    setErrorMsg("");
+  useEffect(() => {
+    fetch("/api/user/settings").then((r) => r.json()).then((d) => {
+      if (typeof d.newsletterEmails === "boolean") setEnabled(d.newsletterEmails);
+      setLoaded(true);
+    }).catch(() => setLoaded(true));
+  }, []);
+
+  async function toggle(next: boolean) {
+    setEnabled(next);
+    setSaving(true);
+    setSaved(false);
     try {
-      const res = await fetch("/api/digest/send", { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) {
-        setErrorMsg(data.error ?? "Failed to send digest.");
-        setStatus("error");
-      } else {
-        setStatus("sent");
-      }
-    } catch {
-      setErrorMsg("Network error.");
-      setStatus("error");
-    } finally {
-      setSending(false);
-    }
+      await fetch("/api/user/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newsletterEmails: next }),
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } finally { setSaving(false); }
   }
 
   return (
-    <section className="mb-6 rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-6">
-      <h2 className="mb-1 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#8585aa]">
-        Email Digest
-      </h2>
-      <p className="mb-4 text-sm text-[#bcbcd8]">
-        Generate and send a full AI-powered weekly summary to <span className="text-[#e0e0f0]">{email}</span>. Includes revenue highlights, anomalies, cross-platform insights, and a top action.
-      </p>
-      <div className="flex items-center gap-3">
-        <button
-          onClick={sendDigest}
-          disabled={sending}
-          className="flex items-center gap-2 rounded-xl border border-[#00d4aa]/20 bg-[#00d4aa]/5 px-5 py-2.5 font-mono text-xs font-semibold text-[#00d4aa] hover:bg-[#00d4aa]/10 disabled:opacity-50 disabled:cursor-not-allowed transition"
-        >
-          {sending ? (
-            <>
-              <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-              </svg>
-              Generating &amp; Sending…
-            </>
-          ) : (
-            <>
-              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-              Send digest now
-            </>
-          )}
-        </button>
-        {status === "sent" && <span className="font-mono text-[11px] text-[#00d4aa]">✓ Digest sent to {email}</span>}
-        {status === "error" && <span className="font-mono text-[11px] text-red-400">{errorMsg}</span>}
+    <div className={`flex items-start justify-between gap-4 transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}>
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-[#f8f8fc]">Newsletter &amp; product updates</p>
+        <p className="mt-1 text-xs text-[#8585aa]">
+          Tips, new integrations, and product updates. Transactional emails (digest, alerts) are always delivered regardless.
+        </p>
+        {saving && <p className="mt-1 font-mono text-[10px] text-[#58588a]">Saving…</p>}
+        {saved && !saving && <p className="mt-1 font-mono text-[10px] text-[#10b981]">✓ Saved</p>}
+        {!enabled && !saving && !saved && <p className="mt-1 font-mono text-[10px] text-[#58588a]">Opted out of newsletter emails.</p>}
       </div>
-      <p className="mt-3 font-mono text-[9px] text-[#58588a]">
-        Tip: Set up automated weekly sends via your cron script.
-      </p>
-    </section>
+      <Toggle checked={enabled} onChange={toggle} disabled={saving || !loaded} color="#10b981" />
+    </div>
   );
 }
+
+// ── Goals Section ─────────────────────────────────────────────────────────
+
+interface Goals {
+  revenueTarget: number;
+  sessionsTarget: number;
+  subscribersTarget: number;
+  adSpendBudget: number;
+}
+
+const DEFAULT_GOALS: Goals = { revenueTarget: 0, sessionsTarget: 0, subscribersTarget: 0, adSpendBudget: 0 };
+
+function GoalsSection({ currencies }: { currencies: Record<string, string> }) {
+  const [goals, setGoals] = useState<Goals>(DEFAULT_GOALS);
+  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [lastSaved, setLastSaved] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/user/settings").then((r) => r.json()).then((d) => {
+      if (d.goals) setGoals({ ...DEFAULT_GOALS, ...d.goals });
+      if (d.goalsLastSaved) setLastSaved(d.goalsLastSaved);
+      setLoaded(true);
+    }).catch(() => setLoaded(true));
+  }, []);
+
+  async function saveGoals() {
+    setSaving(true);
+    try {
+      await fetch("/api/user/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ goals }),
+      });
+      setSaved(true);
+      setLastSaved("Just now");
+      setTimeout(() => setSaved(false), 2200);
+    } finally { setSaving(false); }
+  }
+
+  function clearGoals() {
+    setGoals(DEFAULT_GOALS);
+    fetch("/api/user/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ goals: DEFAULT_GOALS }),
+    }).catch(() => {});
+  }
+
+  const revCurrency = REVENUE_PROVIDERS_LOCAL.map((p) => currencies[p]).find(Boolean) ?? "USD";
+  const adsCurrency = ADS_PROVIDERS_LOCAL.map((p) => currencies[p]).find(Boolean) ?? revCurrency;
+
+  // Simulated pace data (in real app, would come from props or API)
+  const paceInsights: Record<keyof Goals, string | null> = {
+    revenueTarget: goals.revenueTarget > 0 ? `At $2.86/day you'll reach ~$85 this month — goal is ${Math.round(goals.revenueTarget / 100 / 85)}× current pace` : null,
+    sessionsTarget: goals.sessionsTarget > 0 ? `At current pace: ~1,200 sessions — goal is ${Math.round(goals.sessionsTarget / 1200)}× current traffic` : null,
+    subscribersTarget: null, // no email platform
+    adSpendBudget: null, // no ads platform
+  };
+
+  const KPI_ROWS: {
+    key: keyof Goals;
+    label: string;
+    sublabel: string;
+    unit: string;
+    unitPos: "left" | "right";
+    placeholder: string;
+    color: string;
+    icon: React.ReactNode;
+    toDisplay: (v: number) => string;
+    toStorage: (s: string) => number;
+    progressCurrent?: number;
+    progressGoal?: number;
+    noDataMsg?: string;
+  }[] = [
+    {
+      key: "revenueTarget",
+      label: "Monthly revenue target",
+      sublabel: `Shown as goal line on Overview & AI Advisor · ${revCurrency}`,
+      unit: revCurrency,
+      unitPos: "left",
+      placeholder: "1000",
+      color: "#eab308",
+      progressCurrent: 2000,
+      progressGoal: goals.revenueTarget || 0,
+      icon: <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" /></svg>,
+      toDisplay: (v) => (v ? (v / 100).toFixed(0) : ""),
+      toStorage: (s) => (s ? Math.round(parseFloat(s) * 100) : 0),
+    },
+    {
+      key: "sessionsTarget",
+      label: "Monthly sessions target",
+      sublabel: "Web traffic goal from GA4 / Plausible / PostHog",
+      unit: "sessions",
+      unitPos: "right",
+      placeholder: "20000",
+      color: "#6366f1",
+      progressCurrent: 52,
+      progressGoal: goals.sessionsTarget || 0,
+      icon: <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" /></svg>,
+      toDisplay: (v) => (v ? String(v) : ""),
+      toStorage: (s) => (s ? parseInt(s) || 0 : 0),
+    },
+    {
+      key: "subscribersTarget",
+      label: "Monthly subscribers target",
+      sublabel: "Email list growth from Mailchimp / Beehiiv / Klaviyo",
+      unit: "subs",
+      unitPos: "right",
+      placeholder: "500",
+      color: "#14b8a6",
+      noDataMsg: "No email platform connected — connect Mailchimp to track this",
+      icon: <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>,
+      toDisplay: (v) => (v ? String(v) : ""),
+      toStorage: (s) => (s ? parseInt(s) || 0 : 0),
+    },
+    {
+      key: "adSpendBudget",
+      label: "Monthly ad spend budget",
+      sublabel: `Max budget cap across Meta / Google Ads / TikTok · ${adsCurrency}`,
+      unit: adsCurrency,
+      unitPos: "left",
+      placeholder: "2000",
+      color: "#f59e0b",
+      noDataMsg: "No ad platform connected — connect Meta Ads to track this",
+      icon: <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" /><path d="M8 21h8M12 17v4" /></svg>,
+      toDisplay: (v) => (v ? (v / 100).toFixed(0) : ""),
+      toStorage: (s) => (s ? Math.round(parseFloat(s) * 100) : 0),
+    },
+  ];
+
+  if (!loaded) {
+    return (
+      <div className="space-y-3">
+        {[1, 2, 3, 4].map((i) => <div key={i} className="h-20 animate-pulse rounded-xl bg-[#13131a]" />)}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-3">
+        {KPI_ROWS.map((row) => {
+          const displayVal = row.toDisplay(goals[row.key]);
+          const numericGoal = row.progressGoal ?? 0;
+          const numericCurrent = row.progressCurrent ?? 0;
+          const pct = numericGoal > 0 ? Math.min(100, Math.round((numericCurrent / numericGoal) * 100)) : 0;
+          const pace = paceInsights[row.key];
+
+          return (
+            <div key={row.key} className="rounded-xl border border-white/[0.06] bg-[#13131a] overflow-hidden">
+              <div className="p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg mt-0.5" style={{ backgroundColor: `${row.color}15`, color: row.color }}>
+                    {row.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-[#e0e0f0]">{row.label}</p>
+                    <p className="font-mono text-[9px] text-[#8585aa] mt-0.5">{row.sublabel}</p>
+                  </div>
+                  {/* Input */}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {row.unitPos === "left" && <span className="font-mono text-[10px] text-[#8585aa]">{row.unit}</span>}
+                    <input
+                      type="number" min={0}
+                      placeholder={row.placeholder}
+                      value={displayVal}
+                      onChange={(e) => setGoals((g) => ({ ...g, [row.key]: row.toStorage(e.target.value) }))}
+                      className="w-24 rounded-lg border border-white/[0.06] bg-[#0d0d0f] px-2 py-1.5 font-mono text-xs text-[#f8f8fc] text-right placeholder:text-[#58588a] focus:outline-none focus:border-[#6366f1]/40 focus:ring-1 focus:ring-[#6366f1]/20 transition-colors"
+                    />
+                    {row.unitPos === "right" && <span className="font-mono text-[10px] text-[#8585aa]">{row.unit}</span>}
+                  </div>
+                </div>
+
+                {/* Progress bar — only if goal set and data available */}
+                {numericGoal > 0 && !row.noDataMsg && (
+                  <div className="mt-3 ml-11">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="font-mono text-[9px] text-[#8585aa]">
+                        Current: {row.unitPos === "left" ? row.unit : ""}{row.toDisplay(numericCurrent * 100)}{row.unitPos === "right" ? ` ${row.unit}` : ""} / {displayVal} goal
+                      </p>
+                      <p className="font-mono text-[9px]" style={{ color: pct < 20 ? "#f59e0b" : row.color }}>{pct}%</p>
+                    </div>
+                    <div className="h-1.5 w-full rounded-full bg-white/[0.04] overflow-hidden">
+                      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: row.color }} />
+                    </div>
+                  </div>
+                )}
+
+                {/* Pace insight */}
+                {pace && (
+                  <p className="mt-2 ml-11 font-mono text-[9px] italic" style={{ color: pct < 20 ? "#f59e0b" : "#8585aa" }}>
+                    💡 {pace}
+                  </p>
+                )}
+                {row.noDataMsg && (
+                  <p className="mt-2 ml-11 font-mono text-[9px] text-[#8585aa] italic">💡 {row.noDataMsg}</p>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="flex items-center gap-3 flex-wrap">
+        <button onClick={saveGoals} disabled={saving} className="rounded-xl bg-[#eab308] px-5 py-2 font-mono text-xs font-bold text-[#0d0d0f] hover:bg-[#ca8a04] transition disabled:opacity-60">
+          {saving ? "Saving…" : "Save goals"}
+        </button>
+        {saved && <span className="flex items-center gap-1 font-mono text-[10px] text-[#10b981]"><svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>Saved</span>}
+        <button onClick={clearGoals} className="font-mono text-[10px] text-[#8585aa] hover:text-red-400 transition ml-auto">
+          Clear all
+        </button>
+      </div>
+      <div className="flex items-center gap-3">
+        <p className="font-mono text-[9px] text-[#58588a]">Goals are used locally for projections — never shared.</p>
+        {lastSaved && <p className="font-mono text-[9px] text-[#58588a]">Last saved: {lastSaved}</p>}
+      </div>
+    </div>
+  );
+}
+
+// ── Modal shell ───────────────────────────────────────────────────────────
 
 const DYNAMIC_MODALS: Record<string, { label: string; name: string; optional?: boolean }[]> = {
   activecampaign: [{ name: "apiUrl", label: "Api URL" }, { name: "apiKey", label: "API Key" }],
@@ -559,524 +992,16 @@ const DYNAMIC_MODALS: Record<string, { label: string; name: string; optional?: b
   zendesk: [{ name: "subdomain", label: "Subdomain" }, { name: "email", label: "Email" }, { name: "apiToken", label: "API Token" }],
 };
 
-// ── Newsletter / Email Preferences Section ────────────────────────────────────
-
-function NewsletterSection() {
-  const [enabled, setEnabled] = useState<boolean>(true);
-  const [loaded, setLoaded] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-
-  useEffect(() => {
-    fetch("/api/user/settings")
-      .then((r) => r.json())
-      .then((d) => {
-        if (typeof d.newsletterEmails === "boolean") setEnabled(d.newsletterEmails);
-        setLoaded(true);
-      })
-      .catch(() => setLoaded(true));
-  }, []);
-
-  async function toggle(next: boolean) {
-    setEnabled(next);
-    setSaving(true);
-    setSaved(false);
-    try {
-      await fetch("/api/user/settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ newsletterEmails: next }),
-      });
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    } finally {
-      setSaving(false);
-    }
-  }
-
+function ConnectModalShell({ title, description, onClose, children }: { title: string; description: string; onClose: () => void; children: React.ReactNode }) {
   return (
-    <div className={`transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}>
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <p className="text-sm font-semibold text-[#f8f8fc]">Newsletter &amp; product updates</p>
-          <p className="mt-1 text-xs text-[#8585aa]">
-            Tips, new integrations, and product updates from Fold. You&apos;ll always receive
-            transactional emails (digest reports, alerts) regardless of this setting.
-          </p>
-        </div>
-
-        {/* Toggle switch */}
-        <button
-          role="switch"
-          aria-checked={enabled}
-          onClick={() => !saving && toggle(!enabled)}
-          disabled={saving || !loaded}
-          className={`relative mt-0.5 h-6 w-11 shrink-0 rounded-full border transition-all duration-200 focus:outline-none disabled:opacity-50 ${
-            enabled
-              ? "border-[#00d4aa]/50 bg-[#00d4aa]/20"
-              : "border-[#363650] bg-[#1c1c2a]"
-          }`}
-        >
-          <span
-            className={`absolute top-0.5 h-5 w-5 rounded-full border transition-all duration-200 ${
-              enabled
-                ? "left-[calc(100%-1.375rem)] border-[#00d4aa]/60 bg-[#00d4aa]"
-                : "left-0.5 border-[#58588a] bg-[#58588a]"
-            }`}
-          />
-        </button>
-      </div>
-
-      <div className="mt-2 flex items-center gap-2">
-        {saving && (
-          <span className="font-mono text-[10px] text-[#58588a]">Saving…</span>
-        )}
-        {saved && !saving && (
-          <span className="font-mono text-[10px] text-[#00d4aa]">✓ Saved</span>
-        )}
-        {!enabled && !saving && !saved && (
-          <span className="font-mono text-[10px] text-[#58588a]">You are opted out of newsletter emails.</span>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ── Goals & KPIs Section ─────────────────────────────────────────────────
-
-interface Goals {
-  revenueTarget: number;   // cents per month
-  sessionsTarget: number;  // sessions per month
-  subscribersTarget: number; // email subscribers per month
-  adSpendBudget: number;   // cents per month (ad budget cap)
-}
-
-const DEFAULT_GOALS: Goals = {
-  revenueTarget: 0,
-  sessionsTarget: 0,
-  subscribersTarget: 0,
-  adSpendBudget: 0,
-};
-
-function GoalsSection({ currencies }: { currencies: Record<string, string> }) {
-  const [goals, setGoals] = useState<Goals>(DEFAULT_GOALS);
-  const [saved, setSaved] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
-    fetch("/api/user/settings")
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.goals) setGoals({ ...DEFAULT_GOALS, ...d.goals });
-        setLoaded(true);
-      })
-      .catch(() => setLoaded(true));
-  }, []);
-
-  async function saveGoals() {
-    setSaving(true);
-    try {
-      await fetch("/api/user/settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ goals }),
-      });
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2200);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  function clearGoals() {
-    setGoals(DEFAULT_GOALS);
-    fetch("/api/user/settings", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ goals: DEFAULT_GOALS }),
-    }).catch(() => {});
-  }
-
-  const hasAny =
-    goals.revenueTarget > 0 ||
-    goals.sessionsTarget > 0 ||
-    goals.subscribersTarget > 0 ||
-    goals.adSpendBudget > 0;
-
-  // Derive currency symbols from the connected platforms.
-  // Always use the ISO code as the label (e.g. "RON", "USD", "EUR") —
-  // unambiguous for every currency, including those without a short symbol.
-  const revCurrency = REVENUE_PROVIDERS_LOCAL.map((p) => currencies[p]).find(Boolean) ?? "USD";
-  // Ads currency falls back to revenue currency so users without an ads
-  // platform connected still see their own currency (e.g. RON), not USD.
-  const adsCurrency =
-    ADS_PROVIDERS_LOCAL.map((p) => currencies[p]).find(Boolean) ?? revCurrency;
-
-  const revSymbol = revCurrency;
-  const adsSymbol = adsCurrency;
-
-  const KPI_ROWS: {
-    key: keyof Goals;
-    label: string;
-    sublabel: string;
-    unit: string;
-    unitPos: "left" | "right";
-    placeholder: string;
-    color: string;
-    icon: React.ReactNode;
-    toDisplay: (v: number) => string;
-    toStorage: (s: string) => number;
-  }[] = [
-    {
-      key: "revenueTarget",
-      label: "Monthly revenue target",
-      sublabel: `Shown as goal line on Overview & AI advisor · ${revCurrency}`,
-      unit: revSymbol,
-      unitPos: "left",
-      placeholder: "e.g. 10000",
-      color: "#635bff",
-      icon: (
-        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
-        </svg>
-      ),
-      toDisplay: (v) => (v ? (v / 100).toFixed(0) : ""),
-      toStorage: (s) => (s ? Math.round(parseFloat(s) * 100) : 0),
-    },
-    {
-      key: "sessionsTarget",
-      label: "Monthly sessions target",
-      sublabel: "Web traffic goal from GA4 / Plausible / PostHog",
-      unit: "sessions",
-      unitPos: "right",
-      placeholder: "e.g. 20000",
-      color: "#4285F4",
-      icon: (
-        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-          <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
-        </svg>
-      ),
-      toDisplay: (v) => (v ? String(v) : ""),
-      toStorage: (s) => (s ? parseInt(s) || 0 : 0),
-    },
-    {
-      key: "subscribersTarget",
-      label: "Monthly subscribers target",
-      sublabel: "Email list growth goal from Mailchimp / Beehiiv / Klaviyo",
-      unit: "subs",
-      unitPos: "right",
-      placeholder: "e.g. 500",
-      color: "#FF6B35",
-      icon: (
-        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-          <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-        </svg>
-      ),
-      toDisplay: (v) => (v ? String(v) : ""),
-      toStorage: (s) => (s ? parseInt(s) || 0 : 0),
-    },
-    {
-      key: "adSpendBudget",
-      label: "Monthly ad spend budget",
-      sublabel: `Max budget cap across Meta / Google Ads / TikTok Ads · ${adsCurrency}`,
-      unit: adsSymbol,
-      unitPos: "left",
-      placeholder: "e.g. 2000",
-      color: "#f59e0b",
-      icon: (
-        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-          <rect x="2" y="3" width="20" height="14" rx="2" /><path d="M8 21h8M12 17v4" />
-        </svg>
-      ),
-      toDisplay: (v) => (v ? (v / 100).toFixed(0) : ""),
-      toStorage: (s) => (s ? Math.round(parseFloat(s) * 100) : 0),
-    },
-  ];
-
-  if (!loaded) {
-    return (
-      <div className="flex items-center gap-2 py-2 text-[#58588a]">
-        <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-        </svg>
-        <span className="font-mono text-[10px]">Loading…</span>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      <p className="text-sm text-[#bcbcd8]">
-        Set your monthly KPI targets. These power the forecast bars on your Overview, the AI advisor&apos;s analysis, and your email digest.
-      </p>
-
-      <div className="space-y-3">
-        {KPI_ROWS.map((row) => (
-          <div
-            key={row.key}
-            className="flex items-center gap-3 rounded-xl border border-[#363650] bg-[#222235] px-4 py-3"
-          >
-            {/* Icon */}
-            <div
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
-              style={{ backgroundColor: `${row.color}15`, color: row.color }}
-            >
-              {row.icon}
-            </div>
-
-            {/* Labels */}
-            <div className="flex-1 min-w-0">
-              <p className="font-mono text-[11px] font-semibold text-[#e0e0f0]">{row.label}</p>
-              <p className="font-mono text-[9px] text-[#8585aa]">{row.sublabel}</p>
-            </div>
-
-            {/* Input */}
-            <div className="flex shrink-0 items-center gap-1.5">
-              {row.unitPos === "left" && (
-                <span className="font-mono text-[10px] text-[#8585aa]">{row.unit}</span>
-              )}
-              <input
-                type="number"
-                min={0}
-                placeholder={row.placeholder.replace("e.g. ", "")}
-                value={row.toDisplay(goals[row.key])}
-                onChange={(e) =>
-                  setGoals((g) => ({ ...g, [row.key]: row.toStorage(e.target.value) }))
-                }
-                className="w-24 rounded-lg border border-[#363650] bg-[#1c1c2a] px-2 py-1.5 font-mono text-xs text-[#f8f8fc] text-right placeholder:text-[#58588a] focus:outline-none focus:border-[#00d4aa]/30 transition-colors"
-              />
-              {row.unitPos === "right" && (
-                <span className="font-mono text-[10px] text-[#8585aa]">{row.unit}</span>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Actions */}
-      <div className="flex items-center gap-3">
-        <button
-          onClick={saveGoals}
-          disabled={saving}
-          className="rounded-xl bg-[#00d4aa] px-5 py-2 font-mono text-xs font-bold text-[#13131f] hover:bg-[#00bfa0] transition disabled:opacity-60"
-        >
-          {saving ? "Saving…" : "Save goals"}
-        </button>
-        {saved && (
-          <span className="flex items-center gap-1 font-mono text-[10px] text-[#00d4aa]">
-            <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
-            Saved
-          </span>
-        )}
-        {hasAny && (
-          <button
-            onClick={clearGoals}
-            className="font-mono text-[10px] text-[#8585aa] hover:text-red-400 transition"
-          >
-            Clear all
-          </button>
-        )}
-      </div>
-      <p className="font-mono text-[9px] text-[#58588a]">
-        Goals are used for forecast projections and AI-powered recommendations — they are never shared.
-      </p>
-    </div>
-  );
-}
-
-// ── Email Digest Inline (used inside the Settings grid section) ─────────────
-
-function DigestSectionInline({ email }: { email: string }) {
-  const [subscribed, setSubscribed] = useState(false);
-  const [digestDay, setDigestDay]   = useState(1); // 0=Sun … 6=Sat
-  const [loading, setLoading]       = useState(true);
-  const [saving, setSaving]         = useState(false);
-  const [sending, setSending]       = useState(false);
-  const [sendStatus, setSendStatus] = useState<"idle" | "sent" | "error">("idle");
-  const [sendError, setSendError]   = useState("");
-
-  const DOW_LABELS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-
-  // Load current prefs on mount
-  useEffect(() => {
-    fetch("/api/user/settings")
-      .then((r) => r.json())
-      .then((d) => {
-        if (typeof d.digestSubscribed === "boolean") setSubscribed(d.digestSubscribed);
-        if (typeof d.digestDay === "number") setDigestDay(d.digestDay);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
-
-  async function savePrefs(nextSubscribed: boolean, nextDay: number) {
-    setSaving(true);
-    try {
-      await fetch("/api/user/settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ digestSubscribed: nextSubscribed, digestDay: nextDay }),
-      });
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  function handleToggle() {
-    const next = !subscribed;
-    setSubscribed(next);
-    savePrefs(next, digestDay);
-  }
-
-  function handleDayChange(day: number) {
-    setDigestDay(day);
-    savePrefs(subscribed, day);
-  }
-
-  async function sendDigest() {
-    setSending(true);
-    setSendStatus("idle");
-    setSendError("");
-    try {
-      const res = await fetch("/api/digest/send", { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) {
-        setSendError(data.error ?? "Failed to send digest.");
-        setSendStatus("error");
-      } else {
-        setSendStatus("sent");
-      }
-    } catch {
-      setSendError("Network error.");
-      setSendStatus("error");
-    } finally {
-      setSending(false);
-    }
-  }
-
-  if (loading) {
-    return <div className="h-20 animate-pulse rounded-xl bg-[#222235]" />;
-  }
-
-  return (
-    <div className="flex flex-col gap-5">
-      <p className="text-sm text-[#bcbcd8]">
-        Get an AI-powered summary delivered to{" "}
-        <span className="font-medium text-[#e0e0f0]">{email}</span> every week.
-        Includes revenue highlights, anomalies, cross-platform insights, and a top action.
-      </p>
-
-      {/* ── Enable toggle ── */}
-      <div className="flex items-center justify-between rounded-xl border border-[#363650] bg-[#222235] px-4 py-3">
-        <div>
-          <p className="font-mono text-xs font-semibold text-[#f8f8fc]">Weekly email digest</p>
-          <p className="mt-0.5 font-mono text-[10px] text-[#8585aa]">
-            {subscribed ? "Enabled — digest sent automatically" : "Disabled — no automatic emails"}
-          </p>
-        </div>
-        <button
-          onClick={handleToggle}
-          disabled={saving}
-          aria-pressed={subscribed}
-          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none disabled:opacity-50 ${
-            subscribed ? "bg-[#00d4aa]" : "bg-[#363650]"
-          }`}
-        >
-          <span
-            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${
-              subscribed ? "translate-x-5" : "translate-x-0"
-            }`}
-          />
-        </button>
-      </div>
-
-      {/* ── Day of week picker — only visible when enabled ── */}
-      {subscribed && (
-        <div className="rounded-xl border border-[#363650] bg-[#222235] px-4 py-3 space-y-2">
-          <p className="font-mono text-[10px] uppercase tracking-widest text-[#8585aa]">Send every</p>
-          <div className="flex flex-wrap gap-1.5">
-            {DOW_LABELS.map((label, i) => (
-              <button
-                key={i}
-                onClick={() => handleDayChange(i)}
-                disabled={saving}
-                className={`rounded-lg px-3 py-1.5 font-mono text-[11px] font-semibold transition-all disabled:opacity-50 ${
-                  digestDay === i
-                    ? "bg-[#00d4aa]/15 border border-[#00d4aa]/30 text-[#00d4aa]"
-                    : "border border-[#363650] text-[#8585aa] hover:text-[#bcbcd8] hover:border-[#454560]"
-                }`}
-              >
-                {label.slice(0, 3)}
-              </button>
-            ))}
-          </div>
-          <p className="font-mono text-[9px] text-[#58588a]">
-            Next digest: <span className="text-[#bcbcd8]">{DOW_LABELS[digestDay]}</span>
-            {saving && <span className="ml-2 text-[#00d4aa]">Saving…</span>}
-          </p>
-        </div>
-      )}
-
-      {/* ── Send now ── */}
-      <div className="flex flex-wrap items-center gap-3">
-        <button
-          onClick={sendDigest}
-          disabled={sending}
-          className="flex items-center gap-2 rounded-xl border border-[#363650] px-4 py-2 font-mono text-xs text-[#8585aa] hover:text-[#bcbcd8] hover:border-[#454560] disabled:opacity-50 disabled:cursor-not-allowed transition"
-        >
-          {sending ? (
-            <>
-              <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-              </svg>
-              Generating &amp; Sending…
-            </>
-          ) : (
-            <>
-              <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-              Send digest now
-            </>
-          )}
-        </button>
-        {sendStatus === "sent"  && <span className="font-mono text-[11px] text-[#00d4aa]">✓ Sent to {email}</span>}
-        {sendStatus === "error" && <span className="font-mono text-[11px] text-red-400">{sendError}</span>}
-      </div>
-    </div>
-  );
-}
-
-function ConnectModalShell({
-  title,
-  description,
-  onClose,
-  children,
-}: {
-  title: string;
-  description: string;
-  onClose: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#090911]/75 p-4">
-      <div className="w-full max-w-lg rounded-2xl border border-[#363650] bg-[#13131f] p-6 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#090911]/80 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-lg rounded-2xl border border-white/[0.06] bg-[#13131a] p-6 shadow-2xl">
         <div className="mb-5 flex items-start justify-between gap-3">
           <div>
-            <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">{title}</h3>
+            <h3 className="text-sm font-semibold text-[#f8f8fc]">{title}</h3>
             <p className="mt-1 text-xs text-[#8585aa]">{description}</p>
           </div>
-          <button
-            onClick={onClose}
-            className="rounded-lg border border-[#363650] px-2.5 py-1 font-mono text-[10px] text-[#8585aa] transition hover:text-[#e0e0f0]"
-          >
-            Close
-          </button>
+          <button onClick={onClose} className="rounded-lg border border-white/[0.06] px-2.5 py-1 font-mono text-[10px] text-[#8585aa] hover:text-[#e0e0f0] transition-colors">Close</button>
         </div>
         {children}
       </div>
@@ -1084,8 +1009,23 @@ function ConnectModalShell({
   );
 }
 
+// ── NAV ITEMS ─────────────────────────────────────────────────────────────
+
+const NAV_ITEMS = [
+  { id: "account",      label: "Account",      color: "#6366f1" },
+  { id: "subscription", label: "Subscription", color: "#10b981" },
+  { id: "integrations", label: "Integrations", color: "#14b8a6" },
+  { id: "goals",        label: "Goals & KPIs", color: "#eab308" },
+  { id: "alerts",       label: "Alert Rules",  color: "#ef4444" },
+  { id: "email",        label: "Email Digest", color: "#3b82f6" },
+  { id: "preferences",  label: "Preferences",  color: "#8b5cf6" },
+];
+
+// ── MAIN COMPONENT ────────────────────────────────────────────────────────
+
 export default function SettingsTab({ email, isPremium, connectedPlatforms, currencies }: SettingsTabProps) {
   const router = useRouter();
+  const [activeSection, setActiveSection] = useState("account");
   const [portalLoading, setPortalLoading] = useState(false);
   const [portalError, setPortalError] = useState("");
   const [connectTarget, setConnectTarget] = useState<string | null>(null);
@@ -1093,42 +1033,52 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
   const [connectError, setConnectError] = useState("");
   const [connectSuccess, setConnectSuccess] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeCategory, setActiveCategory] = useState<string>("Popular");
+  const [activeCategory, setActiveCategory] = useState("Popular");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
 
   const POPULAR_INTEGRATION_IDS = ["stripe", "ga4", "meta", "shopify", "youtube", "mailchimp"];
+  const totalIntegrations = UI_INTEGRATIONS.length;
+  const connectedCount = connectedPlatforms.filter((p) => UI_INTEGRATIONS.some((i) => i.id === p)).length;
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const connect = params.get("connect");
-    if (connect && LIVE_INTEGRATIONS.some((i) => i.id === connect)) {
-      setConnectTarget(connect);
-    }
-
-    // Detect OAuth error/result params like ?shopify=error or ?hubspot=connected
-    // and immediately clean them from the URL so they don't interfere with navigation.
+    if (connect && LIVE_INTEGRATIONS.some((i) => i.id === connect)) setConnectTarget(connect);
     const knownParams = new Set(["tab", "connect", "syncing"]);
     const hasJunkParams = Array.from(params.keys()).some((k) => !knownParams.has(k));
     if (hasJunkParams) {
-      // Show error banner if any platform returned an error
-      const errorPlatform = Array.from(params.entries()).find(
-        ([k, v]) => !knownParams.has(k) && v === "error"
-      );
-      if (errorPlatform) {
-        setConnectError(
-          `Could not connect ${errorPlatform[0].replace(/-/g, " ")} — please try again or check your app credentials.`
-        );
-      }
-      // Clean the URL — only keep tab=settings
+      const errorPlatform = Array.from(params.entries()).find(([k, v]) => !knownParams.has(k) && v === "error");
+      if (errorPlatform) setConnectError(`Could not connect ${errorPlatform[0].replace(/-/g, " ")} — please try again.`);
       router.replace("/dashboard?tab=settings");
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Intersection observer for active nav state
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) setActiveSection(entry.target.id);
+        });
+      },
+      { rootMargin: "-30% 0px -60% 0px" }
+    );
+    Object.values(sectionRefs.current).forEach((el) => { if (el) observer.observe(el); });
+    return () => observer.disconnect();
+  }, []);
+
+  function scrollTo(id: string) {
+    setActiveSection(id);
+    sectionRefs.current[id]?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   function closeConnectModal() {
     setConnectTarget(null);
     setConnectError("");
     setConnectSuccess("");
-    // Always produce a clean URL — drops all OAuth result params (?platform=error/connected/missing_shop)
     router.replace("/dashboard?tab=settings");
   }
 
@@ -1140,37 +1090,20 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
       const supabase = createClient();
       const { data } = await supabase.auth.getSession();
       const token = data.session?.access_token;
-      if (!token) {
-        setConnectError("Your session expired. Please log in again.");
-        setConnectLoading(false);
-        return;
-      }
-
+      if (!token) { setConnectError("Your session expired. Please log in again."); setConnectLoading(false); return; }
       const res = await fetch(`/api/auth/${platform}/connect`, {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        method: "POST", credentials: "include",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload),
       });
-
       const result = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setConnectError(result?.error ?? "Failed to connect integration.");
-        setConnectLoading(false);
-        return;
-      }
-
+      if (!res.ok) { setConnectError(result?.error ?? "Failed to connect integration."); setConnectLoading(false); return; }
       setConnectSuccess("Integration connected successfully.");
       router.refresh();
       setTimeout(() => closeConnectModal(), 700);
     } catch {
       setConnectError("Network error while connecting integration.");
-    } finally {
-      setConnectLoading(false);
-    }
+    } finally { setConnectLoading(false); }
   }
 
   async function handlePortal() {
@@ -1179,11 +1112,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
     try {
       const res = await fetch("/api/stripe/portal", { method: "POST" });
       const data = await res.json();
-      if (!res.ok) {
-        setPortalError(data.error ?? "Something went wrong.");
-        setPortalLoading(false);
-        return;
-      }
+      if (!res.ok) { setPortalError(data.error ?? "Something went wrong."); setPortalLoading(false); return; }
       window.location.href = data.url;
     } catch {
       setPortalError("Network error. Please try again.");
@@ -1192,291 +1121,327 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
   }
 
   return (
-    <div className="w-full space-y-6">
+    <div className="flex w-full min-h-screen rounded-lg" style={{ background: "#0d0d0f" }}>
 
-      {/* ── Page header ───────────────────────────────────── */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="font-mono text-2xl font-bold text-[#f8f8fc]">Settings</h1>
-          <p className="mt-1 text-sm text-[#8585aa]">Manage your account, integrations and subscription.</p>
-        </div>
-        {/* Plan badge in header — quick at-a-glance */}
-        <div className={`mt-1 shrink-0 rounded-full px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-widest ${
-          isPremium
-            ? "border border-[#00d4aa]/30 bg-[#00d4aa]/10 text-[#00d4aa]"
-            : "border border-[#363650] bg-[#222235] text-[#8585aa]"
-        }`}>
-          {isPremium ? "✦ Premium" : "Free plan"}
-        </div>
-      </div>
-
-      {/* ═══════════════════════════════════════════════════
-          Row 1: Account + Subscription side-by-side on md+
-      ═══════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-
-        {/* ── Account ─────────────────────────────────────── */}
-        <section className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-5">
-          <p className="mb-4 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#8585aa]">Account</p>
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#00d4aa]/15 font-mono text-base font-bold uppercase text-[#00d4aa] select-none">
-              {email.charAt(0)}
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-[#f8f8fc]">{email}</p>
-              <p className="mt-0.5 font-mono text-[10px] text-[#8585aa]">Signed-in email</p>
-            </div>
+      {/* ── Left nav — desktop (sticky, 200px) ─────────────────────────── */}
+      <aside className="hidden lg:flex flex-col w-[200px] shrink-0 sticky top-0 h-screen pt-8 pb-6 pl-2 pr-4">
+        <div className="mb-6 px-3">
+          <div className="flex items-center gap-2 mb-1">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#f8f8fc" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z" /><circle cx="12" cy="12" r="3" />
+            </svg>
+            <span className="font-mono text-[11px] font-bold uppercase tracking-widest text-[#f8f8fc]">Settings</span>
           </div>
-        </section>
-
-        {/* ── Subscription ────────────────────────────────── */}
-        <section className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-5">
-          <p className="mb-4 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#8585aa]">Subscription</p>
-
-          {isPremium ? (
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#00d4aa]/20 bg-[#00d4aa]/10">
-                  <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#00d4aa" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-[#f8f8fc]">Premium — Active</p>
-                  <p className="text-xs text-[#8585aa]">Manage billing or cancel via Stripe.</p>
-                </div>
-              </div>
-              {portalError && <p className="text-xs text-red-400">{portalError}</p>}
+        </div>
+        <nav className="flex flex-col gap-0.5">
+          {NAV_ITEMS.map((item) => {
+            const isActive = activeSection === item.id;
+            return (
               <button
-                onClick={handlePortal}
-                disabled={portalLoading}
-                className="flex items-center gap-2 self-start rounded-xl border border-[#363650] bg-[#222235] px-4 py-2 text-sm font-semibold text-[#f8f8fc] transition-all hover:border-[#00d4aa]/30 hover:text-[#00d4aa] disabled:opacity-60 disabled:cursor-not-allowed"
+                key={item.id}
+                onClick={() => scrollTo(item.id)}
+                className="relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-all group"
+                style={{ backgroundColor: isActive ? `${item.color}10` : "transparent" }}
               >
-                {portalLoading ? (
-                  <>
-                    <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                    </svg>
-                    Opening…
-                  </>
-                ) : (
-                  <>
-                    <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-                    </svg>
-                    Manage Subscription
-                  </>
-                )}
+                {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full" style={{ backgroundColor: item.color }} />}
+                <span
+                  className="font-mono text-[11px] font-medium transition-colors"
+                  style={{ color: isActive ? item.color : "#8585aa" }}
+                >
+                  {item.label}
+                </span>
               </button>
-              <p className="font-mono text-[9px] text-[#58588a]">Redirects to Stripe&apos;s secure billing portal.</p>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-3">
-              <div className="rounded-xl border border-[#a78bfa]/15 bg-[#a78bfa]/5 p-3">
-                <div className="flex items-start gap-3">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#a78bfa]/10 text-[#a78bfa]">
-                    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-[#f8f8fc]">Upgrade to Premium</p>
-                    <p className="mt-0.5 text-xs text-[#bcbcd8]">Analytics, AI advisor, website optimizer & all integrations.</p>
-                    <p className="mt-1 font-mono text-xs font-bold text-[#f8f8fc]">
-                      $19<span className="font-normal text-[#8585aa]">/month</span>
-                      <span className="ml-2 rounded-full bg-[#00d4aa]/10 px-2 py-0.5 font-mono text-[9px] font-semibold text-[#00d4aa]">7-day free trial</span>
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <a
-                href="/api/stripe/checkout"
-                className="inline-flex items-center gap-2 self-start rounded-xl bg-[#00d4aa] px-5 py-2 font-mono text-sm font-bold text-[#13131f] hover:bg-[#00bfa0] transition"
-              >
-                Start free trial →
-              </a>
-              <p className="font-mono text-[9px] text-[#58588a]">Card required · $19/mo after 3 days · cancel anytime</p>
-            </div>
-          )}
-        </section>
-      </div>
+            );
+          })}
+        </nav>
+      </aside>
 
-      {/* ── Email Preferences ─────────────────────────────────────────────── */}
-      <section className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-5">
-        <div className="mb-4 flex items-center gap-2">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#a78bfa]/10 text-[#a78bfa]">
-            <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
-          </div>
-          <p className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#8585aa]">Email Preferences</p>
-        </div>
-        <NewsletterSection />
-      </section>
-
-      {/* ═══════════════════════════════════════════════════
-          Row 2: Integrations + Goals & KPIs side-by-side
-          3fr / 2fr split — integrations gets more room
-      ═══════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
-
-        {/* ── Integrations ──────────────────────────────── */}
-        <section id="integrations-section" className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-6">
-        {/* Section header + search */}
-        <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p className="mb-1 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#8585aa]">Integrations</p>
-            <p className="text-sm text-[#bcbcd8]">
-              Connect your data sources. Syncs automatically every day.
-            </p>
-          </div>
-          <div className="relative shrink-0 sm:w-52">
-            <svg className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#58588a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input
-              type="text"
-              placeholder="Search platform..."
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                if (e.target.value && activeCategory === "Popular") setActiveCategory("All");
+      {/* ── Mobile nav — horizontal pill strip ─────────────────────────── */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-40 flex gap-1.5 overflow-x-auto px-4 py-3 scrollbar-none" style={{ background: "#0d0d0f", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+        {NAV_ITEMS.map((item) => {
+          const isActive = activeSection === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => scrollTo(item.id)}
+              className="shrink-0 rounded-full px-3 py-1.5 font-mono text-[10px] font-semibold border transition-all"
+              style={{
+                backgroundColor: isActive ? `${item.color}15` : "transparent",
+                borderColor: isActive ? `${item.color}40` : "rgba(255,255,255,0.06)",
+                color: isActive ? item.color : "#8585aa",
               }}
-              className="w-full rounded-xl border border-[#363650] bg-[#222235] py-2 pl-9 pr-3 font-mono text-xs text-[#f8f8fc] placeholder:text-[#58588a] focus:border-[#00d4aa]/50 focus:outline-none focus:ring-1 focus:ring-[#00d4aa]/20 transition-all"
-            />
-          </div>
-        </div>
+            >
+              {item.label}
+            </button>
+          );
+        })}
+      </div>
 
-        {/* Category pills */}
-        {!searchQuery && (
-          <div className="mb-5 flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-            {["Popular", ...INTEGRATION_CATEGORIES].map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setActiveCategory(cat)}
-                className={`shrink-0 whitespace-nowrap rounded-full px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider transition-all ${
-                  activeCategory === cat
-                    ? "bg-[#00d4aa] text-[#13131f] border border-[#00d4aa]"
-                    : "border border-[#363650] bg-[#222235] text-[#8585aa] hover:border-[#00d4aa]/30 hover:text-[#e0e0f0]"
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-        )}
+      {/* ── Main content ────────────────────────────────────────────────── */}
+      <div ref={contentRef} className="flex-1 min-w-0 overflow-y-auto pt-16 lg:pt-8 pb-16">
+        <div className="mx-auto max-w-[720px] px-6 lg:px-8 space-y-10">
 
-        {/* Integration list */}
-        <div className="flex flex-col gap-8 overflow-y-auto pr-1 scrollbar-none" style={{ maxHeight: "500px" }}>
-          {UI_INTEGRATIONS.filter(
-            (i) =>
-              i.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              i.description.toLowerCase().includes(searchQuery.toLowerCase())
-          ).length === 0 ? (
-            <div className="py-10 text-center">
-              <p className="text-sm text-[#8585aa]">No integrations match <span className="text-[#f8f8fc]">&ldquo;{searchQuery}&rdquo;</span></p>
-            </div>
-          ) : activeCategory === "Popular" && !searchQuery ? (
-            <div className="flex flex-col gap-3">
-              {UI_INTEGRATIONS.filter((i) => POPULAR_INTEGRATION_IDS.includes(i.id)).map((integration) => (
-                <IntegrationRow
-                  key={integration.id}
-                  integration={integration}
-                  connected={connectedPlatforms.includes(integration.id)}
-                />
-              ))}
-            </div>
-          ) : (
-            INTEGRATION_CATEGORIES.filter((cat) =>
-              !searchQuery ? activeCategory === cat || activeCategory === "All" : true
-            ).map((cat) => {
-              const categoryIntegrations = UI_INTEGRATIONS.filter(
-                (i) =>
-                  i.category === cat &&
-                  (i.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    i.description.toLowerCase().includes(searchQuery.toLowerCase()))
-              );
-              if (categoryIntegrations.length === 0) return null;
-              return (
-                <div key={cat}>
-                  <div className="mb-3 flex items-center gap-3">
-                    <h3 className="font-mono text-[10px] font-bold uppercase tracking-widest text-[#f8f8fc]">{cat}</h3>
-                    <div className="h-px flex-1 bg-[#363650]" />
+          {/* Page header */}
+          <div className="flex items-center justify-between gap-4">
+            <h1 className="font-mono text-xl font-bold text-[#f8f8fc]">⚙ Settings</h1>
+            {isPremium && (
+              <div className="flex items-center gap-1.5 rounded-full border border-[#10b981]/30 bg-[#10b981]/10 px-3 py-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#10b981] animate-pulse" />
+                <span className="font-mono text-[10px] font-semibold text-[#10b981]">Premium Active</span>
+              </div>
+            )}
+          </div>
+
+          {/* ── ACCOUNT ──────────────────────────────────────────────── */}
+          <section id="account" ref={(el) => { sectionRefs.current.account = el; }}>
+            <SectionLabel color="#6366f1">Account</SectionLabel>
+            <div className="mt-3 rounded-2xl border border-white/[0.06] bg-[#13131a] p-6 space-y-5">
+              {/* Avatar + email */}
+              <div className="flex items-center gap-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-mono text-sm font-bold uppercase select-none" style={{ backgroundColor: "#6366f118", color: "#6366f1", border: "1px solid #6366f130" }}>
+                  {email.charAt(0)}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-[#f8f8fc] truncate">{email}</p>
+                  <p className="font-mono text-[10px] text-[#8585aa] mt-0.5">Signed in via Google</p>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* <button className="rounded-lg border border-white/[0.06] bg-[#0d0d0f] px-3.5 py-2 font-mono text-xs text-[#bcbcd8] hover:border-[#6366f1]/30 hover:text-[#6366f1] transition-all">
+                  Change email
+                </button>
+                <button className="rounded-lg border border-white/[0.06] bg-[#0d0d0f] px-3.5 py-2 font-mono text-xs text-[#bcbcd8] hover:border-[#6366f1]/30 hover:text-[#6366f1] transition-all">
+                  Change password
+                </button> */}
+              </div>
+
+              {/* Danger zone */}
+              {/* <div className="border-t border-white/[0.04] pt-5">
+                <p className="font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-[#ef4444]/70 mb-3">Danger zone</p>
+                {!showDeleteConfirm ? (
+                  <button
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="rounded-lg border border-red-500/20 px-3.5 py-2 font-mono text-xs font-semibold text-red-500 hover:border-red-500/40 hover:bg-red-500/5 transition-all"
+                  >
+                    Delete account
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-mono text-xs text-[#f8f8fc]">Are you sure? This is permanent.</p>
+                    <button className="rounded-lg bg-red-500 px-3.5 py-2 font-mono text-xs font-bold text-white hover:bg-red-600 transition-all">
+                      Yes, delete
+                    </button>
+                    <button onClick={() => setShowDeleteConfirm(false)} className="rounded-lg border border-white/[0.06] px-3.5 py-2 font-mono text-xs text-[#8585aa] hover:text-[#bcbcd8] transition-all">
+                      Cancel
+                    </button>
                   </div>
-                  <div className="flex flex-col gap-3">
-                    {categoryIntegrations.map((integration) => (
-                      <IntegrationRow
-                        key={integration.id}
-                        integration={integration}
-                        connected={connectedPlatforms.includes(integration.id)}
-                      />
-                    ))}
+                )}
+              </div> */}
+            </div>
+          </section>
+
+          {/* ── SUBSCRIPTION ─────────────────────────────────────────── */}
+          <section id="subscription" ref={(el) => { sectionRefs.current.subscription = el; }}>
+            <SectionLabel color="#10b981">Subscription</SectionLabel>
+            <div className="mt-3 rounded-2xl border border-white/[0.06] bg-[#13131a] p-6">
+              {isPremium ? (
+                <div className="space-y-5">
+                  {/* Status */}
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#10b981]/20 bg-[#10b981]/10">
+                      <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#10b981" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-[#f8f8fc]">Premium — Active</p>
+                        <span className="rounded-full border border-[#10b981]/30 bg-[#10b981]/10 px-2 py-0.5 font-mono text-[9px] font-semibold text-[#10b981]">✓ Active</span>
+                      </div>
+                      <p className="font-mono text-[10px] text-[#8585aa] mt-0.5">$19 / month</p>
+                    </div>
+                  </div>
+
+                  {/* Includes */}
+                  <div>
+                    <p className="font-mono text-[9px] uppercase tracking-widest text-[#58588a] mb-2">Included</p>
+                    <div className="grid grid-cols-2 gap-y-1.5 gap-x-6">
+                      {["All integrations", "AI Advisor", "Daily insights", "Website analyzer", "Anomaly alerts", "Priority support"].map((item) => (
+                        <div key={item} className="flex items-center gap-1.5">
+                          <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="#10b981" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                          <p className="font-mono text-[11px] text-[#bcbcd8]">{item}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Manage button */}
+                  {portalError && <p className="text-xs text-red-400">{portalError}</p>}
+                  <button
+                    onClick={handlePortal} disabled={portalLoading}
+                    className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-[#0d0d0f] px-4 py-2 font-mono text-xs text-[#bcbcd8] hover:border-[#10b981]/30 hover:text-[#10b981] disabled:opacity-60 transition-all"
+                  >
+                    {portalLoading ? (
+                      <><svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" /></svg>Opening…</>
+                    ) : (
+                      <><svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" /></svg>↗ Manage billing</>
+                    )}
+                  </button>
+                  <p className="font-mono text-[9px] text-[#58588a]">Redirects to Stripe's secure portal.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="rounded-xl border border-[#8b5cf6]/15 bg-[#8b5cf6]/5 p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#8b5cf6]/10 text-[#8b5cf6]">
+                        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" /></svg>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#f8f8fc]">Upgrade to Premium</p>
+                        <p className="mt-0.5 text-xs text-[#bcbcd8]">Analytics, AI advisor, website optimizer & all integrations.</p>
+                        <p className="mt-1.5 font-mono text-xs font-bold text-[#f8f8fc]">$19<span className="font-normal text-[#8585aa]">/month</span> <span className="ml-1.5 rounded-full bg-[#10b981]/10 px-2 py-0.5 font-mono text-[9px] font-semibold text-[#10b981]">7-day free trial</span></p>
+                      </div>
+                    </div>
+                  </div>
+                  <a href="/api/stripe/checkout" className="inline-flex items-center gap-2 rounded-xl bg-[#10b981] px-5 py-2 font-mono text-sm font-bold text-white hover:bg-[#059669] transition">
+                    Start free trial →
+                  </a>
+                  <p className="font-mono text-[9px] text-[#58588a]">Card required · $19/mo after 7 days · cancel anytime</p>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* ── INTEGRATIONS ─────────────────────────────────────────── */}
+          <section id="integrations" ref={(el) => { sectionRefs.current.integrations = el; }}>
+            <SectionLabel color="#14b8a6">Integrations</SectionLabel>
+            <div className="mt-3 rounded-2xl border border-white/[0.06] bg-[#13131a] p-6">
+              {/* Header */}
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-5">
+                <div>
+                  <p className="text-sm text-[#bcbcd8]">Connect your data sources. Syncs every 24 hours.</p>
+                  {/* Progress */}
+                  <div className="flex items-center gap-2 mt-2">
+                    <div className="h-1.5 w-24 rounded-full bg-white/[0.04] overflow-hidden">
+                      <div className="h-full rounded-full bg-[#14b8a6] transition-all" style={{ width: `${(connectedCount / totalIntegrations) * 100}%` }} />
+                    </div>
+                    <span className="font-mono text-[10px] text-[#8585aa]">{connectedCount} of {totalIntegrations} connected</span>
                   </div>
                 </div>
-              );
-            })
+                <div className="relative shrink-0 sm:w-52">
+                  <svg className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#58588a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                  <input
+                    type="text" placeholder="Search platforms..."
+                    value={searchQuery}
+                    onChange={(e) => { setSearchQuery(e.target.value); if (e.target.value) setActiveCategory("All"); }}
+                    className="w-full rounded-xl border border-white/[0.06] bg-[#0d0d0f] py-2 pl-9 pr-3 font-mono text-xs text-[#f8f8fc] placeholder:text-[#58588a] focus:border-[#14b8a6]/40 focus:outline-none focus:ring-1 focus:ring-[#14b8a6]/20 transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Category pills */}
+              {!searchQuery && (
+                <div className="mb-5 flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+                  {["Popular", ...INTEGRATION_CATEGORIES].map((cat) => {
+                    const catCount = cat === "Popular" ? null : UI_INTEGRATIONS.filter((i) => i.category === cat).length;
+                    const catConnected = cat === "Popular" ? null : connectedPlatforms.filter((p) => UI_INTEGRATIONS.some((i) => i.id === p && i.category === cat)).length;
+                    return (
+                      <button
+                        key={cat}
+                        onClick={() => setActiveCategory(cat)}
+                        className="shrink-0 whitespace-nowrap rounded-full px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider border transition-all"
+                        style={{
+                          backgroundColor: activeCategory === cat ? "#14b8a6" : "transparent",
+                          borderColor: activeCategory === cat ? "#14b8a6" : "rgba(255,255,255,0.06)",
+                          color: activeCategory === cat ? "#0d0d0f" : "#8585aa",
+                        }}
+                      >
+                        {cat}{catCount !== null ? ` (${catConnected}/${catCount})` : ""}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Integration list */}
+              <div className="space-y-3">
+                {activeCategory === "Popular" && !searchQuery ? (
+                  UI_INTEGRATIONS.filter((i) => POPULAR_INTEGRATION_IDS.includes(i.id)).map((integration) => (
+                    <IntegrationRow key={integration.id} integration={integration} connected={connectedPlatforms.includes(integration.id)} />
+                  ))
+                ) : (
+                  INTEGRATION_CATEGORIES.filter((cat) => searchQuery || activeCategory === cat || activeCategory === "All").map((cat) => {
+                    const items = UI_INTEGRATIONS.filter((i) => i.category === cat && (i.name.toLowerCase().includes(searchQuery.toLowerCase()) || i.description.toLowerCase().includes(searchQuery.toLowerCase())));
+                    if (items.length === 0) return null;
+                    return (
+                      <div key={cat} className="space-y-3">
+                        <div className="flex items-center gap-3">
+                          <h3 className="font-mono text-[10px] font-bold uppercase tracking-widest text-[#58588a]">{cat}</h3>
+                          <div className="h-px flex-1 bg-white/[0.04]" />
+                        </div>
+                        {items.map((integration) => (
+                          <IntegrationRow key={integration.id} integration={integration} connected={connectedPlatforms.includes(integration.id)} />
+                        ))}
+                      </div>
+                    );
+                  })
+                )}
+                {UI_INTEGRATIONS.filter((i) => i.name.toLowerCase().includes(searchQuery.toLowerCase()) || i.description.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && searchQuery && (
+                  <div className="py-10 text-center">
+                    <p className="text-sm text-[#8585aa]">No integrations match <span className="text-[#f8f8fc]">&ldquo;{searchQuery}&rdquo;</span></p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+
+          {/* ── GOALS & KPIs ─────────────────────────────────────────── */}
+          <section id="goals" ref={(el) => { sectionRefs.current.goals = el; }}>
+            <SectionLabel color="#eab308">Goals &amp; KPIs</SectionLabel>
+            <p className="mt-1 font-mono text-[10px] text-[#8585aa]">Monthly targets that power your forecast bars, AI analysis, and email digest.</p>
+            <div className="mt-3 rounded-2xl border border-white/[0.06] bg-[#13131a] p-6">
+              <GoalsSection currencies={currencies} />
+            </div>
+          </section>
+
+          {/* ── ALERT RULES (premium only) ────────────────────────────── */}
+          {isPremium && (
+            <section id="alerts" ref={(el) => { sectionRefs.current.alerts = el; }}>
+              <SectionLabel color="#ef4444">Alert Rules</SectionLabel>
+              <p className="mt-1 font-mono text-[10px] text-[#8585aa]">Get notified when your key metrics cross these thresholds.</p>
+              <div className="mt-3 rounded-2xl border border-white/[0.06] bg-[#13131a] p-6">
+                <AlertsSection email={email} currencies={currencies} />
+              </div>
+            </section>
           )}
-        </div>
-      </section>
 
-        {/* ── Goals & KPIs ──────────────────────────────── */}
-        <section className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-6">
-          <div className="mb-5 flex items-center gap-2">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#635bff]/10 text-[#635bff]">
-              <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 3v18h18" /><path d="M18 17V9M13 17V5M8 17v-3" />
-              </svg>
-            </div>
-            <p className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#8585aa]">Goals &amp; KPIs</p>
-          </div>
-          <GoalsSection currencies={currencies} />
-        </section>
-
-      </div>{/* end Row 2 grid */}
-
-      {/* ── Coming Soon integrations — full width ────────────────────────── */}
-      {/* <ComingSoonSection /> */}
-
-      {/* ═══════════════════════════════════════════════════
-          Row 3: Alert Rules + Email Digest (premium only)
-          Side-by-side on lg+, stacked on smaller
-      ═══════════════════════════════════════════════════ */}
-      {isPremium && (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {/* Alert Rules */}
-          <section className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-6">
-            <div className="mb-4 flex items-center gap-2">
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#f87171]/10 text-[#f87171]">
-                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0" />
-                </svg>
+          {/* ── EMAIL DIGEST (premium only) ──────────────────────────── */}
+          {isPremium && (
+            <section id="email" ref={(el) => { sectionRefs.current.email = el; }}>
+              <SectionLabel color="#3b82f6">Email Digest</SectionLabel>
+              <p className="mt-1 font-mono text-[10px] text-[#8585aa]">Weekly AI summary delivered to your inbox.</p>
+              <div className="mt-3 rounded-2xl border border-white/[0.06] bg-[#13131a] p-6">
+                <DigestSectionInline email={email} />
               </div>
-              <p className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#8585aa]">Alert Rules</p>
+            </section>
+          )}
+
+          {/* ── PREFERENCES ──────────────────────────────────────────── */}
+          <section id="preferences" ref={(el) => { sectionRefs.current.preferences = el; }}>
+            <SectionLabel color="#8b5cf6">Preferences</SectionLabel>
+            <div className="mt-3 rounded-2xl border border-white/[0.06] bg-[#13131a] p-6 space-y-5">
+              <NewsletterToggle />
             </div>
-            <AlertsSection currencies={currencies} />
           </section>
 
-          {/* Email Digest */}
-          <section className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-6">
-            <div className="mb-4 flex items-center gap-2">
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#00d4aa]/10 text-[#00d4aa]">
-                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <p className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#8585aa]">Email Digest</p>
-            </div>
-            {/* Inline digest content (replaces the separate DigestSection wrapper) */}
-            <DigestSectionInline email={email} />
-          </section>
         </div>
-      )}
+      </div>
 
+      {/* ── Connect modal ───────────────────────────────────────────────── */}
       {connectTarget && DYNAMIC_MODALS[connectTarget] && (
         <ConnectModalShell
-          title={`Connect ${UI_INTEGRATIONS.find(i => i.id === connectTarget)?.name || "Integration"}`}
-          description={`Add your credentials to connect ${UI_INTEGRATIONS.find(i => i.id === connectTarget)?.name || "Integration"}.`}
+          title={`Connect ${UI_INTEGRATIONS.find((i) => i.id === connectTarget)?.name || "Integration"}`}
+          description={`Add your credentials to connect ${UI_INTEGRATIONS.find((i) => i.id === connectTarget)?.name || "Integration"}.`}
           onClose={closeConnectModal}
         >
           <form
@@ -1484,7 +1449,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
               e.preventDefault();
               const form = e.currentTarget;
               const payload: Record<string, string> = {};
-              DYNAMIC_MODALS[connectTarget].forEach(field => {
+              DYNAMIC_MODALS[connectTarget].forEach((field) => {
                 payload[field.name] = (new FormData(form).get(field.name) as string) ?? "";
               });
               submitConnect(connectTarget, payload);
@@ -1496,17 +1461,18 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
                 <input
                   name={field.name}
                   required={!field.optional}
-                  placeholder={field.optional ? `${field.label}` : field.label}
-                  className="w-full rounded-xl border border-[#363650] bg-[#1c1c2a] px-3 py-2 text-sm text-[#f8f8fc] placeholder:text-[#58588a]"
+                  placeholder={field.optional ? `${field.label} (optional)` : field.label}
+                  className="w-full rounded-xl border border-white/[0.06] bg-[#0d0d0f] px-3 py-2.5 text-sm text-[#f8f8fc] placeholder:text-[#58588a] focus:border-[#6366f1]/40 focus:outline-none focus:ring-1 focus:ring-[#6366f1]/20 transition-all"
                 />
-                {field.optional && (
-                  <p className="mt-1 font-mono text-[9px] text-[#58588a]">Optional</p>
-                )}
+                {field.optional && <p className="mt-1 font-mono text-[9px] text-[#58588a]">Optional</p>}
               </div>
             ))}
             {connectError && <p className="text-xs text-red-400">{connectError}</p>}
-            {connectSuccess && <p className="text-xs text-[#00d4aa]">{connectSuccess}</p>}
-            <button disabled={connectLoading} className="rounded-xl bg-[#00d4aa] px-4 py-2 font-mono text-xs font-bold text-[#13131f] disabled:opacity-60">
+            {connectSuccess && <p className="text-xs text-[#10b981]">{connectSuccess}</p>}
+            <button
+              disabled={connectLoading}
+              className="rounded-xl bg-[#6366f1] px-4 py-2 font-mono text-xs font-bold text-white hover:bg-[#4f46e5] disabled:opacity-60 transition-all"
+            >
               {connectLoading ? "Connecting…" : "Connect"}
             </button>
           </form>
@@ -1515,5 +1481,3 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
     </div>
   );
 }
-
-
