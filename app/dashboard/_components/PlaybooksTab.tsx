@@ -7,6 +7,7 @@ import {
 } from "recharts";
 import type { Snapshot } from "./DashboardShell";
 import type { AiPlaybook, AiPlaybookChart, AiPlaybooksResponse } from "@/app/api/ai/playbooks/route";
+import type { PlaybookHistoryEntry } from "@/app/api/ai/playbooks/history/route";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Generating Tips Modal — shown while AI is running (no playbooks yet)
@@ -981,6 +982,348 @@ function PlaybookDetail({
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Playbook History Drawer
+// ─────────────────────────────────────────────────────────────────────────────
+
+const SEV_ORDER = { critical: 0, warning: 1, opportunity: 2 } as const;
+const SEV_COLORS = { critical: "#ef4444", warning: "#f59e0b", opportunity: "#10b981" };
+
+function HistorySevBar({ playbooks }: { playbooks: AiPlaybook[] }) {
+  const counts = { critical: 0, warning: 0, opportunity: 0 };
+  for (const p of playbooks) counts[p.severity] = (counts[p.severity] ?? 0) + 1;
+  const total = playbooks.length || 1;
+  return (
+    <div className="flex h-1.5 w-full overflow-hidden rounded-full gap-px">
+      {(["critical", "warning", "opportunity"] as const).map((sev) => (
+        counts[sev] > 0 && (
+          <div
+            key={sev}
+            style={{ width: `${(counts[sev] / total) * 100}%`, background: SEV_COLORS[sev] }}
+          />
+        )
+      ))}
+    </div>
+  );
+}
+
+function PlaybookHistoryDrawer({
+  open,
+  onClose,
+  feedback,
+}: {
+  open: boolean;
+  onClose: () => void;
+  feedback: Record<string, { rating: number | null; completed_steps: number[] }>;
+}) {
+  const [history, setHistory] = useState<PlaybookHistoryEntry[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedPlaybookId, setExpandedPlaybookId] = useState<string | null>(null);
+  const hasFetched = useRef(false);
+
+  useEffect(() => {
+    if (!open || hasFetched.current) return;
+    hasFetched.current = true;
+    setLoading(true);
+    fetch("/api/ai/playbooks/history")
+      .then((r) => r.json())
+      .then((data) => setHistory(Array.isArray(data) ? data : []))
+      .catch(() => setHistory([]))
+      .finally(() => setLoading(false));
+  }, [open]);
+
+  if (!open) return null;
+
+  const fmtDate = (iso: string) =>
+    new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+
+  const fmtAgo = (iso: string) => {
+    const days = Math.round((Date.now() - new Date(iso).getTime()) / 86400000);
+    if (days === 0) return "today";
+    if (days === 1) return "yesterday";
+    if (days < 7) return `${days}d ago`;
+    if (days < 30) return `${Math.round(days / 7)}w ago`;
+    return `${Math.round(days / 30)}mo ago`;
+  };
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 z-40"
+        style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(3px)" }}
+        onClick={onClose}
+      />
+      {/* Drawer */}
+      <div
+        className="fixed right-0 top-0 z-50 h-full flex flex-col overflow-hidden shadow-2xl"
+        style={{ width: 480, background: "#0d0d14", borderLeft: "1px solid rgba(255,255,255,0.08)" }}
+      >
+        {/* Header */}
+        <div
+          className="shrink-0 flex items-center justify-between px-5 py-4 border-b"
+          style={{ borderColor: "#1e1e30" }}
+        >
+          <div>
+            <p className="text-sm font-bold text-white">Playbook History</p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Past generations · AI learns from your ratings
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-lg p-1.5 text-slate-500 hover:text-slate-300 transition-colors"
+          >
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* AI learning banner */}
+        <div
+          className="shrink-0 mx-4 mt-3 rounded-xl border px-3 py-2.5 flex items-start gap-2.5"
+          style={{ borderColor: "#6366f120", background: "rgba(99,102,241,0.05)" }}
+        >
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#a5b4fc" strokeWidth={1.8} style={{ flexShrink: 0, marginTop: 1 }}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+          </svg>
+          <p className="text-[11px] text-indigo-300 leading-relaxed">
+            The AI reads your past playbooks and ratings before each new generation — helpful ratings teach it what works for your business, negative ratings prevent it repeating the same advice.
+          </p>
+        </div>
+
+        {/* List */}
+        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+          {loading && (
+            <div className="flex items-center gap-3 py-10 justify-center">
+              <div className="h-5 w-5 rounded-full border-2 border-indigo-500/30 border-t-indigo-400 animate-spin" />
+              <span className="text-sm text-slate-500">Loading history…</span>
+            </div>
+          )}
+
+          {!loading && history.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="#2a2a3e" strokeWidth={1.5} className="mb-3">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-sm text-slate-500">No history yet</p>
+              <p className="text-xs text-slate-700 mt-1">Previous generations will appear here after you regenerate playbooks.</p>
+            </div>
+          )}
+
+          {!loading && history.map((entry) => {
+            const playbooks = entry.payload?.playbooks ?? [];
+            const critCount = playbooks.filter((p) => p.severity === "critical").length;
+            const score = entry.payload?.healthScore ?? 0;
+            const scoreColor = score >= 70 ? "#10b981" : score >= 40 ? "#f59e0b" : "#ef4444";
+
+            // Aggregate ratings from feedback for this generation's playbooks
+            const playbookIds = playbooks.map((p) => p.id);
+            const helpful = playbookIds.filter((id) => feedback[id]?.rating === 1).length;
+            const notUseful = playbookIds.filter((id) => feedback[id]?.rating === -1).length;
+
+            const isExpanded = expandedId === entry.id;
+
+            // Sort: critical first, then warning
+            const sorted = [...playbooks].sort(
+              (a, b) => SEV_ORDER[a.severity] - SEV_ORDER[b.severity]
+            );
+
+            return (
+              <div
+                key={entry.id}
+                className="rounded-xl border overflow-hidden"
+                style={{ borderColor: isExpanded ? "#2a2a4e" : "#1e1e30", background: "#0f0f1c" }}
+              >
+                {/* Entry header */}
+                <button
+                  className="w-full text-left px-4 py-3 flex items-start gap-3 hover:bg-white/2 transition-colors"
+                  onClick={() => setExpandedId(isExpanded ? null : entry.id)}
+                >
+                  {/* Health score bubble */}
+                  <div
+                    className="shrink-0 w-10 h-10 rounded-xl flex flex-col items-center justify-center"
+                    style={{ background: scoreColor + "15", border: `1px solid ${scoreColor}30` }}
+                  >
+                    <span className="font-mono text-sm font-bold leading-none" style={{ color: scoreColor }}>
+                      {score}
+                    </span>
+                    <span className="text-[8px] font-bold uppercase tracking-wide mt-0.5" style={{ color: scoreColor }}>
+                      {score >= 70 ? "Good" : score >= 40 ? "Fair" : "Low"}
+                    </span>
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <span className="text-xs font-semibold text-slate-300">{fmtDate(entry.generated_at)}</span>
+                      <span className="text-[10px] text-slate-600">{fmtAgo(entry.generated_at)}</span>
+                    </div>
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="text-[10px] text-slate-500">{playbooks.length} playbooks</span>
+                      {critCount > 0 && (
+                        <span className="text-[10px] font-semibold" style={{ color: "#ef4444" }}>
+                          {critCount} critical
+                        </span>
+                      )}
+                      {(helpful > 0 || notUseful > 0) && (
+                        <span className="flex items-center gap-1.5">
+                          {helpful > 0 && (
+                            <span className="flex items-center gap-0.5 text-[10px]" style={{ color: "#10b981" }}>
+                              <svg width="9" height="9" fill="currentColor" viewBox="0 0 24 24"><path d="M6.633 10.5c.806 0 1.533-.446 2.031-1.08a9.041 9.041 0 012.861-2.4c.723-.384 1.35-.956 1.653-1.715a4.498 4.498 0 00.322-1.672V3a.75.75 0 01.75-.75A2.25 2.25 0 0116.5 4.5c0 1.152-.26 2.243-.723 3.218-.266.558.107 1.282.725 1.282h3.126c1.026 0 1.945.694 2.054 1.715.045.422.068.85.068 1.285a11.95 11.95 0 01-2.649 7.521c-.388.482-.987.729-1.605.729H13.48c-.483 0-.964-.078-1.423-.23l-3.114-1.04a4.501 4.501 0 00-1.423-.23H5.25M9 20.25h.008v.008H9v-.008zm-3.75 0h.008v.008H6v-.008z" /></svg>
+                              {helpful}
+                            </span>
+                          )}
+                          {notUseful > 0 && (
+                            <span className="flex items-center gap-0.5 text-[10px]" style={{ color: "#ef4444" }}>
+                              <svg width="9" height="9" fill="currentColor" viewBox="0 0 24 24"><path d="M17.367 13.5c-.806 0-1.533.446-2.031 1.08a9.041 9.041 0 01-2.861 2.4c-.723.384-1.35.956-1.653 1.715a4.498 4.498 0 00-.322 1.672V21a.75.75 0 01-.75.75 2.25 2.25 0 01-2.25-2.25c0-1.152.26-2.243.723-3.218.266-.558-.107-1.282-.725-1.282H4.372c-1.026 0-1.945-.694-2.054-1.715A12.134 12.134 0 012.25 12c0-2.848.992-5.464 2.649-7.521.388-.482.987-.729 1.605-.729h9.768c.483 0 .964.078 1.423.23l3.114 1.04a4.501 4.501 0 001.423.23H21.75M15 3.75h-.008v.008H15V3.75zm3.75 0h-.008v.008H18.75V3.75z" /></svg>
+                              {notUseful}
+                            </span>
+                          )}
+                        </span>
+                      )}
+                    </div>
+                    <HistorySevBar playbooks={playbooks} />
+                  </div>
+
+                  {/* Expand chevron */}
+                  <svg
+                    width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#3a3a5a" strokeWidth={2.5}
+                    style={{ flexShrink: 0, marginTop: 8, transform: isExpanded ? "rotate(90deg)" : "none", transition: "transform 0.2s" }}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                  </svg>
+                </button>
+
+                {/* Summary snippet */}
+                {!isExpanded && entry.payload?.summary && (
+                  <p className="px-4 pb-3 text-[11px] text-slate-600 leading-relaxed line-clamp-2">
+                    {entry.payload.summary}
+                  </p>
+                )}
+
+                {/* Expanded playbook list */}
+                {isExpanded && (
+                  <div className="border-t space-y-0" style={{ borderColor: "#1a1a2e" }}>
+                    {/* Summary */}
+                    {entry.payload?.summary && (
+                      <p className="px-4 py-3 text-[11px] text-slate-500 leading-relaxed border-b" style={{ borderColor: "#1a1a2e" }}>
+                        {entry.payload.summary}
+                      </p>
+                    )}
+
+                    {sorted.map((pb) => {
+                      const sev = SEV_CONFIG[pb.severity] ?? SEV_CONFIG.opportunity;
+                      const fb = feedback[pb.id];
+                      const isOpen = expandedPlaybookId === `${entry.id}-${pb.id}`;
+                      const catCfg = CATEGORY_CONFIG[pb.category as Exclude<Category, "all">];
+
+                      return (
+                        <div key={pb.id} style={{ borderBottom: "1px solid #1a1a2e" }}>
+                          {/* Playbook row */}
+                          <button
+                            className="w-full text-left px-4 py-3 hover:bg-white/2 transition-colors flex items-start gap-3"
+                            onClick={() => setExpandedPlaybookId(isOpen ? null : `${entry.id}-${pb.id}`)}
+                          >
+                            <div
+                              className="shrink-0 w-1.5 h-1.5 rounded-full mt-1.5"
+                              style={{ background: sev.color }}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-0.5">
+                                <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: sev.color }}>
+                                  {sev.label}
+                                </span>
+                                {catCfg && (
+                                  <span className="text-[9px] font-medium" style={{ color: catCfg.color }}>
+                                    {catCfg.label}
+                                  </span>
+                                )}
+                                {fb?.rating === 1 && (
+                                  <span className="text-[9px] font-semibold" style={{ color: "#10b981" }}>· Helpful</span>
+                                )}
+                                {fb?.rating === -1 && (
+                                  <span className="text-[9px] font-semibold" style={{ color: "#ef4444" }}>· Not useful</span>
+                                )}
+                              </div>
+                              <p className="text-xs font-medium text-slate-300 leading-snug line-clamp-2">
+                                {pb.title}
+                              </p>
+                            </div>
+                            <svg
+                              width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="#3a3a5a" strokeWidth={2.5}
+                              style={{ flexShrink: 0, marginTop: 4, transform: isOpen ? "rotate(90deg)" : "none", transition: "transform 0.2s" }}
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                            </svg>
+                          </button>
+
+                          {/* Expanded playbook detail (read-only) */}
+                          {isOpen && (
+                            <div className="px-4 pb-4 space-y-3" style={{ background: "#09090e" }}>
+                              {/* Expected gain */}
+                              <div
+                                className="rounded-lg border px-3 py-2"
+                                style={{ borderColor: "#2a3a30", background: "rgba(16,185,129,0.04)" }}
+                              >
+                                <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Expected Gain</p>
+                                <p className="text-xs text-slate-300">{pb.expectedGain}</p>
+                              </div>
+
+                              {/* Problem */}
+                              <div>
+                                <p className="text-[9px] font-bold uppercase tracking-widest text-slate-600 mb-1">Problem</p>
+                                <p className="text-[12px] text-slate-400 leading-relaxed">{pb.problem}</p>
+                              </div>
+
+                              {/* Steps */}
+                              {pb.steps.length > 0 && (
+                                <div>
+                                  <p className="text-[9px] font-bold uppercase tracking-widest text-slate-600 mb-2">
+                                    {pb.steps.length} Action Steps
+                                  </p>
+                                  <ol className="space-y-2">
+                                    {pb.steps.map((step, i) => (
+                                      <li key={i} className="flex gap-2">
+                                        <span
+                                          className="shrink-0 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold mt-0.5"
+                                          style={{ background: sev.color + "22", color: sev.color }}
+                                        >
+                                          {i + 1}
+                                        </span>
+                                        <div>
+                                          <p className="text-[11px] font-semibold text-slate-300">{step.action}</p>
+                                          <p className="text-[10px] text-slate-500 leading-relaxed mt-0.5 line-clamp-2">{step.detail}</p>
+                                        </div>
+                                      </li>
+                                    ))}
+                                  </ol>
+                                </div>
+                              )}
+
+                              {/* Read-only label */}
+                              <p className="text-[9px] text-slate-700 italic">Read-only · historical generation from {fmtDate(entry.generated_at)}</p>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Empty detail state
+// ─────────────────────────────────────────────────────────────────────────────
+
 function PlaybookDetailEmpty() {
   return (
     <div className="h-full flex flex-col items-center justify-center rounded-2xl border border-white/5 bg-[#0f0f1c]">
@@ -1079,6 +1422,7 @@ export default function PlaybooksTab({
   const [generating, setGenerating] = useState(false);
   const [checking, setChecking]     = useState(false);
   const [showTipsModal, setShowTipsModal] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [eligibilityBlock, setEligibilityBlock] = useState<{ reason: string; hint: string } | null>(null);
   const [error, setError]       = useState<string | null>(null);
   const [openId, setOpenId]     = useState<string | null>(null);
@@ -1354,6 +1698,12 @@ export default function PlaybooksTab({
         />
       )}
 
+      <PlaybookHistoryDrawer
+        open={showHistory}
+        onClose={() => setShowHistory(false)}
+        feedback={feedback}
+      />
+
       {/* ══════════════════════════════════════════════════════════════════════
           BUSINESS HEALTH COMMAND CENTER
       ══════════════════════════════════════════════════════════════════════ */}
@@ -1384,7 +1734,16 @@ export default function PlaybooksTab({
                     >
                       <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
                     </svg>
-                    {generating ? "Generating…" : checking ? "Checking…" : "↻ Regenerate now"}
+                    {generating ? "Generating…" : checking ? "Checking…" : "Regenerate now"}
+                  </button>
+                  <button
+                    onClick={() => setShowHistory(true)}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-white/8 px-2.5 py-1 text-[11px] text-slate-400 hover:text-white hover:border-white/20 transition-colors"
+                  >
+                    <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    History
                   </button>
                 </div>
               </div>

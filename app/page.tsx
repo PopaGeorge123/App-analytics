@@ -1,7 +1,9 @@
-import { AnimatedCounter, DashboardMockup, FaqSection, Nav, LiveUserCount } from "./_components/PageClientIslands";
+import { AnimatedCounter, DashboardMockup, FaqSection, Nav, LiveUserCount, AbTracker } from "./_components/PageClientIslands";
 import { LIVE_INTEGRATIONS } from "@/lib/integrations/catalog";
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { cookies } from "next/headers";
+import { getHeroCopy, AB_COOKIE } from "@/lib/ab";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Integration pill
@@ -219,37 +221,68 @@ function SecurityBadges() {
 // ─────────────────────────────────────────────────────────────────────────────
 // Page
 // ─────────────────────────────────────────────────────────────────────────────
-export default function Home() {
+export default async function Home() {
+  // A/B variant — assigned by middleware, read server-side (zero layout shift)
+  const cookieStore = await cookies();
+  const hero = getHeroCopy(cookieStore.get(AB_COOKIE)?.value);
+  // Replace integration count placeholder with live value
+  const heroSub = hero.sub.replace("{integrations}", String(LIVE_INTEGRATIONS.length));
+
+  // Badge / accent color per variant
+  const badgePalette: Record<typeof hero.badgeColor, { border: string; bg: string; dot: string; text: string }> = {
+    red:    { border: "#f87171", bg: "#f8717114", dot: "#f87171", text: "#f87171" },
+    amber:  { border: "#f59e0b", bg: "#f59e0b14", dot: "#f59e0b", text: "#f59e0b" },
+    teal:   { border: "#00d4aa", bg: "#00d4aa14", dot: "#00d4aa", text: "#00d4aa" },
+    violet: { border: "#a78bfa", bg: "#a78bfa14", dot: "#a78bfa", text: "#a78bfa" },
+    orange: { border: "#fb923c", bg: "#fb923c14", dot: "#fb923c", text: "#fb923c" },
+  };
+  const palette = badgePalette[hero.badgeColor];
   return (
     <div className="min-h-screen bg-[#13131f] text-[#f8f8fc]">
       <Nav />
 
       {/* ── HERO ──────────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden pt-32 pb-24 px-4 sm:px-6" aria-label="Hero">
+        <AbTracker variant={hero.variant} />
         <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 h-125 w-225 rounded-full bg-[#00d4aa]/4 blur-3xl" />
         <div className="pointer-events-none absolute top-32 left-0 h-80 w-80 rounded-full bg-[#6366f1]/5 blur-3xl" />
         <div className="pointer-events-none absolute top-20 right-0 h-80 w-80 rounded-full bg-[#00d4aa]/3 blur-3xl" />
 
         <div className="relative mx-auto max-w-6xl">
+          {/* A/B variant tag — hidden, used by analytics */}
+          <div data-ab-variant={hero.variant} className="hidden" aria-hidden="true" />
           <div className="grid gap-16 lg:grid-cols-2 lg:items-center">
             <div>
-              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#f87171]/25 bg-[#f87171]/8 px-3 py-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#f87171] animate-pulse" />
-                <span className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#f87171]">Most founders discover revenue leaks too late</span>
+              <div
+                className="mb-6 inline-flex items-center gap-2 rounded-full border px-3 py-1.5"
+                style={{ borderColor: `${palette.border}40`, backgroundColor: palette.bg }}
+              >
+                <span className="h-1.5 w-1.5 rounded-full animate-pulse" style={{ backgroundColor: palette.dot }} />
+                <span className="font-mono text-[10px] font-semibold uppercase tracking-widest" style={{ color: palette.text }}>
+                  {hero.badge}
+                </span>
               </div>
 
               <h1 className="mb-6 font-mono text-[1.75rem] leading-snug font-bold tracking-tight text-[#f8f8fc] sm:text-4xl lg:text-[3.4rem] lg:leading-tight">
-                You&apos;re losing revenue{" "}
-                <span className="text-[#f87171]">you can&apos;t see<span className="text-white">.</span></span>
+                {hero.headline}
+                <span style={{ color: palette.dot }}>{hero.headlineAccent}</span>
               </h1>
 
               <p className="mb-8 w-full max-w-lg text-sm leading-relaxed text-[#bcbcd8] sm:text-base lg:text-lg">
-                Every day your Stripe, GA4, Meta Ads, and Shopify data sits in separate tabs, a revenue leak grows undetected. Fold connects <strong className="text-[#f8f8fc] font-semibold">{LIVE_INTEGRATIONS.length}+ live integrations</strong> and tells you <strong className="text-[#f8f8fc] font-semibold">exactly what broke, why it broke, and what to fix first</strong> — before it compounds.
+                {heroSub.split(/(\*\*[^*]+\*\*)/).map((seg, i) =>
+                  seg.startsWith("**") ? (
+                    <strong key={i} className="text-[#f8f8fc] font-semibold">
+                      {seg.slice(2, -2)}
+                    </strong>
+                  ) : (
+                    seg
+                  )
+                )}
               </p>
 
               <div className="mb-8 flex flex-wrap gap-3">
                 <a href="/signup" className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-5 py-3 font-mono text-sm font-semibold uppercase tracking-wider text-[#13131f] transition-all hover:bg-[#00bfa0] hover:shadow-[0_0_30px_rgba(0,212,170,0.3)] sm:px-6 sm:py-3.5">
-                  Find my revenue leaks
+                  {hero.cta}
                   <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
                 </a>
                 <a href="/demo" className="inline-flex items-center gap-2 rounded-xl border border-[#a78bfa]/40 bg-[#a78bfa]/8 px-5 py-3 font-mono text-sm font-semibold uppercase tracking-wider text-[#a78bfa] transition-all hover:border-[#a78bfa]/70 hover:bg-[#a78bfa]/15 sm:px-6 sm:py-3.5">

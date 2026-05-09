@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { AB_COOKIE, AB_COOKIE_MAX_AGE, randomVariant } from "@/lib/ab";
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -85,7 +86,25 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  return supabaseResponse;
+  return assignAbVariant(request, supabaseResponse);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Assign A/B variant cookie on first visit to the landing page
+// ─────────────────────────────────────────────────────────────────────────────
+function assignAbVariant(request: NextRequest, response: NextResponse): NextResponse {
+  // Only assign for the home page
+  if (request.nextUrl.pathname !== "/") return response;
+  // Already assigned — don't re-roll
+  if (request.cookies.get(AB_COOKIE)) return response;
+  const variant = randomVariant();
+  response.cookies.set(AB_COOKIE, variant, {
+    path: "/",
+    maxAge: AB_COOKIE_MAX_AGE,
+    sameSite: "lax",
+    httpOnly: false, // readable by client analytics if needed
+  });
+  return response;
 }
 
 export const config = {

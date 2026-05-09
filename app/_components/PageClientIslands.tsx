@@ -478,3 +478,26 @@ export function Nav() {
     </nav>
   );
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// A/B Tracker — fires once on mount, sends variant + view to gtag
+// ─────────────────────────────────────────────────────────────────────────────
+export function AbTracker({ variant }: { variant: string }) {
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    // Fire gtag custom event (visible in GA4 → Events)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const w = window as any;
+    if (typeof w.gtag === "function") {
+      w.gtag("event", "ab_hero_view", {
+        event_category: "ab_test",
+        event_label: `hero_variant_${variant}`,
+        ab_variant: variant,
+      });
+    }
+    // Also log to console for dev visibility
+    console.log(`[A/B] Hero variant: ${variant}`);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return null;
+}
