@@ -1921,7 +1921,14 @@ function StripeSection({ snapshots, granularity, currency = "USD" }: { snapshots
   const currentActiveSubs     = [...grouped].reverse().map((r) => r.data.activeSubscriptions).find((v) => v > 0) ?? 0;
   const currentTrialingSubs   = [...grouped].reverse().map((r) => r.data.trialingSubscriptions).find((v) => v > 0) ?? 0;
   const currentARPU           = [...grouped].reverse().map((r) => r.data.arpu).find((v) => v > 0) ?? 0;
-  const churnRate             = currentActiveSubs > 0 ? ((totalChurned / currentActiveSubs) * 100) : 0;
+  // Normalise to a monthly rate so 30-day / 90-day views aren't inflated
+  const monthsInPeriod = granularity === "month"
+    ? Math.max(1, grouped.length)
+    : granularity === "week"
+    ? Math.max(1, Math.round(grouped.length / 4.33))
+    : Math.max(1, Math.round(grouped.length / 30));
+  const churnRate             = currentActiveSubs > 0
+    ? ((totalChurned / currentActiveSubs / monthsInPeriod) * 100) : 0;
 
   const hasSubscriptions = currentActiveSubs > 0 || currentMRR > 0;
 
@@ -1948,7 +1955,7 @@ function StripeSection({ snapshots, granularity, currency = "USD" }: { snapshots
       ...(hasSubscriptions ? [{ label: "MRR", values: mrrSeries }] : []),
     ],
     rateMetrics: [
-      ...(churnRate > 0 ? [{ label: "Monthly churn rate", numerator: totalChurned, denominator: currentActiveSubs, suffix: "%", goodThreshold: 2.5, badThreshold: 5, lowerIsBetter: true }] : []),
+      ...(churnRate > 0 ? [{ label: "Monthly churn rate", numerator: totalChurned / monthsInPeriod, denominator: currentActiveSubs, suffix: "%", goodThreshold: 2.5, badThreshold: 5, lowerIsBetter: true }] : []),
       ...(totalTx > 0 ? [{ label: "Refund rate", numerator: totalRefunds, denominator: totalRevenue, suffix: "%", goodThreshold: 5, badThreshold: 10, lowerIsBetter: true }] : []),
     ],
     customInsights: [

@@ -1177,7 +1177,7 @@ export default function OverviewTab({
   }
   if (alertRules.spendSpikeThreshold > 0 && metrics7.spend7 > 0) {
     const avgDailySpend = metrics7.spend7 / 7;
-    if (avgDailySpend > alertRules.spendSpikeThreshold * 100) {
+    if (avgDailySpend > alertRules.spendSpikeThreshold) {
       activeAlerts.push({ color: "#1877f2", message: `💸 Average daily ad spend (${fmt(avgDailySpend, "currency")}) exceeds your $${alertRules.spendSpikeThreshold} cap` });
     }
   }
