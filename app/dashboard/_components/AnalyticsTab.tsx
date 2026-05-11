@@ -1288,14 +1288,23 @@ function RunRateStrip({
   currency?: string;
   label?: string;
 }) {
+  const dateRange = useContext(DateRangeCtx);
   if (snapshots.length === 0) return null;
   const sorted = [...snapshots].sort((a, b) => a.date.localeCompare(b.date));
   const total = sorted.reduce((sum, s) => sum + (((s.data as Record<string, number>)[field]) ?? 0), 0);
   if (total === 0) return null;
 
-  const firstDate = new Date(sorted[0].date + "T12:00:00");
-  const lastDate  = new Date(sorted[sorted.length - 1].date + "T12:00:00");
-  const periodDays = Math.max(1, (lastDate.getTime() - firstDate.getTime()) / 86400000 + 1);
+  // Prefer the full selected date range for periodDays; fall back to snapshot span
+  let periodDays: number;
+  if (dateRange) {
+    const from = new Date(dateRange.from + "T12:00:00");
+    const to   = new Date(dateRange.to   + "T12:00:00");
+    periodDays = Math.max(1, (to.getTime() - from.getTime()) / 86400000 + 1);
+  } else {
+    const firstDate = new Date(sorted[0].date + "T12:00:00");
+    const lastDate  = new Date(sorted[sorted.length - 1].date + "T12:00:00");
+    periodDays = Math.max(1, (lastDate.getTime() - firstDate.getTime()) / 86400000 + 1);
+  }
   const dailyRate  = total / periodDays;
   const monthly    = dailyRate * 30.44;
   const annual     = dailyRate * 365.25;
@@ -1332,7 +1341,7 @@ function RunRateStrip({
         <span className="font-mono text-[9px] text-[#8585aa]">period trend</span>
       </div>
       <p className="w-full font-mono text-[9px] text-[#8585aa]">
-        Based on {fmt(total, "currency", currency)} {label.toLowerCase()} over {Math.round(periodDays)} days · extrapolated at current daily pace
+        Based on {fmt(total, "currency", currency)} {label.toLowerCase()} over {Math.round(periodDays)} {Math.round(periodDays) === 1 ? "day" : "days"} · extrapolated at current daily pace
       </p>
     </div>
   );
