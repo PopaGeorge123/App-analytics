@@ -57,31 +57,41 @@ body {
 }
 
 /* ── Light mode ────────────────────────────────────────────────────────────── *
- * Since every component uses hardcoded hex values we apply a CSS filter to the
- * whole document that inverts the luminosity (dark→light) and counter-rotates
- * the hue by 180° so accent colours (teal, purple) stay recognisable.
- * contrast(1.08) tightens the mid-tones so text and borders punch harder.
- * saturate(1.3) restores colour vibrancy lost during inversion.
- * Media elements (images, videos, iframes) are double-inverted to keep their
- * natural colours.
+ * All components use hardcoded dark hex values, so we invert the whole page.
+ * invert(1) flips luminosity (dark bg → light bg, light text → dark text).
+ * hue-rotate(180deg) corrects the hue shift that invert() introduces, keeping
+ * accent colours (teal #00d4aa, purple #6366f1, etc.) recognisable.
+ *
+ * We deliberately omit extra contrast/saturate — those were causing the
+ * "denaturing" (blown-out midtones, over-saturated accents, ugly borders).
+ *
+ * Elements that contain real imagery (photos, videos, SVG logos in <img> tags)
+ * are double-inverted back to their natural colours.
  * --------------------------------------------------------------------------- */
-html.light body {
-  filter: invert(1) hue-rotate(180deg) contrast(1.08) saturate(1.3);
-  background: #e8e8f0;
+html.light {
+  color-scheme: light;
 }
 
-/* Un-invert real media so images / videos stay natural */
+html.light body {
+  filter: invert(1) hue-rotate(180deg);
+  background: #f4f4f8;
+}
+
+/* Restore natural colours on real media */
 html.light img,
 html.light video,
 html.light iframe,
 html.light canvas,
-html.light [style*="background-image"] {
-  filter: invert(1) hue-rotate(180deg) contrast(0.93) saturate(0.77);
+html.light embed,
+html.light object,
+html.light svg image {
+  filter: invert(1) hue-rotate(180deg);
 }
+
 
 /* Smooth transition on theme switch */
 body {
-  transition: filter 0.25s ease, background 0.25s ease;
+  transition: filter 0.2s ease, background 0.2s ease;
 }
 
 /* Apply lifted background globally */
