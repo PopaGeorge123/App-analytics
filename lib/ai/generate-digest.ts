@@ -28,7 +28,7 @@ export async function generateDigest(userId: string): Promise<Digest> {
   const response = await anthropic.messages.create({
     model: "claude-sonnet-4-5",
     max_tokens: 1500,
-    system: buildSystemPrompt(),
+    system: buildSystemPrompt(context),
     messages: [{ role: "user", content: buildUserPrompt(context) }],
   });
 

@@ -70,6 +70,14 @@ export interface AttributionContext {
   totalNewCustomers: number;
 }
 
+export interface BusinessProfile {
+  websiteUrl: string;
+  businessDescription: string;
+  industry: string;
+  employeeCount: string;
+  monthlyRevenue: string;
+}
+
 export interface DigestContext {
   userId: string;
   stripe: StripeContext;
@@ -81,6 +89,8 @@ export interface DigestContext {
   ecommercePlatforms: EcommerceContext[];
   /** Cross-channel attribution summary */
   attribution: AttributionContext;
+  /** Business profile from onboarding */
+  businessProfile: BusinessProfile;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -205,6 +215,21 @@ function buildAttribution(
 
 export async function buildContext(userId: string): Promise<DigestContext> {
   const db = createServiceClient();
+
+  // ── Business profile ─────────────────────────────────────────────────────
+  const { data: profileRow } = await db
+    .from("users")
+    .select("website_url, business_description, business_industry, employee_count, monthly_revenue")
+    .eq("id", userId)
+    .single();
+
+  const businessProfile: BusinessProfile = {
+    websiteUrl:          profileRow?.website_url          ?? "",
+    businessDescription: profileRow?.business_description ?? "",
+    industry:            profileRow?.business_industry    ?? "",
+    employeeCount:       profileRow?.employee_count       ?? "",
+    monthlyRevenue:      profileRow?.monthly_revenue      ?? "",
+  };
 
   const current7Start = daysAgo(7);
   const current7End = daysAgo(1);
@@ -347,5 +372,6 @@ export async function buildContext(userId: string): Promise<DigestContext> {
     emailPlatforms: await buildEmailContexts(userId, db, current7Start, current7End, prev7Start, prev7End, hasIntegration, getSnapshots),
     ecommercePlatforms: await buildEcommerceContexts(userId, db, current7Start, current7End, prev7Start, prev7End, hasIntegration, getSnapshots),
     attribution: buildAttribution(metaConnected, metaCurrent7, stripeCurrent7),
+    businessProfile,
   };
 }

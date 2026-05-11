@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { LIVE_INTEGRATIONS } from "@/lib/integrations/catalog";
-import OnboardingFlow from "./_components/OnboardingFlow";
+import OnboardingWizard from "./_components/OnboardingWizard";
 
 export const metadata = {
   title: "Connect your first integration – Fold",
@@ -31,14 +31,24 @@ export default async function OnboardingPage({
     redirect("/dashboard");
   }
 
+  // Fetch onboarding progress
+  const { data: profile } = await db
+    .from("users")
+    .select("onboarding_step")
+    .eq("id", user.id)
+    .single();
+
+  const onboardingStep: number = profile?.onboarding_step ?? 1;
+
   const params = await searchParams;
   const oauthError = typeof params.error === "string" ? params.error : null;
 
   return (
-    <OnboardingFlow
+    <OnboardingWizard
       liveIntegrations={LIVE_INTEGRATIONS}
       userEmail={user.email ?? ""}
       oauthError={oauthError}
+      initialStep={onboardingStep}
     />
   );
 }

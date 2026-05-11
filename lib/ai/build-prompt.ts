@@ -1,10 +1,25 @@
 import type { DigestContext } from "./build-context";
 
-export function buildSystemPrompt(): string {
+export function buildSystemPrompt(context?: DigestContext): string {
+  const profile = context?.businessProfile;
+
+  const businessContext = profile && (profile.businessDescription || profile.industry)
+    ? `
+BUSINESS CONTEXT:
+${profile.businessDescription ? `- Description: ${profile.businessDescription}` : ""}
+${profile.industry ? `- Industry: ${profile.industry}` : ""}
+${profile.employeeCount ? `- Team size: ${profile.employeeCount}` : ""}
+${profile.monthlyRevenue ? `- Reported monthly revenue range: ${profile.monthlyRevenue}` : ""}
+${profile.websiteUrl ? `- Website: ${profile.websiteUrl}` : ""}
+
+Use this context to calibrate all analysis. Tailor benchmarks, anomaly thresholds, and recommendations to what is realistic for a business of this type and stage. Do not repeat this context verbatim in your output.
+`
+    : "";
+
   return `You are a business analyst AI embedded in Fold, a business intelligence tool for small business founders.
 
 Your job is to analyze data from Stripe, Google Analytics, and Meta Ads and generate a daily digest.
-
+${businessContext}
 RULES:
 - Be specific. Always reference actual numbers, never vague statements.
 - Be direct. This is a busy founder — no fluff, no filler.
@@ -90,8 +105,18 @@ Conversions:          ${context.meta.current7.conversions}
 Reach:                ${fmt(context.meta.current7.reach)}`
     : "--- META ADS --- Not connected";
 
-  return `Here is this week's business data for analysis:
+  const { businessProfile: bp } = context;
+  const profileSection = (bp.businessDescription || bp.industry)
+    ? `--- BUSINESS CONTEXT ---
+${bp.businessDescription ? `Description:      ${bp.businessDescription}` : ""}
+${bp.industry          ? `Industry:         ${bp.industry}` : ""}
+${bp.employeeCount     ? `Team size:        ${bp.employeeCount}` : ""}
+${bp.monthlyRevenue    ? `Revenue range:    ${bp.monthlyRevenue}` : ""}
+${bp.websiteUrl        ? `Website:          ${bp.websiteUrl}` : ""}`.replace(/\n+/g, "\n").trim()
+    : "";
 
+  return `Here is this week's business data for analysis:
+${profileSection ? `\n${profileSection}\n` : ""}
 ${stripeSection}
 
 ${ga4Section}

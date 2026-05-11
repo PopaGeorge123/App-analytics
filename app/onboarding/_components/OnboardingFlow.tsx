@@ -445,9 +445,10 @@ interface OnboardingFlowProps {
   liveIntegrations: Integration[];
   userEmail: string;
   oauthError?: string | null;
+  hideHeader?: boolean;
 }
 
-export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError }: OnboardingFlowProps) {
+export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError, hideHeader = false }: OnboardingFlowProps) {
   const router = useRouter();
 
   // Auto-select Stripe (or first available) so the connect CTA is visible on load
@@ -577,6 +578,7 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
   return (
     <div className="min-h-screen bg-[#090911] text-[#f8f8fc]">
       {/* ── Top bar ───────────────────────────────────────────────────────── */}
+      {!hideHeader && (
       <header className="border-b border-[#1e1e30] bg-[#0d0d1a]/90 backdrop-blur-sm px-6 py-3.5 sticky top-0 z-30">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
           <div className="flex items-center gap-3">
@@ -606,6 +608,7 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
           </div>
         </div>
       </header>
+      )}
 
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
         {/* ── OAuth error banner ───────────────────────────────────────── */}

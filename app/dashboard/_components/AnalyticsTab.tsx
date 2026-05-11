@@ -4808,7 +4808,7 @@ function EmptySection({ platform, hasDataOutsideRange = false }: { platform: str
       <p className="text-sm text-[#bcbcd8]">
         <span className="text-[#f8f8fc]">{platform}</span> is connected. Waiting for data to sync…
       </p>
-      <p className="mt-2 text-xs text-[#6b6b88]">First sync can take up to 24 hours.</p>
+      <p className="mt-2 text-xs text-[#6b6b88]">First sync can take a few minutes to complete.</p>
     </div>
   );
 }
