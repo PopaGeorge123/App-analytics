@@ -140,13 +140,12 @@ Ad Spend (30d): $${(spend30 / 100).toFixed(2)} | Last 7d: $${(spend7 / 100).toFi
 
 === WEBSITE ===
 URL: ${website?.url ?? "Not set"}
-Health Score: ${website?.score ?? 0}/100
 Summary: ${website?.description ?? "Not analyzed yet"}
 Last Analyzed: ${website?.last_scanned_at ? new Date(website.last_scanned_at).toLocaleDateString() : "Never"}
 
 === WEBSITE TASKS ===
 Pending (${pendingTasks.length}):
-${pendingTasks.slice(0, 5).map((t) => `- [${t.category}] ${t.title} (+${t.impact_score} pts)`).join("\n") || "None"}
+${pendingTasks.slice(0, 5).map((t) => `- [${t.category}] ${t.title}`).join("\n") || "None"}
 
 Completed (${completedTasks.length} total)
 `.trim();

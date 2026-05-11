@@ -4501,7 +4501,7 @@ async function sendDailyDigests() {
       ...emailLines,
       '',
       website ? `=== WEBSITE ===` : null,
-      website ? `URL: ${website.url} — Health Score: ${website.score}/100` : null,
+      website ? `URL: ${website.url}` : null,
     ].filter(l => l !== null).join('\n');
 
     // ── 7. Call Anthropic to generate digest JSON ─────────────────────────────
@@ -4771,8 +4771,7 @@ const FROM_PLAYBOOKS = 'Fold Playbooks <info@usefold.io>';
 const SEV_COLOR_MAP  = { critical: '#f87171', warning: '#f59e0b', opportunity: '#34d399' };
 
 function buildPlaybooksEmailHtml(payload, appUrl) {
-  const { playbooks = [], healthScore = 0, healthLabel = 'Needs Work', summary = '' } = payload;
-  const scoreColor = healthScore >= 75 ? '#34d399' : healthScore >= 50 ? '#f59e0b' : '#f87171';
+  const { playbooks = [], summary = '' } = payload;
 
   const rows = playbooks.slice(0, 8).map(pb => {
     const color     = SEV_COLOR_MAP[pb.severity] ?? '#8888aa';
@@ -4803,12 +4802,8 @@ function buildPlaybooksEmailHtml(payload, appUrl) {
   <tr><td style="background:#12121a;border:1px solid #1e1e2e;border-radius:12px;padding:24px 28px;">
     <table width="100%" cellpadding="0" cellspacing="0"><tr>
       <td>
-        <p style="margin:0 0 4px;font-size:11px;color:#4a4a6a;text-transform:uppercase;letter-spacing:1px;font-family:'Courier New',monospace;">Business Health</p>
+        <p style="margin:0 0 4px;font-size:11px;color:#4a4a6a;text-transform:uppercase;letter-spacing:1px;font-family:'Courier New',monospace;">Business Summary</p>
         <p style="margin:0;font-size:13px;color:#c0c0d8;line-height:1.6;">${summary}</p>
-      </td>
-      <td align="right" style="padding-left:20px;white-space:nowrap;">
-        <span style="font-size:36px;font-weight:700;color:${scoreColor};font-family:'Courier New',monospace;">${healthScore}</span>
-        <p style="margin:0;font-size:11px;color:${scoreColor};text-align:right;font-family:'Courier New',monospace;">${healthLabel}</p>
       </td>
     </tr></table>
   </td></tr>
@@ -5197,7 +5192,6 @@ async function generatePlaybooksForUser(uid) {
       '',
       '=== WEBSITE ===',
       `URL: ${website?.url ?? 'Not set'}`,
-      `Health score: ${website?.score ?? 'N/A'}/100`,
       ...(website?.description ? [`Description: ${website.description}`] : []),
       feedbackContext,
     ].filter(l => l !== undefined).join('\n');
@@ -5237,7 +5231,7 @@ PROOF CHARTS (chartSpec) — use ONLY these exact keys:
   mailchimp/klaviyo → openRate (percent_decimal), clickRate (percent_decimal)
 
 OUTPUT: valid JSON only, no markdown fences.
-{"healthScore":<0-100>,"healthLabel":"<Healthy|Needs Work|At Risk>","summary":"<3-4 sentences covering overall business health, biggest risk, and top opportunity>","playbooks":[{"id":"<slug>","title":"<title>","problem":"<1-2 sentences with exact numbers and deviation from benchmark>","impact":"<2-3 sentences on business cost with dollar/percentage estimate>","category":"<paid-ads|revenue|retention|conversion|email|seo|ecommerce>","severity":"<critical|warning|opportunity>","expectedGain":"<specific measurable gain>","triggeredBy":[{"label":"<metric>","value":"<actual>","benchmark":"<target>"}],"chartSpec":{"provider":"<p>","metric":"<key>","unit":"<unit>","title":"<title>","benchmark":<n>,"benchmarkLabel":"<label>"},"steps":[{"action":"<imperative headline>","detail":"<3-5 sentences: how to do it, why it works, what to watch, expected result>","link":{"label":"<label>","url":"<url>"}}]}]}`,
+{"summary":"<3-4 sentences covering overall business status, biggest risk, and top opportunity>","playbooks":[{"id":"<slug>","title":"<title>","problem":"<1-2 sentences with exact numbers and deviation from benchmark>","impact":"<2-3 sentences on business cost with dollar/percentage estimate>","category":"<paid-ads|revenue|retention|conversion|email|seo|ecommerce>","severity":"<critical|warning|opportunity>","expectedGain":"<specific measurable gain>","triggeredBy":[{"label":"<metric>","value":"<actual>","benchmark":"<target>"}],"chartSpec":{"provider":"<p>","metric":"<key>","unit":"<unit>","title":"<title>","benchmark":<n>,"benchmarkLabel":"<label>"},"steps":[{"action":"<imperative headline>","detail":"<3-5 sentences: how to do it, why it works, what to watch, expected result>","link":{"label":"<label>","url":"<url>"}}]}]}`,
           messages: [{ role: 'user', content: `Generate Fix-It Playbooks (critical first):\n\n${dataContext}` }],
         }),
       },
@@ -5283,14 +5277,12 @@ OUTPUT: valid JSON only, no markdown fences.
 
     const payload = {
       playbooks:   parsed.playbooks ?? [],
-      healthScore: parsed.healthScore ?? 50,
-      healthLabel: parsed.healthLabel ?? 'Needs Work',
       summary:     parsed.summary ?? '',
       generatedAt: new Date().toISOString(),
     };
 
     await SB.upsert('ai_playbooks_cache', { user_id: uid, payload, generated_at: payload.generatedAt }, 'user_id');
-    logOk(`[playbooks] Done for ${uid.slice(0, 8)} — ${payload.playbooks.length} playbooks, score=${payload.healthScore}`);
+    logOk(`[playbooks] Done for ${uid.slice(0, 8)} — ${payload.playbooks.length} playbooks`);
     return payload;
 
   } catch (err) {

@@ -41,8 +41,6 @@ export interface AiPlaybook {
 
 export interface AiPlaybooksResponse {
   playbooks: AiPlaybook[];
-  healthScore: number;
-  healthLabel: string;
   summary: string;
   generatedAt: string | null;
 }
@@ -84,8 +82,6 @@ export async function GET() {
   // No cache yet — daemon hasn't run for this user
   const empty: AiPlaybooksResponse = {
     playbooks: [],
-    healthScore: 0,
-    healthLabel: "Needs Work",
     summary:
       "Your playbooks are being generated each week. You can generate one report now manually.",
     generatedAt: null,

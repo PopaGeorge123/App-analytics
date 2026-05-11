@@ -255,57 +255,6 @@ const CATEGORY_CONFIG: Record<Exclude<Category, "all">, { label: string; color: 
 const categories: Category[] = ["all", "paid-ads", "revenue", "email", "seo", "ecommerce", "conversion", "retention"];
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Health dial — speedometer arc
-// ─────────────────────────────────────────────────────────────────────────────
-
-function HealthDial({ score, label }: { score: number; label: string }) {
-  const size = 96;
-  const sw   = 9;
-  const r    = size / 2 - sw - 1;
-  const cx   = size / 2;
-  const cy   = size / 2;
-
-  const color = score >= 70 ? "#10b981" : score >= 40 ? "#f59e0b" : "#ef4444";
-
-  // Gauge: clock-angle 220° (lower-left) → CW 280° → 140° (lower-right)
-  const startClock = 220;
-  const totalSweep = 280;
-
-  const toXY = (clockDeg: number) => {
-    const rad = ((clockDeg - 90) * Math.PI) / 180;
-    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
-  };
-
-  const s = toXY(startClock);
-  const e = toXY(startClock + totalSweep);
-
-  // Track: 280° CW arc — large-arc=1, sweep=1
-  const trackD = `M ${s.x.toFixed(2)} ${s.y.toFixed(2)} A ${r} ${r} 0 1 1 ${e.x.toFixed(2)} ${e.y.toFixed(2)}`;
-
-  const scoreSweep = Math.max(0, (score / 100) * totalSweep);
-  const scoreEnd   = toXY(startClock + scoreSweep);
-  const scoreLarge = scoreSweep > 180 ? 1 : 0;
-  const scoreD     = scoreSweep > 2
-    ? `M ${s.x.toFixed(2)} ${s.y.toFixed(2)} A ${r} ${r} 0 ${scoreLarge} 1 ${scoreEnd.x.toFixed(2)} ${scoreEnd.y.toFixed(2)}`
-    : "";
-
-  return (
-    <div className="relative flex items-center justify-center shrink-0" style={{ width: size, height: size }}>
-      <svg width={size} height={size}>
-        <path d={trackD} fill="none" stroke="#1e1e30" strokeWidth={sw} strokeLinecap="round" />
-        {scoreD && (
-          <path d={scoreD} fill="none" stroke={color} strokeWidth={sw} strokeLinecap="round" />
-        )}
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="font-mono text-2xl font-bold leading-none" style={{ color }}>{score}</span>
-        <span className="mt-1 text-[9px] font-bold uppercase tracking-wide" style={{ color }}>{label}</span>
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Effort helper
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -1116,8 +1065,6 @@ function PlaybookHistoryDrawer({
           {!loading && history.map((entry) => {
             const playbooks = entry.payload?.playbooks ?? [];
             const critCount = playbooks.filter((p) => p.severity === "critical").length;
-            const score = entry.payload?.healthScore ?? 0;
-            const scoreColor = score >= 70 ? "#10b981" : score >= 40 ? "#f59e0b" : "#ef4444";
 
             // Aggregate ratings from feedback for this generation's playbooks
             const playbookIds = playbooks.map((p) => p.id);
@@ -1142,19 +1089,6 @@ function PlaybookHistoryDrawer({
                   className="w-full text-left px-4 py-3 flex items-start gap-3 hover:bg-white/2 transition-colors"
                   onClick={() => setExpandedId(isExpanded ? null : entry.id)}
                 >
-                  {/* Health score bubble */}
-                  <div
-                    className="shrink-0 w-10 h-10 rounded-xl flex flex-col items-center justify-center"
-                    style={{ background: scoreColor + "15", border: `1px solid ${scoreColor}30` }}
-                  >
-                    <span className="font-mono text-sm font-bold leading-none" style={{ color: scoreColor }}>
-                      {score}
-                    </span>
-                    <span className="text-[8px] font-bold uppercase tracking-wide mt-0.5" style={{ color: scoreColor }}>
-                      {score >= 70 ? "Good" : score >= 40 ? "Fair" : "Low"}
-                    </span>
-                  </div>
-
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2 mb-1">
                       <span className="text-xs font-semibold text-slate-300">{fmtDate(entry.generated_at)}</span>
@@ -1705,7 +1639,7 @@ export default function PlaybooksTab({
       />
 
       {/* ══════════════════════════════════════════════════════════════════════
-          BUSINESS HEALTH COMMAND CENTER
+          BUSINESS SUMMARY COMMAND CENTER
       ══════════════════════════════════════════════════════════════════════ */}
       {isPremium && data && !loading ? (
         <div
@@ -1715,9 +1649,8 @@ export default function PlaybooksTab({
           <div className="flex flex-col sm:flex-row gap-0 divide-y sm:divide-y-0 sm:divide-x divide-white/5">
             {/* ── Left zone (60%) ── */}
             <div className="flex-1 p-5 flex items-start gap-5">
-              <HealthDial score={data.healthScore} label={data.healthLabel} />
               <div className="flex-1 min-w-0">
-                <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-2">Business Health Summary</p>
+                <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-2">Business Summary</p>
                 <p className="text-[15px] text-[#cbd5e1] leading-[1.6]">{data.summary}</p>
                 <div className="mt-3 flex items-center gap-3">
                   {generatedAgo && (
@@ -2062,8 +1995,6 @@ interface PlaybooksTabProps {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const DEMO_DATA: AiPlaybooksResponse = {
-  healthScore: 58,
-  healthLabel: "Needs Work",
   summary: "Your SaaS is generating solid top-line revenue but leaking growth through three critical vectors: rising ad costs, a deteriorating email programme, and a churn rate that is quietly compounding. Fixing ad targeting and email segmentation alone could recover an estimated $2,400/month within 30 days. The biggest immediate opportunity is your conversion rate — at 0.8% you are leaving roughly 60 sign-ups per week on the table from existing traffic.",
   generatedAt: "2026-04-28T08:00:00.000Z",
   playbooks: [

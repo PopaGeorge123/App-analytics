@@ -231,12 +231,11 @@ ${extraAdsLines.length ? "\nPer-platform ad spend (30d):\n" + extraAdsLines.join
 
 === WEBSITE ===
 URL: ${website?.url ?? "Not set"}
-Health Score: ${website?.score ?? 0}/100
 Summary: ${website?.description ?? "Not analyzed yet"}
 Last Analyzed: ${website?.last_scanned_at ? new Date(website.last_scanned_at).toLocaleDateString() : "Never"}
 
 === WEBSITE TASKS ===
-Pending (${pendingTasks.length}): ${pendingTasks.slice(0, 5).map((t) => `[${t.category}] ${t.title} (+${t.impact_score}pts)`).join(" | ") || "None"}
+Pending (${pendingTasks.length}): ${pendingTasks.slice(0, 5).map((t) => `[${t.category}] ${t.title}`).join(" | ") || "None"}
 Completed: ${completedTasks.length} tasks done
 
 === DAILY DATA (last 90 days — use this to answer any custom date range question) ===

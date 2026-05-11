@@ -13,6 +13,7 @@ interface SettingsTabProps {
   isPremium: boolean;
   connectedPlatforms: string[];
   currencies: Record<string, string>;
+  isDemo?: boolean;
 }
 
 const UI_INTEGRATIONS = LIVE_INTEGRATIONS.map((cat) => ({
@@ -1193,6 +1194,7 @@ function ConnectModalShell({ title, description, onClose, children }: { title: s
 
 const NAV_ITEMS = [
   { id: "account",      label: "Account",        color: "#6366f1" },
+  { id: "business",     label: "Business",       color: "#a78bfa" },
   { id: "subscription", label: "Subscription",   color: "#10b981" },
   { id: "integrations", label: "Integrations",   color: "#14b8a6" },
   { id: "goals",        label: "Goals & KPIs",   color: "#eab308" },
@@ -1204,7 +1206,7 @@ const NAV_ITEMS = [
 
 // ── MAIN COMPONENT ────────────────────────────────────────────────────────
 
-export default function SettingsTab({ email, isPremium, connectedPlatforms, currencies }: SettingsTabProps) {
+export default function SettingsTab({ email, isPremium, connectedPlatforms, currencies, isDemo = false }: SettingsTabProps) {
   const router = useRouter();
   const [activeSection, setActiveSection] = useState("account");
   const [portalLoading, setPortalLoading] = useState(false);
@@ -1229,6 +1231,16 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
   const contentRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
 
+  // ── Business profile state ─────────────────────────────────────────────
+  const [bizWebsite, setBizWebsite]       = useState("");
+  const [bizDescription, setBizDescription] = useState("");
+  const [bizIndustry, setBizIndustry]     = useState("");
+  const [bizProfileLoaded, setBizProfileLoaded] = useState(false);
+  const [bizSaving, setBizSaving]         = useState(false);
+  const [bizSaveMsg, setBizSaveMsg]       = useState<{ ok: boolean; text: string } | null>(null);
+  const [bizAnalysing, setBizAnalysing]   = useState(false);
+  const [bizAnalyseMsg, setBizAnalyseMsg] = useState<string | null>(null);
+
   const POPULAR_INTEGRATION_IDS = ["stripe", "ga4", "meta", "shopify", "youtube", "mailchimp"];
   const totalIntegrations = UI_INTEGRATIONS.length;
   const connectedCount = connectedPlatforms.filter((p) => UI_INTEGRATIONS.some((i) => i.id === p)).length;
@@ -1248,8 +1260,72 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
         })
         .catch(() => {});
     }
+    // Load business profile
+    fetch("/api/onboarding/profile")
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => {
+        if (!d) return;
+        setBizWebsite(d.websiteUrl ?? "");
+        setBizDescription(d.businessDescription ?? "");
+        setBizIndustry(d.businessIndustry ?? "");
+        setBizProfileLoaded(true);
+      })
+      .catch(() => { setBizProfileLoaded(true); });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  async function handleBizSave() {
+    setBizSaving(true);
+    setBizSaveMsg(null);
+    try {
+      const res = await fetch("/api/onboarding/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          websiteUrl:          bizWebsite.trim(),
+          businessDescription: bizDescription.trim(),
+          businessIndustry:    bizIndustry.trim(),
+        }),
+      });
+      if (res.ok) {
+        setBizSaveMsg({ ok: true, text: "Saved!" });
+      } else {
+        const d = await res.json().catch(() => ({}));
+        setBizSaveMsg({ ok: false, text: d.error ?? "Failed to save." });
+      }
+    } catch {
+      setBizSaveMsg({ ok: false, text: "Network error." });
+    } finally {
+      setBizSaving(false);
+      setTimeout(() => setBizSaveMsg(null), 3000);
+    }
+  }
+
+  async function handleBizAnalyse() {
+    const url = bizWebsite.trim();
+    if (!url) return;
+    setBizAnalysing(true);
+    setBizAnalyseMsg(null);
+    try {
+      const res = await fetch("/api/onboarding/extract", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      const d = await res.json();
+      if (res.ok && d.description) {
+        setBizDescription(d.description);
+        if (d.industry) setBizIndustry(d.industry);
+        setBizAnalyseMsg("✓ Description extracted — review and save.");
+      } else {
+        setBizAnalyseMsg(d.error ?? "Could not extract description.");
+      }
+    } catch {
+      setBizAnalyseMsg("Network error.");
+    } finally {
+      setBizAnalysing(false);
+    }
+  }
 
   async function handleChangeEmail() {
     if (!newEmail.trim()) return;
@@ -1482,11 +1558,16 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
                     Change email
                   </button> */}
                   <button
-                    onClick={() => { setShowPasswordForm((v) => !v); setPwMsg(null); }}
-                    className="rounded-lg border border-white/[0.06] bg-[#0d0d0f] px-3.5 py-2 font-mono text-xs text-[#bcbcd8] hover:border-[#6366f1]/30 hover:text-[#6366f1] transition-all"
+                    onClick={() => { if (!isDemo) { setShowPasswordForm((v) => !v); setPwMsg(null); } }}
+                    disabled={isDemo}
+                    title={isDemo ? "Not available in demo" : undefined}
+                    className="rounded-lg border border-white/[0.06] bg-[#0d0d0f] px-3.5 py-2 font-mono text-xs text-[#bcbcd8] hover:border-[#6366f1]/30 hover:text-[#6366f1] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     Change password
                   </button>
+                  {isDemo && (
+                    <span className="font-mono text-[11px] text-[#8585aa]">Not available in demo</span>
+                  )}
                 </div>
                 {showEmailForm && (
                   <div className="flex items-center gap-2 flex-wrap">
@@ -1550,6 +1631,106 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
                   </div>
                 )}
               </div> */}
+            </div>
+          </section>
+
+          {/* ── BUSINESS PROFILE ─────────────────────────────────────── */}
+          <section id="business" ref={(el) => { sectionRefs.current.business = el; }}>
+            <div className="rounded-2xl border border-white/[0.06] bg-[#13131a] p-6 space-y-5">
+              <div>
+                <SectionLabel color="#a78bfa">Business Profile</SectionLabel>
+                <p className="font-mono text-[10px] text-[#58588a] mt-1">
+                  This context is fed to the AI Advisor to personalise every insight.
+                </p>
+              </div>
+
+              {/* Website URL */}
+              <div className="space-y-1.5">
+                <label className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#8585aa]">Website URL</label>
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    value={bizWebsite}
+                    onChange={(e) => setBizWebsite(e.target.value)}
+                    placeholder="https://yourdomain.com"
+                    className="flex-1 min-w-0 rounded-lg border border-white/[0.06] bg-[#0d0d0f] px-3 py-2 font-mono text-xs text-[#f8f8fc] placeholder-[#58588a] focus:outline-none focus:border-[#a78bfa]/40 transition-all"
+                  />
+                  <button
+                    onClick={handleBizAnalyse}
+                    disabled={bizAnalysing || !bizWebsite.trim()}
+                    title="AI-extract description from website"
+                    className="shrink-0 flex items-center gap-1.5 rounded-lg border border-[#a78bfa]/30 bg-[#a78bfa]/8 px-3 py-2 font-mono text-[10px] font-semibold text-[#a78bfa] hover:bg-[#a78bfa]/15 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                  >
+                    {bizAnalysing ? (
+                      <svg className="animate-spin" width="11" height="11" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                      </svg>
+                    ) : (
+                      <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                      </svg>
+                    )}
+                    {bizAnalysing ? "Analysing…" : "Analyse"}
+                  </button>
+                </div>
+                {bizAnalyseMsg && (
+                  <p className={`font-mono text-[10px] mt-1 ${bizAnalyseMsg.startsWith("✓") ? "text-[#10b981]" : "text-red-400"}`}>
+                    {bizAnalyseMsg}
+                  </p>
+                )}
+              </div>
+
+              {/* Description */}
+              <div className="space-y-1.5">
+                <label className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#8585aa]">Business Description</label>
+                <textarea
+                  value={bizDescription}
+                  onChange={(e) => setBizDescription(e.target.value)}
+                  placeholder="What does your business do? Who is it for? What problem does it solve?"
+                  rows={4}
+                  className="w-full rounded-lg border border-white/[0.06] bg-[#0d0d0f] px-3 py-2 font-mono text-xs text-[#f8f8fc] placeholder-[#58588a] focus:outline-none focus:border-[#a78bfa]/40 transition-all resize-y"
+                />
+                <p className="font-mono text-[9px] text-[#58588a]">{bizDescription.length}/500 chars</p>
+              </div>
+
+              {/* Industry */}
+              <div className="space-y-1.5">
+                <label className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#8585aa]">Industry</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {["SaaS", "E-commerce", "Agency", "Media & Content", "Marketplace", "Consumer App", "Fintech", "Healthcare", "Education", "Other"].map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => setBizIndustry(opt === bizIndustry ? "" : opt)}
+                      className="rounded-lg border px-3 py-1.5 font-mono text-[11px] font-medium transition-all"
+                      style={{
+                        backgroundColor: bizIndustry === opt ? "rgba(167,139,250,0.12)" : "#0d0d0f",
+                        borderColor:     bizIndustry === opt ? "rgba(167,139,250,0.35)" : "rgba(255,255,255,0.06)",
+                        color:           bizIndustry === opt ? "#a78bfa" : "#58588a",
+                      }}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Save */}
+              <div className="flex items-center gap-3 pt-1">
+                <button
+                  onClick={handleBizSave}
+                  disabled={bizSaving || !bizProfileLoaded}
+                  className="rounded-lg bg-[#a78bfa] px-4 py-2 font-mono text-xs font-semibold text-white hover:bg-[#9061f9] disabled:opacity-50 transition-all"
+                >
+                  {bizSaving ? "Saving…" : "Save profile"}
+                </button>
+                {bizSaveMsg && (
+                  <p className={`font-mono text-[10px] ${bizSaveMsg.ok ? "text-[#10b981]" : "text-red-400"}`}>
+                    {bizSaveMsg.text}
+                  </p>
+                )}
+              </div>
             </div>
           </section>
 

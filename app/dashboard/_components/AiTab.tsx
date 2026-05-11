@@ -84,14 +84,16 @@ function inferInvestigateTabs(content: string): { tab: Tab; label: string; icon:
 
 // ── Inline bold renderer ───────────────────────────────────────────────────
 function InlineText({ text }: { text: string }) {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  // Strip triple-asterisk bold/italic markers first, then handle double-asterisk bold
+  const normalized = text.replace(/\*\*\*([^*]+)\*\*\*/g, "**$1**");
+  const parts = normalized.split(/(\*\*[^*]+\*\*)/g);
   return (
     <>
       {parts.map((part, i) =>
         part.startsWith("**") && part.endsWith("**") && part.length > 4 ? (
           <strong key={i} style={{ color: "#a5b4fc", fontWeight: 600 }}>{part.slice(2, -2)}</strong>
         ) : (
-          <span key={i}>{part}</span>
+          <span key={i}>{part.replace(/\*+/g, "")}</span>
         )
       )}
     </>
@@ -184,7 +186,7 @@ function parseInsightContent(raw: string): ParsedInsight {
   let observations: ParsedObservation[] = [];
   for (const sec of obsSections) {
     for (const line of sec.lines) {
-      const t = line.replace(/^[-*]\s*/, "").trim();
+      const t = line.replace(/^[-*]\s*/, "").replace(/\*\*/g, "").trim();
       if (!t) continue;
       const colonIdx = t.indexOf("—");
       const title = colonIdx > 0 ? t.slice(0, colonIdx).trim() : t.slice(0, 60);
@@ -197,7 +199,7 @@ function parseInsightContent(raw: string): ParsedInsight {
     for (const sec of sections) {
       for (const line of sec.lines) {
         if (!/^[-*]\s/.test(line)) continue;
-        const t = line.replace(/^[-*]\s*/, "").trim();
+        const t = line.replace(/^[-*]\s*/, "").replace(/\*\*/g, "").trim();
         if (!t) continue;
         const colonIdx = t.indexOf("—");
         const title = colonIdx > 0 ? t.slice(0, colonIdx).trim() : t.slice(0, 60);
@@ -218,7 +220,8 @@ function parseInsightContent(raw: string): ParsedInsight {
       const m = line.match(/^(\d+)\.\s+(.+)/);
       if (!m) continue;
       n++;
-      const full = m[2].trim();
+      // Strip all ** markers from the raw text before further parsing
+      const full = m[2].trim().replace(/\*\*/g, "");
       // Try to split "Category: title — description"
       const colonIdx = full.indexOf(":");
       const dashIdx  = full.indexOf("—");
@@ -520,25 +523,31 @@ function AiMessageBody({
     if (!t) return null;
     if (t === closingQuestion && onReply) return null; // rendered as chip below
 
+    // Horizontal rules — skip entirely
+    if (/^[-*_]{3,}$/.test(t)) return null;
+
     // Markdown headings
     if (t.startsWith("### ")) {
+      const headText = t.slice(4).replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, "").trim();
       return (
         <p key={i} style={{ fontWeight: 700, margin: "14px 0 4px 0", fontSize: 13, textTransform: "uppercase", letterSpacing: "0.07em", color: "#a5b4fc" }}>
-          {t.slice(4).replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, "").trim()}
+          <InlineText text={headText} />
         </p>
       );
     }
     if (t.startsWith("## ")) {
+      const headText = t.slice(3).replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, "").trim();
       return (
         <p key={i} style={{ fontWeight: 700, color: "#f8f8fc", margin: "18px 0 6px 0", fontSize: 16, borderBottom: "1px solid rgba(255,255,255,0.07)", paddingBottom: 4 }}>
-          {t.slice(3).replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, "").trim()}
+          <InlineText text={headText} />
         </p>
       );
     }
     if (t.startsWith("# ")) {
+      const headText = t.slice(2).replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, "").trim();
       return (
         <p key={i} style={{ fontWeight: 800, color: "#f8f8fc", margin: "0 0 12px 0", fontSize: 18 }}>
-          {t.slice(2).replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, "").trim()}
+          <InlineText text={headText} />
         </p>
       );
     }
@@ -546,7 +555,7 @@ function AiMessageBody({
     if (t.startsWith("**") && t.endsWith("**")) {
       return (
         <p key={i} style={{ fontWeight: 600, color: "#e2e8f0", margin: "10px 0 4px 0", fontSize: 14 }}>
-          {t.slice(2, -2)}
+          {t.slice(2, -2).replace(/\*\*/g, "")}
         </p>
       );
     }
@@ -660,9 +669,95 @@ function AiMessageBody({
     );
   };
 
+  // Pre-process bodyLines: group consecutive table rows into table blocks
+  type LineNode = { type: "line"; line: string; idx: number } | { type: "table"; rows: string[][] };
+  const lineNodes: LineNode[] = [];
+  let i2 = 0;
+  while (i2 < bodyLines.length) {
+    const t = bodyLines[i2].trim();
+    if (t.startsWith("|") && t.endsWith("|")) {
+      // Collect all consecutive pipe-delimited lines (including separator rows)
+      const tableLines: string[] = [];
+      while (i2 < bodyLines.length) {
+        const tt = bodyLines[i2].trim();
+        if (tt.startsWith("|") && tt.endsWith("|")) {
+          tableLines.push(tt);
+          i2++;
+        } else break;
+      }
+      // Parse into rows, skip separator rows (e.g. |---|---|)
+      const rows = tableLines
+        .filter((row) => !/^\|[\s|:-]+\|$/.test(row))
+        .map((row) =>
+          row
+            .slice(1, -1)
+            .split("|")
+            .map((cell) => cell.trim())
+        );
+      if (rows.length > 0) lineNodes.push({ type: "table", rows });
+    } else {
+      lineNodes.push({ type: "line", line: bodyLines[i2], idx: i2 });
+      i2++;
+    }
+  }
+
+  const renderTable = (rows: string[][], key: number) => {
+    const [header, ...body] = rows;
+    return (
+      <div key={`table-${key}`} style={{ overflowX: "auto", margin: "10px 0 12px 0" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          {header && (
+            <thead>
+              <tr>
+                {header.map((cell, ci) => (
+                  <th
+                    key={ci}
+                    style={{
+                      textAlign: "left",
+                      padding: "7px 12px",
+                      fontWeight: 700,
+                      color: "#a5b4fc",
+                      borderBottom: "1px solid rgba(165,180,252,0.2)",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    <InlineText text={cell} />
+                  </th>
+                ))}
+              </tr>
+            </thead>
+          )}
+          <tbody>
+            {body.map((row, ri) => (
+              <tr key={ri} style={{ background: ri % 2 === 0 ? "rgba(255,255,255,0.02)" : "transparent" }}>
+                {row.map((cell, ci) => (
+                  <td
+                    key={ci}
+                    style={{
+                      padding: "7px 12px",
+                      color: ci === 0 ? "#e2e8f0" : "#c0c0d5",
+                      borderBottom: "1px solid rgba(255,255,255,0.04)",
+                      verticalAlign: "top",
+                    }}
+                  >
+                    <InlineText text={cell} />
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
   return (
     <div>
-      {bodyLines.map(renderBodyLine)}
+      {lineNodes.map((node, ni) =>
+        node.type === "table"
+          ? renderTable(node.rows, ni)
+          : renderBodyLine(node.line, node.idx)
+      )}
       {stepLines.length > 0 && (
         <div style={{ marginTop: 12 }}>
           <div
