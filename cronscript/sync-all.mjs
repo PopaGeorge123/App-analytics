@@ -4164,7 +4164,8 @@ async function checkAlerts() {
 // ─────────────────────────────────────────────────────────────────────────────
 // DAILY DIGEST SENDER
 // Runs once per day.  For each premium user where digest_subscribed=true and
-// today is their digest_day (0=Sun…6=Sat), this function:
+// the frequency schedule matches today (daily=always, weekly=dow match,
+// monthly=dom match), this function:
 //   1. Fetches the last 14 days of daily_snapshots
 //   2. Builds a metrics context string
 //   3. Calls the Anthropic API (claude-opus-4-5) to generate a structured digest
@@ -4173,7 +4174,8 @@ async function checkAlerts() {
 //
 // DB columns used (see migration 009_goals_and_alert_rules.sql):
 //   users.digest_subscribed  boolean  — opt-in flag
-//   users.digest_day         smallint — 0=Sun … 6=Sat
+//   users.digest_day         smallint — 0–6 for weekly (day-of-week), 1–28 for monthly (day-of-month)
+//   users.digest_frequency   text     — 'daily' | 'weekly' | 'monthly' (default 'weekly')
 //
 // Required .env vars:
 //   ANTHROPIC_API_KEY
@@ -4278,12 +4280,12 @@ async function sendDailyDigests() {
   try {
     // Premium users
     const premiumUsers = await SB.selectWhere(
-      'users', 'id,email,digest_subscribed,digest_day,is_premium,trial_ends_at',
+      'users', 'id,email,digest_subscribed,digest_day,digest_frequency,is_premium,trial_ends_at',
       { is_premium: 'eq.true', digest_subscribed: 'eq.true' },
     );
     // Trial users (trial_ends_at >= today, not already premium)
     const trialUsers = await SB.selectWhere(
-      'users', 'id,email,digest_subscribed,digest_day,is_premium,trial_ends_at',
+      'users', 'id,email,digest_subscribed,digest_day,digest_frequency,is_premium,trial_ends_at',
       { trial_ends_at: `gte.${today}`, digest_subscribed: 'eq.true' },
     ).catch(() => []);
 
@@ -4294,9 +4296,18 @@ async function sendDailyDigests() {
       if (!seen.has(u.id)) { merged.push(u); seen.add(u.id); }
     }
 
-    // Filter to users whose digest_day matches today
-    // If digest_day is null/undefined, default to Monday (1)
-    allUsers = merged.filter(u => (u.digest_day ?? 1) === todayDow);
+    // Filter by frequency:
+    //   daily   → always send
+    //   weekly  → send if today's day-of-week matches digest_day (0–6, default Monday=1)
+    //   monthly → send if today's day-of-month matches digest_day (1–28, default 1)
+    const todayDom = new Date().getUTCDate();
+    allUsers = merged.filter(u => {
+      const freq = u.digest_frequency ?? 'weekly';
+      if (freq === 'daily')   return true;
+      if (freq === 'weekly')  return (u.digest_day ?? 1) === todayDow;
+      if (freq === 'monthly') return (u.digest_day ?? 1) === todayDom;
+      return false;
+    });
   } catch (err) {
     logFail(`[digest] Cannot fetch users: ${err.message}`);
     return;

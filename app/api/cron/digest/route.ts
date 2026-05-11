@@ -26,23 +26,37 @@ export async function POST(request: NextRequest) {
   const now = new Date().toISOString();
   const { data: premiumUsers } = await db
     .from("users")
-    .select("id, email")
+    .select("id, email, digest_subscribed, digest_day, digest_frequency")
     .eq("is_premium", true)
     .in("id", userIds.length > 0 ? userIds : ["__none__"]);
 
   const { data: trialUsers } = await db
     .from("users")
-    .select("id, email")
+    .select("id, email, digest_subscribed, digest_day, digest_frequency")
     .eq("is_premium", false)
     .gt("trial_ends_at", now)
     .in("id", userIds.length > 0 ? userIds : ["__none__"]);
 
   // Deduplicate by user id
   const seen = new Set<string>();
-  const users = [...(premiumUsers ?? []), ...(trialUsers ?? [])].filter((u) => {
+  const allUsers = [...(premiumUsers ?? []), ...(trialUsers ?? [])].filter((u) => {
     if (seen.has(u.id)) return false;
     seen.add(u.id);
     return true;
+  });
+
+  // Filter by digest subscription and frequency schedule
+  const todayUtc = new Date();
+  const todayDow = todayUtc.getUTCDay();       // 0 (Sun) – 6 (Sat)
+  const todayDom = todayUtc.getUTCDate();      // 1 – 31
+
+  const users = allUsers.filter((u) => {
+    if (!u.digest_subscribed) return false;
+    const freq: string = u.digest_frequency ?? "weekly";
+    if (freq === "daily") return true;
+    if (freq === "weekly") return todayDow === (u.digest_day ?? 1);
+    if (freq === "monthly") return todayDom === (u.digest_day ?? 1);
+    return false;
   });
 
   const results: Record<string, string> = {};

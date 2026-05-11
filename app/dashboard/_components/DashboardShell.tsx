@@ -728,13 +728,13 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
             </span>
           </div>
           {/* Bell in mobile bar */}
-          <ThemeToggle />
+          {/* <ThemeToggle /> */}
           <NotificationBell />
         </div>
 
         {/* Desktop notification bell + theme toggle — fixed top-right of the content area */}
         <div className="hidden lg:flex items-center gap-2 justify-end px-8 pt-5 pb-0">
-          <ThemeToggle />
+          {/* <ThemeToggle /> */}
           <NotificationBell />
         </div>
 

@@ -338,7 +338,7 @@ const PLATFORM_META: Record<string, { label: string; color: string; what: string
   shopify:         { label: "Shopify",              color: "#95bf47", what: "Orders, revenue, products & customers" },
   gumroad:         { label: "Gumroad",              color: "#ff90e8", what: "Sales, products, subscribers & payouts" },
   mailchimp:       { label: "Mailchimp",            color: "#ffe01b", what: "Subscriber counts, open rates & campaigns" },
-  klaviyo:         { label: "Klaviyo",              color: "#1a1a1a", what: "Email flows, revenue & subscriber growth" },
+  klaviyo:         { label: "Klaviyo",              color: "#46B37D", what: "Email flows, revenue & subscriber growth" },
   hubspot:         { label: "HubSpot",              color: "#ff7a59", what: "Deals, pipeline, contacts & activity" },
   youtube:         { label: "YouTube",              color: "#ff0000", what: "Views, subscribers, watch time & engagement" },
   "twitter-organic": { label: "Twitter / X",       color: "#1d9bf0", what: "Followers, impressions & engagement" },

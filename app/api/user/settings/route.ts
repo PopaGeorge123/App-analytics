@@ -13,7 +13,7 @@ export async function GET() {
   const db = createServiceClient();
   const { data, error } = await db
     .from("users")
-    .select("alert_rules, goals, digest_subscribed, digest_day, newsletter_emails")
+    .select("alert_rules, goals, digest_subscribed, digest_day, digest_frequency, newsletter_emails")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -23,7 +23,8 @@ export async function GET() {
     alertRules:        data?.alert_rules        ?? null,
     goals:             data?.goals              ?? null,
     digestSubscribed:  data?.digest_subscribed  ?? false,
-    digestDay:         data?.digest_day         ?? 1, // Monday default
+    digestDay:         data?.digest_day         ?? 1, // Monday default (weekly) or 1st (monthly)
+    digestFrequency:   data?.digest_frequency   ?? "weekly",
     newsletterEmails:  data?.newsletter_emails  ?? true,
   });
 }
@@ -48,6 +49,7 @@ export async function PATCH(req: NextRequest) {
   if ("goals" in body) update.goals = body.goals;
   if ("digestSubscribed" in body) update.digest_subscribed = body.digestSubscribed;
   if ("digestDay" in body) update.digest_day = body.digestDay;
+  if ("digestFrequency" in body) update.digest_frequency = body.digestFrequency;
   if ("newsletterEmails" in body) update.newsletter_emails = body.newsletterEmails;
 
   if (Object.keys(update).length === 0) {

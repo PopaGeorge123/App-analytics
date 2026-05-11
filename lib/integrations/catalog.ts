@@ -249,7 +249,7 @@ export const INTEGRATIONS_CATALOG: Integration[] = [
     name: "Klaviyo",
     description: "E-commerce email flows, revenue attributed",
     category: "Email & Marketing",
-    color: "#1F1F20",
+    color: "#46B37D",
     status: "live",  // The standard for DTC/e-commerce founders — essential for Shopify users
     connectUrl: "/api/auth/klaviyo/url",
     icon: "/integrations/klaviyo.svg",

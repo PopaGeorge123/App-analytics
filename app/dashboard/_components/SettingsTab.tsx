@@ -740,9 +740,15 @@ function DigestSectionInline({ email }: { email: string }) {
       {/* Toggle */}
       <div className="flex items-center justify-between rounded-xl border border-white/[0.06] bg-[#13131a] px-4 py-3">
         <div>
-          <p className="text-xs font-semibold text-[#f8f8fc]">Weekly email digest</p>
+          <p className="text-xs font-semibold text-[#f8f8fc]">Email digest</p>
           <p className="mt-0.5 font-mono text-[10px] text-[#8585aa]">
-            {subscribed ? `Delivered every ${["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][[0,1,2,3,4,5,6][digestDay]]} to ${email}` : "Disabled — no automatic emails"}
+            {subscribed
+              ? digestFrequency === "daily"
+                ? `Delivered every day to ${email}`
+                : digestFrequency === "monthly"
+                ? `Delivered on day ${digestDay} of each month to ${email}`
+                : `Delivered every ${["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][digestDay]} to ${email}`
+              : "Disabled — no automatic emails"}
           </p>
         </div>
         <Toggle checked={subscribed} onChange={(v) => { setSubscribed(v); savePrefs(v, digestDay, digestFrequency); }} disabled={saving} color="#3b82f6" />
@@ -757,7 +763,13 @@ function DigestSectionInline({ email }: { email: string }) {
               {(["daily", "weekly", "monthly"] as const).map((f) => (
                 <button
                   key={f}
-                  onClick={() => { setDigestFrequency(f); savePrefs(subscribed, digestDay, f); }}
+                  onClick={() => {
+                    // Reset digestDay to sensible default when switching frequency
+                    const newDay = f === "monthly" ? Math.min(digestDay > 28 ? 1 : digestDay || 1, 28) : f === "weekly" ? (digestDay > 6 ? 1 : digestDay) : digestDay;
+                    setDigestFrequency(f);
+                    setDigestDay(newDay);
+                    savePrefs(subscribed, newDay, f);
+                  }}
                   className={`flex-1 rounded-lg px-3 py-2 font-mono text-[11px] font-semibold border transition-all ${
                     digestFrequency === f
                       ? "border-[#3b82f6]/40 bg-[#3b82f6]/10 text-[#3b82f6]"
@@ -783,6 +795,26 @@ function DigestSectionInline({ email }: { email: string }) {
                     {label}
                   </button>
                 ))}
+              </div>
+            )}
+            {digestFrequency === "monthly" && (
+              <div className="space-y-1.5">
+                <p className="font-mono text-[10px] text-[#8585aa]">Day of month</p>
+                <div className="flex gap-1.5 flex-wrap">
+                  {Array.from({ length: 28 }, (_, i) => i + 1).map((d) => (
+                    <button
+                      key={d}
+                      onClick={() => { setDigestDay(d); savePrefs(subscribed, d, digestFrequency); }}
+                      className={`rounded-lg w-8 h-8 font-mono text-[11px] font-semibold transition-all ${
+                        digestDay === d
+                          ? "bg-[#3b82f6]/15 border border-[#3b82f6]/40 text-[#3b82f6]"
+                          : "border border-white/[0.06] text-[#8585aa] hover:text-[#bcbcd8]"
+                      }`}
+                    >
+                      {d}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -1560,7 +1592,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
                     {portalLoading ? (
                       <><svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" /></svg>Opening…</>
                     ) : (
-                      <><svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" /></svg>↗ Manage billing</>
+                      <><svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" /></svg>Manage billing</>
                     )}
                   </button>
                   <p className="font-mono text-[9px] text-[#58588a]">Redirects to Stripe's secure portal.</p>
