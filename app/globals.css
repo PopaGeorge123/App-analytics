@@ -138,3 +138,18 @@ body {
 .integrations-highlight {
   animation: integrations-pulse 2s ease-in-out forwards;
 }
+
+/* Remove focus outline on Recharts SVG elements */
+.recharts-wrapper,
+.recharts-wrapper:focus,
+.recharts-wrapper *,
+.recharts-wrapper *:focus,
+.recharts-surface,
+.recharts-surface:focus {
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent;
+}
+.recharts-wrapper svg:focus,
+.recharts-wrapper svg {
+  outline: none !important;
+}

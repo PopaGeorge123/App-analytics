@@ -222,7 +222,7 @@ function PlatformAreaChart({
           </button>
         ))}
       </div>
-      <ResponsiveContainer width="100%" height={height}>
+      <ResponsiveContainer width="100%" height={height} style={{ outline: "none" }}>
         <ComposedChart data={chartData} margin={{ top: 4, right: hasRightAxis ? 16 : 4, left: 0, bottom: 4 }}>
           <defs>
             {areaSeries.map((s) => (
@@ -470,7 +470,7 @@ function Sparkline({ values, color = "#00d4aa", formatter }: {
   const data = values.map((v, i) => ({ i, v }));
   const gradId = `spark-${color.replace(/[^a-z0-9]/gi, "")}-${values.length}`;
   return (
-    <ResponsiveContainer width="100%" height={40}>
+    <ResponsiveContainer width="100%" height={40} style={{ outline: "none" }}>
       <AreaChart data={data} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
         <defs>
           <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
@@ -686,7 +686,7 @@ function StatCard({
           </div>
 
           {/* full chart */}
-          <ResponsiveContainer width="100%" height={220}>
+          <ResponsiveContainer width="100%" height={220} style={{ outline: "none" }}>
             <AreaChart data={chartData} margin={{ top: 4, right: 12, left: 0, bottom: 4 }}>
               <defs>
                 <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">

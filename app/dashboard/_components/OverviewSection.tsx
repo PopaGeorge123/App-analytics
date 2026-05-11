@@ -410,15 +410,15 @@ function pctChange(curr: number, prev: number): { pct: number; up: boolean } | n
 function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload || !payload.length) return null;
   return (
-    <div className="rounded-xl border border-[#363650] bg-[#1c1c2a]/95 px-4 py-3 shadow-2xl backdrop-blur-sm">
-      <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-[#8585aa]">{label}</p>
+    <div className="rounded-xl border border-[rgba(255,255,255,0.10)] bg-[#0d0d0f] px-3 py-2.5 shadow-2xl">
+      <p className="mb-1.5 font-mono text-[10px] text-[#64748b]">{label}</p>
       {payload.map(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (entry: any) => (
           <div key={entry.name} className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: entry.color }} />
-            <span className="font-mono text-[11px] text-[#bcbcd8]">{entry.name}:</span>
-            <span className="font-mono text-[11px] font-semibold text-[#f8f8fc]">{entry.value}</span>
+            <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: entry.color }} />
+            <span className="font-mono text-[11px] text-[#94a3b8]">{entry.name}:</span>
+            <span className="font-mono text-[11px] font-bold text-white">{entry.value}</span>
           </div>
         )
       )}
@@ -1285,23 +1285,23 @@ function GrowthPulseChart({
   function PulseTooltip({ active, payload, label }: any) {
     if (!active || !payload?.length) return null;
     return (
-      <div className="rounded-xl border border-[#363650] bg-[#1c1c2a]/95 px-4 py-3 shadow-2xl backdrop-blur-sm min-w-36">
-        <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-[#8585aa]">{label}</p>
+      <div className="rounded-xl border border-[rgba(255,255,255,0.10)] bg-[#0d0d0f] px-3 py-2.5 shadow-2xl min-w-36">
+        <p className="mb-1.5 font-mono text-[10px] text-[#64748b]">{label}</p>
         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
         {payload.map((entry: any) => {
           if (entry.dataKey === "wowDelta") return null;
           return (
             <div key={entry.dataKey} className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: entry.color }} />
-              <span className="font-mono text-[10px] text-[#bcbcd8]">{entry.name}:</span>
-              <span className="font-mono text-[10px] font-bold text-[#f8f8fc]">
+              <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: entry.color }} />
+              <span className="font-mono text-[10px] text-[#94a3b8]">{entry.name}:</span>
+              <span className="font-mono text-[10px] font-bold text-white">
                 {typeof entry.value === "number" ? formatPulseValue(entry.dataKey as GrowthPulseSeries, entry.value) : entry.value}
               </span>
             </div>
           );
         })}
         {payload.find((e: { dataKey: string }) => e.dataKey === "wowDelta") && (
-          <div className="mt-1.5 border-t border-[#363650] pt-1.5">
+          <div className="mt-1.5 border-t border-[rgba(255,255,255,0.06)] pt-1.5">
             <span className="font-mono text-[10px]" style={{ color: payload.find((e: { dataKey: string }) => e.dataKey === "wowDelta")?.value >= 0 ? "#00d4aa" : "#f87171" }}>
               WoW: {payload.find((e: { dataKey: string }) => e.dataKey === "wowDelta")?.value >= 0 ? "+" : ""}{payload.find((e: { dataKey: string }) => e.dataKey === "wowDelta")?.value}%
             </span>
@@ -1312,7 +1312,7 @@ function GrowthPulseChart({
   }
 
   return (
-    <div className="rounded-2xl border border-[#363650] bg-[#222235] p-6 space-y-5">
+    <div className="rounded-xl border border-[rgba(255,255,255,0.06)] bg-[#13131a] p-4 space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
@@ -1390,8 +1390,8 @@ function GrowthPulseChart({
       )}
 
       {/* Chart */}
-      <ResponsiveContainer width="100%" height={240}>
-        <ComposedChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+      <ResponsiveContainer width="100%" height={300} style={{ outline: "none" }}>
+        <ComposedChart data={chartData} margin={{ top: 16, right: 8, left: 0, bottom: 4 }}>
           <defs>
             {enabledSeries.map((s) => (
               <linearGradient key={s} id={`pulse-grad-${s}`} x1="0" y1="0" x2="0" y2="1">
@@ -1400,10 +1400,10 @@ function GrowthPulseChart({
               </linearGradient>
             ))}
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="#363650" vertical={false} />
-          <XAxis dataKey="date" tick={{ fill: "#8585aa", fontSize: 9, fontFamily: "monospace" }} tickLine={false} axisLine={{ stroke: "#363650" }} interval="preserveStartEnd" />
-          <YAxis yAxisId="left" tick={{ fill: "#8585aa", fontSize: 9, fontFamily: "monospace" }} tickLine={false} axisLine={false} width={50} />
-          <YAxis yAxisId="right" orientation="right" tick={{ fill: "#8585aa", fontSize: 9, fontFamily: "monospace" }} tickLine={false} axisLine={false} width={50} />
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+          <XAxis dataKey="date" tick={{ fill: "#64748b", fontSize: 9, fontFamily: "monospace" }} tickLine={false} axisLine={false} interval="preserveStartEnd" tickMargin={4} />
+          <YAxis yAxisId="left" tick={{ fill: "#64748b", fontSize: 9, fontFamily: "monospace" }} tickLine={false} axisLine={false} width={44} />
+          <YAxis yAxisId="right" orientation="right" tick={{ fill: "#64748b", fontSize: 9, fontFamily: "monospace" }} tickLine={false} axisLine={false} width={44} />
           <Tooltip content={<PulseTooltip />} />
           {/* WoW delta bars (right axis, always shown) */}
           {primaryRev && (
@@ -1420,6 +1420,7 @@ function GrowthPulseChart({
           {enabledSeries.filter((s) => available.includes(s)).map((s, idx) => (
             <Area
               key={s}
+              type="monotone"
               dataKey={s}
               name={PULSE_SERIES_META[s].label}
               stroke={PULSE_SERIES_META[s].color}
@@ -1489,6 +1490,12 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
   useEffect(() => {
     localStorage.setItem("overview_customMetrics", JSON.stringify(customMetrics));
   }, [customMetrics]);
+
+  // Strip tabIndex from Recharts SVGs so they never receive a focus ring
+  useEffect(() => {
+    const svgs = document.querySelectorAll<SVGElement>(".recharts-wrapper svg");
+    svgs.forEach((svg) => svg.removeAttribute("tabindex"));
+  });
 
   // Use external time range if provided, otherwise internal
   const timeRange = externalTimeRange ?? internalTimeRange;
@@ -1723,7 +1730,7 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
       </div>
 
       {/* ── Chart Panel ─────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-[#363650] bg-[#222235] overflow-hidden">
+      <div className="rounded-xl border border-[rgba(255,255,255,0.06)] bg-[#13131a] overflow-hidden">
 
         {/* ── Report Selector Header ──────────────────────────── */}
         <div className="border-b border-[#363650] bg-[#1c1c2a]/60 px-6 pt-5 pb-0">
@@ -2067,10 +2074,10 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
           </div>
         )}
 
-        <div className="p-6">
+        <div className="px-4 pb-3">
         {/* Chart */}
         {!hasData ? (
-          <div className="flex h-64 items-center justify-center rounded-xl border border-[#363650] bg-[#1c1c2a]/60">
+          <div className="flex h-48 items-center justify-center rounded-xl border border-[rgba(255,255,255,0.06)] bg-[#13131a]">
             <div className="text-center">
               <p className="font-mono text-xs text-[#8585aa]">No data for selected period</p>
               <p className="mt-1 font-mono text-[10px] text-[#2e2e4e]">Try a wider time range</p>
@@ -2078,8 +2085,8 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
           </div>
         ) : (
           <>
-            <ResponsiveContainer width="100%" height={320}>
-              <ComposedChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+            <ResponsiveContainer width="100%" height={400} style={{ outline: "none" }}>
+              <ComposedChart data={chartData} margin={{ top: 16, right: 8, left: 0, bottom: 4 }}>
                 <defs>
                   {lines.map((l) => (
                     <linearGradient key={`grad-${l.key}`} id={`grad-${l.key}`} x1="0" y1="0" x2="0" y2="1">
@@ -2088,28 +2095,29 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
                     </linearGradient>
                   ))}
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#363650" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
                 <XAxis
                   dataKey="date"
-                  tick={{ fill: "#8585aa", fontSize: 10, fontFamily: "monospace" }}
+                  tick={{ fill: "#64748b", fontSize: 10, fontFamily: "monospace" }}
                   tickLine={false}
-                  axisLine={{ stroke: "#363650" }}
+                  axisLine={false}
                   interval="preserveStartEnd"
+                  tickMargin={4}
                 />
                 <YAxis
                   yAxisId="left"
-                  tick={{ fill: "#8585aa", fontSize: 10, fontFamily: "monospace" }}
+                  tick={{ fill: "#64748b", fontSize: 10, fontFamily: "monospace" }}
                   tickLine={false}
                   axisLine={false}
-                  width={50}
+                  width={44}
                 />
                 <YAxis
                   yAxisId="right"
                   orientation="right"
-                  tick={{ fill: "#8585aa", fontSize: 10, fontFamily: "monospace" }}
+                  tick={{ fill: "#64748b", fontSize: 10, fontFamily: "monospace" }}
                   tickLine={false}
                   axisLine={false}
-                  width={50}
+                  width={44}
                 />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend
@@ -2142,6 +2150,7 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
                 {hasPriorData && (
                   <Line
                     key={`prev_${primaryKey}`}
+                    type="monotone"
                     dataKey={`prev_${primaryKey}`}
                     name="Prior period"
                     stroke={primaryColor}
@@ -2188,6 +2197,7 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
                     return (
                       <Area
                         key={l.key}
+                        type="monotone"
                         dataKey={l.key}
                         name={l.label}
                         stroke={l.color}
@@ -2202,6 +2212,7 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
                   return (
                     <Line
                       key={l.key}
+                      type="monotone"
                       dataKey={l.key}
                       name={l.label}
                       stroke={l.color}
@@ -2224,6 +2235,7 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
                   tickFormatter={() => ""}
                 >
                   <Area
+                    type="monotone"
                     dataKey={primaryKey}
                     stroke={primaryColor}
                     fill={primaryColor}
@@ -2236,8 +2248,6 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
                 </Brush>
               </ComposedChart>
             </ResponsiveContainer>
-
-            {/* Anomaly legend hint */}
             {chartData.some((r) => r[`${primaryKey}_anomaly`] === 1) && (
               <p className="mt-2 font-mono text-[9px] text-[#8585aa]">
                 <span className="inline-flex items-center gap-1 mr-1">

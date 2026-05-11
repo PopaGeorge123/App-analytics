@@ -629,27 +629,6 @@ const REV_RANGES: { id: RevRange; label: string; days: number }[] = [
   { id: "90d", label: "90D", days: 90 },
 ];
 
-interface RevenueChartTooltipProps {
-  active?: boolean;
-  payload?: { value: number }[];
-  label?: string;
-}
-
-function RevenueChartTooltip({ active, payload, label, currency = "USD" }: RevenueChartTooltipProps & { currency?: string }) {
-  if (!active || !payload?.length) return null;
-  const dollars = (payload[0].value / 100).toLocaleString("en-US", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 2,
-  });
-  return (
-    <div className="rounded-xl border border-[#363650] bg-[#13131f] px-3 py-2 shadow-2xl">
-      <p className="font-mono text-[9px] text-[#8585aa] mb-0.5">{label}</p>
-      <p className="font-mono text-sm font-bold text-[#635bff]">{dollars}</p>
-    </div>
-  );
-}
-
 function RevenueOverTimeChart({
   snapshots,
   connectedRevenueProviders,
@@ -669,7 +648,6 @@ function RevenueOverTimeChart({
     cutoff.setUTCDate(cutoff.getUTCDate() - days);
     const cutoffStr = cutoff.toISOString().slice(0, 10);
 
-    // Sum revenue across all revenue providers per day
     const dayMap: Record<string, number> = {};
     for (const snap of snapshots) {
       if (!connectedRevenueProviders.includes(snap.provider)) continue;
@@ -678,7 +656,6 @@ function RevenueOverTimeChart({
       dayMap[snap.date] = (dayMap[snap.date] ?? 0) + rev;
     }
 
-    // Fill every day in the range (zero for missing days)
     const result: { date: string; label: string; revenue: number }[] = [];
     for (let i = days - 1; i >= 0; i--) {
       const d = new Date();
@@ -691,92 +668,136 @@ function RevenueOverTimeChart({
   }, [snapshots, connectedRevenueProviders, range]);
 
   const totalRevenue = chartData.reduce((a, d) => a + d.revenue, 0);
-  const maxRevenue = Math.max(...chartData.map((d) => d.revenue), 1);
   const hasData = chartData.some((d) => d.revenue > 0);
 
-  // X-axis tick: show every N-th label depending on range
+  // Trend: compare first half vs second half
+  const half = Math.max(1, Math.floor(chartData.length / 2));
+  const firstHalfRev = chartData.slice(0, half).reduce((a, d) => a + d.revenue, 0);
+  const lastHalfRev  = chartData.slice(-half).reduce((a, d) => a + d.revenue, 0);
+  const trendPct = firstHalfRev > 0 ? ((lastHalfRev - firstHalfRev) / firstHalfRev) * 100 : null;
+  const trendUp = trendPct !== null && trendPct >= 0;
+
   const tickInterval = range === "7d" ? 0 : range === "30d" ? 4 : 13;
 
+  const fmtRevTick = (v: number) => {
+    const d = v / 100;
+    if (d >= 1000) return new Intl.NumberFormat("en-US", { style: "currency", currency, notation: "compact", maximumFractionDigits: 0 }).format(d);
+    return new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 0 }).format(d);
+  };
+
   return (
-    <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/70 p-5">
-      <div className="flex items-start justify-between mb-4 gap-3">
-        <div>
-          <div className="flex items-center gap-3 flex-wrap">
-            <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Revenue over time</p>
-            {/* Range toggle — sits right next to the label, feels connected */}
-            <div className="flex items-center gap-0.5 rounded-lg border border-[#363650] bg-[#13131f] p-0.5">
-              {REV_RANGES.map((r) => (
-                <button
-                  key={r.id}
-                  onClick={() => setRange(r.id)}
-                  className={`rounded-md px-2.5 py-1 font-mono text-[10px] font-semibold transition-all ${
-                    range === r.id
-                      ? "bg-[#363650] text-[#f8f8fc]"
-                      : "text-[#8585aa] hover:text-[#bcbcd8]"
-                  }`}
-                >
-                  {r.label}
-                </button>
-              ))}
-            </div>
+    <div className="rounded-xl border border-[rgba(255,255,255,0.06)] bg-[#13131a] p-4 space-y-3">
+      {/* Header row — matches platform chart legend row style */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          {/* Revenue "legend" button — always active, matches platform chart toggle style */}
+          <div
+            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-mono text-[11px] font-semibold border"
+            style={{ backgroundColor: "#635bff15", color: "#635bff", borderColor: "#635bff30" }}
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-[#635bff]" />
+            Revenue
           </div>
-          <p className="mt-1 font-mono text-xl font-bold text-[#f8f8fc]">
-            {(totalRevenue / 100).toLocaleString("en-US", { style: "currency", currency, minimumFractionDigits: 0 })}
-            <span className="ml-2 font-mono text-[10px] font-normal text-[#8585aa]">
-              {REV_RANGES.find((r) => r.id === range)!.label} total
+          {/* Trend badge */}
+          {trendPct !== null && hasData && (
+            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[9px] font-semibold border ${
+              trendUp
+                ? "bg-[#10b981]/10 text-[#10b981] border-[#10b981]/20"
+                : "bg-[#ef4444]/10 text-[#ef4444] border-[#ef4444]/20"
+            }`}>
+              {trendUp ? "▲" : "▼"} {Math.abs(trendPct).toFixed(1)}%
             </span>
-          </p>
+          )}
+          <span className="font-mono text-sm font-bold text-[#f8f8fc]">
+            {(totalRevenue / 100).toLocaleString("en-US", { style: "currency", currency, minimumFractionDigits: 0 })}
+          </span>
         </div>
-        <button
-          onClick={() => onNavigate("analytics")}
-          className="shrink-0 font-mono text-[10px] text-[#8585aa] hover:text-[#00d4aa] transition mt-0.5"
-        >
-          Details →
-        </button>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-0.5 rounded-lg border border-[rgba(255,255,255,0.06)] bg-[#0d0d0f] p-0.5">
+            {REV_RANGES.map((r) => (
+              <button
+                key={r.id}
+                onClick={() => setRange(r.id)}
+                className={`rounded-md px-2.5 py-1 font-mono text-[10px] font-semibold transition-all ${
+                  range === r.id
+                    ? "bg-[rgba(255,255,255,0.08)] text-[#f8f8fc]"
+                    : "text-[#64748b] hover:text-[#94a3b8]"
+                }`}
+              >
+                {r.label}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => onNavigate("analytics")}
+            className="font-mono text-[10px] text-[#64748b] hover:text-[#94a3b8] transition-colors"
+          >
+            Details →
+          </button>
+        </div>
       </div>
 
+      {/* Chart */}
       {!hasData ? (
-        <div className="flex items-center justify-center h-36 rounded-xl border border-dashed border-[#363650]">
+        <div className="flex flex-col items-center justify-center h-44 gap-2">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="text-[#363650]">
+            <path d="M3 17l5-5 4 4 9-9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
           <p className="font-mono text-[11px] text-[#58588a]">No revenue data in this range</p>
         </div>
       ) : (
-        <ResponsiveContainer width="100%" height={160}>
-          <AreaChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+        <ResponsiveContainer width="100%" height={220} style={{ outline: "none" }}>
+          <AreaChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 4 }}>
             <defs>
-              <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#635bff" stopOpacity={0.35} />
-                <stop offset="100%" stopColor="#635bff" stopOpacity={0} />
+              <linearGradient id="ovRevGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%"   stopColor="#635bff" stopOpacity={0.15} />
+                <stop offset="100%" stopColor="#635bff" stopOpacity={0.01} />
               </linearGradient>
             </defs>
-            <CartesianGrid vertical={false} stroke="#363650" strokeOpacity={0.6} />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
             <XAxis
               dataKey="label"
-              tick={{ fill: "#6b6b8a", fontFamily: "monospace", fontSize: 10 }}
+              tick={{ fill: "#64748b", fontSize: 10, fontFamily: "monospace" }}
               axisLine={false}
               tickLine={false}
               interval={tickInterval}
+              tickMargin={8}
             />
             <YAxis
-              tickFormatter={(v: number) => {
-                const d = v / 100;
-                if (d >= 1000) return new Intl.NumberFormat("en-US", { style: "currency", currency, notation: "compact", maximumFractionDigits: 0 }).format(d);
-                return new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 0 }).format(d);
-              }}
-              tick={{ fill: "#bcbcd8", fontFamily: "monospace", fontSize: 10 }}
+              tickFormatter={fmtRevTick}
+              tick={{ fill: "#64748b", fontSize: 10, fontFamily: "monospace" }}
               axisLine={false}
               tickLine={false}
-              width={48}
-              domain={[0, maxRevenue * 1.15]}
+              width={52}
             />
-            <Tooltip content={<RevenueChartTooltip currency={currency} />} cursor={{ stroke: "#635bff40", strokeWidth: 1 }} />
+            <Tooltip
+              content={({ active, payload, label }) => {
+                if (!active || !payload?.length) return null;
+                const val = (payload[0].value as number / 100).toLocaleString("en-US", {
+                  style: "currency", currency, minimumFractionDigits: 2,
+                });
+                return (
+                  <div className="rounded-xl border border-[rgba(255,255,255,0.10)] bg-[#0d0d0f] px-3 py-2.5 shadow-2xl">
+                    <p className="font-mono text-[10px] text-[#64748b] mb-1.5">{label}</p>
+                    <div className="flex items-center gap-2 font-mono text-[11px]">
+                      <span className="h-1.5 w-1.5 rounded-full bg-[#635bff]" />
+                      <span className="text-[#94a3b8]">Revenue:</span>
+                      <span className="font-bold text-white">{val}</span>
+                    </div>
+                  </div>
+                );
+              }}
+            />
             <Area
               type="monotone"
               dataKey="revenue"
               stroke="#635bff"
               strokeWidth={2}
-              fill="url(#revenueGrad)"
+              fill="url(#ovRevGrad)"
               dot={false}
               activeDot={{ r: 4, fill: "#635bff", strokeWidth: 0 }}
+              isAnimationActive={false}
             />
           </AreaChart>
         </ResponsiveContainer>
