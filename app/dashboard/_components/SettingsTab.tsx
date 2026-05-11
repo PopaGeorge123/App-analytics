@@ -1261,9 +1261,9 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
     if (error) {
       setEmailMsg({ ok: false, text: error.message });
     } else {
-      setEmailMsg({ ok: true, text: "Confirmation sent to your new email." });
+      setEmailMsg({ ok: true, text: `Confirmation link sent to ${newEmail.trim()} — click it to complete the change.` });
       setNewEmail("");
-      setShowEmailForm(false);
+      // Keep form open so the user sees the pending message
     }
   }
 
@@ -1376,65 +1376,11 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
   }
 
   return (
-    <div className="flex w-full min-h-screen rounded-lg" style={{ background: "#0d0d0f" }}>
-
-      {/* ── Left nav — desktop (sticky, 200px) ─────────────────────────── */}
-      <aside className="hidden lg:flex flex-col w-[200px] shrink-0 sticky top-0 h-screen pt-8 pb-6 pl-2 pr-4">
-        <div className="mb-6 px-3">
-          <div className="flex items-center gap-2 mb-1">
-            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#f8f8fc" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z" /><circle cx="12" cy="12" r="3" />
-            </svg>
-            <span className="font-mono text-[11px] font-bold uppercase tracking-widest text-[#f8f8fc]">Settings</span>
-          </div>
-        </div>
-        <nav className="flex flex-col gap-0.5">
-          {NAV_ITEMS.map((item) => {
-            const isActive = activeSection === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => scrollTo(item.id)}
-                className="relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-all group"
-                style={{ backgroundColor: isActive ? `${item.color}10` : "transparent" }}
-              >
-                {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full" style={{ backgroundColor: item.color }} />}
-                <span
-                  className="font-mono text-[11px] font-medium transition-colors"
-                  style={{ color: isActive ? item.color : "#8585aa" }}
-                >
-                  {item.label}
-                </span>
-              </button>
-            );
-          })}
-        </nav>
-      </aside>
-
-      {/* ── Mobile nav — horizontal pill strip ─────────────────────────── */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-40 flex gap-1.5 overflow-x-auto px-4 py-3 scrollbar-none" style={{ background: "#0d0d0f", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-        {NAV_ITEMS.map((item) => {
-          const isActive = activeSection === item.id;
-          return (
-            <button
-              key={item.id}
-              onClick={() => scrollTo(item.id)}
-              className="shrink-0 rounded-full px-3 py-1.5 font-mono text-[10px] font-semibold border transition-all"
-              style={{
-                backgroundColor: isActive ? `${item.color}15` : "transparent",
-                borderColor: isActive ? `${item.color}40` : "rgba(255,255,255,0.06)",
-                color: isActive ? item.color : "#8585aa",
-              }}
-            >
-              {item.label}
-            </button>
-          );
-        })}
-      </div>
+    <div className="w-full min-h-screen" style={{ background: "#0d0d0f" }}>
 
       {/* ── Main content ────────────────────────────────────────────────── */}
-      <div ref={contentRef} className="flex-1 min-w-0 overflow-y-auto pt-16 lg:pt-8 pb-16">
-        <div className="mx-auto max-w-[720px] px-6 lg:px-8 space-y-10">
+      <div ref={contentRef} className="w-full overflow-y-auto pb-16">
+        <div className="mx-auto max-w-[760px] px-6 lg:px-8 space-y-8 pt-8">
 
           {/* Page header */}
           <div className="flex items-center justify-between gap-4">
@@ -1452,10 +1398,32 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
             )}
           </div>
 
+          {/* ── Section tab strip ──────────────────────────────────────── */}
+          <div className="flex gap-1 overflow-x-auto scrollbar-none border-b border-white/[0.06] pb-0 mb-4">
+            {NAV_ITEMS.map((item) => {
+              const isActive = activeSection === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => scrollTo(item.id)}
+                  className="shrink-0 relative px-3 py-2.5 font-mono text-[11px] font-semibold transition-colors whitespace-nowrap"
+                  style={{ color: isActive ? item.color : "#8585aa" }}
+                >
+                  {item.label}
+                  {isActive && (
+                    <span
+                      className="absolute bottom-0 left-0 right-0 h-[2px] rounded-t-full"
+                      style={{ backgroundColor: item.color }}
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
           {/* ── ACCOUNT ──────────────────────────────────────────────── */}
           <section id="account" ref={(el) => { sectionRefs.current.account = el; }}>
-            <SectionLabel color="#6366f1">Account</SectionLabel>
-            <div className="mt-3 rounded-2xl border border-white/[0.06] bg-[#13131a] p-6 space-y-5">
+            <div className="rounded-2xl border border-white/[0.06] bg-[#13131a] p-6 space-y-5">
               {/* Avatar + email */}
               <div className="flex items-center gap-4">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-mono text-sm font-bold uppercase select-none" style={{ backgroundColor: "#6366f118", color: "#6366f1", border: "1px solid #6366f130" }}>
@@ -1470,12 +1438,12 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
               {/* Actions */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <button
+                  {/* <button
                     onClick={() => { setShowEmailForm((v) => !v); setEmailMsg(null); }}
                     className="rounded-lg border border-white/[0.06] bg-[#0d0d0f] px-3.5 py-2 font-mono text-xs text-[#bcbcd8] hover:border-[#6366f1]/30 hover:text-[#6366f1] transition-all"
                   >
                     Change email
-                  </button>
+                  </button> */}
                   <button
                     onClick={() => { setShowPasswordForm((v) => !v); setPwMsg(null); }}
                     className="rounded-lg border border-white/[0.06] bg-[#0d0d0f] px-3.5 py-2 font-mono text-xs text-[#bcbcd8] hover:border-[#6366f1]/30 hover:text-[#6366f1] transition-all"
@@ -1550,8 +1518,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
 
           {/* ── SUBSCRIPTION ─────────────────────────────────────────── */}
           <section id="subscription" ref={(el) => { sectionRefs.current.subscription = el; }}>
-            <SectionLabel color="#10b981">Subscription</SectionLabel>
-            <div className="mt-3 rounded-2xl border border-white/[0.06] bg-[#13131a] p-6">
+            <div className="rounded-2xl border border-white/[0.06] bg-[#13131a] p-6">
               {isPremium ? (
                 <div className="space-y-5">
                   {/* Status */}
@@ -1622,8 +1589,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
 
           {/* ── INTEGRATIONS ─────────────────────────────────────────── */}
           <section id="integrations" ref={(el) => { sectionRefs.current.integrations = el; }}>
-            <SectionLabel color="#14b8a6">Integrations</SectionLabel>
-            <div className="mt-3 rounded-2xl border border-white/[0.06] bg-[#13131a] p-6">
+            <div className="rounded-2xl border border-white/[0.06] bg-[#13131a] p-6">
               {/* Header */}
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-5">
                 <div>
@@ -1705,9 +1671,8 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
 
           {/* ── GOALS & KPIs ─────────────────────────────────────────── */}
           <section id="goals" ref={(el) => { sectionRefs.current.goals = el; }}>
-            <SectionLabel color="#eab308">Goals &amp; KPIs</SectionLabel>
-            <p className="mt-1 font-mono text-[10px] text-[#8585aa]">Monthly targets that power your forecast bars, AI analysis, and email digest.</p>
-            <div className="mt-3 rounded-2xl border border-white/[0.06] bg-[#13131a] p-6">
+            <p className="mb-3 font-mono text-[10px] text-[#8585aa]">Monthly targets that power your forecast bars, AI analysis, and email digest.</p>
+            <div className="rounded-2xl border border-white/[0.06] bg-[#13131a] p-6">
               <GoalsSection currencies={currencies} />
             </div>
           </section>
@@ -1715,9 +1680,8 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
           {/* ── ALERT RULES (premium only) ────────────────────────────── */}
           {isPremium && (
             <section id="alerts" ref={(el) => { sectionRefs.current.alerts = el; }}>
-              <SectionLabel color="#ef4444">Alert Rules</SectionLabel>
-              <p className="mt-1 font-mono text-[10px] text-[#8585aa]">Get notified when your key metrics cross these thresholds.</p>
-              <div className="mt-3 rounded-2xl border border-white/[0.06] bg-[#13131a] p-6">
+              <p className="mb-3 font-mono text-[10px] text-[#8585aa]">Get notified when your key metrics cross these thresholds.</p>
+              <div className="rounded-2xl border border-white/[0.06] bg-[#13131a] p-6">
                 <AlertsSection email={email} currencies={currencies} />
               </div>
             </section>
@@ -1726,9 +1690,8 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
           {/* ── EMAIL DIGEST (premium only) ──────────────────────────── */}
           {isPremium && (
             <section id="email" ref={(el) => { sectionRefs.current.email = el; }}>
-              <SectionLabel color="#3b82f6">Email Digest</SectionLabel>
-              <p className="mt-1 font-mono text-[10px] text-[#8585aa]">Weekly AI summary delivered to your inbox.</p>
-              <div className="mt-3 rounded-2xl border border-white/[0.06] bg-[#13131a] p-6">
+              <p className="mb-3 font-mono text-[10px] text-[#8585aa]">AI summary delivered to your inbox on your chosen schedule.</p>
+              <div className="rounded-2xl border border-white/[0.06] bg-[#13131a] p-6">
                 <DigestSectionInline email={email} />
               </div>
             </section>
@@ -1745,8 +1708,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
 
           {/* ── PREFERENCES ──────────────────────────────────────────── */}
           <section id="preferences" ref={(el) => { sectionRefs.current.preferences = el; }}>
-            <SectionLabel color="#8b5cf6">Preferences</SectionLabel>
-            <div className="mt-3 rounded-2xl border border-white/[0.06] bg-[#13131a] p-6 space-y-5">
+            <div className="rounded-2xl border border-white/[0.06] bg-[#13131a] p-6 space-y-5">
               <NewsletterToggle />
             </div>
           </section>

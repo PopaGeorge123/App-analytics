@@ -729,18 +729,20 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
           </div>
           {/* Bell in mobile bar */}
           {/* <ThemeToggle /> */}
-          <NotificationBell />
+          {activeTab !== "settings" && <NotificationBell />}
         </div>
 
         {/* Desktop notification bell + theme toggle — fixed top-right of the content area */}
-        <div className="hidden lg:flex items-center gap-2 justify-end px-8 pt-5 pb-0">
-          {/* <ThemeToggle /> */}
-          <NotificationBell />
-        </div>
+        {activeTab !== "settings" && (
+          <div className="hidden lg:flex items-center gap-2 justify-end px-8 pt-5 pb-0">
+            {/* <ThemeToggle /> */}
+            <NotificationBell />
+          </div>
+        )}
 
-        <div className="p-6 lg:p-8">
+        <div className={activeTab === "settings" ? "" : "p-6 lg:p-8"}>
           {/* ── Dismissable trial banner — shown at top of content when on trial ── */}
-          {isOnTrial && !trialBannerDismissed && !isDemo && (
+          {isOnTrial && !trialBannerDismissed && !isDemo && activeTab !== "settings" && (
             <div className={`mb-6 flex items-center gap-3 rounded-xl border px-4 py-3 ${trialUrgent ? "border-red-500/30 bg-red-500/8" : "border-[#f59e0b]/30 bg-[#f59e0b]/8"}`}>
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke={trialUrgent ? "#ef4444" : "#f59e0b"} strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z" />
@@ -769,7 +771,7 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
             </div>
           )}
           {/* Syncing banner — shown right after a platform connects */}
-          {isSyncing && (
+          {isSyncing && activeTab !== "settings" && (
             <div className="mb-6 flex items-center gap-3 rounded-xl border border-[#00d4aa]/30 bg-[#00d4aa]/10 px-4 py-3">
               <svg
                 className="h-4 w-4 shrink-0 animate-spin text-[#00d4aa]"
