@@ -1376,50 +1376,87 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
   }
 
   return (
-    <div className="w-full min-h-screen" style={{ background: "#0d0d0f" }}>
+    <div className="flex w-full min-h-screen" style={{ background: "#0d0d0f" }}>
 
-      {/* ── Main content ────────────────────────────────────────────────── */}
-      <div ref={contentRef} className="w-full overflow-y-auto pb-16">
-        <div className="mx-auto max-w-[760px] px-6 lg:px-8 space-y-8 pt-8">
-
-          {/* Page header */}
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2.5">
-              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#f8f8fc" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z" /><circle cx="12" cy="12" r="3" />
-              </svg>
-              <h1 className="font-mono text-xl font-bold text-[#f8f8fc]">Settings</h1>
-            </div>
-            {isPremium && (
-              <div className="flex items-center gap-1.5 rounded-full border border-[#10b981]/30 bg-[#10b981]/10 px-3 py-1">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#10b981] animate-pulse" />
-                <span className="font-mono text-[10px] font-semibold text-[#10b981]">Premium Active</span>
-              </div>
-            )}
+      {/* ── Left sidebar — desktop only ─────────────────────────────────── */}
+      <aside className="hidden lg:flex flex-col w-[180px] shrink-0 sticky top-0 h-screen pt-8 pb-6 border-r border-white/[0.05]">
+        {/* Header */}
+        <div className="px-5 mb-5">
+          <div className="flex items-center gap-2">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="#8585aa" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z" /><circle cx="12" cy="12" r="3" />
+            </svg>
+            <span className="font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-[#8585aa]">Settings</span>
           </div>
-
-          {/* ── Section tab strip ──────────────────────────────────────── */}
-          <div className="flex gap-1 overflow-x-auto scrollbar-none border-b border-white/[0.06] pb-0 mb-4">
-            {NAV_ITEMS.map((item) => {
-              const isActive = activeSection === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => scrollTo(item.id)}
-                  className="shrink-0 relative px-3 py-2.5 font-mono text-[11px] font-semibold transition-colors whitespace-nowrap"
+        </div>
+        {/* Nav items */}
+        <nav className="flex flex-col gap-0.5 px-2">
+          {NAV_ITEMS.map((item) => {
+            const isActive = activeSection === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => scrollTo(item.id)}
+                className="relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-all"
+                style={{ backgroundColor: isActive ? `${item.color}12` : "transparent" }}
+              >
+                {isActive && (
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full" style={{ backgroundColor: item.color }} />
+                )}
+                <span
+                  className="font-mono text-[13px] font-medium transition-colors"
                   style={{ color: isActive ? item.color : "#8585aa" }}
                 >
                   {item.label}
-                  {isActive && (
-                    <span
-                      className="absolute bottom-0 left-0 right-0 h-[2px] rounded-t-full"
-                      style={{ backgroundColor: item.color }}
-                    />
-                  )}
-                </button>
-              );
-            })}
+                </span>
+              </button>
+            );
+          })}
+        </nav>
+        {/* Premium badge at bottom */}
+        {isPremium && (
+          <div className="mt-auto px-5">
+            <div className="flex items-center gap-1.5 rounded-lg border border-[#10b981]/20 bg-[#10b981]/8 px-2.5 py-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#10b981] animate-pulse" />
+              <span className="font-mono text-[9px] font-semibold text-[#10b981]">Premium Active</span>
+            </div>
           </div>
+        )}
+      </aside>
+
+      {/* ── Mobile nav — horizontal pill strip ─────────────────────────── */}
+      <div className="lg:hidden sticky top-0 z-10 flex gap-1 overflow-x-auto scrollbar-none border-b border-white/[0.05] px-4 py-2" style={{ background: "#0d0d0f" }}>
+        {NAV_ITEMS.map((item) => {
+          const isActive = activeSection === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => scrollTo(item.id)}
+              className="shrink-0 rounded-full px-3 py-1.5 font-mono text-[50px] font-semibold border transition-all whitespace-nowrap"
+              style={{
+                backgroundColor: isActive ? `${item.color}15` : "transparent",
+                borderColor: isActive ? `${item.color}40` : "rgba(255,255,255,0.06)",
+                color: isActive ? item.color : "#8585aa",
+              }}
+            >
+              {item.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── Main content ────────────────────────────────────────────────── */}
+      <div ref={contentRef} className="flex-1 min-w-0 overflow-y-auto pb-16">
+        <div className="mx-auto max-w-[680px] px-6 lg:px-8 space-y-8 pt-8">
+
+          {/* Page header — desktop only (mobile uses the pill strip above) */}
+          <div className="hidden lg:flex items-center justify-between gap-4">
+            <h1 className="font-mono text-lg font-bold text-[#f8f8fc]">
+              {NAV_ITEMS.find((i) => i.id === activeSection)?.label ?? "Settings"}
+            </h1>
+          </div>
+
+          {/* ── Section tab strip — REMOVED (replaced by left sidebar) ── */}
 
           {/* ── ACCOUNT ──────────────────────────────────────────────── */}
           <section id="account" ref={(el) => { sectionRefs.current.account = el; }}>
