@@ -428,6 +428,7 @@ export function Nav() {
     { label: "Features", href: isHome ? "#features" : "/#features" },
     { label: "How it works", href: isHome ? "#how-it-works" : "/#how-it-works" },
     { label: "Pricing", href: isHome ? "#pricing" : "/#pricing" },
+    { label: "Blog", href: "/blog" },
     { label: "FAQ", href: isHome ? "#faq" : "/#faq" },
     { label: "Learn more", href: "/learn" },
   ];
