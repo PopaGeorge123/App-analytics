@@ -4778,6 +4778,17 @@ function InstagramSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
 }
 
 function LockScreen() {
+  const [loading, setLoading] = useState(false);
+  async function handleCheckout() {
+    if (loading) return;
+    setLoading(true);
+    try {
+      const res = await fetch("/api/stripe/checkout", { method: "POST" });
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+      else setLoading(false);
+    } catch { setLoading(false); }
+  }
   return (
     <div className="flex flex-col items-center justify-center rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 py-20 px-6 text-center">
       <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-[#a78bfa]/20 bg-[#a78bfa]/10 text-[#a78bfa]">
@@ -4786,9 +4797,9 @@ function LockScreen() {
       <p className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#a78bfa] mb-2">Premium Feature</p>
       <h2 className="font-mono text-xl font-bold text-[#f8f8fc] mb-3">Analytics requires Premium</h2>
       <p className="text-sm text-[#bcbcd8] max-w-sm mb-6">Upgrade to access full analytics, revenue trends, and AI-generated insights.</p>
-      <a href="/api/stripe/checkout" className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-6 py-2.5 font-mono text-sm font-bold text-[#13131f] hover:bg-[#00bfa0] transition">
-        Start 7-day free trial →
-      </a>
+      <button onClick={handleCheckout} disabled={loading} className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-6 py-2.5 font-mono text-sm font-bold text-[#13131f] hover:bg-[#00bfa0] transition disabled:opacity-60">
+        {loading ? "Redirecting…" : "Start 7-day free trial →"}
+      </button>
       <p className="mt-3 font-mono text-[10px] text-[#8585aa]">$19/mo after trial · Cancel anytime</p>
     </div>
   );

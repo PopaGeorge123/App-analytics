@@ -1968,6 +1968,18 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
   const activeConv = conversations.find((c) => c.id === activeConvId) ?? null;
 
   // ── isPremium gate ─────────────────────────────────────────────────────
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  async function handleCheckout() {
+    if (checkoutLoading) return;
+    setCheckoutLoading(true);
+    try {
+      const res = await fetch("/api/stripe/checkout", { method: "POST" });
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+      else setCheckoutLoading(false);
+    } catch { setCheckoutLoading(false); }
+  }
+
   if (!isPremium) {
     return (
       <div style={{ width: "100%" }}>
@@ -2037,24 +2049,27 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
               </div>
             ))}
           </div>
-          <a
-            href="/api/stripe/checkout"
+          <button
+            onClick={handleCheckout}
+            disabled={checkoutLoading}
             style={{
               display: "inline-flex",
               alignItems: "center",
               gap: 8,
               borderRadius: 12,
-              background: "#00d4aa",
+              background: checkoutLoading ? "#00a88a" : "#00d4aa",
               padding: "12px 28px",
               fontFamily: "monospace",
               fontSize: 14,
               fontWeight: 700,
               color: "#0d0d0f",
-              textDecoration: "none",
+              border: "none",
+              cursor: checkoutLoading ? "default" : "pointer",
+              opacity: checkoutLoading ? 0.7 : 1,
             }}
           >
-            Start 7-day free trial →
-          </a>
+            {checkoutLoading ? "Redirecting…" : "Start 7-day free trial →"}
+          </button>
           <p style={{ marginTop: 12, fontFamily: "monospace", fontSize: 10, color: "#8585aa" }}>
             $19/mo after trial · Cancel anytime
           </p>

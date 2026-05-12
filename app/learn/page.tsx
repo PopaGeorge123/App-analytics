@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Nav } from "@/app/_components/PageClientIslands";
+import { Nav, CheckoutButton } from "@/app/_components/PageClientIslands";
 import { INTEGRATIONS_CATALOG } from "@/lib/integrations/catalog";
 import { PLATFORM_DETAILS } from "@/lib/integrations/platform-details";
 import type { ReactNode } from "react";
@@ -1063,12 +1063,9 @@ export default function LearnPage() {
                   <Check key={f}>{f}</Check>
                 ))}
               </ul>
-              <a
-                href="/api/stripe/checkout"
-                className="block w-full rounded-xl bg-[#00d4aa] py-3 text-center font-mono text-sm font-semibold uppercase tracking-wider text-[#13131f] transition-all hover:bg-[#00bfa0]"
-              >
+              <CheckoutButton className="block w-full rounded-xl bg-[#00d4aa] py-3 text-center font-mono text-sm font-semibold uppercase tracking-wider text-[#13131f] transition-all hover:bg-[#00bfa0]">
                 Upgrade to Pro
-              </a>
+              </CheckoutButton>
             </div>
           </div>
 

@@ -11,6 +11,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
+import type React from "react";
 import { usePathname } from "next/navigation";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
@@ -501,4 +502,26 @@ export function AbTracker({ variant }: { variant: string }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CheckoutButton — POST to /api/stripe/checkout, then redirect to Stripe URL
+// ─────────────────────────────────────────────────────────────────────────────
+export function CheckoutButton({ className, children }: { className?: string; children: React.ReactNode }) {
+  const [loading, setLoading] = useState(false);
+  async function handleClick() {
+    if (loading) return;
+    setLoading(true);
+    try {
+      const res = await fetch("/api/stripe/checkout", { method: "POST" });
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+      else setLoading(false);
+    } catch { setLoading(false); }
+  }
+  return (
+    <button onClick={handleClick} disabled={loading} className={className} style={{ opacity: loading ? 0.7 : 1 }}>
+      {loading ? "Redirecting…" : children}
+    </button>
+  );
 }

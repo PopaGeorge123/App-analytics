@@ -1228,6 +1228,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
   const [pwLoading, setPwLoading] = useState(false);
   const [pwMsg, setPwMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [subDetails, setSubDetails] = useState<{ price: string; renewal: string } | null>(null);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
 
@@ -1449,6 +1450,17 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
       setPortalError("Network error. Please try again.");
       setPortalLoading(false);
     }
+  }
+
+  async function handleCheckout() {
+    if (checkoutLoading) return;
+    setCheckoutLoading(true);
+    try {
+      const res = await fetch("/api/stripe/checkout", { method: "POST" });
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+      else setCheckoutLoading(false);
+    } catch { setCheckoutLoading(false); }
   }
 
   return (
@@ -1796,9 +1808,9 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
                       </div>
                     </div>
                   </div>
-                  <a href="/api/stripe/checkout" className="inline-flex items-center gap-2 rounded-xl bg-[#10b981] px-5 py-2 font-mono text-sm font-bold text-white hover:bg-[#059669] transition">
-                    Start free trial →
-                  </a>
+                  <button onClick={handleCheckout} disabled={checkoutLoading} className="inline-flex items-center gap-2 rounded-xl bg-[#10b981] px-5 py-2 font-mono text-sm font-bold text-white hover:bg-[#059669] transition disabled:opacity-60">
+                    {checkoutLoading ? "Redirecting…" : "Start free trial →"}
+                  </button>
                   <p className="font-mono text-[9px] text-[#58588a]">Card required · $19/mo after 7 days · cancel anytime</p>
                 </div>
               )}

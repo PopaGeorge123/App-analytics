@@ -1,4 +1,4 @@
-import { AnimatedCounter, DashboardMockup, FaqSection, Nav, LiveUserCount, AbTracker } from "./_components/PageClientIslands";
+import { AnimatedCounter, DashboardMockup, FaqSection, Nav, LiveUserCount, AbTracker, CheckoutButton } from "./_components/PageClientIslands";
 import { LIVE_INTEGRATIONS } from "@/lib/integrations/catalog";
 import type { ReactNode } from "react";
 import Link from "next/link";
@@ -133,11 +133,11 @@ function PricingCard({
           </li>
         ))}
       </ul>
-      <a href={highlight ? "/api/stripe/checkout" : "/signup"} className={`block w-full rounded-xl py-3 text-center font-mono text-sm font-semibold uppercase tracking-wider transition-all ${
-        highlight
-          ? "bg-[#00d4aa] text-[#13131f] hover:bg-[#00bfa0]"
-          : "border border-[#363650] text-[#bcbcd8] hover:border-[#00d4aa]/40 hover:text-[#00d4aa]"
-      }`}>{cta}</a>
+      {highlight ? (
+        <CheckoutButton className={`block w-full rounded-xl py-3 text-center font-mono text-sm font-semibold uppercase tracking-wider transition-all bg-[#00d4aa] text-[#13131f] hover:bg-[#00bfa0]`}>{cta}</CheckoutButton>
+      ) : (
+        <Link href="/signup" className={`block w-full rounded-xl py-3 text-center font-mono text-sm font-semibold uppercase tracking-wider transition-all border border-[#363650] text-[#bcbcd8] hover:border-[#00d4aa]/40 hover:text-[#00d4aa]`}>{cta}</Link>
+      )}
     </div>
   );
 }
@@ -866,10 +866,10 @@ export default async function Home() {
             Connect your live integrations in minutes. Get a unified dashboard, AI-generated daily insights, and a website optimizer — all your data, all in one place.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <a href="/api/stripe/checkout" className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-8 py-4 font-mono text-sm font-bold uppercase tracking-wider text-[#13131f] transition-all hover:bg-[#00bfa0] hover:shadow-[0_0_40px_rgba(0,212,170,0.35)]">
+            <CheckoutButton className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-8 py-4 font-mono text-sm font-bold uppercase tracking-wider text-[#13131f] transition-all hover:bg-[#00bfa0] hover:shadow-[0_0_40px_rgba(0,212,170,0.35)]">
               Start 7-day free trial
               <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
-            </a>
+            </CheckoutButton>
             <a href="/login" className="font-mono text-sm text-[#8585aa] uppercase tracking-widest hover:text-[#f8f8fc] transition-colors">
               Already have an account? Sign in →
             </a>

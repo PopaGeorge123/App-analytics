@@ -386,6 +386,18 @@ const UPGRADE_COPY: Record<string, { color: string; icon: React.ReactNode; headl
 function UpgradeModal({ tab, onClose }: { tab: Tab; onClose: () => void }) {
   const copy = UPGRADE_COPY[tab];
   if (!copy) return null;
+  const [loading, setLoading] = useState(false);
+
+  async function handleCheckout() {
+    if (loading) return;
+    setLoading(true);
+    try {
+      const res = await fetch("/api/stripe/checkout", { method: "POST" });
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+      else setLoading(false);
+    } catch { setLoading(false); }
+  }
 
   // Close on Escape
   useEffect(() => {
@@ -450,12 +462,13 @@ function UpgradeModal({ tab, onClose }: { tab: Tab; onClose: () => void }) {
         </ul>
 
         {/* CTA */}
-        <a
-          href="/api/stripe/checkout"
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#00d4aa] py-3 font-mono text-sm font-bold text-[#13131f] transition hover:bg-[#00bfa0] hover:shadow-[0_0_24px_rgba(0,212,170,0.3)]"
+        <button
+          onClick={handleCheckout}
+          disabled={loading}
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#00d4aa] py-3 font-mono text-sm font-bold text-[#13131f] transition hover:bg-[#00bfa0] hover:shadow-[0_0_24px_rgba(0,212,170,0.3)] disabled:opacity-60"
         >
-          Start 7-day free trial →
-        </a>
+          {loading ? "Redirecting…" : "Start 7-day free trial →"}
+        </button>
         <p className="mt-2.5 text-center font-mono text-[10px] text-[#8585aa]">$19/mo after trial · Cancel anytime</p>
       </div>
     </div>
@@ -543,6 +556,24 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
     return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+
+  async function handleUpgrade() {
+    if (checkoutLoading) return;
+    setCheckoutLoading(true);
+    try {
+      const res = await fetch("/api/stripe/checkout", { method: "POST" });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setCheckoutLoading(false);
+      }
+    } catch {
+      setCheckoutLoading(false);
+    }
+  }
 
   function navigate(tab: Tab) {
     // Non-premium users trying to access a locked tab → show contextual upgrade modal
@@ -679,12 +710,13 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
                   style={{ width: `${trialElapsedPct}%`, backgroundColor: trialUrgent ? "#ef4444" : "#f59e0b" }}
                 />
               </div>
-              <a
-                href="/api/stripe/checkout"
-                className={`block w-full rounded-lg border px-2 py-1.5 text-center font-mono text-[9px] font-semibold transition ${trialUrgent ? "border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20" : "border-[#f59e0b]/20 bg-[#f59e0b]/10 text-[#f59e0b] hover:bg-[#f59e0b]/20"}`}
+              <button
+                onClick={handleUpgrade}
+                disabled={checkoutLoading}
+                className={`block w-full rounded-lg border px-2 py-1.5 text-center font-mono text-[9px] font-semibold transition disabled:opacity-60 ${trialUrgent ? "border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20" : "border-[#f59e0b]/20 bg-[#f59e0b]/10 text-[#f59e0b] hover:bg-[#f59e0b]/20"}`}
               >
-                Upgrade now →
-              </a>
+                {checkoutLoading ? "Redirecting…" : "Upgrade now →"}
+              </button>
             </div>
           ) : isPremium ? (
             <div className="rounded-xl border border-[#00d4aa]/20 bg-[#00d4aa]/5 px-3 py-2.5">
@@ -753,12 +785,13 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
                 </span>
                 {" — "}Upgrade now to keep your data and unlock all features after your trial ends.
               </p>
-              <a
-                href="/api/stripe/checkout"
-                className={`shrink-0 rounded-lg px-3 py-1.5 font-mono text-[10px] font-bold transition ${trialUrgent ? "bg-red-500 text-white hover:bg-red-600" : "bg-[#f59e0b] text-[#13131f] hover:bg-[#e08a00]"}`}
+              <button
+                onClick={handleUpgrade}
+                disabled={checkoutLoading}
+                className={`shrink-0 rounded-lg px-3 py-1.5 font-mono text-[10px] font-bold transition disabled:opacity-60 ${trialUrgent ? "bg-red-500 text-white hover:bg-red-600" : "bg-[#f59e0b] text-[#13131f] hover:bg-[#e08a00]"}`}
               >
-                Upgrade →
-              </a>
+                {checkoutLoading ? "…" : "Upgrade →"}
+              </button>
               <button
                 onClick={() => setTrialBannerDismissed(true)}
                 className="shrink-0 flex h-6 w-6 items-center justify-center rounded-lg text-[#f59e0b]/60 hover:bg-[#f59e0b]/15 hover:text-[#f59e0b] transition"
