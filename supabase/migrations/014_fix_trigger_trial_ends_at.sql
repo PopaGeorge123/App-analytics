@@ -18,7 +18,7 @@ begin
     new.email,
     (new.raw_user_meta_data ->> 'full_name'),
     (new.raw_user_meta_data ->> 'avatar_url'),
-    now() + interval '3 days'   -- 3-day free trial starts on sign-up
+    now() + interval '7 days'   -- 7-day free trial starts on sign-up
   )
   on conflict (id) do nothing;   -- safe to call multiple times
 

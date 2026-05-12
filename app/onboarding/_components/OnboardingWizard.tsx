@@ -766,7 +766,9 @@ export default function OnboardingWizard({
       {/* ── Top bar ───────────────────────────────────────────────────────── */}
       <header className="border-b border-[#1e1e30] bg-[#0d0d1a]/90 backdrop-blur-sm px-6 py-3.5 sticky top-0 z-30">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
-          <img src="/fold-primary-dark.svg" alt="Fold" className="h-7 w-auto" />
+          <a href="/">
+            <img src="/fold-primary-dark.svg" alt="Fold" className="h-7 w-auto" />
+          </a>
           <StepBar current={step} onGoTo={(n) => setStep(n)} />
           <div className="flex items-center gap-3">
             <span className="hidden font-mono text-[11px] text-[#3a3a55] sm:block truncate max-w-40">

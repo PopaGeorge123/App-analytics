@@ -1752,7 +1752,7 @@ function DemoAiView() {
                             fontFamily: "monospace",
                           }}
                         >
-                          Start free — 3-day trial →
+                          Start free — 7-day trial →
                         </a>
                       </div>
                     </div>
