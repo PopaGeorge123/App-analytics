@@ -5296,7 +5296,7 @@ OUTPUT: valid JSON only, no markdown fences.
 async function generateAllPlaybooks() {
   if (!ANTHROPIC_KEY) { logWarn('[playbooks] ANTHROPIC_API_KEY not set — skipping'); return; }
   const today = new Date().toISOString().slice(0, 10);
-  log(`[playbooks] Starting nightly generation — ${today}`);
+  log(`[playbooks] Starting weekly generation — ${today}`);
 
   const getHeaders = { apikey: SB.headers.apikey, Authorization: SB.headers.Authorization };
   let users;
@@ -6069,7 +6069,7 @@ if (backfillMode) {
   log(`  • Anomaly detection:   after every daily sync`);
   log(`  • Goals & KPIs check:  after every daily sync`);
   log(`  • Digest send:         after every daily sync (sent to users on their chosen day)`);
-  log(`  • AI Playbooks:        after every daily sync (cached in ai_playbooks_cache)`);
+  log(`  • AI Playbooks:        Sunday 02:00 UTC (cached in ai_playbooks_cache)`);
   log(`  • Trigger server:      port ${TRIGGER_PORT}`);
   log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
@@ -6092,18 +6092,24 @@ if (backfillMode) {
     try { await runAutoBackfill(); } catch (e) { logFail(`[auto-backfill loop] ${e.message}`); }
   }, CHECK_INTERVAL_MS);
 
-  // 3. Daily sync + alerts + anomalies + goals + digest + playbooks at 02:00 UTC
+  // 3. Daily sync + alerts + anomalies + goals + digest at 02:00 UTC
   scheduleDailyAt(DAILY_UTC_HOUR, async () => {
     await runSync();
     await checkAlerts();
     await runAnomalyAlerts();
     await checkGoals();
     await sendDailyDigests();
-    await generateAllPlaybooks();
     await pingHeartbeat();
-  }, 'daily-sync+alerts+anomalies+digest+playbooks');
+  }, 'daily-sync+alerts+anomalies+digest');
 
-  // 4. Weekly playbook emails — every Monday at 08:00 UTC
+  // 4. Weekly playbook generation — Sunday at 02:00 UTC (ready for Monday email)
+  scheduleDailyAt(DAILY_UTC_HOUR, async () => {
+    const dayOfWeek = new Date().getUTCDay(); // 0=Sun
+    if (dayOfWeek !== 0) return;
+    await generateAllPlaybooks();
+  }, 'weekly-playbook-generation');
+
+  // 5. Weekly playbook emails — every Monday at 08:00 UTC
   scheduleDailyAt(8, async () => {
     const dayOfWeek = new Date().getUTCDay(); // 0=Sun, 1=Mon
     if (dayOfWeek !== 1) return; // only run on Mondays

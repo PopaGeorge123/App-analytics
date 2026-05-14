@@ -8,6 +8,7 @@ import {
 import type { Snapshot } from "./DashboardShell";
 import type { AiPlaybook, AiPlaybookChart, AiPlaybooksResponse } from "@/app/api/ai/playbooks/route";
 import type { PlaybookHistoryEntry } from "@/app/api/ai/playbooks/history/route";
+import { REVENUE_PROVIDERS } from "@/lib/integrations/catalog";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Generating Tips Modal — shown while AI is running (no playbooks yet)
@@ -222,6 +223,103 @@ function EligibilityBlockedModal({
           onMouseLeave={(e) => (e.currentTarget.style.background = "#1e1e30")}
         >
           Got it
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// No Revenue Platform Modal — shown when user has no revenue integration
+// ─────────────────────────────────────────────────────────────────────────────
+
+const REVENUE_PLATFORM_OPTIONS = [
+  { id: "stripe",        name: "Stripe",        desc: "Subscriptions, MRR & revenue",  color: "#635bff", icon: "/integrations/stripe.svg" },
+  { id: "paddle",        name: "Paddle",        desc: "SaaS billing & transactions",   color: "#06b6d4", icon: "/integrations/paddle.svg" },
+  { id: "shopify",       name: "Shopify",       desc: "E-commerce sales & orders",     color: "#96bf48", icon: "/integrations/shopify.svg" },
+  { id: "lemon-squeezy", name: "Lemon Squeezy", desc: "Digital product revenue",       color: "#ffd234", icon: "/integrations/lemon-squeezy.svg" },
+];
+
+function NoRevenuePlatformModal({ onClose, onGoToSettings }: { onClose: () => void; onGoToSettings: () => void }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.72)", backdropFilter: "blur(6px)" }}
+    >
+      <div
+        className="relative w-full max-w-lg rounded-2xl border p-7 shadow-2xl"
+        style={{ background: "#0f0f1c", borderColor: "#2a2a3e" }}
+      >
+        {/* Close */}
+        <button
+          onClick={onClose}
+          className="absolute right-4 top-4 rounded-lg p-1.5 text-slate-500 hover:text-slate-300 transition-colors"
+          aria-label="Close"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        {/* Icon */}
+        <div
+          className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-full"
+          style={{ background: "rgba(99,91,255,0.15)", border: "1px solid rgba(99,91,255,0.3)" }}
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#635bff" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
+          </svg>
+        </div>
+
+        {/* Heading */}
+        <h3 className="mb-1.5 text-center text-base font-semibold text-white">No revenue platform connected</h3>
+        <p className="text-center text-sm leading-relaxed mb-5" style={{ color: "#8b8fa8" }}>
+          Playbooks need revenue data to generate meaningful advice. Connect a payment platform to unlock MRR tracking, churn analysis, and growth playbooks.
+        </p>
+
+        {/* Platform buttons */}
+        <div className="grid grid-cols-2 gap-2 mb-5">
+          {REVENUE_PLATFORM_OPTIONS.map((p) => (
+            <button
+              key={p.id}
+              onClick={onGoToSettings}
+              className="flex items-center gap-3 rounded-xl border px-3.5 py-3 text-left transition-colors hover:border-white/20 group"
+              style={{ borderColor: "#1e2040", background: "#13141f" }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={p.icon}
+                alt={p.name}
+                width={28}
+                height={28}
+                className="shrink-0 rounded-md"
+                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+              />
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-white group-hover:text-white/90">{p.name}</p>
+                <p className="text-[10px] text-slate-500 truncate">{p.desc}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {/* CTA */}
+        <button
+          onClick={onGoToSettings}
+          className="w-full rounded-xl py-2.5 text-sm font-semibold text-white transition-colors"
+          style={{ background: "#635bff" }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = "#5558dd")}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "#635bff")}
+        >
+          Go to Settings → Integrations
+        </button>
+
+        {/* Dismiss */}
+        <button
+          onClick={onClose}
+          className="mt-3 w-full rounded-xl py-2 text-xs text-slate-500 hover:text-slate-300 transition-colors"
+        >
+          I&apos;ll connect one later
         </button>
       </div>
     </div>
@@ -1358,6 +1456,7 @@ export default function PlaybooksTab({
   const [showTipsModal, setShowTipsModal] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [eligibilityBlock, setEligibilityBlock] = useState<{ reason: string; hint: string } | null>(null);
+  const [showNoRevenue, setShowNoRevenue] = useState(false);
   const [error, setError]       = useState<string | null>(null);
   const [openId, setOpenId]     = useState<string | null>(null);
   const [activeCategory, setActiveCategory]       = useState<Category>("all");
@@ -1464,6 +1563,7 @@ export default function PlaybooksTab({
     if (generating || checking) return;
     setError(null);
     setEligibilityBlock(null);
+    setShowNoRevenue(false);
 
     // ── Instant client-side checks (zero latency) ─────────────────────────
     // We already have connectedPlatforms and snapshots from the dashboard shell.
@@ -1473,6 +1573,13 @@ export default function PlaybooksTab({
           reason: "No integrations connected",
           hint:   "Connect at least one platform (e.g. Stripe, GA4, Meta Ads) so the AI has real data to analyse.",
         });
+        return;
+      }
+
+      // Check if a revenue platform is connected
+      const hasRevenuePlatform = connectedPlatforms.some((p) => REVENUE_PROVIDERS.includes(p));
+      if (!hasRevenuePlatform) {
+        setShowNoRevenue(true);
         return;
       }
 
@@ -1622,6 +1729,16 @@ export default function PlaybooksTab({
         />
       )}
 
+      {showNoRevenue && (
+        <NoRevenuePlatformModal
+          onClose={() => setShowNoRevenue(false)}
+          onGoToSettings={() => {
+            setShowNoRevenue(false);
+            window.location.href = "/dashboard?tab=settings";
+          }}
+        />
+      )}
+
       {showTipsModal && (
         <GeneratingTipsModal
           onClose={() => setShowTipsModal(false)}
@@ -1654,7 +1771,7 @@ export default function PlaybooksTab({
                 <p className="text-[15px] text-[#cbd5e1] leading-[1.6]">{data.summary}</p>
                 <div className="mt-3 flex items-center gap-3">
                   {generatedAgo && (
-                    <p className="text-[11px] text-slate-600">Generated {generatedAgo} · updates nightly</p>
+                    <p className="text-[11px] text-slate-600">Generated {generatedAgo} · auto-refreshes weekly</p>
                   )}
                   <button
                     onClick={triggerGenerate}
