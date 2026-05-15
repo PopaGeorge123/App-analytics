@@ -3953,6 +3953,313 @@ async function runAutoBackfill() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// FREE-TRIAL FOMO EMAILS
+// Runs on every daemon tick (every 30 minutes). Safe to call frequently because
+// it deduplicates via two boolean flags on the users table:
+//   trial_midpoint_emailed — sent once when ≤ half the trial days remain
+//   trial_expiry_emailed   — sent once when < 6 hours remain
+//
+// Trial window:  7 days from sign-up (trial_ends_at = created_at + 7d).
+// Mid-point:     sent when hoursLeft <= 84  (≈ day 3.5, halfway through 7 days)
+// Last-hours:    sent when hoursLeft <= 6
+//
+// Required DB columns (migration 025_trial_email_flags.sql):
+//   users.trial_midpoint_emailed  boolean default false
+//   users.trial_expiry_emailed    boolean default false
+// ─────────────────────────────────────────────────────────────────────────────
+
+const APP_URL = g('NEXT_PUBLIC_APP_URL') || 'https://usefold.io';
+const STRIPE_UPGRADE_URL = `${APP_URL}/dashboard?tab=settings&upgrade=1`;
+
+// ── HTML: mid-trial email ────────────────────────────────────────────────────
+function buildTrialMidpointEmailHtml(firstName, hoursLeft) {
+  const daysLeft = Math.ceil(hoursLeft / 24);
+  const name     = firstName ? firstName.split(' ')[0] : 'there';
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#0a0a0f;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <div style="max-width:580px;margin:40px auto;background:#0d0d16;border:1px solid #1e1e2e;border-radius:20px;overflow:hidden;">
+
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#6366f1 0%,#a855f7 100%);padding:32px 36px 28px;">
+      <p style="margin:0 0 6px;font-family:monospace;font-size:10px;text-transform:uppercase;letter-spacing:.15em;color:rgba(255,255,255,.65);">Fold Analytics</p>
+      <h1 style="margin:0;font-size:26px;font-weight:800;color:#fff;line-height:1.2;">
+        ⏳ You're halfway through your free trial
+      </h1>
+      <p style="margin:10px 0 0;font-size:15px;color:rgba(255,255,255,.8);">
+        <strong>${daysLeft} day${daysLeft !== 1 ? 's' : ''}</strong> left — here's what you'd lose.
+      </p>
+    </div>
+
+    <!-- Body -->
+    <div style="padding:32px 36px;">
+
+      <p style="margin:0 0 20px;color:#c0c0d8;font-size:15px;line-height:1.65;">
+        Hey ${name},
+      </p>
+      <p style="margin:0 0 20px;color:#c0c0d8;font-size:15px;line-height:1.65;">
+        Your Fold trial is at the halfway mark. You've already seen your revenue, traffic, and
+        customer data in one place — but <strong style="color:#f0f0f5;">the insights that matter most</strong>
+        are still loading in the background.
+      </p>
+
+      <!-- What you'd lose -->
+      <div style="background:#12121f;border:1px solid #2a2a3f;border-radius:14px;padding:24px 24px 8px;margin:0 0 24px;">
+        <p style="margin:0 0 16px;font-family:monospace;font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:#8585aa;">
+          🔒 What disappears when your trial ends
+        </p>
+        ${[
+          ['🤖', 'AI Advisor',         'Unlimited ask-anything analysis of your metrics'],
+          ['📋', 'AI Playbooks',        'Weekly auto-generated action plans from your data'],
+          ['👥', 'Customer Health',     'Per-customer LTV, churn risk scores & at-risk alerts'],
+          ['📊', 'Cohort Retention',    'Month-by-month retention heatmap across all cohorts'],
+          ['🔔', 'Anomaly Alerts',      'Instant emails when revenue or traffic drops unexpectedly'],
+          ['🎯', 'Revenue Concentration','Top-10% customer dependency analysis & what-if scenarios'],
+        ].map(([icon, title, desc]) => `
+        <div style="display:flex;gap:14px;margin-bottom:18px;">
+          <span style="font-size:20px;flex-shrink:0;margin-top:2px;">${icon}</span>
+          <div>
+            <p style="margin:0 0 3px;font-weight:700;color:#f0f0f5;font-size:14px;">${title}</p>
+            <p style="margin:0;color:#7878a0;font-size:13px;">${desc}</p>
+          </div>
+        </div>`).join('')}
+      </div>
+
+      <!-- Social proof nudge -->
+      <div style="background:#0f0f1a;border-left:3px solid #6366f1;padding:16px 20px;border-radius:0 10px 10px 0;margin:0 0 28px;">
+        <p style="margin:0;color:#a5b4fc;font-size:13px;line-height:1.6;font-style:italic;">
+          "I almost let the trial expire. Upgraded on day 6 after the AI Playbooks pointed out
+          I was about to lose my top 3 customers. Saved ~$4,200 MRR that week."
+        </p>
+        <p style="margin:8px 0 0;color:#6366f1;font-family:monospace;font-size:10px;">— Fold user, SaaS founder</p>
+      </div>
+
+      <!-- CTA -->
+      <div style="text-align:center;margin:0 0 12px;">
+        <a href="${STRIPE_UPGRADE_URL}"
+           style="display:inline-block;background:linear-gradient(135deg,#6366f1,#a855f7);color:#fff;font-weight:800;font-family:monospace;font-size:13px;text-transform:uppercase;letter-spacing:.1em;padding:16px 36px;border-radius:12px;text-decoration:none;box-shadow:0 4px 20px rgba(99,102,241,.45);">
+          Keep my access → Upgrade now
+        </a>
+      </div>
+      <p style="text-align:center;margin:0 0 28px;color:#555570;font-size:12px;">
+        Cancel anytime. No contracts.
+      </p>
+
+      <!-- Urgency bar -->
+      <div style="background:#1a1a2e;border:1px solid #2a2a3f;border-radius:10px;padding:14px 18px;text-align:center;">
+        <p style="margin:0;font-family:monospace;font-size:11px;color:#8585aa;">
+          ⏰ Trial ends in approximately
+          <strong style="color:#f59e0b;">&nbsp;${daysLeft} day${daysLeft !== 1 ? 's' : ''}&nbsp;</strong>
+          — upgrade before it expires to keep all your data and history.
+        </p>
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div style="padding:18px 36px;border-top:1px solid #1a1a2e;text-align:center;">
+      <p style="margin:0;color:#444460;font-size:11px;line-height:1.6;">
+        You're receiving this because you're on a free trial of Fold Analytics.<br>
+        <a href="${APP_URL}" style="color:#6366f1;text-decoration:none;">usefold.io</a>
+      </p>
+    </div>
+
+  </div>
+</body></html>`;
+}
+
+// ── HTML: last-hours (expiry) email ──────────────────────────────────────────
+function buildTrialExpiryEmailHtml(firstName, hoursLeft) {
+  const name = firstName ? firstName.split(' ')[0] : 'there';
+  const h    = Math.max(1, Math.round(hoursLeft));
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#0a0a0f;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <div style="max-width:580px;margin:40px auto;background:#0d0d16;border:1px solid #2a0a0a;border-radius:20px;overflow:hidden;">
+
+    <!-- Header — urgent red -->
+    <div style="background:linear-gradient(135deg,#dc2626 0%,#f59e0b 100%);padding:32px 36px 28px;">
+      <p style="margin:0 0 6px;font-family:monospace;font-size:10px;text-transform:uppercase;letter-spacing:.15em;color:rgba(255,255,255,.65);">Fold Analytics — Urgent</p>
+      <h1 style="margin:0;font-size:26px;font-weight:800;color:#fff;line-height:1.2;">
+        🚨 Your trial expires in ${h} hour${h !== 1 ? 's' : ''}
+      </h1>
+      <p style="margin:10px 0 0;font-size:15px;color:rgba(255,255,255,.85);">
+        Don't lose your data, your history, or your insights.
+      </p>
+    </div>
+
+    <!-- Body -->
+    <div style="padding:32px 36px;">
+
+      <p style="margin:0 0 20px;color:#c0c0d8;font-size:15px;line-height:1.65;">
+        Hey ${name},
+      </p>
+      <p style="margin:0 0 8px;color:#c0c0d8;font-size:15px;line-height:1.65;">
+        This is your <strong style="color:#f87171;">final warning</strong>. In
+        <strong style="color:#f59e0b;">${h} hour${h !== 1 ? 's' : ''}</strong>, your Fold trial ends and:
+      </p>
+
+      <!-- What happens list -->
+      <div style="background:#180808;border:1px solid #3a1a1a;border-radius:14px;padding:20px 24px;margin:0 0 24px;">
+        ${[
+          'Your AI Advisor access is cut off immediately',
+          'AI Playbooks stop generating — no more weekly action plans',
+          'Customer Health scores & at-risk alerts go dark',
+          'Cohort Retention heatmap locks behind a paywall',
+          'Anomaly alerts stop — you fly blind on revenue drops',
+          'All your connected integrations stay, but premium insights disappear',
+        ].map((line, i) => `
+        <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:${i < 5 ? '12px' : '0'};">
+          <span style="color:#f87171;font-weight:800;flex-shrink:0;margin-top:1px;">✕</span>
+          <p style="margin:0;color:#d0d0e8;font-size:14px;line-height:1.5;">${line}</p>
+        </div>`).join('')}
+      </div>
+
+      <!-- What you keep -->
+      <div style="background:#0a1a0f;border:1px solid #1a3a20;border-radius:14px;padding:20px 24px;margin:0 0 28px;">
+        <p style="margin:0 0 12px;font-family:monospace;font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:#10b981;">
+          ✓ What you keep if you upgrade right now
+        </p>
+        ${[
+          'Full 7-day history — nothing is deleted',
+          'All connected integrations remain active',
+          'Continuous daily data sync across all platforms',
+          'Every premium feature, forever, for one flat price',
+        ].map((line, i) => `
+        <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:${i < 3 ? '10px' : '0'};">
+          <span style="color:#10b981;font-weight:800;flex-shrink:0;margin-top:1px;">✓</span>
+          <p style="margin:0;color:#a0d8b0;font-size:14px;line-height:1.5;">${line}</p>
+        </div>`).join('')}
+      </div>
+
+      <!-- BIG CTA -->
+      <div style="text-align:center;margin:0 0 12px;">
+        <a href="${STRIPE_UPGRADE_URL}"
+           style="display:inline-block;background:linear-gradient(135deg,#dc2626,#f59e0b);color:#fff;font-weight:800;font-family:monospace;font-size:14px;text-transform:uppercase;letter-spacing:.1em;padding:18px 40px;border-radius:12px;text-decoration:none;box-shadow:0 4px 24px rgba(220,38,38,.55);">
+          🔓 Upgrade now — keep everything
+        </a>
+      </div>
+      <p style="text-align:center;margin:0 0 28px;color:#555570;font-size:12px;">
+        Takes 30 seconds. Cancel anytime.
+      </p>
+
+      <!-- Countdown urgency strip -->
+      <div style="background:#1a0808;border:1px solid #3a1010;border-radius:10px;padding:14px 18px;text-align:center;">
+        <p style="margin:0;font-family:monospace;font-size:12px;color:#f87171;font-weight:700;letter-spacing:.05em;">
+          ⏰ &nbsp;${h} HOUR${h !== 1 ? 'S' : ''} REMAINING — after that, premium access is gone.
+        </p>
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div style="padding:18px 36px;border-top:1px solid #1a1a2e;text-align:center;">
+      <p style="margin:0;color:#444460;font-size:11px;line-height:1.6;">
+        You're receiving this because your Fold free trial is about to expire.<br>
+        <a href="${APP_URL}" style="color:#f59e0b;text-decoration:none;">usefold.io</a>
+      </p>
+    </div>
+
+  </div>
+</body></html>`;
+}
+
+// ── Main trial-email checker ─────────────────────────────────────────────────
+async function checkTrialEmails() {
+  log('[trial-emails] Checking for trial mid-point and expiry emails…');
+  if (!RESEND_KEY) { logWarn('[trial-emails] RESEND_API_KEY not set — skipping'); return; }
+
+  const now = Date.now();
+
+  // Fetch all free users whose trial is still active (trial_ends_at in the future)
+  // and who have NOT yet received both emails (saves bandwidth on finished trials).
+  let users;
+  try {
+    const res = await fetchRetry(
+      'trial-email users query',
+      `${SUPABASE_URL}/rest/v1/users?select=id,email,full_name,trial_ends_at,trial_midpoint_emailed,trial_expiry_emailed&plan=eq.free&trial_ends_at=gt.${new Date(now).toISOString()}&or=(trial_midpoint_emailed.eq.false,trial_expiry_emailed.eq.false)`,
+      { headers: { ...SB.headers, Prefer: 'return=representation' } }
+    );
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      logWarn(`[trial-emails] DB query failed: ${e?.message ?? res.status}`);
+      return;
+    }
+    users = await res.json();
+  } catch (err) {
+    logWarn(`[trial-emails] DB query error: ${err.message}`);
+    return;
+  }
+
+  log(`[trial-emails] ${users.length} active-trial free users to check`);
+
+  let midSent = 0, expirySent = 0;
+
+  for (const user of users) {
+    if (!user.email || !user.trial_ends_at) continue;
+
+    const endsAt   = new Date(user.trial_ends_at).getTime();
+    const hoursLeft = (endsAt - now) / (1000 * 60 * 60);
+
+    // ── 1. Expiry email — < 6 hours remaining ───────────────────────────────
+    if (hoursLeft <= 6 && !user.trial_expiry_emailed) {
+      const html    = buildTrialExpiryEmailHtml(user.full_name, hoursLeft);
+      const subject = `🚨 ${Math.max(1, Math.round(hoursLeft))}h left — your Fold trial is ending`;
+      try {
+        const res = await fetchRetry('Resend trial-expiry email', 'https://api.resend.com/emails', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ from: FROM_EMAIL, to: user.email, subject, html }),
+        });
+        if (res.ok) {
+          // Mark as sent so we never re-send
+          await SB.patch('users', { trial_expiry_emailed: true }, { id: user.id });
+          logOk(`[trial-emails] Expiry email → ${user.email} (${hoursLeft.toFixed(1)}h left)`);
+          expirySent++;
+        } else {
+          const e = await res.json().catch(() => ({}));
+          logWarn(`[trial-emails] Expiry email failed for ${user.email}: ${e?.message ?? res.status}`);
+        }
+      } catch (err) {
+        logWarn(`[trial-emails] Expiry email error for ${user.email}: ${err.message}`);
+      }
+      continue; // don't also check mid-point for same user this tick
+    }
+
+    // ── 2. Mid-point email — between 60h and 84h remaining (days 3.5–4) ───
+    // 7-day trial = 168 hours. Halfway = 84h remaining.
+    // We send from 84h down to 60h so the daemon has a 24h window to catch it.
+    if (hoursLeft <= 84 && hoursLeft > 60 && !user.trial_midpoint_emailed) {
+      const html    = buildTrialMidpointEmailHtml(user.full_name, hoursLeft);
+      const subject = `⏳ Halfway through your Fold trial — here's what you'd lose`;
+      try {
+        const res = await fetchRetry('Resend trial-midpoint email', 'https://api.resend.com/emails', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ from: FROM_EMAIL, to: user.email, subject, html }),
+        });
+        if (res.ok) {
+          await SB.patch('users', { trial_midpoint_emailed: true }, { id: user.id });
+          logOk(`[trial-emails] Mid-point email → ${user.email} (${hoursLeft.toFixed(1)}h left)`);
+          midSent++;
+        } else {
+          const e = await res.json().catch(() => ({}));
+          logWarn(`[trial-emails] Mid-point email failed for ${user.email}: ${e?.message ?? res.status}`);
+        }
+      } catch (err) {
+        logWarn(`[trial-emails] Mid-point email error for ${user.email}: ${err.message}`);
+      }
+    }
+  }
+
+  log(`[trial-emails] Done — ${midSent} mid-point sent, ${expirySent} expiry sent`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // ALERT RULES CHECK
 // Run after every daily sync. Fetches all premium users with alert_rules set,
 // checks thresholds against last 7d vs prev 7d data, and sends emails.
@@ -6052,6 +6359,7 @@ if (backfillMode) {
   await checkAlerts();
   await runAnomalyAlerts();
   await checkGoals();
+  await checkTrialEmails();
   // Manual one-shot: digest send only, then exit
   await sendDailyDigests();
   await generateAllPlaybooks();
@@ -6068,6 +6376,7 @@ if (backfillMode) {
   log(`  • Alert rules check:   after every daily sync`);
   log(`  • Anomaly detection:   after every daily sync`);
   log(`  • Goals & KPIs check:  after every daily sync`);
+  log(`  • Trial FOMO emails:   every 30 min (mid-point at ≤84h, expiry at ≤6h)`);
   log(`  • Digest send:         after every daily sync (sent to users on their chosen day)`);
   log(`  • AI Playbooks:        Sunday 02:00 UTC (cached in ai_playbooks_cache)`);
   log(`  • Trigger server:      port ${TRIGGER_PORT}`);
@@ -6085,19 +6394,22 @@ if (backfillMode) {
   await checkAlerts();
   await runAnomalyAlerts();
   await checkGoals();
+  await checkTrialEmails();
   await pingHeartbeat();
 
   // 2. Auto-backfill loop — every 30 minutes
   setInterval(async () => {
     try { await runAutoBackfill(); } catch (e) { logFail(`[auto-backfill loop] ${e.message}`); }
+    try { await checkTrialEmails(); } catch (e) { logFail(`[trial-emails loop] ${e.message}`); }
   }, CHECK_INTERVAL_MS);
 
-  // 3. Daily sync + alerts + anomalies + goals + digest at 02:00 UTC
+  // 3. Daily sync + alerts + anomalies + goals + digest + trial emails at 02:00 UTC
   scheduleDailyAt(DAILY_UTC_HOUR, async () => {
     await runSync();
     await checkAlerts();
     await runAnomalyAlerts();
     await checkGoals();
+    await checkTrialEmails();
     await sendDailyDigests();
     await pingHeartbeat();
   }, 'daily-sync+alerts+anomalies+digest');
@@ -6117,11 +6429,12 @@ if (backfillMode) {
   }, 'weekly-playbooks-email');
 
 } else {
-  // One-shot: sync yesterday + check alerts + anomalies + goals + digests + playbooks, then exit
+  // One-shot: sync yesterday + check alerts + anomalies + goals + trial emails + digests + playbooks, then exit
   await runSync();
   await checkAlerts();
   await runAnomalyAlerts();
   await checkGoals();
+  await checkTrialEmails();
   await sendDailyDigests();
   await generateAllPlaybooks();
 }

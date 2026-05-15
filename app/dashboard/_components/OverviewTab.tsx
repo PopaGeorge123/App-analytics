@@ -324,7 +324,7 @@ function KpiCard({
 
   return (
     <div
-      className="relative overflow-hidden rounded-2xl border border-[#363650] bg-[#1c1c2a]/70 p-5 flex flex-col gap-3 transition-all hover:border-[#454560] hover:bg-[#0f0f18]"
+      className="relative overflow-hidden rounded-2xl border border-[#363650] bg-[#1c1c2a]/70 p-4 sm:p-5 flex flex-col gap-3 transition-all hover:border-[#454560] hover:bg-[#0f0f18]"
     >
       {/* Left accent bar — green/amber/red based on trend status */}
       <div
@@ -1354,13 +1354,13 @@ export default function OverviewTab({
   const capitalFirst = firstName.charAt(0).toUpperCase() + firstName.slice(1);
 
   return (
-    <div className="w-full space-y-8">
+    <div className="w-full space-y-5 sm:space-y-8">
 
       {/* ── Greeting / contextual banner ─────────────────────── */}
-      <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/50 px-5 py-4">
+      <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/50 px-4 py-3 sm:px-5 sm:py-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h1 className="font-mono text-xl font-bold text-[#f8f8fc]">
+            <h1 className="font-mono text-lg sm:text-xl font-bold text-[#f8f8fc]">
               {greetingTime()}, {capitalFirst}
             </h1>
             <p className="mt-0.5 font-mono text-[11px] text-[#8585aa]">{formatDate()}</p>
@@ -1548,9 +1548,9 @@ export default function OverviewTab({
 
       {/* ── KPI Grid ─────────────────────────────────────────── */}
       <section>
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center gap-2 mb-3 sm:mb-4">
           <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Last 7 days</p>
-          <span className="font-mono text-[8px] text-[#58588a] border border-[#363650] rounded px-1.5 py-0.5">▲▼ vs prev 7 days</span>
+          <span className="font-mono text-[8px] text-[#58588a] border border-[#363650] rounded px-1.5 py-0.5 hidden sm:inline">▲▼ vs prev 7 days</span>
           <div className="flex-1 border-t border-[#363650]" />
           <button
             onClick={() => onNavigate("analytics")}
@@ -1590,7 +1590,7 @@ export default function OverviewTab({
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
 
         {/* Quick Actions */}
-        <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/70 p-5">
+        <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/70 p-4 sm:p-5">
           <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa] mb-3">Quick Actions</p>
           <div className="space-y-2">
               <GoalsWidget
@@ -1650,7 +1650,7 @@ export default function OverviewTab({
           </div>
 
           {/* Recent Activity / Onboarding Stepper */}
-          <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/70 p-5">
+          <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/70 p-4 sm:p-5">
             <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa] mb-4">Setup Progress</p>
             {activity.length > 0 ? (
               <div className="space-y-3">
@@ -1750,7 +1750,7 @@ export default function OverviewTab({
 
       {/* ── Integrations (only if not all connected) ──────────── */}
       {!hasAllIntegrations && (
-        <section className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/70 p-5">
+        <section className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/70 p-4 sm:p-5">
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Integrations</p>

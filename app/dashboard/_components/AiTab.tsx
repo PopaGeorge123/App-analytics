@@ -1302,6 +1302,13 @@ function DemoAiView() {
   const [showSignUpPrompt, setShowSignUpPrompt] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const chatBottomRef = useRef<HTMLDivElement>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   function handleInputChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
     setDemoInput(e.target.value);

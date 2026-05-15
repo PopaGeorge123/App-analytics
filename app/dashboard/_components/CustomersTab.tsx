@@ -618,7 +618,7 @@ export default function CustomersTab({
   const locked = !isPremium;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5 sm:space-y-8">
 
       {/* ── Synthetic data notice ────────────────────────────────────────── */}
       {isSynthetic && (
@@ -716,7 +716,7 @@ export default function CustomersTab({
       {/* ══ §1 — Customer Health Score ══════════════════════════════════════ */}
       <section>
         <SectionHeader title="Customer Health Score" sub="Composite score based on recency, purchase frequency, and spend." />
-        <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[#13131a] p-6">
+        <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[#13131a] p-4 sm:p-6">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
 
             {/* Left — dial + legend */}
@@ -812,7 +812,7 @@ export default function CustomersTab({
       {/* ══ §2 — Top Customers by LTV ══════════════════════════════════════ */}
       <section>
         <SectionHeader title="Top Customers by LTV" sub="Your highest-value customers ranked by total lifetime spend." />
-        <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[#13131a] p-6">
+        <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[#13131a] p-4 sm:p-6">
           {/* Table controls */}
           <div className="flex flex-wrap items-center gap-2 mb-4">
             <div className="relative flex-1 min-w-40">
@@ -824,7 +824,7 @@ export default function CustomersTab({
                 onChange={(e) => setCustomerSearch(e.target.value)}
               />
             </div>
-            <div className="flex gap-1">
+            <div className="flex flex-wrap gap-1">
               {["All", "Champions", "Loyal", "Potential", "At Risk", "Dormant"].map((f) => (
                 <button
                   key={f}
@@ -979,7 +979,7 @@ export default function CustomersTab({
           title="Cohort Retention"
           sub="What % of customers acquired each month are still active in subsequent months."
         />
-        <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[#13131a] p-6">
+        <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[#13131a] p-4 sm:p-6">
           {cohorts.length === 0 ? (
             <p className="font-mono text-[11px] text-[#8585aa]">Need at least 1 month of data to build cohorts.</p>
           ) : (
@@ -1069,7 +1069,7 @@ export default function CustomersTab({
             </div>
           </div>
         ) : (
-          <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[#13131a] p-6">
+          <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[#13131a] p-4 sm:p-6">
             {/* Alert header with CTA */}
             <div className="flex flex-wrap items-center justify-between gap-3 mb-5 rounded-xl border border-[#f59e0b]/25 bg-[#f59e0b]/06 px-4 py-3" style={{ background: "#f59e0b0a" }}>
               <div className="flex items-center gap-2">
@@ -1213,7 +1213,7 @@ export default function CustomersTab({
             <p className="mt-2 font-mono text-xs font-bold text-[#a78bfa]">Premium — Upgrade to unlock</p>
           </div>
         )}
-        <div className="flex items-center justify-between mb-5">
+        <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
           <div>
             <h2 className="font-mono text-sm font-bold text-[#f8f8fc] tracking-tight">Revenue Concentration</h2>
             <p className="mt-0.5 font-mono text-[10px] text-[#8585aa]">How dependent are you on a small group? High concentration = fragile revenue.</p>
@@ -1226,7 +1226,7 @@ export default function CustomersTab({
           </span>
         </div>
 
-        <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[#13131a] p-6 space-y-4">
+        <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[#13131a] p-4 sm:p-6 space-y-4">
           {[
             {
               label: `Top 10% of customers (${Math.max(1, Math.floor(stats.totalCustomers * 0.1))})`,
@@ -1248,7 +1248,7 @@ export default function CustomersTab({
             },
           ].map((row) => (
             <div key={row.label} className="rounded-xl border bg-[#0d0d0f] p-4" style={{ borderColor: row.color + "30" }}>
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex flex-wrap items-center justify-between gap-1 mb-2">
                 <p className="font-mono text-[10px] text-[#bcbcd8]">{row.label}</p>
                 <p className="font-mono text-lg font-bold" style={{ color: row.color }}>{row.pct.toFixed(1)}%</p>
               </div>

@@ -1009,7 +1009,7 @@ function AnalyticsControls({
   const availableGrans = GRANULARITY_OPTIONS[timeRange];
 
   return (
-    <div className="flex flex-wrap items-center gap-2 mb-6">
+    <div className="flex flex-wrap items-center gap-2 mb-4 sm:mb-6">
       {/* Time range pills */}
       <div className="flex items-center gap-1 rounded-xl border border-[#363650] bg-[#1c1c2a] p-1">
         {TIME_RANGES.map((tr) => (
@@ -4992,8 +4992,8 @@ export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots,
   if (!isPremium) {
     return (
       <div className="w-full">
-        <div className="mb-8">
-          <h1 className="font-mono text-2xl font-bold text-[#f8f8fc]">Analytics</h1>
+        <div className="mb-5 sm:mb-8">
+          <h1 className="font-mono text-xl sm:text-2xl font-bold text-[#f8f8fc]">Analytics</h1>
           <p className="mt-1 text-sm text-[#bcbcd8]">Deep-dive into your business metrics.</p>
         </div>
         <LockScreen />
@@ -5003,9 +5003,9 @@ export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots,
 
   return (
     <div className="w-full">
-      <div className="mb-6 flex items-start justify-between gap-4">
+      <div className="mb-5 sm:mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="font-mono text-2xl font-bold text-[#f8f8fc]">Analytics</h1>
+          <h1 className="font-mono text-xl sm:text-2xl font-bold text-[#f8f8fc]">Analytics</h1>
           <p className="mt-1 text-sm text-[#bcbcd8]">Daily breakdown per integration.</p>
         </div>
         {availablePlatforms.length > 0 && (
@@ -5054,11 +5054,11 @@ export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots,
       ) : (
         <>
           {/* ── Platform tabs ─────────────────────────────────── */}
-          {/* Full-bleed: negative margin cancels the parent p-6/p-8, then we re-add px so tabs stay inset */}
-          <div className="relative mb-4 -mx-6 lg:-mx-8">
+          {/* Full-bleed: negative margin cancels the parent p-3/p-6/p-8, then we re-add px so tabs stay inset */}
+          <div className="relative mb-4 -mx-3 sm:-mx-6 lg:-mx-8">
             {/* Scroll fade — right edge hint */}
             <div className="pointer-events-none absolute right-0 top-0 z-10 h-full w-16 bg-linear-to-l from-[#13131f] to-transparent" />
-            <div className="flex gap-2 border-b border-[#363650] overflow-x-auto scrollbar-none px-6 lg:px-8">
+            <div className="flex gap-2 border-b border-[#363650] overflow-x-auto scrollbar-none px-3 sm:px-6 lg:px-8">
               {(["overview", ...availablePlatforms] as PlatformTab[]).map((p) => (
                 <button
                   key={p}

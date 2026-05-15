@@ -642,7 +642,7 @@ function PlaybookDetail({
       />
 
       {/* ── Header ── */}
-      <div className="shrink-0 px-6 py-4 border-b" style={{ borderColor: "#1a1a2e" }}>
+      <div className="shrink-0 px-4 sm:px-6 py-3 sm:py-4 border-b" style={{ borderColor: "#1a1a2e" }}>
         {/* Badges + action buttons row */}
         <div className="flex flex-wrap items-center gap-2 mb-3">
           <span
@@ -730,11 +730,11 @@ function PlaybookDetail({
         </div>
 
         {/* Title — 24px bold */}
-        <h3 className="text-2xl font-bold text-white leading-snug">{playbook.title}</h3>
+        <h3 className="text-xl sm:text-2xl font-bold text-white leading-snug">{playbook.title}</h3>
       </div>
 
       {/* ── Scrollable body ── */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-5 space-y-7">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 sm:py-5 space-y-5 sm:space-y-7">
 
         {/* Completed banner */}
         {isCompleted && (
@@ -947,7 +947,7 @@ function PlaybookDetail({
         {/* ── Feedback ── */}
         {!isDemo && (
           <div
-            className="rounded-xl border px-4 py-3 flex items-center justify-between gap-4"
+            className="rounded-xl border px-4 py-3 flex flex-wrap items-center justify-between gap-3"
             style={{ borderColor: "#1e1e30", background: "#0b0b18" }}
           >
             <p className="text-xs text-slate-500">Was this playbook accurate and useful?</p>
@@ -1105,7 +1105,7 @@ function PlaybookHistoryDrawer({
       {/* Drawer */}
       <div
         className="fixed right-0 top-0 z-50 h-full flex flex-col overflow-hidden shadow-2xl"
-        style={{ width: 480, background: "#0d0d14", borderLeft: "1px solid rgba(255,255,255,0.08)" }}
+        style={{ width: "min(480px, 100vw)", background: "#0d0d14", borderLeft: "1px solid rgba(255,255,255,0.08)" }}
       >
         {/* Header */}
         <div
@@ -1375,8 +1375,8 @@ function PlaybookDetailEmpty() {
 function PlaybookSkeleton() {
   return (
     <div className="flex gap-4 animate-pulse" style={{ height: 560 }}>
-      {/* Left list skeleton */}
-      <div className="w-64 shrink-0 flex flex-col gap-1 overflow-hidden rounded-2xl border border-[#1e1e30] bg-[#0f0f1c] p-2">
+      {/* Left list skeleton — hidden on mobile */}
+      <div className="hidden sm:flex w-64 shrink-0 flex-col gap-1 overflow-hidden rounded-2xl border border-[#1e1e30] bg-[#0f0f1c] p-2">
         {[...Array(6)].map((_, i) => (
           <div key={i} className="rounded-xl p-3 space-y-2">
             <div className="flex gap-2">
@@ -1459,6 +1459,13 @@ export default function PlaybooksTab({
   const [showNoRevenue, setShowNoRevenue] = useState(false);
   const [error, setError]       = useState<string | null>(null);
   const [openId, setOpenId]     = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
   const [activeCategory, setActiveCategory]       = useState<Category>("all");
   const [showOnlyTriggered, setShowOnlyTriggered] = useState(false);
   const [sortBy, setSortBy]     = useState<"priority" | "az" | "category">("priority");
@@ -1774,9 +1781,18 @@ export default function PlaybooksTab({
                     <p className="text-[11px] text-slate-600">Generated {generatedAgo} · auto-refreshes weekly</p>
                   )}
                   <button
+                    onClick={() => setShowHistory(true)}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-white/8 px-2.5 py-1 text-[11px] text-slate-400 hover:text-white hover:border-white/20 transition-colors"
+                  >
+                    <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    History
+                  </button>
+                  <button
                     onClick={triggerGenerate}
                     disabled={loading || generating || checking}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-white/8 px-2.5 py-1 text-[11px] text-slate-400 hover:text-white hover:border-white/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-green-500 px-2.5 py-1 text-[11px] text-slate-400 hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <svg
                       className={(loading || generating || checking) ? "animate-spin" : ""}
@@ -1785,15 +1801,6 @@ export default function PlaybooksTab({
                       <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
                     </svg>
                     {generating ? "Generating…" : checking ? "Checking…" : "Regenerate now"}
-                  </button>
-                  <button
-                    onClick={() => setShowHistory(true)}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-white/8 px-2.5 py-1 text-[11px] text-slate-400 hover:text-white hover:border-white/20 transition-colors"
-                  >
-                    <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    History
                   </button>
                 </div>
               </div>
@@ -1931,7 +1938,9 @@ export default function PlaybooksTab({
 
       {/* ── Filters ─────────────────────────────────────────────────────────── */}
       {isPremium && data && !loading && !allComplete && (
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+          {/* Category pill row — wraps on mobile */}
+          <div className="flex flex-wrap items-center gap-2">
           {categories.map((cat) => {
             const cfg    = cat === "all" ? null : CATEGORY_CONFIG[cat];
             const active = activeCategory === cat;
@@ -1969,8 +1978,10 @@ export default function PlaybooksTab({
               </button>
             );
           })}
+          </div>
 
-          <div className="ml-auto flex items-center gap-3">
+          {/* Sort/filter controls — own row on mobile, ml-auto on desktop */}
+          <div className="flex items-center gap-3 sm:ml-auto">
             {/* Live data toggle */}
             <label className="flex items-center gap-2 cursor-pointer">
               <div className="relative">
@@ -2017,6 +2028,71 @@ export default function PlaybooksTab({
               <p className="text-sm text-slate-500">No playbooks match the current filter.</p>
             </div>
           ) : (
+            isMobile ? (
+              /* ── Mobile: single-column, list ↔ detail ───────────────────── */
+              openId ? (
+                /* Detail view — full width */
+                <div>
+                  {/* Back button */}
+                  <button
+                    onClick={() => setOpenId(null)}
+                    className="mb-3 inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white hover:border-white/20 transition-colors"
+                  >
+                    <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                    </svg>
+                    All playbooks
+                  </button>
+                  {(() => {
+                    const selected = sorted.find((pb) => pb.id === openId);
+                    return selected ? (
+                      <PlaybookDetail
+                        playbook={selected}
+                        allPlaybooks={playbooks}
+                        feedback={feedback[selected.id] ?? { rating: null, completed_steps: [] }}
+                        isCompleted={completedPlaybooks.has(selected.id)}
+                        onRating={(r) => handleRating(selected, r)}
+                        onToggleStep={(idx) => handleToggleStep(selected, idx)}
+                        onMarkComplete={() => handleMarkComplete(selected.id)}
+                        onSelect={(id) => setOpenId(id)}
+                        isDemo={isDemo}
+                      />
+                    ) : <PlaybookDetailEmpty />;
+                  })()}
+                </div>
+              ) : (
+                /* List view — full width */
+                <div
+                  className="flex flex-col overflow-hidden rounded-2xl border"
+                  style={{ borderColor: "#1e1e30", background: "#0b0b18" }}
+                >
+                  {/* List header */}
+                  <div
+                    className="shrink-0 flex items-center justify-between gap-2 px-3 py-2.5 border-b"
+                    style={{ borderColor: "#1e1e30", background: "#0d0d12" }}
+                  >
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                      {sorted.length} playbook{sorted.length !== 1 ? "s" : ""}
+                      {criticalCount > 0 && (
+                        <span style={{ color: "#ef4444" }}> · {criticalCount} critical</span>
+                      )}
+                    </span>
+                  </div>
+                  {/* List items */}
+                  <div className="p-1.5 space-y-1">
+                    {sorted.map((pb) => (
+                      <PlaybookListItem
+                        key={pb.id}
+                        playbook={pb}
+                        isSelected={false}
+                        isCompleted={completedPlaybooks.has(pb.id)}
+                        onSelect={() => setOpenId(pb.id)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )
+            ) : (
             <div className="flex gap-4" style={{ minHeight: 640 }}>
               {/* ── Left: 280px sidebar ─────────────────────────────────── */}
               <div
@@ -2079,6 +2155,7 @@ export default function PlaybooksTab({
                 {!openId && <PlaybookDetailEmpty />}
               </div>
             </div>
+            ) /* end desktop split */
           )}
         </div>
       )}
