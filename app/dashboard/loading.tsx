@@ -18,10 +18,10 @@ function Skeleton({ className = "" }: { className?: string }) {
 
 export default function DashboardLoading() {
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-[#13131f] text-[#f8f8fc]">
+    <div className="flex h-screen flex-col overflow-hidden bg-[#252531] text-[#f8f8fc]">
 
       {/* ── Top bar ──────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-40 border-b border-[#363650] bg-[#1c1c2a]/95">
+      <header className="sticky top-0 z-40 border-b border-[#363650] bg-[#2e2e3c]/95">
         <div className="flex items-center justify-between px-5 py-3">
           <div className="flex items-center gap-3">
             {/* Logo placeholder */}
@@ -42,7 +42,7 @@ export default function DashboardLoading() {
       <div className="flex flex-1 overflow-hidden">
 
         {/* ── Sidebar ──────────────────────────────────────────────────── */}
-        <aside className="hidden lg:flex flex-col w-56 shrink-0 border-r border-[#363650] bg-[#1c1c2a]">
+        <aside className="hidden lg:flex flex-col w-56 shrink-0 border-r border-[#363650] bg-[#2e2e3c]">
           {/* User info */}
           <div className="px-4 pt-5 pb-4 border-b border-[#363650]/60 flex items-center gap-3">
             <Skeleton className="h-8 w-8 rounded-lg shrink-0" />
@@ -81,7 +81,7 @@ export default function DashboardLoading() {
             {/* KPI cards row */}
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
               {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="rounded-2xl border border-[#363650] bg-[#1c1c2a] p-4 space-y-3">
+                <div key={i} className="rounded-2xl border border-[#363650] bg-[#2e2e3c] p-4 space-y-3">
                   <Skeleton className="h-2.5 w-16" />
                   <Skeleton className="h-6 w-3/4" />
                   <Skeleton className="h-2 w-12" />
@@ -100,7 +100,7 @@ export default function DashboardLoading() {
             </div>
 
             {/* Main chart panel */}
-            <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a] p-6 space-y-4">
+            <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c] p-6 space-y-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-1.5">
                   <Skeleton className="h-3 w-32" />
@@ -128,7 +128,7 @@ export default function DashboardLoading() {
             {/* Two-column lower row */}
             <div className="grid gap-4 lg:grid-cols-2">
               {/* Insights panel */}
-              <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a] p-5 space-y-4">
+              <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c] p-5 space-y-4">
                 <Skeleton className="h-3 w-24" />
                 {Array.from({ length: 3 }).map((_, i) => (
                   <div key={i} className="flex items-start gap-3">
@@ -143,7 +143,7 @@ export default function DashboardLoading() {
               </div>
 
               {/* Activity feed */}
-              <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a] p-5 space-y-4">
+              <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c] p-5 space-y-4">
                 <Skeleton className="h-3 w-28" />
                 {Array.from({ length: 4 }).map((_, i) => (
                   <div key={i} className="flex items-center gap-3">

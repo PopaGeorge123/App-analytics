@@ -103,7 +103,7 @@ export function StatRow({
       {stats.map((s) => (
         <div
           key={s.label}
-          className="rounded-2xl border border-[#363650] bg-[#1c1c2a] p-5 text-center"
+          className="rounded-2xl border border-[#363650] bg-[#2e2e3c] p-5 text-center"
         >
           <p
             className="mb-1 font-mono text-2xl font-bold"
@@ -137,7 +137,7 @@ export function CompareTable({
     <div className="my-8 overflow-x-auto rounded-2xl border border-[#363650]">
       <table className="w-full font-mono text-[12px]">
         <thead>
-          <tr className="border-b border-[#363650] bg-[#1c1c2a]">
+          <tr className="border-b border-[#363650] bg-[#2e2e3c]">
             <th className="px-5 py-4 text-left text-[#8585aa] font-semibold">Feature</th>
             <th className="px-5 py-4 text-left font-semibold" style={{ color: "#00d4aa" }}>
               ✦ Fold Analytics
@@ -149,7 +149,7 @@ export function CompareTable({
           {rows.map((r, i) => (
             <tr
               key={i}
-              className="border-b border-[#222236] last:border-0 transition-colors hover:bg-[#1c1c2a]/50"
+              className="border-b border-[#222236] last:border-0 transition-colors hover:bg-[#2e2e3c]/50"
             >
               <td className="px-5 py-3.5 text-[#d4d4f0]">{r.feature}</td>
               <td className="px-5 py-3.5">
@@ -191,8 +191,8 @@ export function CompareTable({
 
 export function DashboardOverviewMockup() {
   return (
-    <figure className="my-10 overflow-hidden rounded-2xl border border-[#363650] bg-[#13131f] shadow-2xl">
-      <div className="flex items-center gap-2 border-b border-[#363650] bg-[#1c1c2a] px-4 py-3">
+    <figure className="my-10 overflow-hidden rounded-2xl border border-[#363650] bg-[#252531] shadow-2xl">
+      <div className="flex items-center gap-2 border-b border-[#363650] bg-[#2e2e3c] px-4 py-3">
         <span className="h-3 w-3 rounded-full bg-[#ef4444]/70" />
         <span className="h-3 w-3 rounded-full bg-[#f59e0b]/70" />
         <span className="h-3 w-3 rounded-full bg-[#22c55e]/70" />
@@ -241,8 +241,8 @@ export function DashboardOverviewMockup() {
 
 export function DashboardCustomersMockup() {
   return (
-    <figure className="my-10 overflow-hidden rounded-2xl border border-[#363650] bg-[#13131f] shadow-2xl">
-      <div className="flex items-center gap-2 border-b border-[#363650] bg-[#1c1c2a] px-4 py-3">
+    <figure className="my-10 overflow-hidden rounded-2xl border border-[#363650] bg-[#252531] shadow-2xl">
+      <div className="flex items-center gap-2 border-b border-[#363650] bg-[#2e2e3c] px-4 py-3">
         <span className="h-3 w-3 rounded-full bg-[#ef4444]/70" />
         <span className="h-3 w-3 rounded-full bg-[#f59e0b]/70" />
         <span className="h-3 w-3 rounded-full bg-[#22c55e]/70" />
@@ -310,8 +310,8 @@ export function DashboardCustomersMockup() {
 
 export function DashboardAdsMockup() {
   return (
-    <figure className="my-10 overflow-hidden rounded-2xl border border-[#363650] bg-[#13131f] shadow-2xl">
-      <div className="flex items-center gap-2 border-b border-[#363650] bg-[#1c1c2a] px-4 py-3">
+    <figure className="my-10 overflow-hidden rounded-2xl border border-[#363650] bg-[#252531] shadow-2xl">
+      <div className="flex items-center gap-2 border-b border-[#363650] bg-[#2e2e3c] px-4 py-3">
         <span className="h-3 w-3 rounded-full bg-[#ef4444]/70" />
         <span className="h-3 w-3 rounded-full bg-[#f59e0b]/70" />
         <span className="h-3 w-3 rounded-full bg-[#22c55e]/70" />
@@ -355,8 +355,8 @@ export function DashboardAdsMockup() {
 
 export function DashboardMRRMockup() {
   return (
-    <figure className="my-10 overflow-hidden rounded-2xl border border-[#363650] bg-[#13131f] shadow-2xl">
-      <div className="flex items-center gap-2 border-b border-[#363650] bg-[#1c1c2a] px-4 py-3">
+    <figure className="my-10 overflow-hidden rounded-2xl border border-[#363650] bg-[#252531] shadow-2xl">
+      <div className="flex items-center gap-2 border-b border-[#363650] bg-[#2e2e3c] px-4 py-3">
         <span className="h-3 w-3 rounded-full bg-[#ef4444]/70" />
         <span className="h-3 w-3 rounded-full bg-[#f59e0b]/70" />
         <span className="h-3 w-3 rounded-full bg-[#22c55e]/70" />
@@ -413,8 +413,8 @@ export function IntegrationsMockup() {
     { name: "TikTok Ads", logo: "/integrations/tiktok-ads.svg", status: "available", color: "#69C9D0" },
   ];
   return (
-    <figure className="my-10 overflow-hidden rounded-2xl border border-[#363650] bg-[#13131f] shadow-2xl">
-      <div className="flex items-center gap-2 border-b border-[#363650] bg-[#1c1c2a] px-4 py-3">
+    <figure className="my-10 overflow-hidden rounded-2xl border border-[#363650] bg-[#252531] shadow-2xl">
+      <div className="flex items-center gap-2 border-b border-[#363650] bg-[#2e2e3c] px-4 py-3">
         <span className="h-3 w-3 rounded-full bg-[#ef4444]/70" />
         <span className="h-3 w-3 rounded-full bg-[#f59e0b]/70" />
         <span className="h-3 w-3 rounded-full bg-[#22c55e]/70" />
@@ -459,7 +459,7 @@ export function MidCTA({ text }: { text: string }) {
         <p className="mb-4 font-mono text-lg font-bold text-[#f8f8fc]">{text}</p>
         <a
           href="/signup"
-          className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-6 py-2.5 font-mono text-[13px] font-bold text-[#13131f] transition hover:bg-[#00bfa0]"
+          className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-6 py-2.5 font-mono text-[13px] font-bold text-[#252531] transition hover:bg-[#00bfa0]"
         >
           Start free 7-day trial
           <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -474,7 +474,7 @@ export function MidCTA({ text }: { text: string }) {
 /* ─── Final article CTA ──────────────────────────────────────────── */
 export function ArticleCTA() {
   return (
-    <div className="my-14 overflow-hidden rounded-2xl border border-[#363650] bg-[#1c1c2a]">
+    <div className="my-14 overflow-hidden rounded-2xl border border-[#363650] bg-[#2e2e3c]">
       <div className="bg-linear-to-r from-[#00d4aa]/15 via-[#6366f1]/10 to-transparent px-8 py-10 text-center">
         <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#00d4aa]/30 bg-[#00d4aa]/10 px-3 py-1.5 font-mono text-[10px] uppercase tracking-widest text-[#00d4aa]">
           <span className="h-1.5 w-1.5 rounded-full bg-[#00d4aa] animate-pulse" /> Free 7-day trial
@@ -489,7 +489,7 @@ export function ArticleCTA() {
         <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
           <a
             href="/signup"
-            className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-8 py-3 font-mono text-sm font-bold text-[#13131f] transition hover:bg-[#00bfa0]"
+            className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-8 py-3 font-mono text-sm font-bold text-[#252531] transition hover:bg-[#00bfa0]"
           >
             Start free trial
             <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>

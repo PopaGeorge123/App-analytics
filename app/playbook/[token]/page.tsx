@@ -66,7 +66,7 @@ export default async function PublicPlaybookPage({ params }: { params: Promise<{
   return (
     <div style={{ minHeight: "100vh", background: "#09090f", fontFamily: "'Inter', system-ui, sans-serif", padding: "0" }}>
       {/* Top bar */}
-      <div style={{ borderBottom: "1px solid #1e1e2e", background: "#0f0f1a", padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div style={{ borderBottom: "1px solid #303040", background: "#21212c", padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <FoldLogo height={26} />
           <span style={{ color: "#363650", margin: "0 4px" }}>/</span>
@@ -78,7 +78,7 @@ export default async function PublicPlaybookPage({ params }: { params: Promise<{
           </span>
           <a
             href="/signup"
-            style={{ borderRadius: 8, background: "#00d4aa", color: "#0a0a14", fontFamily: "monospace", fontSize: 11, fontWeight: 700, padding: "6px 14px", textDecoration: "none" }}
+            style={{ borderRadius: 8, background: "#00d4aa", color: "#1c1c26", fontFamily: "monospace", fontSize: 11, fontWeight: 700, padding: "6px 14px", textDecoration: "none" }}
           >
             Try Fold free →
           </a>
@@ -127,7 +127,7 @@ export default async function PublicPlaybookPage({ params }: { params: Promise<{
             <p style={{ fontFamily: "monospace", fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", color: "#8585aa", marginBottom: 12 }}>Triggered By</p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
               {playbook.triggeredBy.map((t, i) => (
-                <div key={i} style={{ borderRadius: 8, border: "1px solid #2a2a3a", background: "#13131a", padding: "8px 14px" }}>
+                <div key={i} style={{ borderRadius: 8, border: "1px solid #2a2a3a", background: "#25252c", padding: "8px 14px" }}>
                   <p style={{ fontFamily: "monospace", fontSize: 10, color: "#8585aa", marginBottom: 2 }}>{t.label}</p>
                   <p style={{ fontFamily: "monospace", fontSize: 13, fontWeight: 700, color: "#f87171" }}>{t.value}</p>
                   <p style={{ fontFamily: "monospace", fontSize: 10, color: "#58588a" }}>vs {t.benchmark}</p>
@@ -144,7 +144,7 @@ export default async function PublicPlaybookPage({ params }: { params: Promise<{
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {playbook.steps.map((step: AiPlaybookStep, i: number) => (
-              <div key={i} style={{ borderRadius: 12, border: "1px solid #1e1e2e", background: "#13131a", padding: "16px 20px", display: "flex", gap: 14, alignItems: "flex-start" }}>
+              <div key={i} style={{ borderRadius: 12, border: "1px solid #303040", background: "#25252c", padding: "16px 20px", display: "flex", gap: 14, alignItems: "flex-start" }}>
                 <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#6366f1", color: "#fff", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
                   {i + 1}
                 </div>
@@ -168,7 +168,7 @@ export default async function PublicPlaybookPage({ params }: { params: Promise<{
         </div>
 
         {/* Footer CTA */}
-        <div style={{ marginTop: 48, borderRadius: 16, border: "1px solid #1e1e2e", background: "#0f0f1a", padding: "28px 32px", textAlign: "center" }}>
+        <div style={{ marginTop: 48, borderRadius: 16, border: "1px solid #303040", background: "#21212c", padding: "28px 32px", textAlign: "center" }}>
           <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
             <FoldLogo height={22} />
           </div>
@@ -176,7 +176,7 @@ export default async function PublicPlaybookPage({ params }: { params: Promise<{
           <p style={{ fontSize: 13, color: "#8585aa", marginBottom: 20 }}>Fold connects your Stripe, GA4, Meta Ads and more — and generates weekly AI fix-it playbooks.</p>
           <a
             href="/signup"
-            style={{ display: "inline-block", borderRadius: 10, background: "#00d4aa", color: "#0a0a14", fontFamily: "monospace", fontSize: 13, fontWeight: 800, padding: "12px 28px", textDecoration: "none" }}
+            style={{ display: "inline-block", borderRadius: 10, background: "#00d4aa", color: "#1c1c26", fontFamily: "monospace", fontSize: 13, fontWeight: 800, padding: "12px 28px", textDecoration: "none" }}
           >
             Start free trial →
           </a>

@@ -9,7 +9,7 @@ export function GET() {
         style={{
           width: "1200px",
           height: "630px",
-          background: "#13131f",
+          background: "#252531",
           display: "flex",
           flexDirection: "column",
           alignItems: "flex-start",
@@ -121,7 +121,7 @@ export function GET() {
               style={{
                 display: "flex",
                 flexDirection: "column",
-                background: "#1c1c2a",
+                background: "#2e2e3c",
                 border: "1px solid #363650",
                 borderRadius: "12px",
                 padding: "14px 22px",

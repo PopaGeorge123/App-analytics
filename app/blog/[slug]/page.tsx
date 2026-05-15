@@ -471,10 +471,10 @@ function PostBody({ slug }: { slug: string }) {
           <P>If you have engineering resources, Stripe's webhook system lets you receive real-time events (payment succeeded, subscription cancelled, invoice failed) and store them in your own database for custom analysis.</P>
           <H3>Key webhooks to listen for:</H3>
           <UL>
-            <LI><code className="rounded bg-[#1c1c2a] px-1 text-[#00d4aa]">customer.subscription.created</code> — new subscriber</LI>
-            <LI><code className="rounded bg-[#1c1c2a] px-1 text-[#00d4aa]">customer.subscription.deleted</code> — churn event</LI>
-            <LI><code className="rounded bg-[#1c1c2a] px-1 text-[#00d4aa]">invoice.payment_failed</code> — involuntary churn risk</LI>
-            <LI><code className="rounded bg-[#1c1c2a] px-1 text-[#00d4aa]">customer.subscription.updated</code> — upgrade or downgrade</LI>
+            <LI><code className="rounded bg-[#2e2e3c] px-1 text-[#00d4aa]">customer.subscription.created</code> — new subscriber</LI>
+            <LI><code className="rounded bg-[#2e2e3c] px-1 text-[#00d4aa]">customer.subscription.deleted</code> — churn event</LI>
+            <LI><code className="rounded bg-[#2e2e3c] px-1 text-[#00d4aa]">invoice.payment_failed</code> — involuntary churn risk</LI>
+            <LI><code className="rounded bg-[#2e2e3c] px-1 text-[#00d4aa]">customer.subscription.updated</code> — upgrade or downgrade</LI>
           </UL>
           <P>This approach gives maximum flexibility but requires ongoing maintenance. Not recommended for founders without a dedicated engineering team.</P>
 
@@ -704,7 +704,7 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
         </article>
 
         {/* Author bio */}
-        <div className="mt-14 flex items-start gap-5 rounded-2xl border border-[#363650] bg-[#1c1c2a] p-6">
+        <div className="mt-14 flex items-start gap-5 rounded-2xl border border-[#363650] bg-[#2e2e3c] p-6">
           <img
             src="/founder-george-popa.jpg"
             alt="George Popa"
@@ -731,7 +731,7 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
                   <Link
                     key={r.slug}
                     href={`/blog/${r.slug}`}
-                    className="group rounded-xl border border-[#363650] bg-[#1c1c2a] p-5 transition hover:border-[#00d4aa]/30 hover:bg-[#1c1c2a]"
+                    className="group rounded-xl border border-[#363650] bg-[#2e2e3c] p-5 transition hover:border-[#00d4aa]/30 hover:bg-[#2e2e3c]"
                   >
                     <span
                       className="mb-3 inline-block rounded-full px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-widest"

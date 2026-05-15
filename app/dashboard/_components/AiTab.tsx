@@ -327,7 +327,7 @@ function InsightRenderer({
             <div
               key={i}
               style={{
-                background: "#13131a",
+                background: "#25252c",
                 borderLeft: `3px solid ${severityColor(obs.severity)}`,
                 borderRadius: "0 8px 8px 0",
                 padding: "10px 14px",
@@ -365,8 +365,8 @@ function InsightRenderer({
             <div
               key={i}
               style={{
-                background: "#13131a",
-                border: "1px solid rgba(255,255,255,0.06)",
+                background: "#25252c",
+                border: "1px solid rgba(255,255,255,0.11)",
                 borderRadius: 10,
                 padding: "12px 14px",
                 display: "flex",
@@ -743,7 +743,7 @@ function AiMessageBody({
                     style={{
                       padding: "7px 12px",
                       color: ci === 0 ? "#e2e8f0" : "#c0c0d5",
-                      borderBottom: "1px solid rgba(255,255,255,0.04)",
+                      borderBottom: "1px solid rgba(255,255,255,0.13)",
                       verticalAlign: "top",
                     }}
                   >
@@ -894,7 +894,7 @@ function ConvItem({
         background: isActive
           ? "rgba(99,102,241,0.08)"
           : hovered
-          ? "rgba(255,255,255,0.04)"
+          ? "rgba(255,255,255,0.13)"
           : "transparent",
         transition: "background 0.15s",
       }}
@@ -1053,8 +1053,8 @@ function EmptyNewChat({ onSuggest }: { onSuggest: (q: string) => void }) {
             key={s.q}
             onClick={() => onSuggest(s.q)}
             style={{
-              background: "#13131a",
-              border: "1px solid rgba(255,255,255,0.08)",
+              background: "#25252c",
+              border: "1px solid rgba(255,255,255,0.13)",
               borderRadius: 10,
               padding: "12px 14px",
               textAlign: "left",
@@ -1102,7 +1102,7 @@ function ChatInputBar({
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;
 }) {
   return (
-    <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", padding: "10px 16px 12px" }}>
+    <div style={{ borderTop: "1px solid rgba(255,255,255,0.11)", padding: "10px 16px 12px" }}>
       {/* Quick prompt chips — hide while typing */}
       {!value && (
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
@@ -1116,7 +1116,7 @@ function ChatInputBar({
                 fontSize: 11,
                 padding: "4px 10px",
                 borderRadius: 16,
-                border: "1px solid rgba(255,255,255,0.08)",
+                border: "1px solid rgba(255,255,255,0.13)",
                 background: "rgba(255,255,255,0.03)",
                 color: "#8585aa",
                 cursor: "pointer",
@@ -1142,8 +1142,8 @@ function ChatInputBar({
             flex: 1,
             resize: "none",
             borderRadius: 12,
-            border: "1px solid rgba(255,255,255,0.08)",
-            background: "#0d0d0f",
+            border: "1px solid rgba(255,255,255,0.13)",
+            background: "#1f1f21",
             padding: "10px 14px",
             fontSize: 14,
             color: "#f8f8fc",
@@ -1155,7 +1155,7 @@ function ChatInputBar({
             transition: "border-color 0.15s",
           }}
           onFocus={(e) => (e.target.style.borderColor = "rgba(99,102,241,0.4)")}
-          onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.08)")}
+          onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.13)")}
         />
         <button
           onClick={onSend}
@@ -1373,7 +1373,7 @@ function DemoAiView() {
         style={{
           borderRadius: 16,
           border: "1px solid rgba(0,212,170,0.15)",
-          background: "#13131a",
+          background: "#25252c",
           overflow: "hidden",
         }}
       >
@@ -1383,7 +1383,7 @@ function DemoAiView() {
             alignItems: "center",
             justifyContent: "space-between",
             padding: isMobile ? "10px 12px" : "14px 20px",
-            borderBottom: "1px solid rgba(255,255,255,0.06)",
+            borderBottom: "1px solid rgba(255,255,255,0.11)",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -1460,8 +1460,8 @@ function DemoAiView() {
             width: 240,
             flexShrink: 0,
             borderRadius: 16,
-            border: "1px solid rgba(255,255,255,0.06)",
-            background: "#13131a",
+            border: "1px solid rgba(255,255,255,0.11)",
+            background: "#25252c",
             overflow: "hidden",
             display: "flex",
             flexDirection: "column",
@@ -1473,7 +1473,7 @@ function DemoAiView() {
               alignItems: "center",
               justifyContent: "space-between",
               padding: "10px 12px",
-              borderBottom: "1px solid rgba(255,255,255,0.06)",
+              borderBottom: "1px solid rgba(255,255,255,0.11)",
             }}
           >
             <span style={{ fontSize: 11, fontWeight: 700, color: "#bcbcd8", textTransform: "uppercase", letterSpacing: "0.06em" }}>
@@ -1489,8 +1489,8 @@ function DemoAiView() {
                 fontWeight: 600,
                 padding: "4px 8px",
                 borderRadius: 6,
-                border: "1px solid rgba(255,255,255,0.08)",
-                background: "#0d0d0f",
+                border: "1px solid rgba(255,255,255,0.13)",
+                background: "#1f1f21",
                 color: "#bcbcd8",
                 textDecoration: "none",
               }}
@@ -1562,8 +1562,8 @@ function DemoAiView() {
             flex: 1,
             minWidth: 0,
             borderRadius: 16,
-            border: "1px solid rgba(255,255,255,0.06)",
-            background: "#13131a",
+            border: "1px solid rgba(255,255,255,0.11)",
+            background: "#25252c",
             overflow: "hidden",
             display: "flex",
             flexDirection: "column",
@@ -1576,7 +1576,7 @@ function DemoAiView() {
               alignItems: "center",
               justifyContent: "space-between",
               padding: isMobile ? "10px 12px" : "14px 20px",
-              borderBottom: "1px solid rgba(255,255,255,0.06)",
+              borderBottom: "1px solid rgba(255,255,255,0.11)",
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -1609,7 +1609,7 @@ function DemoAiView() {
           <div
             style={{
               padding: "6px 20px",
-              borderBottom: "1px solid rgba(255,255,255,0.04)",
+              borderBottom: "1px solid rgba(255,255,255,0.13)",
               background: "rgba(99,102,241,0.04)",
               fontSize: 11,
               color: "#6366f1",
@@ -1653,7 +1653,7 @@ function DemoAiView() {
                     alignItems: "center",
                     gap: 6,
                     background: "#00d4aa",
-                    color: "#0d0d0f",
+                    color: "#1f1f21",
                     padding: "10px 20px",
                     borderRadius: 10,
                     fontWeight: 700,
@@ -1692,7 +1692,7 @@ function DemoAiView() {
                           msg.role === "user"
                             ? {
                                 background: "#1e293b",
-                                border: "1px solid rgba(255,255,255,0.08)",
+                                border: "1px solid rgba(255,255,255,0.13)",
                                 borderRadius: "18px 18px 4px 18px",
                                 padding: "10px 16px",
                                 fontSize: 14,
@@ -1700,11 +1700,11 @@ function DemoAiView() {
                                 lineHeight: 1.6,
                               }
                             : {
-                                background: "#13131a",
+                                background: "#25252c",
                                 borderLeft: "3px solid #6366f1",
-                                borderTop: "1px solid rgba(255,255,255,0.06)",
-                                borderRight: "1px solid rgba(255,255,255,0.06)",
-                                borderBottom: "1px solid rgba(255,255,255,0.06)",
+                                borderTop: "1px solid rgba(255,255,255,0.11)",
+                                borderRight: "1px solid rgba(255,255,255,0.11)",
+                                borderBottom: "1px solid rgba(255,255,255,0.11)",
                                 borderRadius: "4px 18px 18px 18px",
                                 padding: "12px 16px",
                                 fontSize: 14,
@@ -1737,9 +1737,9 @@ function DemoAiView() {
                       <div style={{ fontSize: 10, fontWeight: 600, color: "#8585aa", paddingLeft: 4, display:"flex", alignItems:"center", gap:4 }}><svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 002.25-2.25V6.75a2.25 2.25 0 00-2.25-2.25H6.75A2.25 2.25 0 004.5 6.75v10.5a2.25 2.25 0 002.25 2.25zm.75-12h9v9h-9v-9z" /></svg>AI Advisor</div>
                       <div
                         style={{
-                          background: "#13131a",
+                          background: "#25252c",
                           borderLeft: "3px solid #6366f1",
-                          border: "1px solid rgba(255,255,255,0.06)",
+                          border: "1px solid rgba(255,255,255,0.11)",
                           borderRadius: "4px 18px 18px 18px",
                           padding: "14px 16px",
                           fontSize: 14,
@@ -1757,7 +1757,7 @@ function DemoAiView() {
                             alignItems: "center",
                             gap: 6,
                             background: "#00d4aa",
-                            color: "#0d0d0f",
+                            color: "#1f1f21",
                             padding: "8px 16px",
                             borderRadius: 10,
                             fontWeight: 700,
@@ -2018,7 +2018,7 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
             alignItems: "center",
             justifyContent: "center",
             borderRadius: 16,
-            border: "1px solid rgba(255,255,255,0.06)",
+            border: "1px solid rgba(255,255,255,0.11)",
             background: "rgba(19,19,26,0.6)",
             padding: "64px 24px",
             textAlign: "center",
@@ -2086,7 +2086,7 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
               fontFamily: "monospace",
               fontSize: 14,
               fontWeight: 700,
-              color: "#0d0d0f",
+              color: "#1f1f21",
               border: "none",
               cursor: checkoutLoading ? "default" : "pointer",
               opacity: checkoutLoading ? 0.7 : 1,
@@ -2146,7 +2146,7 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
         style={{
           borderRadius: 16,
           border: "1px solid rgba(0,212,170,0.15)",
-          background: "#13131a",
+          background: "#25252c",
           overflow: "hidden",
         }}
       >
@@ -2157,7 +2157,7 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
             alignItems: "center",
             gap: 12,
             padding: "10px 20px",
-            borderBottom: "1px solid rgba(255,255,255,0.04)",
+            borderBottom: "1px solid rgba(255,255,255,0.13)",
             background: "rgba(23,23,42,0.8)",
             flexWrap: "wrap",
           }}
@@ -2186,9 +2186,9 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
                   fontWeight: 700,
                   padding: "4px 10px",
                   borderRadius: 8,
-                  border: goal === g.id ? "none" : "1px solid rgba(255,255,255,0.08)",
+                  border: goal === g.id ? "none" : "1px solid rgba(255,255,255,0.13)",
                   background: goal === g.id ? g.color : "transparent",
-                  color: goal === g.id ? "#0d0d0f" : "#8585aa",
+                  color: goal === g.id ? "#1f1f21" : "#8585aa",
                   cursor: "pointer",
                   transition: "all 0.15s",
                   display: "flex",
@@ -2223,7 +2223,7 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
             alignItems: "center",
             justifyContent: "space-between",
             padding: isMobile ? "10px 12px" : "14px 20px",
-            borderBottom: "1px solid rgba(255,255,255,0.06)",
+            borderBottom: "1px solid rgba(255,255,255,0.11)",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -2306,7 +2306,7 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
                   style={{
                     height: 14,
                     borderRadius: 6,
-                    background: "rgba(255,255,255,0.06)",
+                    background: "rgba(255,255,255,0.11)",
                     width: `${w}%`,
                     animation: "pulse 1.5s ease-in-out infinite",
                   }}
@@ -2335,8 +2335,8 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
             <div
               style={{
                 borderRadius: 12,
-                border: "1px solid rgba(255,255,255,0.06)",
-                background: "#13131a",
+                border: "1px solid rgba(255,255,255,0.11)",
+                background: "#25252c",
                 overflow: "hidden",
               }}
             >
@@ -2378,7 +2378,7 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
                     fontWeight: 600,
                     padding: "5px 10px",
                     borderRadius: 8,
-                    border: "1px solid rgba(255,255,255,0.08)",
+                    border: "1px solid rgba(255,255,255,0.13)",
                     background: "rgba(99,102,241,0.08)",
                     color: "#a5b4fc",
                     cursor: creatingConv ? "not-allowed" : "pointer",
@@ -2389,10 +2389,10 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
               </div>
               {/* Collapsible conversation list */}
               {showSidebar && (
-                <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", padding: 8, display: "flex", flexDirection: "column", gap: 2, maxHeight: 200, overflowY: "auto" }}>
+                <div style={{ borderTop: "1px solid rgba(255,255,255,0.11)", padding: 8, display: "flex", flexDirection: "column", gap: 2, maxHeight: 200, overflowY: "auto" }}>
                   {convsLoading ? (
                     [1, 2].map((i) => (
-                      <div key={i} style={{ height: 36, borderRadius: 10, background: "rgba(255,255,255,0.05)", animation: "pulse 1.5s ease-in-out infinite" }} />
+                      <div key={i} style={{ height: 36, borderRadius: 10, background: "rgba(255,255,255,0.09)", animation: "pulse 1.5s ease-in-out infinite" }} />
                     ))
                   ) : conversations.length === 0 ? (
                     <p style={{ fontSize: 12, color: "#8585aa", textAlign: "center", padding: "12px 0" }}>No chats yet. Click &quot;+ New&quot; to start.</p>
@@ -2420,8 +2420,8 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
               width: 240,
               flexShrink: 0,
               borderRadius: 16,
-              border: "1px solid rgba(255,255,255,0.06)",
-              background: "#13131a",
+              border: "1px solid rgba(255,255,255,0.11)",
+              background: "#25252c",
               overflow: "hidden",
               display: "flex",
               flexDirection: "column",
@@ -2433,7 +2433,7 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
                 alignItems: "center",
                 justifyContent: "space-between",
                 padding: "10px 12px",
-                borderBottom: "1px solid rgba(255,255,255,0.06)",
+                borderBottom: "1px solid rgba(255,255,255,0.11)",
               }}
             >
               <span style={{ fontSize: 11, fontWeight: 700, color: "#bcbcd8", textTransform: "uppercase", letterSpacing: "0.06em" }}>
@@ -2450,8 +2450,8 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
                   fontWeight: 600,
                   padding: "4px 8px",
                   borderRadius: 6,
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  background: "#0d0d0f",
+                  border: "1px solid rgba(255,255,255,0.13)",
+                  background: "#1f1f21",
                   color: "#bcbcd8",
                   cursor: creatingConv ? "not-allowed" : "pointer",
                   opacity: creatingConv ? 0.5 : 1,
@@ -2465,7 +2465,7 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
                 [1, 2, 3].map((i) => (
                   <div
                     key={i}
-                    style={{ height: 36, borderRadius: 10, background: "rgba(255,255,255,0.05)", animation: "pulse 1.5s ease-in-out infinite" }}
+                    style={{ height: 36, borderRadius: 10, background: "rgba(255,255,255,0.09)", animation: "pulse 1.5s ease-in-out infinite" }}
                   />
                 ))
               ) : conversations.length === 0 ? (
@@ -2496,8 +2496,8 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
             flex: 1,
             minWidth: 0,
             borderRadius: 16,
-            border: "1px solid rgba(255,255,255,0.06)",
-            background: "#13131a",
+            border: "1px solid rgba(255,255,255,0.11)",
+            background: "#25252c",
             overflow: "hidden",
             display: "flex",
             flexDirection: "column",
@@ -2510,7 +2510,7 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
               alignItems: "center",
               justifyContent: "space-between",
               padding: isMobile ? "10px 12px" : "14px 20px",
-              borderBottom: "1px solid rgba(255,255,255,0.06)",
+              borderBottom: "1px solid rgba(255,255,255,0.11)",
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
@@ -2558,7 +2558,7 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
             <div
               style={{
                 padding: "6px 20px",
-                borderBottom: "1px solid rgba(255,255,255,0.04)",
+                borderBottom: "1px solid rgba(255,255,255,0.13)",
                 background: "rgba(99,102,241,0.04)",
                 fontSize: 11,
                 color: "#6366f1",
@@ -2624,7 +2624,7 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
                       style={{
                         height: 48,
                         borderRadius: 16,
-                        background: "rgba(255,255,255,0.05)",
+                        background: "rgba(255,255,255,0.09)",
                         width: `${40 + i * 15}%`,
                         animation: "pulse 1.5s ease-in-out infinite",
                       }}
@@ -2666,7 +2666,7 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
                           msg.role === "user"
                             ? {
                                 background: "#1e293b",
-                                border: "1px solid rgba(255,255,255,0.08)",
+                                border: "1px solid rgba(255,255,255,0.13)",
                                 borderRadius: "18px 18px 4px 18px",
                                 padding: "10px 16px",
                                 fontSize: 14,
@@ -2674,11 +2674,11 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
                                 lineHeight: 1.6,
                               }
                             : {
-                                background: "#13131a",
+                                background: "#25252c",
                                 borderLeft: "3px solid #6366f1",
-                                borderTop: "1px solid rgba(255,255,255,0.06)",
-                                borderRight: "1px solid rgba(255,255,255,0.06)",
-                                borderBottom: "1px solid rgba(255,255,255,0.06)",
+                                borderTop: "1px solid rgba(255,255,255,0.11)",
+                                borderRight: "1px solid rgba(255,255,255,0.11)",
+                                borderBottom: "1px solid rgba(255,255,255,0.11)",
                                 borderRadius: "4px 18px 18px 18px",
                                 padding: "12px 16px",
                                 fontSize: 14,
@@ -2713,9 +2713,9 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
                         display: "flex",
                         alignItems: "center",
                         gap: 8,
-                        background: "#13131a",
+                        background: "#25252c",
                         borderLeft: "3px solid #6366f1",
-                        border: "1px solid rgba(255,255,255,0.06)",
+                        border: "1px solid rgba(255,255,255,0.11)",
                         borderRadius: "4px 18px 18px 18px",
                         padding: "10px 16px",
                       }}

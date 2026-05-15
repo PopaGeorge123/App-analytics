@@ -87,7 +87,7 @@ function ModuleCard({
   bullets: string[];
 }) {
   return (
-    <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-7 md:p-9">
+    <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 p-7 md:p-9">
       <div className="flex items-start gap-5 mb-6">
         <div
           className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border"
@@ -248,7 +248,7 @@ export default function LearnPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#13131f] text-[#f8f8fc]">
+    <div className="min-h-screen bg-[#252531] text-[#f8f8fc]">
       <Nav />
 
       {/* ── HERO ──────────────────────────────────────────────────────────── */}
@@ -272,7 +272,7 @@ export default function LearnPage() {
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <a
               href="/signup"
-              className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-6 py-3 font-mono text-sm font-semibold uppercase tracking-wider text-[#13131f] transition-all hover:bg-[#00bfa0] hover:shadow-[0_0_30px_rgba(0,212,170,0.3)]"
+              className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-6 py-3 font-mono text-sm font-semibold uppercase tracking-wider text-[#252531] transition-all hover:bg-[#00bfa0] hover:shadow-[0_0_30px_rgba(0,212,170,0.3)]"
             >
               Start free — 7 day trial
               <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -290,7 +290,7 @@ export default function LearnPage() {
       </section>
 
       {/* ── TABLE OF CONTENTS ─────────────────────────────────────────────── */}
-      <section className="border-y border-[#363650] bg-[#1c1c2a]/40 px-6 py-8">
+      <section className="border-y border-[#363650] bg-[#2e2e3c]/40 px-6 py-8">
         <div className="mx-auto max-w-4xl">
           <p className="font-mono text-[10px] uppercase tracking-widest text-[#8585aa] mb-4 text-center">
             On this page
@@ -395,7 +395,7 @@ export default function LearnPage() {
             ))}
           </div>
 
-          <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-6">
+          <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 p-6">
             <p className="text-sm text-[#bcbcd8] leading-relaxed">
               <strong className="text-[#f8f8fc]">The core insight behind Fold:</strong> The problem
               isn&apos;t that founders don&apos;t care about their data. The problem is that gathering
@@ -460,7 +460,7 @@ export default function LearnPage() {
             ].map((card) => (
               <div
                 key={card.title}
-                className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-5"
+                className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 p-5"
               >
                 <h3 className="font-mono text-sm font-bold text-[#f8f8fc] mb-2">{card.title}</h3>
                 <p className="text-sm text-[#bcbcd8] leading-relaxed mb-3">{card.description}</p>
@@ -473,7 +473,7 @@ export default function LearnPage() {
             ))}
           </div>
 
-          <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-6">
+          <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 p-6">
             <p className="font-mono text-xs font-semibold uppercase tracking-widest text-[#8585aa] mb-3">
               Fold is probably NOT right for you if…
             </p>
@@ -627,7 +627,7 @@ export default function LearnPage() {
                 return (
                   <div
                     key={integration.id}
-                    className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-6"
+                    className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 p-6"
                   >
                     <div className="flex items-start gap-4 mb-4">
                       <div
@@ -698,7 +698,7 @@ export default function LearnPage() {
                 Coming soon — {soonIntegrations.length} more
               </p>
             </div>
-            <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/40 p-6">
+            <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/40 p-6">
               <p className="text-sm text-[#bcbcd8] mb-5 leading-relaxed">
                 These integrations are in development. They appear as cards in your dashboard so you
                 can see what&apos;s coming, but they don&apos;t connect yet. We ship new integrations
@@ -708,7 +708,7 @@ export default function LearnPage() {
                 {soonIntegrations.map((i) => (
                   <div
                     key={i.id}
-                    className="flex items-center gap-2 rounded-lg border border-[#363650] bg-[#222235] px-3 py-2"
+                    className="flex items-center gap-2 rounded-lg border border-[#363650] bg-[#343447] px-3 py-2"
                   >
                     <div
                       className="h-6 w-6 flex items-center justify-center rounded overflow-hidden"
@@ -740,7 +740,7 @@ export default function LearnPage() {
           </div>
 
           {/* Categories summary */}
-          <div className="mt-10 rounded-2xl border border-[#363650] bg-[#1c1c2a]/40 p-6">
+          <div className="mt-10 rounded-2xl border border-[#363650] bg-[#2e2e3c]/40 p-6">
             <p className="font-mono text-[10px] uppercase tracking-widest text-[#8585aa] mb-4 text-center">
               Integration categories
             </p>
@@ -753,7 +753,7 @@ export default function LearnPage() {
                 return (
                   <div
                     key={cat}
-                    className="rounded-lg border border-[#363650] bg-[#222235] px-3 py-2 text-center"
+                    className="rounded-lg border border-[#363650] bg-[#343447] px-3 py-2 text-center"
                   >
                     <p className="font-mono text-xs font-semibold text-[#f8f8fc]">{cat}</p>
                     <p className="font-mono text-[9px] text-[#8585aa]">
@@ -814,7 +814,7 @@ export default function LearnPage() {
             ].map((step) => (
               <div
                 key={step.n}
-                className="flex gap-5 rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-6"
+                className="flex gap-5 rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 p-6"
               >
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#a78bfa]/30 bg-[#a78bfa]/8 font-mono text-sm font-bold text-[#a78bfa]">
                   {step.n}
@@ -946,7 +946,7 @@ export default function LearnPage() {
             ].map((item) => (
               <div
                 key={item.title}
-                className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-5"
+                className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 p-5"
               >
                 <div className="flex items-start gap-3 mb-3">
                   <div
@@ -966,7 +966,7 @@ export default function LearnPage() {
             ))}
           </div>
 
-          <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-6">
+          <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 p-6">
             <p className="font-mono text-xs font-semibold uppercase tracking-widest text-[#8585aa] mb-3">
               Infrastructure
             </p>
@@ -999,7 +999,7 @@ export default function LearnPage() {
 
           <div className="grid md:grid-cols-2 gap-6">
             {/* Free plan */}
-            <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-8 flex flex-col">
+            <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 p-8 flex flex-col">
               <p className="font-mono text-xs font-semibold uppercase tracking-widest text-[#8585aa] mb-3">
                 Free trial
               </p>
@@ -1032,7 +1032,7 @@ export default function LearnPage() {
 
             {/* Pro plan */}
             <div className="relative rounded-2xl border border-[#00d4aa]/40 bg-[#00d4aa]/5 shadow-[0_0_60px_rgba(0,212,170,0.08)] p-8 flex flex-col">
-              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full border border-[#00d4aa]/40 bg-[#13131f] px-4 py-1 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#00d4aa]">
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full border border-[#00d4aa]/40 bg-[#252531] px-4 py-1 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#00d4aa]">
                 Pro — Full access
               </div>
               <p className="font-mono text-xs font-semibold uppercase tracking-widest text-[#8585aa] mb-3">
@@ -1063,13 +1063,13 @@ export default function LearnPage() {
                   <Check key={f}>{f}</Check>
                 ))}
               </ul>
-              <CheckoutButton className="block w-full rounded-xl bg-[#00d4aa] py-3 text-center font-mono text-sm font-semibold uppercase tracking-wider text-[#13131f] transition-all hover:bg-[#00bfa0]">
+              <CheckoutButton className="block w-full rounded-xl bg-[#00d4aa] py-3 text-center font-mono text-sm font-semibold uppercase tracking-wider text-[#252531] transition-all hover:bg-[#00bfa0]">
                 Upgrade to Pro
               </CheckoutButton>
             </div>
           </div>
 
-          <div className="mt-6 rounded-2xl border border-[#363650] bg-[#1c1c2a]/40 p-5">
+          <div className="mt-6 rounded-2xl border border-[#363650] bg-[#2e2e3c]/40 p-5">
             <p className="text-sm text-[#bcbcd8] text-center leading-relaxed">
               <strong className="text-[#f8f8fc]">$19/month context:</strong> If Fold saves you just
               1 hour per week of manual reporting, that&apos;s 4 hours/month. At $50/hr consulting
@@ -1133,7 +1133,7 @@ export default function LearnPage() {
             ].map((item) => (
               <div
                 key={item.q}
-                className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-6"
+                className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 p-6"
               >
                 <h3 className="font-mono text-sm font-bold text-[#f8f8fc] mb-2">{item.q}</h3>
                 <p className="text-sm text-[#bcbcd8] leading-relaxed">{item.a}</p>
@@ -1164,7 +1164,7 @@ export default function LearnPage() {
               <div className="flex flex-wrap justify-center gap-4">
                 <a
                   href="/signup"
-                  className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-7 py-3.5 font-mono text-sm font-semibold uppercase tracking-wider text-[#13131f] transition-all hover:bg-[#00bfa0] hover:shadow-[0_0_30px_rgba(0,212,170,0.3)]"
+                  className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-7 py-3.5 font-mono text-sm font-semibold uppercase tracking-wider text-[#252531] transition-all hover:bg-[#00bfa0] hover:shadow-[0_0_30px_rgba(0,212,170,0.3)]"
                 >
                   Get started — it&apos;s free
                   <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>

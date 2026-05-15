@@ -324,7 +324,7 @@ function KpiCard({
 
   return (
     <div
-      className="relative overflow-hidden rounded-2xl border border-[#363650] bg-[#1c1c2a]/70 p-4 sm:p-5 flex flex-col gap-3 transition-all hover:border-[#454560] hover:bg-[#0f0f18]"
+      className="relative overflow-hidden rounded-2xl border border-[#363650] bg-[#2e2e3c]/70 p-4 sm:p-5 flex flex-col gap-3 transition-all hover:border-[#454560] hover:bg-[#21212a]"
     >
       {/* Left accent bar — green/amber/red based on trend status */}
       <div
@@ -337,11 +337,11 @@ function KpiCard({
       </div>
       {value === null ? (
         <div className="flex flex-col gap-2">
-          <p className="font-mono text-2xl font-bold text-[#58588a]">—</p>
+          <p className="font-mono text-2xl font-bold text-[#7575a0]">—</p>
           {connectLabel && connectHref ? (
             <a
               href={connectHref}
-              className="inline-flex items-center gap-1.5 self-start rounded-lg border border-[#363650] bg-[#222235]/60 px-2.5 py-1.5 font-mono text-[10px] font-semibold text-[#8585aa] hover:border-[#00d4aa]/40 hover:text-[#00d4aa] transition-all"
+              className="inline-flex items-center gap-1.5 self-start rounded-lg border border-[#363650] bg-[#343447]/60 px-2.5 py-1.5 font-mono text-[10px] font-semibold text-[#8585aa] hover:border-[#00d4aa]/40 hover:text-[#00d4aa] transition-all"
             >
               <svg width="9" height="9" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 4.5v15m7.5-7.5h-15" />
@@ -349,7 +349,7 @@ function KpiCard({
               {connectLabel}
             </a>
           ) : (
-            <p className="font-mono text-[11px] text-[#58588a]">Not connected</p>
+            <p className="font-mono text-[11px] text-[#7575a0]">Not connected</p>
           )}
         </div>
       ) : (
@@ -363,7 +363,7 @@ function KpiCard({
           {trend && <TrendBadge current={trend.current} prev={trend.prev} />}
           {sub && <p className="font-mono text-[11px] text-[#8585aa] leading-snug">{sub}</p>}
           {trend && trendPct(trend.current, trend.prev) !== null && (
-            <p className="font-mono text-[9px] text-[#58588a]">vs prev 7 days</p>
+            <p className="font-mono text-[9px] text-[#7575a0]">vs prev 7 days</p>
           )}
         </div>
       )}
@@ -537,7 +537,7 @@ function GoalsWidget({
               placeholder="e.g. 10000"
               value={draft.revenue}
               onChange={(e) => setDraft((d) => ({ ...d, revenue: e.target.value }))}
-              className="flex-1 bg-[#222235] border border-[#363650] rounded-lg px-3 py-1.5 font-mono text-xs text-[#f8f8fc] placeholder:text-[#58588a] focus:outline-none focus:border-[#00d4aa]/30"
+              className="flex-1 bg-[#343447] border border-[#363650] rounded-lg px-3 py-1.5 font-mono text-xs text-[#f8f8fc] placeholder:text-[#7575a0] focus:outline-none focus:border-[#00d4aa]/30"
             />
           </div>
         )}
@@ -549,12 +549,12 @@ function GoalsWidget({
               placeholder="e.g. 20000"
               value={draft.sessions}
               onChange={(e) => setDraft((d) => ({ ...d, sessions: e.target.value }))}
-              className="flex-1 bg-[#222235] border border-[#363650] rounded-lg px-3 py-1.5 font-mono text-xs text-[#f8f8fc] placeholder:text-[#58588a] focus:outline-none focus:border-[#00d4aa]/30"
+              className="flex-1 bg-[#343447] border border-[#363650] rounded-lg px-3 py-1.5 font-mono text-xs text-[#f8f8fc] placeholder:text-[#7575a0] focus:outline-none focus:border-[#00d4aa]/30"
             />
           </div>
         )}
         <div className="flex gap-2">
-          <button onClick={saveGoals} disabled={saving} className="flex-1 rounded-lg bg-[#00d4aa] px-3 py-1.5 font-mono text-xs font-bold text-[#13131f] hover:bg-[#00bfa0] transition disabled:opacity-60">{saving ? "Saving…" : "Save"}</button>
+          <button onClick={saveGoals} disabled={saving} className="flex-1 rounded-lg bg-[#00d4aa] px-3 py-1.5 font-mono text-xs font-bold text-[#252531] hover:bg-[#00bfa0] transition disabled:opacity-60">{saving ? "Saving…" : "Save"}</button>
           <button onClick={() => setEditing(false)} className="rounded-lg border border-[#363650] px-3 py-1.5 font-mono text-xs text-[#8585aa] hover:text-[#bcbcd8] transition">Cancel</button>
         </div>
       </div>
@@ -562,11 +562,11 @@ function GoalsWidget({
   }
 
   return (
-    <div className="rounded-xl border border-[#363650] bg-[#222235] px-4 py-3 space-y-3">
+    <div className="rounded-xl border border-[#363650] bg-[#343447] px-4 py-3 space-y-3">
       <div className="flex items-center justify-between">
         <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Monthly goals</p>
         <div className="flex items-center gap-3">
-          <span className="font-mono text-[9px] text-[#58588a]">{daysLeft}d left</span>
+          <span className="font-mono text-[9px] text-[#7575a0]">{daysLeft}d left</span>
           <button onClick={openEdit} className="font-mono text-[9px] text-[#8585aa] hover:text-[#00d4aa] transition">Edit</button>
         </div>
       </div>
@@ -577,7 +577,7 @@ function GoalsWidget({
             <span className="font-mono text-[11px] font-semibold text-[#bcbcd8]">Revenue</span>
             <span className="font-mono text-[11px]">
               <span className="text-[#f8f8fc] font-bold">{fmt(revenueMonth, "currency", currency)}</span>
-              <span className="text-[#58588a]"> / {fmt(goals.revenueTarget, "currency", currency)}</span>
+              <span className="text-[#7575a0]"> / {fmt(goals.revenueTarget, "currency", currency)}</span>
             </span>
           </div>
           <TrajectoryBar actual={revenueMonth} projected={revProjected} target={goals.revenueTarget} color="#635bff" />
@@ -600,7 +600,7 @@ function GoalsWidget({
             <span className="font-mono text-[11px] font-semibold text-[#bcbcd8]">Sessions</span>
             <span className="font-mono text-[11px]">
               <span className="text-[#f8f8fc] font-bold">{fmt(sessionsMonth)}</span>
-              <span className="text-[#58588a]"> / {fmt(goals.sessionsTarget)}</span>
+              <span className="text-[#7575a0]"> / {fmt(goals.sessionsTarget)}</span>
             </span>
           </div>
           <TrajectoryBar actual={sessionsMonth} projected={sessProjected} target={goals.sessionsTarget} color="#f59e0b" />
@@ -686,7 +686,7 @@ function RevenueOverTimeChart({
   };
 
   return (
-    <div className="rounded-xl border border-[rgba(255,255,255,0.06)] bg-[#13131a] p-4 space-y-3">
+    <div className="rounded-xl border border-[rgba(255,255,255,0.11)] bg-[#13131a] p-4 space-y-3">
       {/* Header row — matches platform chart legend row style */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2.5 flex-wrap">
@@ -714,14 +714,14 @@ function RevenueOverTimeChart({
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <div className="flex items-center gap-0.5 rounded-lg border border-[rgba(255,255,255,0.06)] bg-[#0d0d0f] p-0.5">
+          <div className="flex items-center gap-0.5 rounded-lg border border-[rgba(255,255,255,0.11)] bg-[#1f1f21] p-0.5">
             {REV_RANGES.map((r) => (
               <button
                 key={r.id}
                 onClick={() => setRange(r.id)}
                 className={`rounded-md px-2.5 py-1 font-mono text-[10px] font-semibold transition-all ${
                   range === r.id
-                    ? "bg-[rgba(255,255,255,0.08)] text-[#f8f8fc]"
+                    ? "bg-[rgba(255,255,255,0.13)] text-[#f8f8fc]"
                     : "text-[#64748b] hover:text-[#94a3b8]"
                 }`}
               >
@@ -744,7 +744,7 @@ function RevenueOverTimeChart({
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="text-[#363650]">
             <path d="M3 17l5-5 4 4 9-9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          <p className="font-mono text-[11px] text-[#58588a]">No revenue data in this range</p>
+          <p className="font-mono text-[11px] text-[#7575a0]">No revenue data in this range</p>
         </div>
       ) : (
         <ResponsiveContainer width="100%" height={220} style={{ outline: "none" }}>
@@ -755,7 +755,7 @@ function RevenueOverTimeChart({
                 <stop offset="100%" stopColor="#635bff" stopOpacity={0.01} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.13)" vertical={false} />
             <XAxis
               dataKey="label"
               tick={{ fill: "#64748b", fontSize: 10, fontFamily: "monospace" }}
@@ -778,7 +778,7 @@ function RevenueOverTimeChart({
                   style: "currency", currency, minimumFractionDigits: 2,
                 });
                 return (
-                  <div className="rounded-xl border border-[rgba(255,255,255,0.10)] bg-[#0d0d0f] px-3 py-2.5 shadow-2xl">
+                  <div className="rounded-xl border border-[rgba(255,255,255,0.10)] bg-[#1f1f21] px-3 py-2.5 shadow-2xl">
                     <p className="font-mono text-[10px] text-[#64748b] mb-1.5">{label}</p>
                     <div className="flex items-center gap-2 font-mono text-[11px]">
                       <span className="h-1.5 w-1.5 rounded-full bg-[#635bff]" />
@@ -827,7 +827,7 @@ function OnboardingWizard({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
   const completedCount = 0; // no platforms yet — this component only renders when count === 0
 
   return (
-    <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 overflow-hidden">
+    <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 overflow-hidden">
       {/* Header */}
       <div className="px-6 pt-6 pb-5 border-b border-[#363650]">
         <div className="flex items-center gap-3 mb-1">
@@ -858,7 +858,7 @@ function OnboardingWizard({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
       {/* Steps */}
       <div className="divide-y divide-[#363650]">
         {SETUP_STEPS.map((step) => (
-          <div key={step.id} className="flex items-center gap-4 px-6 py-4 hover:bg-[#222235]/40 transition-colors">
+          <div key={step.id} className="flex items-center gap-4 px-6 py-4 hover:bg-[#343447]/40 transition-colors">
             {/* Step number / check */}
             <div
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
@@ -889,8 +889,8 @@ function OnboardingWizard({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
       </div>
 
       {/* Footer tip */}
-      <div className="px-6 py-3 bg-[#13131f]/40 border-t border-[#363650]">
-        <p className="font-mono text-[10px] text-[#58588a]">
+      <div className="px-6 py-3 bg-[#252531]/40 border-t border-[#363650]">
+        <p className="font-mono text-[10px] text-[#7575a0]">
           💡 Tip: Start with Stripe for the fastest time-to-value. Revenue data backfills automatically up to 18 months.
         </p>
       </div>
@@ -1084,7 +1084,7 @@ export default function OverviewTab({
       else if (pct >= 10) glanceSignals.push({ color: "#00d4aa", label: `↑ Sessions +${pct.toFixed(0)}%` });
     }
     if (hasRevenue) {
-      glanceSignals.push({ color: conversions7 > 0 ? "#00d4aa" : "#58588a", label: `${fmt(conversions7)} conversions` });
+      glanceSignals.push({ color: conversions7 > 0 ? "#00d4aa" : "#7575a0", label: `${fmt(conversions7)} conversions` });
     }
 
     const kpis = [
@@ -1357,7 +1357,7 @@ export default function OverviewTab({
     <div className="w-full space-y-5 sm:space-y-8">
 
       {/* ── Greeting / contextual banner ─────────────────────── */}
-      <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/50 px-4 py-3 sm:px-5 sm:py-4">
+      <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/50 px-4 py-3 sm:px-5 sm:py-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h1 className="font-mono text-lg sm:text-xl font-bold text-[#f8f8fc]">
@@ -1370,7 +1370,7 @@ export default function OverviewTab({
           <div className="flex flex-wrap items-center gap-1.5">
             {glanceSignals.length > 0 ? (
               <>
-                <span className="font-mono text-[9px] uppercase tracking-widest text-[#58588a] mr-0.5 hidden sm:inline">Today</span>
+                <span className="font-mono text-[9px] uppercase tracking-widest text-[#7575a0] mr-0.5 hidden sm:inline">Today</span>
                 {glanceSignals.map((s, i) => (
                   <span
                     key={i}
@@ -1433,7 +1433,7 @@ export default function OverviewTab({
 
       {/* ── Yesterday at a glance ─────────────────────────────── */}
       {isPremium && narrative.hasData && (
-        <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 px-5 py-4">
+        <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 px-5 py-4">
           <div className="flex items-start gap-3">
             <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#00d4aa]/10 text-[#00d4aa]">
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -1443,7 +1443,7 @@ export default function OverviewTab({
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
                 <p className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#00d4aa]">Yesterday</p>
-                <span className="font-mono text-[9px] text-[#58588a]">
+                <span className="font-mono text-[9px] text-[#7575a0]">
                   {new Date(narrative.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
                 </span>
               </div>
@@ -1483,7 +1483,7 @@ export default function OverviewTab({
           <button
             onClick={handleUpgrade}
             disabled={upgradeLoading}
-            className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-[#a78bfa] px-3 py-1.5 font-mono text-[10px] font-bold text-[#13131f] hover:bg-[#9168f0] transition disabled:opacity-50"
+            className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-[#a78bfa] px-3 py-1.5 font-mono text-[10px] font-bold text-[#252531] hover:bg-[#9168f0] transition disabled:opacity-50"
           >
             {upgradeLoading ? "…" : "Upgrade →"}
           </button>
@@ -1521,7 +1521,7 @@ export default function OverviewTab({
                 </svg>
               </div>
               <p className="flex-1 font-mono text-[11px] leading-relaxed" style={{ color: a.color }}>{a.message}</p>
-              <span className="shrink-0 font-mono text-[9px] text-[#58588a] whitespace-nowrap">Auto-detected</span>
+              <span className="shrink-0 font-mono text-[9px] text-[#7575a0] whitespace-nowrap">Auto-detected</span>
             </div>
           ))}
         </div>
@@ -1550,7 +1550,7 @@ export default function OverviewTab({
       <section>
         <div className="flex items-center gap-2 mb-3 sm:mb-4">
           <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Last 7 days</p>
-          <span className="font-mono text-[8px] text-[#58588a] border border-[#363650] rounded px-1.5 py-0.5 hidden sm:inline">▲▼ vs prev 7 days</span>
+          <span className="font-mono text-[8px] text-[#7575a0] border border-[#363650] rounded px-1.5 py-0.5 hidden sm:inline">▲▼ vs prev 7 days</span>
           <div className="flex-1 border-t border-[#363650]" />
           <button
             onClick={() => onNavigate("analytics")}
@@ -1590,7 +1590,7 @@ export default function OverviewTab({
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
 
         {/* Quick Actions */}
-        <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/70 p-4 sm:p-5">
+        <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/70 p-4 sm:p-5">
           <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa] mb-3">Quick Actions</p>
           <div className="space-y-2">
               <GoalsWidget
@@ -1602,7 +1602,7 @@ export default function OverviewTab({
               />
               <button
                 onClick={() => onNavigate("analytics")}
-                className="w-full flex items-center gap-3 rounded-xl border border-[#363650] bg-[#222235] px-3 py-2.5 text-left transition hover:border-[#00d4aa]/25 hover:bg-[#0f1420] group"
+                className="w-full flex items-center gap-3 rounded-xl border border-[#363650] bg-[#343447] px-3 py-2.5 text-left transition hover:border-[#00d4aa]/25 hover:bg-[#0f1420] group"
               >
                 <span className="text-[#8585aa] group-hover:text-[#00d4aa] transition">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
@@ -1617,7 +1617,7 @@ export default function OverviewTab({
               </button>
               <button
                 onClick={() => onNavigate("settings")}
-                className="w-full flex items-center gap-3 rounded-xl border border-[#363650] bg-[#222235] px-3 py-2.5 text-left transition hover:border-[#00d4aa]/25 hover:bg-[#0f1420] group"
+                className="w-full flex items-center gap-3 rounded-xl border border-[#363650] bg-[#343447] px-3 py-2.5 text-left transition hover:border-[#00d4aa]/25 hover:bg-[#0f1420] group"
               >
                 <span className="text-[#8585aa] group-hover:text-[#00d4aa] transition">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
@@ -1650,7 +1650,7 @@ export default function OverviewTab({
           </div>
 
           {/* Recent Activity / Onboarding Stepper */}
-          <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/70 p-4 sm:p-5">
+          <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/70 p-4 sm:p-5">
             <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa] mb-4">Setup Progress</p>
             {activity.length > 0 ? (
               <div className="space-y-3">
@@ -1690,7 +1690,7 @@ export default function OverviewTab({
                           className={`flex h-6 w-6 items-center justify-center rounded-full border-2 transition-colors ${
                             done
                               ? "border-[#00d4aa] bg-[#00d4aa]/15"
-                              : "border-[#363650] bg-[#13131f]"
+                              : "border-[#363650] bg-[#252531]"
                           }`}
                         >
                           {done ? (
@@ -1698,7 +1698,7 @@ export default function OverviewTab({
                               <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                             </svg>
                           ) : (
-                            <span className="font-mono text-[9px] font-bold text-[#58588a]">{i + 1}</span>
+                            <span className="font-mono text-[9px] font-bold text-[#7575a0]">{i + 1}</span>
                           )}
                         </div>
                         {i < arr.length - 1 && (
@@ -1718,7 +1718,7 @@ export default function OverviewTab({
                             <p className={`font-mono text-[11px] font-semibold leading-tight ${done ? "text-[#bcbcd8]" : "text-[#e0e0f0]"}`}>
                               {intg.name}
                             </p>
-                            <p className="font-mono text-[9px] text-[#58588a] truncate">{intg.description}</p>
+                            <p className="font-mono text-[9px] text-[#7575a0] truncate">{intg.description}</p>
                           </div>
                         </div>
                         {done ? (
@@ -1726,7 +1726,7 @@ export default function OverviewTab({
                         ) : (
                           <a
                             href={intg.connectUrl!}
-                            className="shrink-0 inline-flex items-center gap-1 rounded-lg border border-[#363650] bg-[#222235] px-2 py-1 font-mono text-[9px] font-semibold text-[#8585aa] hover:border-[#00d4aa]/30 hover:text-[#00d4aa] transition-all"
+                            className="shrink-0 inline-flex items-center gap-1 rounded-lg border border-[#363650] bg-[#343447] px-2 py-1 font-mono text-[9px] font-semibold text-[#8585aa] hover:border-[#00d4aa]/30 hover:text-[#00d4aa] transition-all"
                           >
                             Connect →
                           </a>
@@ -1750,7 +1750,7 @@ export default function OverviewTab({
 
       {/* ── Integrations (only if not all connected) ──────────── */}
       {!hasAllIntegrations && (
-        <section className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/70 p-4 sm:p-5">
+        <section className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/70 p-4 sm:p-5">
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Integrations</p>
@@ -1765,7 +1765,7 @@ export default function OverviewTab({
               <a
                 key={intg.id}
                 href={intg.connectUrl}
-                className="flex items-center gap-3 rounded-xl border border-[#363650] bg-[#222235] px-4 py-3 transition hover:border-[#00d4aa]/25 hover:bg-[#0f1420] group"
+                className="flex items-center gap-3 rounded-xl border border-[#363650] bg-[#343447] px-4 py-3 transition hover:border-[#00d4aa]/25 hover:bg-[#0f1420] group"
               >
                 <div
                   className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"

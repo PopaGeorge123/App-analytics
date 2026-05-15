@@ -125,7 +125,7 @@ export default function SignupPage() {
   // ── Check-email screen ──────────────────────────────────────────────────
   if (step === "check-email") {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#13131f] px-6 py-24">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#252531] px-6 py-24">
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <div className="h-[500px] w-[500px] rounded-full bg-[#00d4aa]/4 blur-3xl" />
         </div>
@@ -145,7 +145,7 @@ export default function SignupPage() {
           </p>
 
           {/* Tips */}
-          <div className="mt-6 rounded-xl border border-[#1e1e30] bg-[#0d0d18] px-4 py-3 text-left space-y-1.5">
+          <div className="mt-6 rounded-xl border border-[#303042] bg-[#1f1f2a] px-4 py-3 text-left space-y-1.5">
             {[
               "Check your spam / junk folder",
               "The link expires in 24 hours",
@@ -165,7 +165,7 @@ export default function SignupPage() {
               <button
                 onClick={handleResend}
                 disabled={resendLoading || resendCooldown > 0}
-                className="rounded-xl border border-[#2a2a40] px-4 py-2 font-mono text-[11px] font-semibold text-[#8585aa] transition hover:border-[#00d4aa]/30 hover:text-[#00d4aa] disabled:cursor-not-allowed disabled:opacity-40"
+                className="rounded-xl border border-[#3c3c52] px-4 py-2 font-mono text-[11px] font-semibold text-[#8585aa] transition hover:border-[#00d4aa]/30 hover:text-[#00d4aa] disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {resendLoading ? "Sending…" : resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend confirmation email"}
               </button>
@@ -181,7 +181,7 @@ export default function SignupPage() {
 
   // ── Main signup screen ──────────────────────────────────────────────────
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-[#13131f] px-6 py-16">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-[#252531] px-6 py-16">
       {/* Background glows */}
       <div className="pointer-events-none fixed inset-0">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 h-[500px] w-[800px] rounded-full bg-[#00d4aa]/5 blur-3xl" />
@@ -217,12 +217,12 @@ export default function SignupPage() {
                   alt={a.initials}
                   width={24}
                   height={24}
-                  className="h-6 w-6 rounded-full border-2 border-[#13131f] object-cover"
+                  className="h-6 w-6 rounded-full border-2 border-[#252531] object-cover"
                 />
               ) : (
                 <div
                   key={i}
-                  className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-[#13131f] bg-[#363650] font-mono text-[9px] font-bold text-[#00d4aa]"
+                  className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-[#252531] bg-[#363650] font-mono text-[9px] font-bold text-[#00d4aa]"
                 >
                   {a.initials}
                 </div>
@@ -235,7 +235,7 @@ export default function SignupPage() {
         </div>
 
         {/* Card */}
-        <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/90 p-8 shadow-2xl backdrop-blur-md">
+        <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/90 p-8 shadow-2xl backdrop-blur-md">
 
           {/* 3-item value strip */}
           {/* <div className="mb-6 grid grid-cols-3 gap-2">
@@ -244,7 +244,7 @@ export default function SignupPage() {
               { icon: "🤖", label: "AI insights" },
               { icon: "🚨", label: "Anomaly alerts" },
             ].map((item) => (
-              <div key={item.label} className="flex flex-col items-center gap-1 rounded-xl border border-[#363650] bg-[#222235] py-2.5 px-1">
+              <div key={item.label} className="flex flex-col items-center gap-1 rounded-xl border border-[#363650] bg-[#343447] py-2.5 px-1">
                 <span className="text-base">{item.icon}</span>
                 <span className="font-mono text-[9px] font-semibold text-[#8585aa]">{item.label}</span>
               </div>
@@ -262,7 +262,7 @@ export default function SignupPage() {
             type="button"
             onClick={handleGoogleSignUp}
             disabled={oauthLoading || loading}
-            className="mb-4 flex w-full items-center justify-center gap-3 rounded-xl border border-[#363650] bg-[#222235] py-3 font-mono text-sm font-semibold text-[#f8f8fc] transition-all hover:border-[#8585aa] hover:bg-[#2a2a40] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+            className="mb-4 flex w-full items-center justify-center gap-3 rounded-xl border border-[#363650] bg-[#343447] py-3 font-mono text-sm font-semibold text-[#f8f8fc] transition-all hover:border-[#8585aa] hover:bg-[#3c3c52] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {oauthLoading ? (
               <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
@@ -298,7 +298,7 @@ export default function SignupPage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Work email"
               disabled={loading}
-              className="w-full rounded-xl border border-[#363650] bg-[#222235] px-4 py-3 text-sm text-[#f8f8fc] placeholder-[#8585aa] outline-none transition-all focus:border-[#00d4aa]/60 focus:ring-2 focus:ring-[#00d4aa]/20 disabled:opacity-60"
+              className="w-full rounded-xl border border-[#363650] bg-[#343447] px-4 py-3 text-sm text-[#f8f8fc] placeholder-[#8585aa] outline-none transition-all focus:border-[#00d4aa]/60 focus:ring-2 focus:ring-[#00d4aa]/20 disabled:opacity-60"
             />
 
             {/* Password */}
@@ -311,7 +311,7 @@ export default function SignupPage() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Password (8+ characters)"
               disabled={loading}
-              className="w-full rounded-xl border border-[#363650] bg-[#222235] px-4 py-3 text-sm text-[#f8f8fc] placeholder-[#8585aa] outline-none transition-all focus:border-[#00d4aa]/60 focus:ring-2 focus:ring-[#00d4aa]/20 disabled:opacity-60"
+              className="w-full rounded-xl border border-[#363650] bg-[#343447] px-4 py-3 text-sm text-[#f8f8fc] placeholder-[#8585aa] outline-none transition-all focus:border-[#00d4aa]/60 focus:ring-2 focus:ring-[#00d4aa]/20 disabled:opacity-60"
             />
 
             {/* Confirm Password */}
@@ -325,7 +325,7 @@ export default function SignupPage() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Confirm password"
                 disabled={loading}
-                className="w-full rounded-xl border border-[#363650] bg-[#222235] px-4 py-3 text-sm text-[#f8f8fc] placeholder-[#8585aa] outline-none transition-all focus:border-[#00d4aa]/60 focus:ring-2 focus:ring-[#00d4aa]/20 disabled:opacity-60"
+                className="w-full rounded-xl border border-[#363650] bg-[#343447] px-4 py-3 text-sm text-[#f8f8fc] placeholder-[#8585aa] outline-none transition-all focus:border-[#00d4aa]/60 focus:ring-2 focus:ring-[#00d4aa]/20 disabled:opacity-60"
               />
               {confirmPassword.length > 0 && (
                 <p className={`mt-1 font-mono text-[10px] ${password === confirmPassword ? "text-[#00d4aa]" : "text-[#f87171]"}`}>
@@ -345,7 +345,7 @@ export default function SignupPage() {
             <button
               type="submit"
               disabled={loading || !email || !password || !confirmPassword}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#00d4aa] py-3.5 font-mono text-sm font-bold text-[#13131f] transition-all hover:bg-[#00bfa0] hover:shadow-[0_0_28px_rgba(0,212,170,0.3)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#00d4aa] py-3.5 font-mono text-sm font-bold text-[#252531] transition-all hover:bg-[#00bfa0] hover:shadow-[0_0_28px_rgba(0,212,170,0.3)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? (
                 <>

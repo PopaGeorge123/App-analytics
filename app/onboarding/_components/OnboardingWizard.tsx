@@ -43,7 +43,7 @@ function StepBar({ current, onGoTo }: { current: number; onGoTo: (n: 1 | 2 | 3) 
               <div
                 className="flex h-6 w-6 items-center justify-center rounded-full font-mono text-[10px] font-bold transition-all"
                 style={{
-                  backgroundColor: done ? "#00d4aa" : active ? "#00d4aa18" : "#1a1a2e",
+                  backgroundColor: done ? "#00d4aa" : active ? "#00d4aa18" : "#2c2c40",
                   border: active ? "1px solid #00d4aa" : done ? "none" : "1px solid #2d2d44",
                   color: done ? "#090911" : active ? "#00d4aa" : "#3a3a55",
                 }}
@@ -64,7 +64,7 @@ function StepBar({ current, onGoTo }: { current: number; onGoTo: (n: 1 | 2 | 3) 
             {i < STEPS.length - 1 && (
               <div
                 className="flex-1 h-px mx-2 mb-4 transition-all"
-                style={{ backgroundColor: current > s.n ? "#00d4aa40" : "#1e1e30" }}
+                style={{ backgroundColor: current > s.n ? "#00d4aa40" : "#303042" }}
               />
             )}
           </React.Fragment>
@@ -164,7 +164,7 @@ function Step1({
   return (
     <div className="flex min-h-[calc(100vh-57px)]">
       {/* ── Left panel — decorative / context ──────────────────────────── */}
-      <aside className="hidden lg:flex w-105 shrink-0 flex-col justify-between border-r border-[#13131f] bg-[#0b0b14] px-10 py-14">
+      <aside className="hidden lg:flex w-105 shrink-0 flex-col justify-between border-r border-[#252531] bg-[#0b0b14] px-10 py-14">
         <div>
           <div className="mb-10 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#00d4aa]/20 bg-[#00d4aa]/8">
             <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#00d4aa" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
@@ -266,7 +266,7 @@ function Step1({
             {extracting && (
               <div className="mt-4 space-y-2.5">
                 {[80, 60, 90].map((w, i) => (
-                  <div key={i} className="h-3 rounded-full bg-[#13131f] animate-pulse" style={{ width: `${w}%` }} />
+                  <div key={i} className="h-3 rounded-full bg-[#252531] animate-pulse" style={{ width: `${w}%` }} />
                 ))}
               </div>
             )}
@@ -348,14 +348,14 @@ function Step1({
           {/* Manual entry prompt — only shown when URL is empty and no extraction */}
           {!extracted && !description && !extracting && (
             <div className="mt-3 flex items-center gap-2">
-              <div className="h-px flex-1 bg-[#13131f]" />
+              <div className="h-px flex-1 bg-[#252531]" />
               <button
                 onClick={() => { setExtracted(true); }}
                 className="shrink-0 text-[11px] text-[#252535] transition hover:text-[#46466a]"
               >
                 Skip scan — enter description manually
               </button>
-              <div className="h-px flex-1 bg-[#13131f]" />
+              <div className="h-px flex-1 bg-[#252531]" />
             </div>
           )}
 
@@ -384,7 +384,7 @@ function Step1({
             </button>
             <button
               onClick={handleSkip}
-              className="rounded-xl border border-[#161624] px-4 py-3.5 text-[12px] text-[#3a3a55] transition hover:border-[#222235] hover:text-[#58588a]"
+              className="rounded-xl border border-[#161624] px-4 py-3.5 text-[12px] text-[#3a3a55] transition hover:border-[#343447] hover:text-[#58588a]"
             >
               Skip
             </button>
@@ -478,7 +478,7 @@ function Step2({
   return (
     <div className="flex min-h-[calc(100vh-57px)]">
       {/* ── Left panel ─────────────────────────────────────────────────── */}
-      <aside className="hidden lg:flex w-105 shrink-0 flex-col justify-between border-r border-[#13131f] bg-[#0b0b14] px-10 py-14">
+      <aside className="hidden lg:flex w-105 shrink-0 flex-col justify-between border-r border-[#252531] bg-[#0b0b14] px-10 py-14">
         <div>
           <div className="mb-10 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#6366f1]/20 bg-[#6366f1]/8">
             <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#818cf8" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
@@ -671,7 +671,7 @@ function Step2({
               )}
             </button>
           </div>
-          <p className="mt-3 text-center text-[11px] text-[#1e1e2e]">
+          <p className="mt-3 text-center text-[11px] text-[#303040]">
             This data is private — never shared or used for ads
           </p>
         </div>
@@ -764,7 +764,7 @@ export default function OnboardingWizard({
   return (
     <div className="min-h-screen bg-[#090911] text-[#f8f8fc]">
       {/* ── Top bar ───────────────────────────────────────────────────────── */}
-      <header className="border-b border-[#1e1e30] bg-[#0d0d1a]/90 backdrop-blur-sm px-6 py-3.5 sticky top-0 z-30">
+      <header className="border-b border-[#303042] bg-[#1f1f2c]/90 backdrop-blur-sm px-6 py-3.5 sticky top-0 z-30">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
           <a href="/">
             <img src="/fold-primary-dark.svg" alt="Fold" className="h-7 w-auto" />

@@ -51,9 +51,9 @@ export default function DangerZoneTab({ email }: { email: string }) {
       </div>
 
       {/* Export data reminder */}
-      <div className="rounded-xl border border-[#363650] bg-[#1c1c2a]/60 p-5">
+      <div className="rounded-xl border border-[#363650] bg-[#2e2e3c]/60 p-5">
         <div className="flex items-start gap-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#363650] bg-[#222235] text-[#8585aa]">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#363650] bg-[#343447] text-[#8585aa]">
             <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
             </svg>
@@ -122,7 +122,7 @@ export default function DangerZoneTab({ email }: { email: string }) {
             onChange={(e) => setConfirm(e.target.value)}
             placeholder="delete my account"
             disabled={loading}
-            className="w-full rounded-lg border border-[#363650] bg-[#13131f] px-3 py-2.5 font-mono text-sm text-[#f8f8fc] placeholder:text-[#4a4a6a] focus:border-red-500/50 focus:outline-none focus:ring-1 focus:ring-red-500/20 transition-colors disabled:opacity-50"
+            className="w-full rounded-lg border border-[#363650] bg-[#252531] px-3 py-2.5 font-mono text-sm text-[#f8f8fc] placeholder:text-[#4a4a6a] focus:border-red-500/50 focus:outline-none focus:ring-1 focus:ring-red-500/20 transition-colors disabled:opacity-50"
           />
         </div>
 

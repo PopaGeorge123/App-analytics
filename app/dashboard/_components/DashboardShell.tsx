@@ -258,7 +258,7 @@ function NotificationBell() {
     <div ref={ref} className="relative">
       <button
         onClick={() => { setOpen((v) => !v); if (!open) markAllRead(); }}
-        className="relative flex h-8 w-8 items-center justify-center rounded-lg border border-[#363650] bg-[#222235] text-[#8585aa] hover:border-[#454560] hover:text-[#bcbcd8] transition-all"
+        className="relative flex h-8 w-8 items-center justify-center rounded-lg border border-[#363650] bg-[#343447] text-[#8585aa] hover:border-[#454560] hover:text-[#bcbcd8] transition-all"
         aria-label="Notifications"
       >
         <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
@@ -272,7 +272,7 @@ function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 z-50 w-80 rounded-2xl border border-[#363650] bg-[#1c1c2a] shadow-2xl overflow-hidden">
+        <div className="absolute right-0 top-full mt-2 z-50 w-80 rounded-2xl border border-[#363650] bg-[#2e2e3c] shadow-2xl overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-[#363650]">
             <p className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#8585aa]">Notifications</p>
@@ -290,7 +290,7 @@ function NotificationBell() {
           <div className="max-h-80 overflow-y-auto">
             {notifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 text-center px-4">
-                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#222235] text-[#58588a]">
+                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#343447] text-[#58588a]">
                   <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
                   </svg>
@@ -303,7 +303,7 @@ function NotificationBell() {
                 <div
                   key={n.id}
                   className={`flex items-start gap-3 px-4 py-3 border-b border-[#363650]/50 transition-colors ${
-                    n.read ? "opacity-60" : "bg-[#222235]/40"
+                    n.read ? "opacity-60" : "bg-[#343447]/40"
                   }`}
                 >
                   <span
@@ -418,7 +418,7 @@ function UpgradeModal({ tab, onClose }: { tab: Tab; onClose: () => void }) {
 
       {/* Card */}
       <div
-        className="relative w-full max-w-md rounded-2xl border border-[#363650] bg-[#1c1c2a] p-8 shadow-2xl"
+        className="relative w-full max-w-md rounded-2xl border border-[#363650] bg-[#2e2e3c] p-8 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close */}
@@ -465,7 +465,7 @@ function UpgradeModal({ tab, onClose }: { tab: Tab; onClose: () => void }) {
         <button
           onClick={handleCheckout}
           disabled={loading}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#00d4aa] py-3 font-mono text-sm font-bold text-[#13131f] transition hover:bg-[#00bfa0] hover:shadow-[0_0_24px_rgba(0,212,170,0.3)] disabled:opacity-60"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#00d4aa] py-3 font-mono text-sm font-bold text-[#252531] transition hover:bg-[#00bfa0] hover:shadow-[0_0_24px_rgba(0,212,170,0.3)] disabled:opacity-60"
         >
           {loading ? "Redirecting…" : "Start 7-day free trial →"}
         </button>
@@ -613,7 +613,7 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
       {/* ── Sidebar ────────────────────────────────────────── */}
       <aside
         className={`
-          fixed top-14 left-0 z-30 h-[calc(100vh-56px)] w-56 shrink-0 border-r border-[#363650] bg-[#1c1c2a]
+          fixed top-14 left-0 z-30 h-[calc(100vh-56px)] w-56 shrink-0 border-r border-[#363650] bg-[#2e2e3c]
           transform transition-transform duration-200 flex flex-col
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
           lg:relative lg:top-0 lg:h-full lg:translate-x-0 lg:flex
@@ -740,7 +740,7 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
       {/* ── Main content ───────────────────────────────────── */}
       <main className="flex-1 overflow-auto">
         {/* Mobile hamburger */}
-        <div className="flex items-center gap-3 border-b border-[#363650] bg-[#1c1c2a]/60 px-4 py-3 lg:hidden">
+        <div className="flex items-center gap-3 border-b border-[#363650] bg-[#2e2e3c]/60 px-4 py-3 lg:hidden">
           <button
             onClick={() => setSidebarOpen(true)}
             className="rounded-lg p-1.5 text-[#bcbcd8] hover:bg-[#363650] hover:text-[#f8f8fc] transition-colors"
@@ -788,7 +788,7 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
               <button
                 onClick={handleUpgrade}
                 disabled={checkoutLoading}
-                className={`shrink-0 rounded-lg px-3 py-1.5 font-mono text-[10px] font-bold transition disabled:opacity-60 ${trialUrgent ? "bg-red-500 text-white hover:bg-red-600" : "bg-[#f59e0b] text-[#13131f] hover:bg-[#e08a00]"}`}
+                className={`shrink-0 rounded-lg px-3 py-1.5 font-mono text-[10px] font-bold transition disabled:opacity-60 ${trialUrgent ? "bg-red-500 text-white hover:bg-red-600" : "bg-[#f59e0b] text-[#252531] hover:bg-[#e08a00]"}`}
               >
                 {checkoutLoading ? "…" : "Upgrade →"}
               </button>

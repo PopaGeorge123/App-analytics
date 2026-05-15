@@ -138,8 +138,8 @@ function KpiCard({
 }) {
   return (
     <div style={{
-      background: "#13131a", borderRadius: 16,
-      border: "1px solid rgba(255,255,255,0.06)",
+      background: "#25252c", borderRadius: 16,
+      border: "1px solid rgba(255,255,255,0.11)",
       borderTop: `2px solid ${color}`,
       padding: "18px 18px 14px",
       display: "flex", flexDirection: "column", gap: 6,
@@ -235,7 +235,7 @@ export default async function SharePage({ params }: { params: Promise<{ token: s
     <div style={{ ...s, minHeight: "100vh", background: "#09090f", color: "#f8f8fc" }}>
 
       {/* ── Top bar ─────────────────────────────────────────────────────── */}
-      <header style={{ background: "#111118", borderBottom: "1px solid rgba(255,255,255,0.07)", position: "sticky", top: 0, zIndex: 50 }}>
+      <header style={{ background: "#23232a", borderBottom: "1px solid rgba(255,255,255,0.07)", position: "sticky", top: 0, zIndex: 50 }}>
         <div style={{ maxWidth: 900, margin: "0 auto", padding: "12px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
           <Image src="/fold-primary-dark.svg" alt="Fold Analytics" width={100} height={43} style={{ height: 28, width: "auto" }} />
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
@@ -253,9 +253,9 @@ export default async function SharePage({ params }: { params: Promise<{ token: s
         {/* ── Hero header ─────────────────────────────────────────────── */}
         <div style={{ marginBottom: 40 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-            <div style={{ height: 1, flex: 1, background: "rgba(255,255,255,0.06)" }} />
+            <div style={{ height: 1, flex: 1, background: "rgba(255,255,255,0.11)" }} />
             <span style={{ fontFamily: "monospace", fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", color: "#8585aa" }}>Dashboard Snapshot</span>
-            <div style={{ height: 1, flex: 1, background: "rgba(255,255,255,0.06)" }} />
+            <div style={{ height: 1, flex: 1, background: "rgba(255,255,255,0.11)" }} />
           </div>
           <h1 style={{ fontSize: 28, fontWeight: 800, color: "#f8f8fc", margin: "0 0 8px", lineHeight: 1.2 }}>{row.label}</h1>
           <p style={{ fontFamily: "monospace", fontSize: 11, color: "#8585aa", margin: "0 0 14px" }}>
@@ -282,7 +282,7 @@ export default async function SharePage({ params }: { params: Promise<{ token: s
 
             {/* 30-day bar chart */}
             {revSpark.length > 0 && (
-              <div style={{ background: "#13131a", borderRadius: 16, border: "1px solid rgba(255,255,255,0.06)", padding: "20px 20px 12px", marginBottom: 16 }}>
+              <div style={{ background: "#25252c", borderRadius: 16, border: "1px solid rgba(255,255,255,0.11)", padding: "20px 20px 12px", marginBottom: 16 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}>
                   <span style={{ fontFamily: "monospace", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "#8585aa" }}>Revenue — 30-day trend</span>
                   <span style={{ fontFamily: "monospace", fontSize: 11, color: "#00d4aa", fontWeight: 700 }}>{fmtCents(stripe!.rev30)} total</span>
@@ -345,7 +345,7 @@ export default async function SharePage({ params }: { params: Promise<{ token: s
             />
 
             {sessSpark.length > 0 && (
-              <div style={{ background: "#13131a", borderRadius: 16, border: "1px solid rgba(255,255,255,0.06)", padding: "20px 20px 12px", marginBottom: 16 }}>
+              <div style={{ background: "#25252c", borderRadius: 16, border: "1px solid rgba(255,255,255,0.11)", padding: "20px 20px 12px", marginBottom: 16 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}>
                   <span style={{ fontFamily: "monospace", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "#8585aa" }}>Sessions — 30-day trend</span>
                   <span style={{ fontFamily: "monospace", fontSize: 11, color: "#6366f1", fontWeight: 700 }}>{fmtNum(ga4!.sessions30)} total</span>
@@ -406,7 +406,7 @@ export default async function SharePage({ params }: { params: Promise<{ token: s
             />
 
             {adSpark.length > 0 && adSpark.some((v) => v > 0) && (
-              <div style={{ background: "#13131a", borderRadius: 16, border: "1px solid rgba(255,255,255,0.06)", padding: "20px 20px 12px", marginBottom: 16 }}>
+              <div style={{ background: "#25252c", borderRadius: 16, border: "1px solid rgba(255,255,255,0.11)", padding: "20px 20px 12px", marginBottom: 16 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}>
                   <span style={{ fontFamily: "monospace", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "#8585aa" }}>Ad Spend — 30-day trend</span>
                   <span style={{ fontFamily: "monospace", fontSize: 11, color: "#f59e0b", fontWeight: 700 }}>{fmtUSD(meta!.adSpend30)} total</span>
@@ -451,7 +451,7 @@ export default async function SharePage({ params }: { params: Promise<{ token: s
 
         {/* ── No data fallback ─────────────────────────────────────────── */}
         {!hasStripe && !hasGa4 && !hasMeta && (
-          <div style={{ textAlign: "center", padding: "64px 0", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 20, background: "#13131a" }}>
+          <div style={{ textAlign: "center", padding: "64px 0", border: "1px solid rgba(255,255,255,0.11)", borderRadius: 20, background: "#25252c" }}>
             <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="#8585aa" strokeWidth={1.5} style={{ margin: "0 auto 12px" }}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
             </svg>
@@ -483,7 +483,7 @@ export default async function SharePage({ params }: { params: Promise<{ token: s
             <a href="https://foldanalytics.com/signup" style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "#00d4aa", color: "#0a0f0d", fontFamily: "monospace", fontWeight: 800, fontSize: 13, padding: "13px 32px", borderRadius: 12, textDecoration: "none" }}>
               Start free trial →
             </a>
-            <a href="https://foldanalytics.com" style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.06)", color: "#f8f8fc", fontFamily: "monospace", fontWeight: 700, fontSize: 13, padding: "13px 24px", borderRadius: 12, textDecoration: "none", border: "1px solid rgba(255,255,255,0.1)" }}>
+            <a href="https://foldanalytics.com" style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.11)", color: "#f8f8fc", fontFamily: "monospace", fontWeight: 700, fontSize: 13, padding: "13px 24px", borderRadius: 12, textDecoration: "none", border: "1px solid rgba(255,255,255,0.1)" }}>
               Learn more
             </a>
           </div>
@@ -492,7 +492,7 @@ export default async function SharePage({ params }: { params: Promise<{ token: s
       </main>
 
       {/* ── Footer ───────────────────────────────────────────────────────── */}
-      <footer style={{ borderTop: "1px solid rgba(255,255,255,0.06)", padding: "20px 24px", textAlign: "center" }}>
+      <footer style={{ borderTop: "1px solid rgba(255,255,255,0.11)", padding: "20px 24px", textAlign: "center" }}>
         <p style={{ fontFamily: "monospace", fontSize: 9, color: "#58588a" }}>
           Powered by <strong style={{ color: "#00d4aa" }}>Fold Analytics</strong> · This link expires {expiresAt} · Shared by {payload.generatedBy}
         </p>

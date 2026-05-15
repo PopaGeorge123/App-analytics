@@ -129,10 +129,10 @@ function HeroStrip({
 
   return (
     <div
-      className="rounded-xl border border-[rgba(255,255,255,0.06)] bg-[#13131a] overflow-hidden"
+      className="rounded-xl border border-[rgba(255,255,255,0.11)] bg-[#25252c] overflow-hidden"
       style={{ borderLeftColor: accentColor, borderLeftWidth: 4 }}
     >
-      <div className="flex flex-wrap divide-x divide-[rgba(255,255,255,0.05)]">
+      <div className="flex flex-wrap divide-x divide-[rgba(255,255,255,0.09)]">
         {metrics.map((m, i) => (
           <div key={i} className="flex-1 min-w-[6.875rem] px-4 py-3">
             <p className="font-mono text-[9px] uppercase tracking-widest text-[#64748b] mb-1.5 flex items-center gap-1">
@@ -164,7 +164,7 @@ function HeroStrip({
         ))}
       </div>
       {summary && (
-        <div className="border-t border-[rgba(255,255,255,0.05)] px-4 py-2.5">
+        <div className="border-t border-[rgba(255,255,255,0.09)] px-4 py-2.5">
           <p className="text-[11px] italic text-[#64748b] leading-relaxed">{summary}</p>
         </div>
       )}
@@ -204,7 +204,7 @@ function PlatformAreaChart({
     s.formatter ? s.formatter(v) : fmt(v);
 
   return (
-    <div className="rounded-xl border border-[rgba(255,255,255,0.06)] bg-[#13131a] p-4 space-y-3">
+    <div className="rounded-xl border border-[rgba(255,255,255,0.11)] bg-[#13131a] p-4 space-y-3">
       <div className="flex flex-wrap gap-2">
         {series.map((s) => (
           <button
@@ -214,7 +214,7 @@ function PlatformAreaChart({
             style={
               enabled[s.key]
                 ? { backgroundColor: `${s.color}15`, color: s.color, borderColor: `${s.color}30` }
-                : { backgroundColor: "transparent", color: "#64748b", borderColor: "rgba(255,255,255,0.06)" }
+                : { backgroundColor: "transparent", color: "#64748b", borderColor: "rgba(255,255,255,0.11)" }
             }
           >
             <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: enabled[s.key] ? s.color : "#64748b" }} />
@@ -232,7 +232,7 @@ function PlatformAreaChart({
               </linearGradient>
             ))}
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.13)" vertical={false} />
           <XAxis
             dataKey="period"
             tick={{ fill: "#64748b", fontSize: 10, fontFamily: "monospace" }}
@@ -260,7 +260,7 @@ function PlatformAreaChart({
             content={({ active, payload, label }) => {
               if (!active || !payload?.length) return null;
               return (
-                <div className="rounded-xl border border-[rgba(255,255,255,0.10)] bg-[#0d0d0f] px-3 py-2.5 shadow-2xl">
+                <div className="rounded-xl border border-[rgba(255,255,255,0.10)] bg-[#0f0f16] px-3 py-2.5 shadow-2xl">
                   <p className="font-mono text-[10px] text-[#64748b] mb-1.5">{label}</p>
                   {payload.map((p) => {
                     const ser = series.find((s) => s.key === p.dataKey);
@@ -453,7 +453,7 @@ function SparkTooltip({ active, payload, formatter }: SparkTooltipProps) {
   if (!active || !payload?.length) return null;
   const val = payload[0].value;
   return (
-    <div className="rounded-lg border border-[#363650] bg-[#13131f] px-2.5 py-1.5 shadow-2xl">
+    <div className="rounded-lg border border-[#363650] bg-[#0f0f16] px-2.5 py-1.5 shadow-2xl">
       <p className="font-mono text-[11px] font-bold text-[#f8f8fc]">
         {formatter ? formatter(val) : val.toLocaleString("en-US", { maximumFractionDigits: 0 })}
       </p>
@@ -610,12 +610,12 @@ function StatCard({
     <div
       onClick={() => canExpand && setActive(isExpanded ? null : label)}
       className={[
-        "relative overflow-hidden rounded-xl border bg-[#222235] flex flex-col transition-all duration-300 ease-in-out",
+        "relative overflow-hidden rounded-xl border bg-[#343447] flex flex-col transition-all duration-300 ease-in-out",
         isExpanded
-          ? "col-span-full border-[#454560] bg-[#1a1a2e] p-5 gap-4"
+          ? "col-span-full border-[#454560] bg-[#2c2c40] p-5 gap-4"
           : "p-5 gap-3 border-[#363650]",
         !isExpanded && !isOtherExpanded
-          ? "hover:border-[#454560] hover:bg-[#1c1c2a]"
+          ? "hover:border-[#454560] hover:bg-[#2e2e3c]"
           : "",
         isOtherExpanded
           ? "opacity-40 scale-[0.97] pointer-events-none"
@@ -645,7 +645,7 @@ function StatCard({
           {isExpanded && (
             <button
               onClick={(e) => { e.stopPropagation(); setActive(null); }}
-              className="rounded-lg p-1 text-[#5a5a7a] hover:text-[#bcbcd8] hover:bg-[#222235] transition-colors"
+              className="rounded-lg p-1 text-[#5a5a7a] hover:text-[#bcbcd8] hover:bg-[#343447] transition-colors"
               title="Collapse"
             >
               <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
@@ -669,7 +669,7 @@ function StatCard({
           style={{ maxHeight: isExpanded ? 380 : 0, opacity: isExpanded ? 1 : 0 }}
         >
           {/* stats strip */}
-          <div className="grid grid-cols-3 sm:grid-cols-4 mb-4 rounded-lg border border-[#1e1e2e] divide-x divide-[#1e1e2e] overflow-hidden">
+          <div className="grid grid-cols-3 sm:grid-cols-4 mb-4 rounded-lg border border-[#303040] divide-x divide-[#303040] overflow-hidden">
             {[
               { lbl: isGauge ? "Current" : "Total",   val: fmtVal(isGauge ? current : total) },
               { lbl: isGauge ? "Peak" : "Average",    val: fmtVal(isGauge ? peak : avg) },
@@ -694,7 +694,7 @@ function StatCard({
                   <stop offset="100%" stopColor={accent} stopOpacity={0.03} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e1e2e" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#303040" vertical={false} />
               <XAxis
                 dataKey="lbl"
                 tick={{ fill: "#5a5a7a", fontSize: 10, fontFamily: "monospace" }}
@@ -710,7 +710,7 @@ function StatCard({
                 content={({ active: a, payload, label: lbl }) => {
                   if (!a || !payload?.length) return null;
                   return (
-                    <div className="rounded-lg border border-[#363650] bg-[#13131f] px-3 py-2 shadow-2xl">
+                    <div className="rounded-lg border border-[#363650] bg-[#0f0f16] px-3 py-2 shadow-2xl">
                       <p className="font-mono text-[10px] text-[#8585aa] mb-0.5">{lbl}</p>
                       <p className="font-mono text-sm font-bold" style={{ color: accent }}>
                         {fmtVal(payload[0].value as number)}
@@ -731,7 +731,7 @@ function StatCard({
             </AreaChart>
           </ResponsiveContainer>
           <p className="mt-2 font-mono text-[10px] text-[#3a3a5a] text-right">
-            click card or press <kbd className="rounded px-1 py-0.5 bg-[#1e1e2e] text-[#5a5a7a]">Esc</kbd> to collapse
+            click card or press <kbd className="rounded px-1 py-0.5 bg-[#303040] text-[#5a5a7a]">Esc</kbd> to collapse
           </p>
         </div>
       ) : (
@@ -886,7 +886,7 @@ function DateRangePicker({
         className={`flex items-center gap-2 rounded-xl border px-3 py-1.5 font-mono text-[11px] font-semibold transition-all ${
           customRange
             ? "border-[#00d4aa]/40 bg-[#00d4aa]/10 text-[#00d4aa]"
-            : "border-[#363650] bg-[#1c1c2a] text-[#8585aa] hover:text-[#bcbcd8]"
+            : "border-[#363650] bg-[#2e2e3c] text-[#8585aa] hover:text-[#bcbcd8]"
         }`}
       >
         {/* calendar icon */}
@@ -904,7 +904,7 @@ function DateRangePicker({
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-2 z-50 w-72 rounded-2xl border border-[#363650] bg-[#1c1c2a] p-5 shadow-2xl">
+        <div className="absolute left-0 top-full mt-2 z-50 w-72 rounded-2xl border border-[#363650] bg-[#2e2e3c] p-5 shadow-2xl">
           <p className="mb-4 font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Custom Date Range</p>
 
           <div className="space-y-3">
@@ -915,7 +915,7 @@ function DateRangePicker({
                 value={from}
                 max={to || new Date().toISOString().slice(0, 10)}
                 onChange={(e) => setFrom(e.target.value)}
-                className="w-full rounded-lg border border-[#363650] bg-[#222235] px-3 py-2 font-mono text-[12px] text-[#f8f8fc] outline-none focus:border-[#00d4aa]/40 transition-colors scheme-dark"
+                className="w-full rounded-lg border border-[#363650] bg-[#343447] px-3 py-2 font-mono text-[12px] text-[#f8f8fc] outline-none focus:border-[#00d4aa]/40 transition-colors scheme-dark"
               />
             </div>
             <div>
@@ -926,7 +926,7 @@ function DateRangePicker({
                 min={from}
                 max={new Date().toISOString().slice(0, 10)}
                 onChange={(e) => setTo(e.target.value)}
-                className="w-full rounded-lg border border-[#363650] bg-[#222235] px-3 py-2 font-mono text-[12px] text-[#f8f8fc] outline-none focus:border-[#00d4aa]/40 transition-colors scheme-dark"
+                className="w-full rounded-lg border border-[#363650] bg-[#343447] px-3 py-2 font-mono text-[12px] text-[#f8f8fc] outline-none focus:border-[#00d4aa]/40 transition-colors scheme-dark"
               />
             </div>
           </div>
@@ -935,7 +935,7 @@ function DateRangePicker({
             <button
               onClick={apply}
               disabled={!from || !to || from > to}
-              className="flex-1 rounded-lg bg-[#00d4aa] px-3 py-2 font-mono text-[11px] font-bold text-[#13131f] transition hover:bg-[#00bfa0] disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex-1 rounded-lg bg-[#00d4aa] px-3 py-2 font-mono text-[11px] font-bold text-[#252531] transition hover:bg-[#00bfa0] disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Apply
             </button>
@@ -1011,7 +1011,7 @@ function AnalyticsControls({
   return (
     <div className="flex flex-wrap items-center gap-2 mb-4 sm:mb-6">
       {/* Time range pills */}
-      <div className="flex items-center gap-1 rounded-xl border border-[#363650] bg-[#1c1c2a] p-1">
+      <div className="flex items-center gap-1 rounded-xl border border-[#363650] bg-[#2e2e3c] p-1">
         {TIME_RANGES.map((tr) => (
           <button
             key={tr.id}
@@ -1039,7 +1039,7 @@ function AnalyticsControls({
       {/* View by pills */}
       <div className="flex items-center gap-2">
         <span className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">View by</span>
-        <div className="flex items-center gap-1 rounded-xl border border-[#363650] bg-[#1c1c2a] p-1">
+        <div className="flex items-center gap-1 rounded-xl border border-[#363650] bg-[#2e2e3c] p-1">
           {availableGrans.map((g) => (
             <button
               key={g}
@@ -1094,8 +1094,8 @@ function SmartTable({ rows, title = "Period breakdown" }: { rows: SmartRow[]; ti
   const sorted = [...rows]; // oldest first (same order as input)
 
   function deltaClass(delta: number | null) {
-    if (delta === null) return "text-[#58588a]";
-    return delta > 0 ? "text-[#00d4aa]" : delta < 0 ? "text-[#f87171]" : "text-[#58588a]";
+    if (delta === null) return "text-[#7575a0]";
+    return delta > 0 ? "text-[#00d4aa]" : delta < 0 ? "text-[#f87171]" : "text-[#7575a0]";
   }
   function deltaStr(delta: number | null) {
     if (delta === null) return "";
@@ -1117,11 +1117,11 @@ function SmartTable({ rows, title = "Period breakdown" }: { rows: SmartRow[]; ti
   const displayed = [...sorted].reverse(); // newest first
 
   return (
-    <div className="rounded-xl border border-[#1e1e2e] overflow-hidden">
+    <div className="rounded-xl border border-[#303040] overflow-hidden">
       {/* Toggle header */}
       <button
         onClick={() => setOpen((s) => !s)}
-        className="w-full flex items-center justify-between px-4 py-3 bg-[#0f0f14] hover:bg-[#111118] transition-colors"
+        className="w-full flex items-center justify-between px-4 py-3 bg-[#212126] hover:bg-[#23232a] transition-colors"
       >
         <span className="font-mono text-[9px] uppercase tracking-widest text-[#5a5a7a]">{title}</span>
         <div className="flex items-center gap-2">
@@ -1137,7 +1137,7 @@ function SmartTable({ rows, title = "Period breakdown" }: { rows: SmartRow[]; ti
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-[#1e1e2e] bg-[#0c0c12]">
+              <tr className="border-b border-[#303040] bg-[#0c0c12]">
                 <th className="px-4 py-2.5 font-mono text-[9px] uppercase tracking-widest text-[#3a3a5a]">Period</th>
                 {rows[0].cells.map((c) => (
                   <th key={c.label} colSpan={2} className="px-3 py-2.5 font-mono text-[9px] uppercase tracking-widest text-[#3a3a5a]">{c.label}</th>
@@ -1156,10 +1156,10 @@ function SmartTable({ rows, title = "Period breakdown" }: { rows: SmartRow[]; ti
                 return (
                   <tr
                     key={row.period}
-                    className={`border-b border-[#1e1e2e]/60 ${
+                    className={`border-b border-[#303040]/60 ${
                       isBest  ? "bg-[#00d4aa]/4" :
                       isWorst ? "bg-[#f87171]/3" :
-                      di % 2 === 0 ? "bg-[#0f0f14]/60" : ""
+                      di % 2 === 0 ? "bg-[#212126]/60" : ""
                     }`}
                   >
                     <td className="px-4 py-2 font-mono text-[11px] text-[#6a6a8a] whitespace-nowrap">
@@ -1194,7 +1194,7 @@ function SmartTable({ rows, title = "Period breakdown" }: { rows: SmartRow[]; ti
             </tbody>
           </table>
           {/* Legend */}
-          <div className="flex items-center gap-4 px-4 py-2 bg-[#0c0c12] border-t border-[#1e1e2e]">
+          <div className="flex items-center gap-4 px-4 py-2 bg-[#0c0c12] border-t border-[#303040]">
             <span className="flex items-center gap-1.5 font-mono text-[9px] text-[#3a3a5a]">
               <span className="w-1.5 h-1.5 rounded-full bg-[#00d4aa]" /> Best period
             </span>
@@ -1254,14 +1254,14 @@ function InsightBadge({ severity }: { severity: InsightSeverity }) {
 function PlatformInsights({ insights }: { insights: PlatformInsight[] }) {
   if (!insights.length) return null;
   return (
-    <div className="rounded-xl border border-[#1e1e2e] bg-[#0c0c12] overflow-hidden">
-      <div className="px-4 py-2.5 border-b border-[#1e1e2e] flex items-center gap-2">
+    <div className="rounded-xl border border-[#303040] bg-[#0c0c12] overflow-hidden">
+      <div className="px-4 py-2.5 border-b border-[#303040] flex items-center gap-2">
         <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="#5a5a7a" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
           <path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 017 7c0 2.38-1.19 4.47-3 5.74V17a1 1 0 01-1 1H9a1 1 0 01-1-1v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 017-7z"/>
         </svg>
         <span className="font-mono text-[9px] uppercase tracking-widest text-[#3a3a5a]">Insights</span>
       </div>
-      <div className="divide-y divide-[#1a1a28]">
+      <div className="divide-y divide-[#2c2c3a]">
         {insights.map((ins, i) => (
           <div key={i} className="flex items-start gap-3 px-4 py-3">
             <InsightBadge severity={ins.severity} />
@@ -1388,12 +1388,12 @@ function PeriodCompare({
       </div>
       <div className="flex items-center gap-4 ml-auto shrink-0">
         <div className="text-right">
-          <p className="font-mono text-[9px] text-[#58588a] uppercase tracking-widest">First half</p>
+          <p className="font-mono text-[9px] text-[#7575a0] uppercase tracking-widest">First half</p>
           <p className="font-mono text-xs font-semibold text-[#bcbcd8]">{fmtVal(prev)}</p>
         </div>
         <div className="font-mono text-[#363650]">→</div>
         <div className="text-right">
-          <p className="font-mono text-[9px] text-[#58588a] uppercase tracking-widest">Second half</p>
+          <p className="font-mono text-[9px] text-[#7575a0] uppercase tracking-widest">Second half</p>
           <p className="font-mono text-xs font-semibold text-[#f8f8fc]">{fmtVal(curr)}</p>
         </div>
       </div>
@@ -1654,7 +1654,7 @@ export function FunnelSection({ snapshots, connectedPlatforms, currencies = {} }
   const showROAS   = hasAds && hasRevenue && adSpend > 0 && revenue > 0 && allCurrenciesMatch;
 
   return (
-    <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-5 space-y-4">
+    <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 p-5 space-y-4">
       <div className="flex items-center gap-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#a78bfa]/10 text-[#a78bfa]">
           <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -1673,7 +1673,7 @@ export function FunnelSection({ snapshots, connectedPlatforms, currencies = {} }
 
       {/* Analytics primary source note (when multiple analytics connected) */}
       {connAnalytics.length > 1 && primaryAnalytics && (
-        <div className="flex items-center gap-2 rounded-lg border border-[#363650] bg-[#1c1c2a] px-3 py-2">
+        <div className="flex items-center gap-2 rounded-lg border border-[#363650] bg-[#2e2e3c] px-3 py-2">
           <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="#8585aa" strokeWidth={2}>
             <circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/>
           </svg>
@@ -1716,7 +1716,7 @@ export function FunnelSection({ snapshots, connectedPlatforms, currencies = {} }
                     {stage.displayValue}
                   </span>
                 </div>
-                <span className="font-mono text-[9px] text-[#58588a] w-32 shrink-0 truncate">{stage.sub}</span>
+                <span className="font-mono text-[9px] text-[#7575a0] w-32 shrink-0 truncate">{stage.sub}</span>
               </div>
             </div>
           );
@@ -1725,7 +1725,7 @@ export function FunnelSection({ snapshots, connectedPlatforms, currencies = {} }
 
       {/* ROAS / efficiency summary */}
       {showROAS && (
-        <div className="flex items-center gap-6 rounded-xl border border-[#363650] bg-[#222235] px-4 py-3">
+        <div className="flex items-center gap-6 rounded-xl border border-[#363650] bg-[#343447] px-4 py-3">
           <div>
             <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">ROAS</p>
             <p className="font-mono text-base font-bold text-[#f8f8fc]">{((revenue / 100) / adSpend).toFixed(2)}×</p>
@@ -1759,7 +1759,7 @@ export function FunnelSection({ snapshots, connectedPlatforms, currencies = {} }
         </div>
       )}
 
-      <p className="font-mono text-[9px] text-[#58588a]">
+      <p className="font-mono text-[9px] text-[#7575a0]">
         {connAds.length > 1 ? `Ad spend summed across ${connAds.join(", ")}. ` : ""}
         {connRevenue.length > 1 ? `Revenue summed across ${connRevenue.join(", ")}. ` : ""}
         Full-funnel view across the selected time range.
@@ -1850,7 +1850,7 @@ function MRRBenchmarks({ currentMRR, mrrSeries, churnRate, arpu, currency }: {
     s === "above" ? "#00d4aa" : s === "on" ? "#f59e0b" : "#f87171";
 
   return (
-    <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-5 space-y-4">
+    <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 p-5 space-y-4">
       <div className="flex items-center gap-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#a78bfa]/10 text-[#a78bfa]">
           <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -1866,7 +1866,7 @@ function MRRBenchmarks({ currentMRR, mrrSeries, churnRate, arpu, currency }: {
       <div className="overflow-x-auto rounded-xl border border-[#363650]">
         <table className="w-full text-left">
           <thead>
-            <tr className="border-b border-[#363650] bg-[#222235]">
+            <tr className="border-b border-[#363650] bg-[#343447]">
               {["Metric", "You", "SaaS Median", "Top 25%", "Status"].map((h) => (
                 <th key={h} className="px-4 py-2.5 font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">{h}</th>
               ))}
@@ -1895,7 +1895,7 @@ function MRRBenchmarks({ currentMRR, mrrSeries, churnRate, arpu, currency }: {
         </table>
       </div>
 
-      <p className="font-mono text-[9px] text-[#58588a]">
+      <p className="font-mono text-[9px] text-[#7575a0]">
         Benchmarks from Baremetrics Open Startups, ChartMogul SaaS Report, OpenView SaaS Benchmarks 2024. MRR growth measured over the selected period.
       </p>
     </div>
@@ -2106,7 +2106,7 @@ function ProductBreakdownSection({ snapshots, currency = "USD" }: { snapshots: S
   const palette = ["#635bff", "#00d4aa", "#f59e0b", "#f87171", "#a78bfa", "#1877f2", "#34d399", "#fb923c"];
 
   return (
-    <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-5 space-y-4">
+    <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 p-5 space-y-4">
       <div className="flex items-center gap-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#635bff]/10 text-[#635bff]">
           <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -2146,7 +2146,7 @@ function ProductBreakdownSection({ snapshots, currency = "USD" }: { snapshots: S
         })}
       </div>
 
-      <p className="font-mono text-[9px] text-[#58588a]">
+      <p className="font-mono text-[9px] text-[#7575a0]">
         Revenue aggregated from Stripe transactions across the selected time range. Product names sourced from Stripe price/product objects.
       </p>
     </div>
@@ -2221,7 +2221,7 @@ function CohortSection({ snapshots }: { snapshots: Snapshot[] }) {
   }
 
   return (
-    <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-5 space-y-4">
+    <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 p-5 space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#00d4aa]/10 text-[#00d4aa]">
@@ -2232,7 +2232,7 @@ function CohortSection({ snapshots }: { snapshots: Snapshot[] }) {
           </div>
           <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Retention Cohorts</h3>
         </div>
-        <div className="flex items-center gap-2 text-[9px] font-mono text-[#58588a]">
+        <div className="flex items-center gap-2 text-[9px] font-mono text-[#7575a0]">
           <span className="w-2 h-2 rounded-sm" style={{ backgroundColor: "#00d4aa" }} />≥80%
           <span className="w-2 h-2 rounded-sm ml-1" style={{ backgroundColor: "#f59e0b" }} />≥40%
           <span className="w-2 h-2 rounded-sm ml-1" style={{ backgroundColor: "#f87171" }} />&lt;20%
@@ -2294,7 +2294,7 @@ function CohortSection({ snapshots }: { snapshots: Snapshot[] }) {
         </table>
       </div>
 
-      <p className="font-mono text-[9px] text-[#58588a]">
+      <p className="font-mono text-[9px] text-[#7575a0]">
         W0 = acquisition week (always 100%). W1–W4 = % of cohort who transacted in subsequent weeks. Estimated from daily Stripe snapshots.
       </p>
     </div>
@@ -4790,14 +4790,14 @@ function LockScreen() {
     } catch { setLoading(false); }
   }
   return (
-    <div className="flex flex-col items-center justify-center rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 py-20 px-6 text-center">
+    <div className="flex flex-col items-center justify-center rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 py-20 px-6 text-center">
       <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-[#a78bfa]/20 bg-[#a78bfa]/10 text-[#a78bfa]">
         <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>
       </div>
       <p className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#a78bfa] mb-2">Premium Feature</p>
       <h2 className="font-mono text-xl font-bold text-[#f8f8fc] mb-3">Analytics requires Premium</h2>
       <p className="text-sm text-[#bcbcd8] max-w-sm mb-6">Upgrade to access full analytics, revenue trends, and AI-generated insights.</p>
-      <button onClick={handleCheckout} disabled={loading} className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-6 py-2.5 font-mono text-sm font-bold text-[#13131f] hover:bg-[#00bfa0] transition disabled:opacity-60">
+      <button onClick={handleCheckout} disabled={loading} className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-6 py-2.5 font-mono text-sm font-bold text-[#252531] hover:bg-[#00bfa0] transition disabled:opacity-60">
         {loading ? "Redirecting…" : "Start 7-day free trial →"}
       </button>
       <p className="mt-3 font-mono text-[10px] text-[#8585aa]">$19/mo after trial · Cancel anytime</p>
@@ -4808,7 +4808,7 @@ function LockScreen() {
 function EmptySection({ platform, hasDataOutsideRange = false }: { platform: string; hasDataOutsideRange?: boolean }) {
   if (hasDataOutsideRange) {
     return (
-      <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-10 text-center">
+      <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 p-10 text-center">
         <div className="mx-auto mb-4 inline-flex items-center gap-2 rounded-full border border-[#f59e0b]/20 bg-[#f59e0b]/8 px-4 py-2">
           <span className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#f59e0b]">No data in range</span>
         </div>
@@ -4820,7 +4820,7 @@ function EmptySection({ platform, hasDataOutsideRange = false }: { platform: str
     );
   }
   return (
-    <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-10 text-center">
+    <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 p-10 text-center">
       <div className="mx-auto mb-4 inline-flex items-center gap-2 rounded-full border border-[#00d4aa]/20 bg-[#00d4aa]/8 px-4 py-2">
         <span className="h-1.5 w-1.5 rounded-full bg-[#00d4aa] animate-pulse" />
         <span className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#00d4aa]">Syncing data</span>
@@ -5012,7 +5012,7 @@ export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots,
           <button
             onClick={handleShare}
             disabled={shareState === "loading"}
-            className="flex shrink-0 items-center gap-2 rounded-xl border border-[#363650] bg-[#1c1c2a] px-4 py-2.5 font-mono text-xs font-semibold transition-all hover:border-[#00d4aa]/40 hover:text-[#00d4aa] disabled:opacity-50"
+            className="flex shrink-0 items-center gap-2 rounded-xl border border-[#363650] bg-[#2e2e3c] px-4 py-2.5 font-mono text-xs font-semibold transition-all hover:border-[#00d4aa]/40 hover:text-[#00d4aa] disabled:opacity-50"
             style={{
               color: shareState === "copied" ? "#00d4aa" : shareState === "error" ? "#f87171" : "#bcbcd8",
               borderColor: shareState === "copied" ? "#00d4aa40" : shareState === "error" ? "#f8717140" : undefined,
@@ -5045,7 +5045,7 @@ export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots,
 
       {availablePlatforms.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-[#363650] p-12 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl border border-[#363650] bg-[#222235] text-[#8585aa]">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl border border-[#363650] bg-[#343447] text-[#8585aa]">
             <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" /></svg>
           </div>
           <p className="font-mono text-xs font-semibold uppercase tracking-widest text-[#8585aa] mb-2">No data yet</p>
@@ -5057,7 +5057,7 @@ export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots,
           {/* Full-bleed: negative margin cancels the parent p-3/p-6/p-8, then we re-add px so tabs stay inset */}
           <div className="relative mb-4 -mx-3 sm:-mx-6 lg:-mx-8">
             {/* Scroll fade — right edge hint */}
-            <div className="pointer-events-none absolute right-0 top-0 z-10 h-full w-16 bg-linear-to-l from-[#13131f] to-transparent" />
+            <div className="pointer-events-none absolute right-0 top-0 z-10 h-full w-16 bg-linear-to-l from-[#252531] to-transparent" />
             <div className="flex gap-2 border-b border-[#363650] overflow-x-auto scrollbar-none px-3 sm:px-6 lg:px-8">
               {(["overview", ...availablePlatforms] as PlatformTab[]).map((p) => (
                 <button

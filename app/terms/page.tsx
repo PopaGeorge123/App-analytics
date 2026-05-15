@@ -11,9 +11,9 @@ const CONTACT_EMAIL = "info@usefold.io";
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-[#13131f] text-[#f8f8fc]">
+    <div className="min-h-screen bg-[#252531] text-[#f8f8fc]">
       {/* Nav */}
-      <header className="border-b border-[#363650] bg-[#1c1c2a]/80 backdrop-blur-md sticky top-0 z-50">
+      <header className="border-b border-[#363650] bg-[#2e2e3c]/80 backdrop-blur-md sticky top-0 z-50">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-4">
           <Link href="/">
             <span className="font-mono text-lg font-bold tracking-tight text-[#f8f8fc]">
@@ -257,7 +257,7 @@ export default function TermsPage() {
             <p>
               If you have any questions about these Terms, please contact us:
             </p>
-            <div className="rounded-xl border border-[#363650] bg-[#1c1c2a]/60 p-5 mt-4">
+            <div className="rounded-xl border border-[#363650] bg-[#2e2e3c]/60 p-5 mt-4">
               <p className="font-mono text-sm text-[#f8f8fc]">POPA V.-I. GEORGE PERSOANĂ FIZICĂ AUTORIZATĂ</p>
               <p className="text-sm text-[#bcbcd8] mt-1">Trading as: <span className="text-[#c8c8e0]">Fold Analytics</span></p>
               <p className="text-sm text-[#bcbcd8]">Country: <span className="text-[#c8c8e0]">Romania</span></p>

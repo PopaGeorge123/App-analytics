@@ -410,7 +410,7 @@ function pctChange(curr: number, prev: number): { pct: number; up: boolean } | n
 function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload || !payload.length) return null;
   return (
-    <div className="rounded-xl border border-[rgba(255,255,255,0.10)] bg-[#0d0d0f] px-3 py-2.5 shadow-2xl">
+    <div className="rounded-xl border border-[rgba(255,255,255,0.10)] bg-[#1f1f21] px-3 py-2.5 shadow-2xl">
       <p className="mb-1.5 font-mono text-[10px] text-[#64748b]">{label}</p>
       {payload.map(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -444,7 +444,7 @@ function KpiCard({
   icon: string;
 }) {
   return (
-    <div className="rounded-xl border border-[#363650] bg-[#222235] p-5 flex flex-col gap-2">
+    <div className="rounded-xl border border-[#363650] bg-[#343447] p-5 flex flex-col gap-2">
       <div className="flex items-center justify-between">
         <span className="text-lg">{icon}</span>
         {change && (
@@ -487,7 +487,7 @@ function InsightCard({
 }) {
   return (
     <div
-      className="rounded-xl border bg-[#222235] p-4 flex gap-3"
+      className="rounded-xl border bg-[#343447] p-4 flex gap-3"
       style={{ borderColor: `${accent}30` }}
     >
       <div
@@ -1173,16 +1173,27 @@ function GrowthPulseChart({
   if (primaryEmail) available.push("subscribers");
   if (primaryAds) available.push("adspend");
 
+  const lastAvailable = available[available.length - 1] as GrowthPulseSeries | undefined;
+
   const [enabledSeries, setEnabledSeries] = useState<GrowthPulseSeries[]>(() => {
-    if (typeof window === "undefined") return available.slice(0, 2);
+    if (typeof window === "undefined") {
+      const defaults = available.slice(0, 2);
+      if (lastAvailable && !defaults.includes(lastAvailable)) defaults.push(lastAvailable);
+      return defaults;
+    }
     try {
       const saved = localStorage.getItem("growth_pulse_series");
       if (saved) {
         const parsed = JSON.parse(saved) as GrowthPulseSeries[];
-        return parsed.filter((s) => available.includes(s));
+        const filtered = parsed.filter((s) => available.includes(s));
+        // Always ensure the last available metric is selected
+        if (lastAvailable && !filtered.includes(lastAvailable)) filtered.push(lastAvailable);
+        return filtered.length > 0 ? filtered : available.slice(0, 1);
       }
     } catch { /* ignore */ }
-    return available.slice(0, 2);
+    const defaults = available.slice(0, 2);
+    if (lastAvailable && !defaults.includes(lastAvailable)) defaults.push(lastAvailable);
+    return defaults;
   });
 
   // Persist enabled series
@@ -1191,6 +1202,8 @@ function GrowthPulseChart({
   }, [enabledSeries]);
 
   function toggleSeries(s: GrowthPulseSeries) {
+    // The last available metric is always kept selected
+    if (s === lastAvailable && enabledSeries.includes(s)) return;
     setEnabledSeries((prev) =>
       prev.includes(s)
         ? prev.length > 1 ? prev.filter((x) => x !== s) : prev // keep at least 1
@@ -1285,7 +1298,7 @@ function GrowthPulseChart({
   function PulseTooltip({ active, payload, label }: any) {
     if (!active || !payload?.length) return null;
     return (
-      <div className="rounded-xl border border-[rgba(255,255,255,0.10)] bg-[#0d0d0f] px-3 py-2.5 shadow-2xl min-w-36">
+      <div className="rounded-xl border border-[rgba(255,255,255,0.10)] bg-[#1f1f21] px-3 py-2.5 shadow-2xl min-w-36">
         <p className="mb-1.5 font-mono text-[10px] text-[#64748b]">{label}</p>
         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
         {payload.map((entry: any) => {
@@ -1301,7 +1314,7 @@ function GrowthPulseChart({
           );
         })}
         {payload.find((e: { dataKey: string }) => e.dataKey === "wowDelta") && (
-          <div className="mt-1.5 border-t border-[rgba(255,255,255,0.06)] pt-1.5">
+          <div className="mt-1.5 border-t border-[rgba(255,255,255,0.11)] pt-1.5">
             <span className="font-mono text-[10px]" style={{ color: payload.find((e: { dataKey: string }) => e.dataKey === "wowDelta")?.value >= 0 ? "#00d4aa" : "#f87171" }}>
               WoW: {payload.find((e: { dataKey: string }) => e.dataKey === "wowDelta")?.value >= 0 ? "+" : ""}{payload.find((e: { dataKey: string }) => e.dataKey === "wowDelta")?.value}%
             </span>
@@ -1312,7 +1325,7 @@ function GrowthPulseChart({
   }
 
   return (
-    <div className="rounded-xl border border-[rgba(255,255,255,0.06)] bg-[#13131a] p-4 space-y-3">
+    <div className="rounded-xl border border-[rgba(255,255,255,0.11)] bg-[#13131a] p-4 space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
@@ -1331,19 +1344,22 @@ function GrowthPulseChart({
           {available.map((s) => {
             const meta = PULSE_SERIES_META[s];
             const enabled = enabledSeries.includes(s);
+            const isLocked = s === lastAvailable;
             return (
               <button
                 key={s}
                 onClick={() => toggleSeries(s)}
+                title={isLocked ? "Always shown" : undefined}
                 className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 font-mono text-[10px] font-semibold transition-all ${
                   enabled
                     ? "border-[#363650] text-[#f8f8fc]"
-                    : "border-[#363650]/50 text-[#58588a] opacity-50"
-                }`}
+                    : "border-[#363650]/50 text-[#7575a0] opacity-50"
+                } ${isLocked ? "cursor-default" : ""}`}
                 style={enabled ? { borderColor: meta.color + "50", backgroundColor: meta.color + "12", color: meta.color } : {}}
               >
                 <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: enabled ? meta.color : "#363650" }} />
                 {meta.label}
+                {isLocked && <span className="opacity-50">·</span>}
               </button>
             );
           })}
@@ -1400,7 +1416,7 @@ function GrowthPulseChart({
               </linearGradient>
             ))}
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.13)" vertical={false} />
           <XAxis dataKey="date" tick={{ fill: "#64748b", fontSize: 9, fontFamily: "monospace" }} tickLine={false} axisLine={false} interval="preserveStartEnd" tickMargin={4} />
           <YAxis yAxisId="left" tick={{ fill: "#64748b", fontSize: 9, fontFamily: "monospace" }} tickLine={false} axisLine={false} width={44} />
           <YAxis yAxisId="right" orientation="right" tick={{ fill: "#64748b", fontSize: 9, fontFamily: "monospace" }} tickLine={false} axisLine={false} width={44} />
@@ -1431,7 +1447,7 @@ function GrowthPulseChart({
               activeDot={{ r: 3, strokeWidth: 0 }}
             />
           ))}
-          <Brush dataKey="date" height={18} stroke="#363650" fill="#13131f" travellerWidth={5} startIndex={Math.max(0, chartData.length - 30)} tickFormatter={() => ""} />
+          <Brush dataKey="date" height={18} stroke="#363650" fill="#252531" travellerWidth={5} startIndex={Math.max(0, chartData.length - 30)} tickFormatter={() => ""} />
         </ComposedChart>
       </ResponsiveContainer>
 
@@ -1730,10 +1746,10 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
       </div>
 
       {/* ── Chart Panel ─────────────────────────────────────────── */}
-      <div className="rounded-xl border border-[rgba(255,255,255,0.06)] bg-[#13131a] overflow-hidden">
+      <div className="rounded-xl border border-[rgba(255,255,255,0.11)] bg-[#13131a] overflow-hidden">
 
         {/* ── Report Selector Header ──────────────────────────── */}
-        <div className="border-b border-[#363650] bg-[#1c1c2a]/60 px-6 pt-5 pb-0">
+        <div className="border-b border-[#363650] bg-[#2e2e3c]/60 px-6 pt-5 pb-0">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#635bff]/15">
@@ -1750,7 +1766,7 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
             </div>
             {/* Time range — hidden when parent controls it */}
             {!externalTimeRange && (
-              <div className="flex gap-0.5 rounded-lg border border-[#363650] bg-[#13131f] p-0.5">
+              <div className="flex gap-0.5 rounded-lg border border-[#363650] bg-[#252531] p-0.5">
                 {TIME_RANGES.map((t) => (
                   <button
                     key={t.key}
@@ -1804,7 +1820,7 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
                 className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 font-mono text-[10px] font-semibold transition-all ${
                   report === "custom"
                     ? "border-[#f59e0b]/40 bg-[#f59e0b]/10 text-[#f59e0b]"
-                    : "border-[#363650] text-[#8585aa] hover:text-[#bcbcd8] hover:border-[#454560] hover:bg-[#222235]"
+                    : "border-[#363650] text-[#8585aa] hover:text-[#bcbcd8] hover:border-[#454560] hover:bg-[#343447]"
                 }`}
               >
                 <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -1823,7 +1839,7 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
         </div>
 
         {/* ── Report description bar ──────────────────────────── */}
-        <div className="flex items-center gap-3 px-6 py-3 border-b border-[#363650]/60 bg-[#1c1c2a]/30">
+        <div className="flex items-center gap-3 px-6 py-3 border-b border-[#363650]/60 bg-[#2e2e3c]/30">
           <p className="font-mono text-[10px] text-[#8585aa] flex-1">
             {report === "custom"
               ? "Pick any metrics from your connected integrations and combine them freely"
@@ -1833,7 +1849,7 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
 
         {/* ── Custom Builder Panel ──────────────────────────── */}
         {report === "custom" && (
-          <div className="border-b border-[#363650] bg-[#13131f]/60">
+          <div className="border-b border-[#363650] bg-[#252531]/60">
             {/* Builder toolbar */}
             <div className="flex items-center justify-between px-6 py-3 border-b border-[#363650]/50">
               <div className="flex items-center gap-2.5">
@@ -1885,7 +1901,7 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
                   {/* Left: metric picker by platform */}
                   <div className="relative flex flex-col max-h-72 overflow-hidden">
                     {/* Sticky header — outside the scroll area so content never passes through it */}
-                    <p className="flex-none font-mono text-[9px] uppercase tracking-widest text-[#8585aa] px-5 pt-5 pb-2 border-b border-[#363650] bg-[#13131f]">
+                    <p className="flex-none font-mono text-[9px] uppercase tracking-widest text-[#8585aa] px-5 pt-5 pb-2 border-b border-[#363650] bg-[#252531]">
                       Available metrics · {availableForCustom.length} platform{availableForCustom.length !== 1 ? "s" : ""}
                     </p>
                     {/* Scrollable list below the header */}
@@ -1918,7 +1934,7 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
                                         ? "border-[#00d4aa]/30 bg-[#00d4aa]/8 text-[#00d4aa]"
                                         : atMax
                                         ? "border-[#363650]/30 text-[#58588a] opacity-40 cursor-not-allowed"
-                                        : "border-[#363650]/60 text-[#bcbcd8] hover:border-[#454560] hover:bg-[#222235] hover:text-[#f8f8fc]"
+                                        : "border-[#363650]/60 text-[#bcbcd8] hover:border-[#454560] hover:bg-[#343447] hover:text-[#f8f8fc]"
                                     }`}
                                   >
                                     {/* Color swatch */}
@@ -1943,7 +1959,7 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
                       })
                     )}
                     {customMetrics.length >= 6 && (
-                      <div className="sticky bottom-0 z-10 bg-[#13131f] py-1">
+                      <div className="sticky bottom-0 z-10 bg-[#252531] py-1">
                         <p className="font-mono text-[9px] text-[#f59e0b]">⚠ Max 6 series. Remove one to add another.</p>
                       </div>
                     )}
@@ -1972,7 +1988,7 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
                             <div className="flex items-center gap-2 shrink-0">
                               <span className="font-mono text-[9px] text-[#58588a] w-3">{idx + 1}</span>
                               <div
-                                className="h-3 w-3 rounded-full ring-2 ring-[#13131f] shrink-0"
+                                className="h-3 w-3 rounded-full ring-2 ring-[#252531] shrink-0"
                                 style={{ backgroundColor: m.color }}
                               />
                             </div>
@@ -2077,7 +2093,7 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
         <div className="px-4 pb-3">
         {/* Chart */}
         {!hasData ? (
-          <div className="flex h-48 items-center justify-center rounded-xl border border-[rgba(255,255,255,0.06)] bg-[#13131a]">
+          <div className="flex h-48 items-center justify-center rounded-xl border border-[rgba(255,255,255,0.11)] bg-[#25252c]">
             <div className="text-center">
               <p className="font-mono text-xs text-[#8585aa]">No data for selected period</p>
               <p className="mt-1 font-mono text-[10px] text-[#2e2e4e]">Try a wider time range</p>
@@ -2095,7 +2111,7 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
                     </linearGradient>
                   ))}
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.13)" vertical={false} />
                 <XAxis
                   dataKey="date"
                   tick={{ fill: "#64748b", fontSize: 10, fontFamily: "monospace" }}
@@ -2229,7 +2245,7 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
                   dataKey="date"
                   height={22}
                   stroke="#363650"
-                  fill="#13131f"
+                  fill="#252531"
                   travellerWidth={6}
                   startIndex={Math.max(0, chartData.length - Math.min(chartData.length, 30))}
                   tickFormatter={() => ""}
@@ -2407,7 +2423,7 @@ function RevenueAttributionSection({
   }
 
   return (
-    <div className="rounded-2xl border border-[#363650] bg-[#1c1c2a]/60 p-5 space-y-5">
+    <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 p-5 space-y-5">
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#a78bfa]/10 text-[#a78bfa]">
@@ -2503,7 +2519,7 @@ function RevenueAttributionSection({
       </div>
 
       {/* Summary row */}
-      <div className="flex flex-wrap gap-4 rounded-xl border border-[#363650] bg-[#222235] px-4 py-3">
+      <div className="flex flex-wrap gap-4 rounded-xl border border-[#363650] bg-[#343447] px-4 py-3">
         <div>
           <p className="font-mono text-[8px] uppercase tracking-widest text-[#8585aa]">Total Ad Spend</p>
           <p className="font-mono text-sm font-bold text-[#f8f8fc]">
@@ -2604,7 +2620,7 @@ function HealthScore({ snapshots, connectedPlatforms }: { snapshots: Snapshot[];
   if (!score) return null;
 
   return (
-    <div className="rounded-2xl border border-[#363650] bg-[#222235] p-6">
+    <div className="rounded-2xl border border-[#363650] bg-[#343447] p-6">
       <div className="mb-5 flex items-center gap-2">
         <span className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Business Health Score</span>
         <div className="flex-1 border-t border-[#363650]" />

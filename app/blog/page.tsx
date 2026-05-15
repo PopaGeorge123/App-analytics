@@ -25,7 +25,7 @@ export default function BlogIndex() {
     <main className="mx-auto max-w-5xl px-5 py-16">
       {/* Hero */}
       <div className="mb-14 text-center">
-        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#363650] bg-[#1c1c2a] px-3 py-1.5">
+        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#363650] bg-[#2e2e3c] px-3 py-1.5">
           <span className="h-1.5 w-1.5 rounded-full bg-[#00d4aa]" />
           <span className="font-mono text-[10px] uppercase tracking-widest text-[#8585aa]">Fold Blog</span>
         </div>
@@ -49,7 +49,7 @@ export default function BlogIndex() {
             <Link
               key={post.slug}
               href={`/blog/${post.slug}`}
-              className="group flex flex-col rounded-2xl border border-[#363650] bg-[#1c1c2a] p-5 transition-all duration-150 hover:border-[#00d4aa]/30 hover:bg-[#222236]"
+              className="group flex flex-col rounded-2xl border border-[#363650] bg-[#2e2e3c] p-5 transition-all duration-150 hover:border-[#00d4aa]/30 hover:bg-[#222236]"
             >
               <div className="mb-3 flex items-center justify-between">
                 <span
@@ -90,7 +90,7 @@ export default function BlogIndex() {
         </p>
         <Link
           href="/signup"
-          className="inline-block rounded-xl bg-[#00d4aa] px-8 py-3 font-mono text-sm font-bold text-[#13131f] transition hover:bg-[#00bfa0]"
+          className="inline-block rounded-xl bg-[#00d4aa] px-8 py-3 font-mono text-sm font-bold text-[#252531] transition hover:bg-[#00bfa0]"
         >
           Start free trial →
         </Link>

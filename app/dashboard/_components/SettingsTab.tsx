@@ -198,7 +198,7 @@ function IntegrationRow({
   }
 
   return (
-    <div className="rounded-xl border border-white/[0.06] bg-[#13131a] p-4 transition-all hover:border-white/10">
+    <div className="rounded-xl border border-white/[0.06] bg-[#25252c] p-4 transition-all hover:border-white/10">
       <div className="flex items-start justify-between gap-3">
         {/* Left: icon + info */}
         <div className="flex items-start gap-3 min-w-0">
@@ -264,7 +264,7 @@ function IntegrationRow({
             <a
               href={integration.connectUrl}
               onClick={handleConnectClick}
-              className="rounded-lg border border-white/[0.06] bg-[#0d0d0f] px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#bcbcd8] transition-all hover:border-[#6366f1]/30 hover:text-[#6366f1]"
+              className="rounded-lg border border-white/[0.06] bg-[#1f1f21] px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#bcbcd8] transition-all hover:border-[#6366f1]/30 hover:text-[#6366f1]"
             >
               Switch
             </a>
@@ -279,7 +279,7 @@ function IntegrationRow({
                 </button>
               </div>
             ) : (
-              <button onClick={handleDisconnect} className="rounded-lg border border-white/[0.06] bg-[#0d0d0f] px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#8585aa] transition-all hover:border-red-500/30 hover:text-red-400">
+              <button onClick={handleDisconnect} className="rounded-lg border border-white/[0.06] bg-[#1f1f21] px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#8585aa] transition-all hover:border-red-500/30 hover:text-red-400">
                 Disconnect
               </button>
             )}
@@ -288,7 +288,7 @@ function IntegrationRow({
           <a
             href={integration.connectUrl}
             onClick={handleConnectClick}
-            className="shrink-0 rounded-xl border border-white/[0.06] bg-[#0d0d0f] px-4 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#bcbcd8] transition-all hover:border-[#6366f1]/30 hover:text-[#6366f1]"
+            className="shrink-0 rounded-xl border border-white/[0.06] bg-[#1f1f21] px-4 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#bcbcd8] transition-all hover:border-[#6366f1]/30 hover:text-[#6366f1]"
           >
             Connect
           </a>
@@ -302,7 +302,7 @@ function IntegrationRow({
             autoFocus type="text" value={paramValue}
             onChange={(e) => { setParamValue(e.target.value); setError(""); }}
             placeholder={paramConfig.placeholder}
-            className="flex-1 rounded-lg border border-white/[0.06] bg-[#0d0d0f] px-3 py-2 font-mono text-xs text-[#f8f8fc] placeholder-[#58588a] outline-none focus:border-[#6366f1]/50 focus:ring-1 focus:ring-[#6366f1]/20"
+            className="flex-1 rounded-lg border border-white/[0.06] bg-[#1f1f21] px-3 py-2 font-mono text-xs text-[#f8f8fc] placeholder-[#58588a] outline-none focus:border-[#6366f1]/50 focus:ring-1 focus:ring-[#6366f1]/20"
           />
           <button type="submit" className="rounded-lg border border-[#6366f1]/30 bg-[#6366f1]/10 px-3 py-2 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#6366f1] hover:bg-[#6366f1]/20 transition-all">Go</button>
           <button type="button" onClick={() => { setShowParamInput(false); setParamValue(""); setError(""); }} className="rounded-lg border border-white/[0.06] px-3 py-2 font-mono text-[10px] font-semibold text-[#8585aa] hover:text-[#bcbcd8] transition-all">Cancel</button>
@@ -442,7 +442,7 @@ function AlertsSection({ email, currencies }: { email: string; currencies: Recor
           const val = rules[row.key] as number;
           const isZero = val === 0;
           return (
-            <div key={row.key} className="rounded-xl border border-white/[0.06] bg-[#13131a] overflow-hidden">
+            <div key={row.key} className="rounded-xl border border-white/[0.06] bg-[#25252c] overflow-hidden">
               <div className="flex items-center gap-3 px-4 py-3">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: `${row.iconColor}15`, color: row.iconColor }}>
                   {row.icon}
@@ -459,7 +459,7 @@ function AlertsSection({ email, currencies }: { email: string; currencies: Recor
                 />
               </div>
               {isOn && (
-                <div className="border-t border-white/[0.04] px-4 py-3 bg-[#0d0d0f]/40 space-y-2">
+                <div className="border-t border-white/[0.04] px-4 py-3 bg-[#1f1f21]/40 space-y-2">
                   <div className="flex items-center gap-2">
                     {row.unitPos === "left" && <span className="font-mono text-[10px] text-[#8585aa] w-8">{row.unit}</span>}
                     <input
@@ -467,7 +467,7 @@ function AlertsSection({ email, currencies }: { email: string; currencies: Recor
                       placeholder="0"
                       value={val || ""}
                       onChange={(e) => setRules((r) => ({ ...r, [row.key]: parseInt(e.target.value) || 0 }))}
-                      className="w-24 rounded-lg border border-white/[0.06] bg-[#13131a] px-3 py-1.5 font-mono text-xs text-[#f8f8fc] text-right placeholder:text-[#58588a] focus:outline-none focus:border-[#6366f1]/40 focus:ring-1 focus:ring-[#6366f1]/20 transition-colors"
+                      className="w-24 rounded-lg border border-white/[0.06] bg-[#25252c] px-3 py-1.5 font-mono text-xs text-[#f8f8fc] text-right placeholder:text-[#58588a] focus:outline-none focus:border-[#6366f1]/40 focus:ring-1 focus:ring-[#6366f1]/20 transition-colors"
                     />
                     {row.unitPos === "right" && <span className="font-mono text-[10px] text-[#8585aa]">{row.unit}</span>}
                   </div>
@@ -485,7 +485,7 @@ function AlertsSection({ email, currencies }: { email: string; currencies: Recor
         })}
 
         {/* New customer alert */}
-        <div className="rounded-xl border border-white/[0.06] bg-[#13131a] px-4 py-3">
+        <div className="rounded-xl border border-white/[0.06] bg-[#25252c] px-4 py-3">
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#10b981]/10 text-[#10b981]">
               <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -634,7 +634,7 @@ function ShareSection() {
       ) : (
         <div className="space-y-2">
           {links.map((link) => (
-            <div key={link.token} className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-[#0d0d0f] px-4 py-3">
+            <div key={link.token} className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-[#1f1f21] px-4 py-3">
               <div className="flex-1 min-w-0">
                 <p className="font-mono text-[10px] text-[#e0e0f0] truncate">/share/{link.token}</p>
                 <p className="font-mono text-[9px] text-[#58588a] mt-0.5">
@@ -717,7 +717,7 @@ function DigestSectionInline({ email }: { email: string }) {
     } finally { setSending(false); }
   }
 
-  if (loading) return <div className="h-32 animate-pulse rounded-xl bg-[#13131a]" />;
+  if (loading) return <div className="h-32 animate-pulse rounded-xl bg-[#25252c]" />;
 
   return (
     <div className="space-y-4">
@@ -739,7 +739,7 @@ function DigestSectionInline({ email }: { email: string }) {
       </div> */}
 
       {/* Toggle */}
-      <div className="flex items-center justify-between rounded-xl border border-white/[0.06] bg-[#13131a] px-4 py-3">
+      <div className="flex items-center justify-between rounded-xl border border-white/[0.06] bg-[#25252c] px-4 py-3">
         <div>
           <p className="text-xs font-semibold text-[#f8f8fc]">Email digest</p>
           <p className="mt-0.5 font-mono text-[10px] text-[#8585aa]">
@@ -758,7 +758,7 @@ function DigestSectionInline({ email }: { email: string }) {
       {subscribed && (
         <>
           {/* Frequency selector */}
-          <div className="rounded-xl border border-white/[0.06] bg-[#13131a] px-4 py-3 space-y-3">
+          <div className="rounded-xl border border-white/[0.06] bg-[#25252c] px-4 py-3 space-y-3">
             <p className="font-mono text-[10px] uppercase tracking-widest text-[#8585aa]">Frequency</p>
             <div className="flex gap-2">
               {(["daily", "weekly", "monthly"] as const).map((f) => (
@@ -821,7 +821,7 @@ function DigestSectionInline({ email }: { email: string }) {
           </div>
 
           {/* Includes */}
-          <div className="rounded-xl border border-white/[0.06] bg-[#13131a] px-4 py-3">
+          <div className="rounded-xl border border-white/[0.06] bg-[#25252c] px-4 py-3">
             <p className="font-mono text-[10px] uppercase tracking-widest text-[#8585aa] mb-3">Includes</p>
             <div className="grid grid-cols-2 gap-y-1.5 gap-x-4">
               {["Revenue highlights", "Anomaly alerts", "Cross-platform insights", "Top action for the week"].map((item) => (
@@ -839,7 +839,7 @@ function DigestSectionInline({ email }: { email: string }) {
       <div className="flex flex-wrap items-center gap-3">
         <button
           onClick={sendDigest} disabled={sending}
-          className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-[#13131a] px-4 py-2 font-mono text-xs text-[#8585aa] hover:text-[#bcbcd8] hover:border-white/10 disabled:opacity-50 transition-all"
+          className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-[#25252c] px-4 py-2 font-mono text-xs text-[#8585aa] hover:text-[#bcbcd8] hover:border-white/10 disabled:opacity-50 transition-all"
         >
           {sending ? (
             <><svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" /></svg>Generating &amp; Sending…</>
@@ -1042,7 +1042,7 @@ function GoalsSection({ currencies }: { currencies: Record<string, string> }) {
   if (!loaded) {
     return (
       <div className="space-y-3">
-        {[1, 2, 3, 4].map((i) => <div key={i} className="h-20 animate-pulse rounded-xl bg-[#13131a]" />)}
+        {[1, 2, 3, 4].map((i) => <div key={i} className="h-20 animate-pulse rounded-xl bg-[#25252c]" />)}
       </div>
     );
   }
@@ -1058,7 +1058,7 @@ function GoalsSection({ currencies }: { currencies: Record<string, string> }) {
           const pace = paceInsights[row.key];
 
           return (
-            <div key={row.key} className="rounded-xl border border-white/[0.06] bg-[#13131a] overflow-hidden">
+            <div key={row.key} className="rounded-xl border border-white/[0.06] bg-[#25252c] overflow-hidden">
               <div className="p-4">
                 <div className="flex items-start gap-3">
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg mt-0.5" style={{ backgroundColor: `${row.color}15`, color: row.color }}>
@@ -1076,7 +1076,7 @@ function GoalsSection({ currencies }: { currencies: Record<string, string> }) {
                       placeholder={row.placeholder}
                       value={displayVal}
                       onChange={(e) => setGoals((g) => ({ ...g, [row.key]: row.toStorage(e.target.value) }))}
-                      className="w-24 rounded-lg border border-white/[0.06] bg-[#0d0d0f] px-2 py-1.5 font-mono text-xs text-[#f8f8fc] text-right placeholder:text-[#58588a] focus:outline-none focus:border-[#6366f1]/40 focus:ring-1 focus:ring-[#6366f1]/20 transition-colors"
+                      className="w-24 rounded-lg border border-white/[0.06] bg-[#1f1f21] px-2 py-1.5 font-mono text-xs text-[#f8f8fc] text-right placeholder:text-[#58588a] focus:outline-none focus:border-[#6366f1]/40 focus:ring-1 focus:ring-[#6366f1]/20 transition-colors"
                     />
                     {row.unitPos === "right" && <span className="font-mono text-[10px] text-[#8585aa]">{row.unit}</span>}
                   </div>
@@ -1113,7 +1113,7 @@ function GoalsSection({ currencies }: { currencies: Record<string, string> }) {
       </div>
 
       <div className="flex items-center gap-3 flex-wrap">
-        <button onClick={saveGoals} disabled={saving} className="rounded-xl bg-[#eab308] px-5 py-2 font-mono text-xs font-bold text-[#0d0d0f] hover:bg-[#ca8a04] transition disabled:opacity-60">
+        <button onClick={saveGoals} disabled={saving} className="rounded-xl bg-[#eab308] px-5 py-2 font-mono text-xs font-bold text-[#1f1f21] hover:bg-[#ca8a04] transition disabled:opacity-60">
           {saving ? "Saving…" : "Save goals"}
         </button>
         {saved && <span className="flex items-center gap-1 font-mono text-[10px] text-[#10b981]"><svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>Saved</span>}
@@ -1176,7 +1176,7 @@ const DYNAMIC_MODALS: Record<string, { label: string; name: string; optional?: b
 function ConnectModalShell({ title, description, onClose, children }: { title: string; description: string; onClose: () => void; children: React.ReactNode }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#090911]/80 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-lg rounded-2xl border border-white/[0.06] bg-[#13131a] p-6 shadow-2xl">
+      <div className="w-full max-w-lg rounded-2xl border border-white/[0.06] bg-[#25252c] p-6 shadow-2xl">
         <div className="mb-5 flex items-start justify-between gap-3">
           <div>
             <h3 className="text-sm font-semibold text-[#f8f8fc]">{title}</h3>
@@ -1464,7 +1464,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
   }
 
   return (
-    <div className="flex flex-col lg:flex-row w-full" style={{ background: "#0d0d0f" }}>
+    <div className="flex flex-col lg:flex-row w-full" style={{ background: "#1f1f21" }}>
 
       {/* ── Left sidebar — desktop only ─────────────────────────────────── */}
       <aside className="hidden lg:flex flex-col w-[180px] shrink-0 sticky top-0 h-screen pt-8 pb-6 border-r border-white/[0.05]">
@@ -1513,7 +1513,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
       </aside>
 
       {/* ── Mobile nav — horizontal pill strip ─────────────────────────── */}
-      <div className="lg:hidden sticky top-0 z-10 flex gap-1 overflow-x-auto scrollbar-none border-b border-white/[0.05] px-4 py-2" style={{ background: "#0d0d0f" }}>
+      <div className="lg:hidden sticky top-0 z-10 flex gap-1 overflow-x-auto scrollbar-none border-b border-white/[0.05] px-4 py-2" style={{ background: "#1f1f21" }}>
         {NAV_ITEMS.map((item) => {
           const isActive = activeSection === item.id;
           return (
@@ -1523,7 +1523,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
               className="shrink-0 rounded-full px-3 py-1.5 font-mono text-[11px] font-semibold border transition-all whitespace-nowrap"
               style={{
                 backgroundColor: isActive ? `${item.color}15` : "transparent",
-                borderColor: isActive ? `${item.color}40` : "rgba(255,255,255,0.06)",
+                borderColor: isActive ? `${item.color}40` : "rgba(255,255,255,0.11)",
                 color: isActive ? item.color : "#8585aa",
               }}
             >
@@ -1548,7 +1548,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
 
           {/* ── ACCOUNT ──────────────────────────────────────────────── */}
           <section id="account" ref={(el) => { sectionRefs.current.account = el; }}>
-            <div className="rounded-2xl border border-white/[0.06] bg-[#13131a] p-6 space-y-5">
+            <div className="rounded-2xl border border-white/[0.06] bg-[#25252c] p-6 space-y-5">
               {/* Avatar + email */}
               <div className="flex items-center gap-4">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-mono text-sm font-bold uppercase select-none" style={{ backgroundColor: "#6366f118", color: "#6366f1", border: "1px solid #6366f130" }}>
@@ -1565,7 +1565,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
                 <div className="flex items-center gap-2 flex-wrap">
                   {/* <button
                     onClick={() => { setShowEmailForm((v) => !v); setEmailMsg(null); }}
-                    className="rounded-lg border border-white/[0.06] bg-[#0d0d0f] px-3.5 py-2 font-mono text-xs text-[#bcbcd8] hover:border-[#6366f1]/30 hover:text-[#6366f1] transition-all"
+                    className="rounded-lg border border-white/[0.06] bg-[#1f1f21] px-3.5 py-2 font-mono text-xs text-[#bcbcd8] hover:border-[#6366f1]/30 hover:text-[#6366f1] transition-all"
                   >
                     Change email
                   </button> */}
@@ -1573,7 +1573,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
                     onClick={() => { if (!isDemo) { setShowPasswordForm((v) => !v); setPwMsg(null); } }}
                     disabled={isDemo}
                     title={isDemo ? "Not available in demo" : undefined}
-                    className="rounded-lg border border-white/[0.06] bg-[#0d0d0f] px-3.5 py-2 font-mono text-xs text-[#bcbcd8] hover:border-[#6366f1]/30 hover:text-[#6366f1] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="rounded-lg border border-white/[0.06] bg-[#1f1f21] px-3.5 py-2 font-mono text-xs text-[#bcbcd8] hover:border-[#6366f1]/30 hover:text-[#6366f1] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     Change password
                   </button>
@@ -1588,7 +1588,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
                       value={newEmail}
                       onChange={(e) => setNewEmail(e.target.value)}
                       placeholder="New email address"
-                      className="rounded-lg border border-white/[0.06] bg-[#0d0d0f] px-3 py-1.5 font-mono text-xs text-[#f8f8fc] placeholder-[#58588a] focus:outline-none focus:border-[#6366f1]/40 transition-all w-56"
+                      className="rounded-lg border border-white/[0.06] bg-[#1f1f21] px-3 py-1.5 font-mono text-xs text-[#f8f8fc] placeholder-[#58588a] focus:outline-none focus:border-[#6366f1]/40 transition-all w-56"
                     />
                     <button
                       onClick={handleChangeEmail}
@@ -1648,7 +1648,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
 
           {/* ── BUSINESS PROFILE ─────────────────────────────────────── */}
           <section id="business" ref={(el) => { sectionRefs.current.business = el; }}>
-            <div className="rounded-2xl border border-white/[0.06] bg-[#13131a] p-6 space-y-5">
+            <div className="rounded-2xl border border-white/[0.06] bg-[#25252c] p-6 space-y-5">
               <div>
                 <SectionLabel color="#a78bfa">Business Profile</SectionLabel>
                 <p className="font-mono text-[10px] text-[#58588a] mt-1">
@@ -1665,7 +1665,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
                     value={bizWebsite}
                     onChange={(e) => setBizWebsite(e.target.value)}
                     placeholder="https://yourdomain.com"
-                    className="flex-1 min-w-0 rounded-lg border border-white/[0.06] bg-[#0d0d0f] px-3 py-2 font-mono text-xs text-[#f8f8fc] placeholder-[#58588a] focus:outline-none focus:border-[#a78bfa]/40 transition-all"
+                    className="flex-1 min-w-0 rounded-lg border border-white/[0.06] bg-[#1f1f21] px-3 py-2 font-mono text-xs text-[#f8f8fc] placeholder-[#58588a] focus:outline-none focus:border-[#a78bfa]/40 transition-all"
                   />
                   <button
                     onClick={handleBizAnalyse}
@@ -1701,7 +1701,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
                   onChange={(e) => setBizDescription(e.target.value)}
                   placeholder="What does your business do? Who is it for? What problem does it solve?"
                   rows={4}
-                  className="w-full rounded-lg border border-white/[0.06] bg-[#0d0d0f] px-3 py-2 font-mono text-xs text-[#f8f8fc] placeholder-[#58588a] focus:outline-none focus:border-[#a78bfa]/40 transition-all resize-y"
+                  className="w-full rounded-lg border border-white/[0.06] bg-[#1f1f21] px-3 py-2 font-mono text-xs text-[#f8f8fc] placeholder-[#58588a] focus:outline-none focus:border-[#a78bfa]/40 transition-all resize-y"
                 />
                 <p className="font-mono text-[9px] text-[#58588a]">{bizDescription.length}/500 chars</p>
               </div>
@@ -1717,8 +1717,8 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
                       onClick={() => setBizIndustry(opt === bizIndustry ? "" : opt)}
                       className="rounded-lg border px-3 py-1.5 font-mono text-[11px] font-medium transition-all"
                       style={{
-                        backgroundColor: bizIndustry === opt ? "rgba(167,139,250,0.12)" : "#0d0d0f",
-                        borderColor:     bizIndustry === opt ? "rgba(167,139,250,0.35)" : "rgba(255,255,255,0.06)",
+                        backgroundColor: bizIndustry === opt ? "rgba(167,139,250,0.12)" : "#1f1f21",
+                        borderColor:     bizIndustry === opt ? "rgba(167,139,250,0.35)" : "rgba(255,255,255,0.11)",
                         color:           bizIndustry === opt ? "#a78bfa" : "#58588a",
                       }}
                     >
@@ -1748,7 +1748,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
 
           {/* ── SUBSCRIPTION ─────────────────────────────────────────── */}
           <section id="subscription" ref={(el) => { sectionRefs.current.subscription = el; }}>
-            <div className="rounded-2xl border border-white/[0.06] bg-[#13131a] p-6">
+            <div className="rounded-2xl border border-white/[0.06] bg-[#25252c] p-6">
               {isPremium ? (
                 <div className="space-y-5">
                   {/* Status */}
@@ -1784,7 +1784,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
                   {portalError && <p className="text-xs text-red-400">{portalError}</p>}
                   <button
                     onClick={handlePortal} disabled={portalLoading}
-                    className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-[#0d0d0f] px-4 py-2 font-mono text-xs text-[#bcbcd8] hover:border-[#10b981]/30 hover:text-[#10b981] disabled:opacity-60 transition-all"
+                    className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-[#1f1f21] px-4 py-2 font-mono text-xs text-[#bcbcd8] hover:border-[#10b981]/30 hover:text-[#10b981] disabled:opacity-60 transition-all"
                   >
                     {portalLoading ? (
                       <><svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" /></svg>Opening…</>
@@ -1819,7 +1819,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
 
           {/* ── INTEGRATIONS ─────────────────────────────────────────── */}
           <section id="integrations" ref={(el) => { sectionRefs.current.integrations = el; }}>
-            <div className="rounded-2xl border border-white/[0.06] bg-[#13131a] p-6">
+            <div className="rounded-2xl border border-white/[0.06] bg-[#25252c] p-6">
               {/* Header */}
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-5">
                 <div>
@@ -1838,7 +1838,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
                     type="text" placeholder="Search platforms..."
                     value={searchQuery}
                     onChange={(e) => { setSearchQuery(e.target.value); if (e.target.value) setActiveCategory("All"); }}
-                    className="w-full rounded-xl border border-white/[0.06] bg-[#0d0d0f] py-2 pl-9 pr-3 font-mono text-xs text-[#f8f8fc] placeholder:text-[#58588a] focus:border-[#14b8a6]/40 focus:outline-none focus:ring-1 focus:ring-[#14b8a6]/20 transition-all"
+                    className="w-full rounded-xl border border-white/[0.06] bg-[#1f1f21] py-2 pl-9 pr-3 font-mono text-xs text-[#f8f8fc] placeholder:text-[#58588a] focus:border-[#14b8a6]/40 focus:outline-none focus:ring-1 focus:ring-[#14b8a6]/20 transition-all"
                   />
                 </div>
               </div>
@@ -1856,8 +1856,8 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
                         className="shrink-0 whitespace-nowrap rounded-full px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider border transition-all"
                         style={{
                           backgroundColor: activeCategory === cat ? "#14b8a6" : "transparent",
-                          borderColor: activeCategory === cat ? "#14b8a6" : "rgba(255,255,255,0.06)",
-                          color: activeCategory === cat ? "#0d0d0f" : "#8585aa",
+                          borderColor: activeCategory === cat ? "#14b8a6" : "rgba(255,255,255,0.11)",
+                          color: activeCategory === cat ? "#1f1f21" : "#8585aa",
                         }}
                       >
                         {cat}{catCount !== null ? ` (${catConnected}/${catCount})` : ""}
@@ -1902,7 +1902,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
           {/* ── GOALS & KPIs ─────────────────────────────────────────── */}
           <section id="goals" ref={(el) => { sectionRefs.current.goals = el; }}>
             <p className="mb-3 font-mono text-[10px] text-[#8585aa]">Monthly targets that power your forecast bars, AI analysis, and email digest.</p>
-            <div className="rounded-2xl border border-white/[0.06] bg-[#13131a] p-6">
+            <div className="rounded-2xl border border-white/[0.06] bg-[#25252c] p-6">
               <GoalsSection currencies={currencies} />
             </div>
           </section>
@@ -1911,7 +1911,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
           {isPremium && (
             <section id="alerts" ref={(el) => { sectionRefs.current.alerts = el; }}>
               <p className="mb-3 font-mono text-[10px] text-[#8585aa]">Get notified when your key metrics cross these thresholds.</p>
-              <div className="rounded-2xl border border-white/[0.06] bg-[#13131a] p-6">
+              <div className="rounded-2xl border border-white/[0.06] bg-[#25252c] p-6">
                 <AlertsSection email={email} currencies={currencies} />
               </div>
             </section>
@@ -1921,7 +1921,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
           {isPremium && (
             <section id="email" ref={(el) => { sectionRefs.current.email = el; }}>
               <p className="mb-3 font-mono text-[10px] text-[#8585aa]">AI summary delivered to your inbox on your chosen schedule.</p>
-              <div className="rounded-2xl border border-white/[0.06] bg-[#13131a] p-6">
+              <div className="rounded-2xl border border-white/[0.06] bg-[#25252c] p-6">
                 <DigestSectionInline email={email} />
               </div>
             </section>
@@ -1931,14 +1931,14 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
           {/* <section id="share" ref={(el) => { sectionRefs.current.share = el; }}>
             <SectionLabel color="#6366f1">Share Dashboard</SectionLabel>
             <p className="mt-1 font-mono text-[10px] text-[#8585aa]">Share a read-only snapshot with anyone — no login required.</p>
-            <div className="mt-3 rounded-2xl border border-white/[0.06] bg-[#13131a] p-6">
+            <div className="mt-3 rounded-2xl border border-white/[0.06] bg-[#25252c] p-6">
               <ShareSection />
             </div>
           </section> */}
 
           {/* ── PREFERENCES ──────────────────────────────────────────── */}
           <section id="preferences" ref={(el) => { sectionRefs.current.preferences = el; }}>
-            <div className="rounded-2xl border border-white/[0.06] bg-[#13131a] p-6 space-y-5">
+            <div className="rounded-2xl border border-white/[0.06] bg-[#25252c] p-6 space-y-5">
               <NewsletterToggle />
             </div>
           </section>
@@ -1971,7 +1971,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
                   name={field.name}
                   required={!field.optional}
                   placeholder={field.optional ? `${field.label} (optional)` : field.label}
-                  className="w-full rounded-xl border border-white/[0.06] bg-[#0d0d0f] px-3 py-2.5 text-sm text-[#f8f8fc] placeholder:text-[#58588a] focus:border-[#6366f1]/40 focus:outline-none focus:ring-1 focus:ring-[#6366f1]/20 transition-all"
+                  className="w-full rounded-xl border border-white/[0.06] bg-[#1f1f21] px-3 py-2.5 text-sm text-[#f8f8fc] placeholder:text-[#58588a] focus:border-[#6366f1]/40 focus:outline-none focus:ring-1 focus:ring-[#6366f1]/20 transition-all"
                 />
                 {field.optional && <p className="mt-1 font-mono text-[9px] text-[#58588a]">Optional</p>}
               </div>

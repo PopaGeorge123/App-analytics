@@ -152,7 +152,7 @@ function RatioCard({
 }) {
   return (
     <div
-      className="relative overflow-hidden rounded-2xl border bg-[#13131a] p-5 flex flex-col gap-3 transition-all hover:border-opacity-60"
+      className="relative overflow-hidden rounded-2xl border bg-[#25252c] p-5 flex flex-col gap-3 transition-all hover:border-opacity-60"
       style={{
         borderColor: color + "40",
         boxShadow: `0 0 18px ${color}18, inset 3px 0 0 ${color}`,
@@ -166,15 +166,15 @@ function RatioCard({
         <p className="font-mono text-2xl font-bold leading-none" style={{ color }}>{value}</p>
         {verdict && <p className="mt-1.5 font-mono text-[10px] font-semibold" style={{ color }}>{verdict}</p>}
         {sub  && <p className="mt-1 font-mono text-[10px] text-[#8585aa]">{sub}</p>}
-        {note && <p className="mt-1 font-mono text-[9px] text-[#58588a]">{note}</p>}
+        {note && <p className="mt-1 font-mono text-[9px] text-[#7575a0]">{note}</p>}
       </div>
       {benchmarkPct !== undefined && (
         <div>
           <div className="flex items-center justify-between mb-1">
-            <span className="font-mono text-[8px] text-[#58588a] uppercase tracking-widest">Benchmark</span>
-            <span className="font-mono text-[8px] text-[#58588a]">{benchmarkPct.toFixed(0)}%</span>
+            <span className="font-mono text-[8px] text-[#7575a0] uppercase tracking-widest">Benchmark</span>
+            <span className="font-mono text-[8px] text-[#7575a0]">{benchmarkPct.toFixed(0)}%</span>
           </div>
-          <div className="h-1 rounded-full bg-[#222235] overflow-hidden">
+          <div className="h-1 rounded-full bg-[#343447] overflow-hidden">
             <div
               className="h-full rounded-full transition-all duration-700"
               style={{ width: `${Math.min(benchmarkPct, 100)}%`, backgroundColor: color }}
@@ -209,7 +209,7 @@ function MilestonePill({
             ? "border-[#10b981] bg-[#10b981]/15 text-[#10b981]"
             : active
             ? "border-[#eab308] bg-[#eab308]/15 text-[#eab308] animate-pulse"
-            : "border-[#363650] bg-[#13131a] text-[#8585aa]"
+            : "border-[#363650] bg-[#25252c] text-[#8585aa]"
         }`}
         style={
           reached
@@ -236,7 +236,7 @@ function MilestonePill({
       <p className={`font-mono text-[9px] font-semibold text-center ${reached ? "text-[#10b981]" : active ? "text-[#eab308]" : "text-[#8585aa]"}`}>
         {label}
       </p>
-      {date && <p className="font-mono text-[8px] text-[#58588a] text-center">{date}</p>}
+      {date && <p className="font-mono text-[8px] text-[#7575a0] text-center">{date}</p>}
       {!reached && !date && active && etaDays !== null && etaDays !== undefined && (
         <p className="font-mono text-[8px] text-[#eab308]/70 text-center">~{etaDays}d</p>
       )}
@@ -283,7 +283,7 @@ function Donut({
   if (total === 0) {
     return (
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        <circle cx={size / 2} cy={size / 2} r={size * 0.35} fill="none" stroke="#222235" strokeWidth={size * 0.13} />
+        <circle cx={size / 2} cy={size / 2} r={size * 0.35} fill="none" stroke="#343447" strokeWidth={size * 0.13} />
         <text x={size / 2} y={size / 2} textAnchor="middle" dy="0.35em" fill="#8585aa" fontSize={size * 0.09} fontFamily="monospace">—</text>
       </svg>
     );
@@ -303,7 +303,7 @@ function Donut({
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
       <g className="-rotate-90" style={{ transformOrigin: `${cx}px ${cy}px` }}>
-        <circle cx={cx} cy={cy} r={r} fill="none" stroke="#222235" strokeWidth={strokeW} />
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="#343447" strokeWidth={strokeW} />
         {arcs.map((arc, i) => (
           <circle
             key={i}
@@ -353,7 +353,7 @@ function GoalModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
-      <div className="w-full max-w-sm rounded-2xl border border-[#363650] bg-[#1c1c2a] p-6 shadow-2xl">
+      <div className="w-full max-w-sm rounded-2xl border border-[#363650] bg-[#2e2e3c] p-6 shadow-2xl">
         <h3 className="font-mono text-sm font-bold text-[#f8f8fc] mb-1">Set Monthly Revenue Goal</h3>
         <p className="font-mono text-[10px] text-[#8585aa] mb-5">Enter your target revenue for this calendar month.</p>
         <label className="block font-mono text-[9px] uppercase tracking-widest text-[#8585aa] mb-1.5">
@@ -364,7 +364,7 @@ function GoalModal({
             {new Intl.NumberFormat("en-US", { style: "currency", currency, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(0).replace(/[\d,]/g, "").trim()}
           </span>
           <input
-            className="w-full rounded-xl border border-[#363650] bg-[#0f0f18] pl-7 pr-4 py-2.5 font-mono text-sm text-[#f8f8fc] focus:border-[#00d4aa] focus:outline-none"
+            className="w-full rounded-xl border border-[#363650] bg-[#21212a] pl-7 pr-4 py-2.5 font-mono text-sm text-[#f8f8fc] focus:border-[#00d4aa] focus:outline-none"
             value={raw}
             onChange={(e) => setRaw(e.target.value.replace(/[^0-9]/g, ""))}
             autoFocus
@@ -384,7 +384,7 @@ function GoalModal({
           </button>
           <button
             onClick={() => { onSave(parsed * 100); onClose(); }}
-            className="flex-1 rounded-xl bg-[#00d4aa] py-2 font-mono text-xs font-bold text-[#0f0f18] hover:bg-[#00e6ba] transition-colors"
+            className="flex-1 rounded-xl bg-[#00d4aa] py-2 font-mono text-xs font-bold text-[#21212a] hover:bg-[#00e6ba] transition-colors"
           >
             Save Goal
           </button>
@@ -594,7 +594,7 @@ export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, cu
   if (!hasRevenue) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
-        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#222235] text-[#58588a]">
+        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#343447] text-[#7575a0]">
           <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
           </svg>
@@ -612,7 +612,7 @@ export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, cu
 
       {/* ══ PAGE HEADER — MOMENTUM BANNER ══════════════════════════════ */}
       <div
-        className="relative overflow-hidden rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[#13131a]"
+        className="relative overflow-hidden rounded-2xl border border-[rgba(255,255,255,0.11)] bg-[#25252c]"
         style={{ minHeight: 100 }}
       >
         {/* indigo gradient on left */}
@@ -629,15 +629,15 @@ export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, cu
 
           {/* Center pills */}
           <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#1c1c2a] border border-[rgba(255,255,255,0.06)] px-3 py-1 font-mono text-[10px] text-[#bcbcd8]">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#2e2e3c] border border-[rgba(255,255,255,0.11)] px-3 py-1 font-mono text-[10px] text-[#bcbcd8]">
               <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>
               <span className="font-bold text-[#f8f8fc]">{daysLeft}</span> days left
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#1c1c2a] border border-[rgba(255,255,255,0.06)] px-3 py-1 font-mono text-[10px] text-[#bcbcd8]">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#2e2e3c] border border-[rgba(255,255,255,0.11)] px-3 py-1 font-mono text-[10px] text-[#bcbcd8]">
               <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               <span className="font-bold text-[#f8f8fc]">{fmtRev(allTimeRev)}</span> all-time
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#1c1c2a] border border-[rgba(255,255,255,0.06)] px-3 py-1 font-mono text-[10px] text-[#bcbcd8]">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#2e2e3c] border border-[rgba(255,255,255,0.11)] px-3 py-1 font-mono text-[10px] text-[#bcbcd8]">
               <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5a7.5 7.5 0 100 15 7.5 7.5 0 000-15zm0 0V3m0 18v-1.5M12 12l4.5-4.5" /></svg>
               <span className={`font-bold ${goalPct >= 80 ? "text-[#10b981]" : goalPct >= 40 ? "text-[#f59e0b]" : "text-[#ef4444]"}`}>{goalPct.toFixed(0)}%</span> to goal
             </span>
@@ -662,7 +662,7 @@ export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, cu
         </div>
 
         {/* Month completion progress bar at bottom */}
-        <div className="h-0.5 w-full bg-[#222235]">
+        <div className="h-0.5 w-full bg-[#343447]">
           <div
             className="h-full transition-all duration-700"
             style={{
@@ -679,7 +679,7 @@ export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, cu
           title="Monthly Goal"
           sub={`${new Date().toLocaleString("default", { month: "long" })} ${new Date().getFullYear()} · ${daysLeft} days remaining`}
         />
-        <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[#13131a] p-6">
+        <div className="rounded-2xl border border-[rgba(255,255,255,0.11)] bg-[#25252c] p-6">
           {/* Top row */}
           <div className="flex items-start justify-between gap-4 flex-wrap mb-5">
             <div>
@@ -696,7 +696,7 @@ export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, cu
             </div>
             <button
               onClick={() => setShowGoalModal(true)}
-              className="flex items-center gap-1.5 rounded-xl border border-[rgba(255,255,255,0.08)] bg-[#1c1c2a] px-3 py-2 font-mono text-[10px] text-[#8585aa] hover:border-[#6366f1] hover:text-[#6366f1] transition-colors"
+              className="flex items-center gap-1.5 rounded-xl border border-[rgba(255,255,255,0.13)] bg-[#2e2e3c] px-3 py-2 font-mono text-[10px] text-[#8585aa] hover:border-[#6366f1] hover:text-[#6366f1] transition-colors"
             >
               <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
@@ -706,7 +706,7 @@ export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, cu
           </div>
 
           {/* Progress bar — 16px, colored by pace, expected-pace marker */}
-          <div className="relative h-4 rounded-full bg-[#222235] overflow-hidden mb-1.5">
+          <div className="relative h-4 rounded-full bg-[#343447] overflow-hidden mb-1.5">
             <div
               className="h-full rounded-full transition-all duration-700"
               style={{
@@ -773,12 +773,12 @@ export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, cu
             ].map((c) => (
               <div
                 key={c.label}
-                className="rounded-xl bg-[#0d0d0f] px-3 py-2.5 border"
+                className="rounded-xl bg-[#1f1f21] px-3 py-2.5 border"
                 style={{ borderColor: c.border + "40", borderLeftColor: c.border, borderLeftWidth: 3 }}
               >
                 <p className="font-mono text-[8px] uppercase tracking-widest text-[#8585aa]">{c.label}</p>
                 <p className="mt-1 font-mono text-sm font-bold text-[#f8f8fc]">{c.value}</p>
-                <p className="font-mono text-[9px] text-[#58588a]">{c.sub}</p>
+                <p className="font-mono text-[9px] text-[#7575a0]">{c.sub}</p>
               </div>
             ))}
           </div>
@@ -786,27 +786,27 @@ export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, cu
           {/* Daily revenue bar chart */}
           {miniChartValues.length > 1 && (
             <div className="mt-6">
-              <p className="font-mono text-[9px] text-[#58588a] mb-2">Daily revenue — last 30 days</p>
+              <p className="font-mono text-[9px] text-[#7575a0] mb-2">Daily revenue — last 30 days</p>
               <ResponsiveContainer width="100%" height={120}>
                 <BarChart data={barChartData} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
                   <XAxis
                     dataKey="label"
-                    tick={{ fill: "#58588a", fontSize: 8, fontFamily: "monospace" }}
+                    tick={{ fill: "#7575a0", fontSize: 8, fontFamily: "monospace" }}
                     axisLine={false}
                     tickLine={false}
                     interval="preserveStartEnd"
                   />
                   <YAxis
-                    tick={{ fill: "#58588a", fontSize: 8, fontFamily: "monospace" }}
+                    tick={{ fill: "#7575a0", fontSize: 8, fontFamily: "monospace" }}
                     axisLine={false}
                     tickLine={false}
                     width={36}
                     tickFormatter={(v: number) => fmtRev(v).replace(/\.00$/, "")}
                   />
                   <Tooltip
-                    cursor={{ fill: "rgba(255,255,255,0.04)" }}
-                    contentStyle={{ background: "#FFFFFF", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, fontFamily: "monospace", fontSize: 11 }}
-                    labelStyle={{ color: "#000000", marginBottom: 2 }}
+                    cursor={{ fill: "rgba(255,255,255,0.13)" }}
+                    contentStyle={{ background: "#13131a", border: "1px solid rgba(255,255,255,0.13)", borderRadius: 8, fontFamily: "monospace", fontSize: 11 }}
+                    labelStyle={{ color: "#f8f8fc", marginBottom: 2 }}
                     formatter={(v) => [fmtRev(Number(v ?? 0)), "Revenue"]}
                   />
                   <ReferenceLine x={todayLabel} stroke="rgba(255,255,255,0.25)" strokeDasharray="3 3" label={{ value: "TODAY", fill: "#8585aa", fontSize: 8, fontFamily: "monospace", position: "top" }} />
@@ -828,9 +828,9 @@ export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, cu
           title="Revenue Forecast"
           sub="Based on your actual velocity — 7-day pace vs 30-day average"
         />
-        <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[#13131a] p-5">
+        <div className="rounded-2xl border border-[rgba(255,255,255,0.11)] bg-[#25252c] p-5">
           {/* Scenario tabs */}
-          <div className="flex gap-1 mb-5 rounded-xl bg-[#0d0d0f] p-1 w-fit">
+          <div className="flex gap-1 mb-5 rounded-xl bg-[#1f1f21] p-1 w-fit">
             {(["30d", "60d", "90d"] as const).map((t) => (
               <button
                 key={t}
@@ -870,12 +870,12 @@ export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, cu
             ].map((s) => (
               <div
                 key={s.label}
-                className="rounded-xl bg-[#0d0d0f] border p-4 flex flex-col gap-1"
+                className="rounded-xl bg-[#1f1f21] border p-4 flex flex-col gap-1"
                 style={{ borderColor: s.color + "30" }}
               >
                 <p className="font-mono text-[9px] uppercase tracking-widest mb-1" style={{ color: s.color }}>{s.label}</p>
                 <p className="font-mono text-2xl font-bold text-[#f8f8fc]">{fmtRev(Math.max(s.value, 0))}</p>
-                <p className="font-mono text-[9px] text-[#58588a]">{s.sub}</p>
+                <p className="font-mono text-[9px] text-[#7575a0]">{s.sub}</p>
               </div>
             ))}
           </div>
@@ -883,8 +883,8 @@ export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, cu
           {/* Forecast range bar */}
           {forecast30base > 0 && (
             <div className="mt-5">
-              <p className="font-mono text-[9px] text-[#58588a] mb-2 uppercase tracking-widest">Confidence interval ({forecastTab})</p>
-              <div className="relative h-3 rounded-full bg-[#222235] overflow-hidden">
+              <p className="font-mono text-[9px] text-[#7575a0] mb-2 uppercase tracking-widest">Confidence interval ({forecastTab})</p>
+              <div className="relative h-3 rounded-full bg-[#343447] overflow-hidden">
                 {(() => {
                   const worst = forecastTab === "30d" ? forecast30worst : forecastTab === "60d" ? forecast60base * 0.85 : forecast90base * 0.8;
                   const best = forecastTab === "30d" ? forecast30best : forecastTab === "60d" ? forecast60best * 1.1 : forecast90base * 1.15;
@@ -901,7 +901,7 @@ export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, cu
                   );
                 })()}
               </div>
-              <div className="flex justify-between font-mono text-[8px] text-[#58588a] mt-1">
+              <div className="flex justify-between font-mono text-[8px] text-[#7575a0] mt-1">
                 <span>Worst</span>
                 <span style={{ color: "#f59e0b" }}>Base</span>
                 <span>Best</span>
@@ -914,12 +914,12 @@ export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, cu
             <span className={`font-mono text-[10px] font-bold ${revenueSlope30 >= 0 ? "text-[#10b981]" : "text-[#ef4444]"}`}>
               {revenueSlope30 >= 0 ? "▲ Growing trend" : "▼ Declining trend"}
             </span>
-            <span className="font-mono text-[9px] text-[#58588a]">
+            <span className="font-mono text-[9px] text-[#7575a0]">
               {revenueSlope30 >= 0 ? "+" : ""}{fmtRev(Math.abs(revenueSlope30))}/day momentum · ARR {fmtRev(avgDaily30 * 365)}
             </span>
           </div>
 
-          <p className="mt-2 font-mono text-[9px] text-[#58588a]">
+          <p className="mt-2 font-mono text-[9px] text-[#7575a0]">
             Forecasts use your actual daily snapshot data — the more history, the more accurate.
           </p>
         </div>
@@ -933,11 +933,11 @@ export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, cu
         />
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {/* Platform donut */}
-          <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[#13131a] p-5">
+          <div className="rounded-2xl border border-[rgba(255,255,255,0.11)] bg-[#25252c] p-5">
             <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa] mb-4">By platform</p>
             {rev30ByPlatform.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 gap-2">
-                <p className="font-mono text-[10px] text-[#58588a]">No revenue in last 30 days</p>
+                <p className="font-mono text-[10px] text-[#7575a0]">No revenue in last 30 days</p>
                 <button className="font-mono text-[9px] text-[#6366f1] hover:underline">+ Connect a platform</button>
               </div>
             ) : (
@@ -966,7 +966,7 @@ export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, cu
                               <span className="font-mono text-[9px] text-[#8585aa]">{pct.toFixed(0)}%</span>
                             </div>
                           </div>
-                          <div className="h-1 rounded-full bg-[#222235] overflow-hidden">
+                          <div className="h-1 rounded-full bg-[#343447] overflow-hidden">
                             <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: platformColor(p.id) }} />
                           </div>
                         </div>
@@ -976,7 +976,7 @@ export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, cu
                 </div>
                 {/* Prior period compare */}
                 {lastMonthRev > 0 && (
-                  <div className="mt-4 flex items-center justify-between rounded-xl bg-[#0d0d0f] px-4 py-2.5">
+                  <div className="mt-4 flex items-center justify-between rounded-xl bg-[#1f1f21] px-4 py-2.5">
                     <span className="font-mono text-[9px] text-[#8585aa]">vs last month</span>
                     <span className={`font-mono text-[10px] font-bold ${totalRev30 >= lastMonthRev ? "text-[#10b981]" : "text-[#ef4444]"}`}>
                       {totalRev30 >= lastMonthRev ? "+" : ""}{fmtPct(lastMonthRev > 0 ? ((totalRev30 - lastMonthRev) / lastMonthRev) * 100 : 0)}
@@ -988,7 +988,7 @@ export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, cu
           </div>
 
           {/* Acq vs churn + MRR metrics */}
-          <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[#13131a] p-5">
+          <div className="rounded-2xl border border-[rgba(255,255,255,0.11)] bg-[#25252c] p-5">
             <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa] mb-4">Acquisition vs churn</p>
             <div className="space-y-4">
               <div>
@@ -998,7 +998,7 @@ export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, cu
                     {newCx30 > 0 ? `+${newCx30}` : "—"}
                   </span>
                 </div>
-                <div className="h-1.5 rounded-full bg-[#222235] overflow-hidden">
+                <div className="h-1.5 rounded-full bg-[#343447] overflow-hidden">
                   <div className="h-full rounded-full bg-[#10b981]"
                     style={{ width: newCx30 + churnedTotal > 0 ? `${(newCx30 / (newCx30 + churnedTotal)) * 100}%` : "0%" }} />
                 </div>
@@ -1010,12 +1010,12 @@ export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, cu
                     {churnedTotal > 0 ? `-${churnedTotal}` : "—"}
                   </span>
                 </div>
-                <div className="h-1.5 rounded-full bg-[#222235] overflow-hidden">
+                <div className="h-1.5 rounded-full bg-[#343447] overflow-hidden">
                   <div className="h-full rounded-full bg-[#ef4444]"
                     style={{ width: newCx30 + churnedTotal > 0 ? `${(churnedTotal / (newCx30 + churnedTotal)) * 100}%` : "0%" }} />
                 </div>
               </div>
-              <div className="border-t border-[rgba(255,255,255,0.06)] pt-3">
+              <div className="border-t border-[rgba(255,255,255,0.11)] pt-3">
                 <div className="flex items-center justify-between">
                   <span className="font-mono text-[10px] text-[#8585aa]">Net new customers</span>
                   <span className={`font-mono text-sm font-bold ${newCx30 - churnedTotal >= 0 ? "text-[#10b981]" : "text-[#ef4444]"}`}>
@@ -1032,7 +1032,7 @@ export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, cu
                   { label: "ARPU", value: arpuMonth > 0 ? fmtRev(arpuMonth) : "—" },
                   { label: "Churn rate", value: monthlyChurnRate > 0 ? fmtPct(monthlyChurnRate * 100) : "—" },
                 ].map((m) => (
-                  <div key={m.label} className="rounded-xl bg-[#0d0d0f] px-3 py-2.5">
+                  <div key={m.label} className="rounded-xl bg-[#1f1f21] px-3 py-2.5">
                     <p className="font-mono text-[8px] uppercase tracking-widest text-[#8585aa]">{m.label}</p>
                     <p className="mt-1 font-mono text-sm font-bold text-[#f8f8fc]">{m.value}</p>
                   </div>
@@ -1116,7 +1116,7 @@ export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, cu
           title="Revenue Milestones"
           sub={`All-time revenue · ${fmtRev(allTimeRev)} earned`}
         />
-        <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[#13131a] p-6">
+        <div className="rounded-2xl border border-[rgba(255,255,255,0.11)] bg-[#25252c] p-6">
           {/* Progress bar to next milestone */}
           {nextMilestone && (
             <div className="mb-6">
@@ -1138,7 +1138,7 @@ export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, cu
               </div>
 
               {/* 16px bar with % label inside */}
-              <div className="relative h-4 rounded-full bg-[#222235] overflow-hidden">
+              <div className="relative h-4 rounded-full bg-[#343447] overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all duration-700 flex items-center justify-end pr-2"
                   style={{
@@ -1148,7 +1148,7 @@ export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, cu
                   }}
                 >
                   {milestoneProgress >= 8 && (
-                    <span className="font-mono text-[9px] font-bold text-[#0d0d0f]">{milestoneProgress.toFixed(0)}%</span>
+                    <span className="font-mono text-[9px] font-bold text-[#1f1f21]">{milestoneProgress.toFixed(0)}%</span>
                   )}
                 </div>
               </div>

@@ -579,7 +579,7 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
     <div className="min-h-screen bg-[#090911] text-[#f8f8fc]">
       {/* ── Top bar ───────────────────────────────────────────────────────── */}
       {!hideHeader && (
-      <header className="border-b border-[#1e1e30] bg-[#0d0d1a]/90 backdrop-blur-sm px-6 py-3.5 sticky top-0 z-30">
+      <header className="border-b border-[#303042] bg-[#1f1f2c]/90 backdrop-blur-sm px-6 py-3.5 sticky top-0 z-30">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
           <div className="flex items-center gap-3">
             <img src="/fold-primary-dark.svg" alt="Fold" className="h-7 w-auto" />
@@ -652,7 +652,7 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
                   className={`flex items-center gap-2 rounded-xl border px-3 py-2 font-mono text-[11px] font-semibold transition-all duration-150 ${
                     isSelected
                       ? "border-[#00d4aa]/50 bg-[#00d4aa]/10 text-[#00d4aa]"
-                      : "border-[#222233] bg-[#0f0f1a] text-[#8585aa] hover:border-[#363650] hover:text-[#c0c0d8]"
+                      : "border-[#343445] bg-[#21212c] text-[#8585aa] hover:border-[#363650] hover:text-[#c0c0d8]"
                   }`}
                 >
                   <img src={integration.icon} alt={integration.name} width={14} height={14} className="object-contain" />
@@ -698,12 +698,12 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
                         className={`group relative flex flex-col items-start gap-2.5 rounded-xl border p-3.5 text-left transition-all duration-150 ${
                           isSelected
                             ? "border-[#00d4aa]/50 bg-[#00d4aa]/8 shadow-[0_0_0_1px_rgba(0,212,170,0.15),0_4px_20px_rgba(0,212,170,0.06)]"
-                            : "border-[#222233] bg-[#0f0f1a] hover:border-[#363650] hover:bg-[#13131f]"
+                            : "border-[#343445] bg-[#21212c] hover:border-[#363650] hover:bg-[#252531]"
                         }`}
                       >
                         {/* Popular badge */}
                         {isPopular && !isSelected && (
-                          <span className="absolute right-2.5 top-2.5 rounded-full bg-[#1a1a2e] border border-[#2d2d44] px-1.5 py-0.5 font-mono text-[8px] font-semibold text-[#58588a] uppercase tracking-wider">
+                          <span className="absolute right-2.5 top-2.5 rounded-full bg-[#2c2c40] border border-[#2d2d44] px-1.5 py-0.5 font-mono text-[8px] font-semibold text-[#58588a] uppercase tracking-wider">
                             Popular
                           </span>
                         )}
@@ -749,8 +749,8 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
           <div className="hidden lg:block lg:sticky lg:top-20 lg:self-start">
             {!selected ? (
               /* Empty state */
-              <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#1e1e30] bg-[#0d0d18] p-8 text-center min-h-110">
-                <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-[#1e1e30] bg-[#13131f]">
+              <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#303042] bg-[#1f1f2a] p-8 text-center min-h-110">
+                <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-[#303042] bg-[#252531]">
                   <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="#3a3a55" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
                   </svg>
@@ -767,7 +767,7 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
                     { icon: "⚡", text: "Daily snapshots synced automatically" },
                     { icon: "🔌", text: "Revoke access any time from the provider" },
                   ].map(({ icon, text }) => (
-                    <div key={text} className="flex items-center gap-2.5 rounded-lg border border-[#1a1a28] bg-[#111120] px-3 py-2">
+                    <div key={text} className="flex items-center gap-2.5 rounded-lg border border-[#2c2c3a] bg-[#111120] px-3 py-2">
                       <span className="text-sm">{icon}</span>
                       <span className="text-[11px] text-[#4a4a6a]">{text}</span>
                     </div>
@@ -816,9 +816,9 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
             onClick={() => setSheetOpen(false)}
           />
           {/* Sheet */}
-          <div className="relative z-10 max-h-[90dvh] overflow-y-auto rounded-t-3xl border-t border-[#1e1e30] bg-[#0d0d18]">
+          <div className="relative z-10 max-h-[90dvh] overflow-y-auto rounded-t-3xl border-t border-[#303042] bg-[#1f1f2a]">
             {/* Handle */}
-            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[#1a1a28] bg-[#0d0d18]/95 backdrop-blur-sm px-5 py-3.5">
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[#2c2c3a] bg-[#1f1f2a]/95 backdrop-blur-sm px-5 py-3.5">
               <div className="flex items-center gap-2.5">
                 <div
                   className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
@@ -830,7 +830,7 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
               </div>
               <button
                 onClick={() => setSheetOpen(false)}
-                className="rounded-lg p-1.5 text-[#58588a] hover:bg-[#1e1e30] hover:text-[#8585aa] transition"
+                className="rounded-lg p-1.5 text-[#58588a] hover:bg-[#303042] hover:text-[#8585aa] transition"
               >
                 <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -899,11 +899,11 @@ function DetailPanel({
   isMobile?: boolean;
 }) {
   return (
-    <div className={`rounded-2xl border border-[#1e1e30] bg-[#0d0d18] overflow-hidden`}>
+    <div className={`rounded-2xl border border-[#303042] bg-[#1f1f2a] overflow-hidden`}>
       {/* Header */}
       {!isMobile && (
         <div
-          className="flex items-center gap-3 px-5 py-4 border-b border-[#1a1a28]"
+          className="flex items-center gap-3 px-5 py-4 border-b border-[#2c2c3a]"
           style={{ background: `linear-gradient(135deg, ${selected.color}10 0%, transparent 70%)` }}
         >
           <div
@@ -918,7 +918,7 @@ function DetailPanel({
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-1 text-[#3a3a55] hover:bg-[#1a1a28] hover:text-[#58588a] transition shrink-0"
+            className="rounded-lg p-1 text-[#3a3a55] hover:bg-[#2c2c3a] hover:text-[#58588a] transition shrink-0"
           >
             <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -934,14 +934,14 @@ function DetailPanel({
             <p className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#3a3a55]">
               What you&apos;ll see after connecting
             </p>
-            <span className="rounded-full border border-[#1a1a28] bg-[#0a0a14] px-2 py-0.5 font-mono text-[8px] text-[#3a3a55]">
+            <span className="rounded-full border border-[#2c2c3a] bg-[#1c1c26] px-2 py-0.5 font-mono text-[8px] text-[#3a3a55]">
               sample data
             </span>
           </div>
-          <div className="rounded-xl border border-[#141420] bg-[#0a0a14] p-3">
+          <div className="rounded-xl border border-[#262632] bg-[#1c1c26] p-3">
             <div className="grid grid-cols-2 gap-1.5 mb-2">
               {(PREVIEW_METRICS[selected.id] ?? DEFAULT_PREVIEW_METRICS).map(({ label, value, trend }) => (
-                <div key={label} className="rounded-lg border border-[#1a1a28] bg-[#0f0f1a] px-2.5 py-2">
+                <div key={label} className="rounded-lg border border-[#2c2c3a] bg-[#21212c] px-2.5 py-2">
                   <p className="font-mono text-[9px] text-[#3a3a55] truncate">{label}</p>
                   <p className="font-mono text-sm font-bold text-[#e8e8f8] mt-0.5">{value}</p>
                   {trend && (
@@ -953,7 +953,7 @@ function DetailPanel({
               ))}
             </div>
             {/* Mini sparkline placeholder */}
-            <div className="rounded-lg border border-[#141420] bg-[#0d0d18] px-3 py-2">
+            <div className="rounded-lg border border-[#262632] bg-[#1f1f2a] px-3 py-2">
               <div className="flex items-end gap-1 h-8">
                 {[30, 45, 35, 60, 52, 70, 65, 80, 72, 90, 84, 100].map((h, i) => (
                   <div
@@ -991,7 +991,7 @@ function DetailPanel({
           </div>
         </div>
 
-        <div className="border-t border-[#141420]" />
+        <div className="border-t border-[#262632]" />
 
         {/* Connect area */}
         {success ? (
@@ -1121,7 +1121,7 @@ function ApiKeyForm({
             onChange={(e) => onChange(field.name, e.target.value)}
             placeholder={field.placeholder}
             autoComplete="off"
-            className="w-full rounded-lg border border-[#1e1e30] bg-[#0a0a14] px-3 py-2.5 font-mono text-[12px] text-[#e8e8f8] placeholder-[#252535] outline-none transition focus:border-[#00d4aa]/35 focus:ring-1 focus:ring-[#00d4aa]/15"
+            className="w-full rounded-lg border border-[#303042] bg-[#1c1c26] px-3 py-2.5 font-mono text-[12px] text-[#e8e8f8] placeholder-[#252535] outline-none transition focus:border-[#00d4aa]/35 focus:ring-1 focus:ring-[#00d4aa]/15"
           />
         </div>
       ))}
@@ -1197,7 +1197,7 @@ function ShopifyForm({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="yourstore.myshopify.com"
-          className="w-full rounded-lg border border-[#1e1e30] bg-[#0a0a14] px-3 py-2.5 font-mono text-[12px] text-[#e8e8f8] placeholder-[#252535] outline-none transition focus:border-[#96bf48]/35 focus:ring-1 focus:ring-[#96bf48]/15"
+          className="w-full rounded-lg border border-[#303042] bg-[#1c1c26] px-3 py-2.5 font-mono text-[12px] text-[#e8e8f8] placeholder-[#252535] outline-none transition focus:border-[#96bf48]/35 focus:ring-1 focus:ring-[#96bf48]/15"
           onKeyDown={(e) => e.key === "Enter" && onSubmit()}
         />
       </div>

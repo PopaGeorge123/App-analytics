@@ -62,7 +62,7 @@ export default function OnboardingModal({ hasNoConnections, onNavigateToSettings
       aria-modal="true"
       aria-label="Connect Stripe"
     >
-      <div className="relative w-full max-w-md rounded-2xl border border-[#363650] bg-[#1c1c2a] shadow-2xl overflow-hidden">
+      <div className="relative w-full max-w-md rounded-2xl border border-[#363650] bg-[#2e2e3c] shadow-2xl overflow-hidden">
 
         {/* Top accent bar */}
         <div className="h-1 w-full bg-linear-to-r from-[#00d4aa] via-[#6366f1] to-[#00d4aa]" />

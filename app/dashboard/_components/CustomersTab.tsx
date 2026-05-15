@@ -224,7 +224,7 @@ function SectionHeader({ title, sub }: { title: string; sub?: string }) {
 
 function StatPill({ label, value, color = "#8585aa" }: { label: string; value: string; color?: string }) {
   return (
-    <div className="flex flex-col gap-0.5 rounded-xl border border-[#363650] bg-[#1c1c2a]/60 px-3 py-2.5">
+    <div className="flex flex-col gap-0.5 rounded-xl border border-[#363650] bg-[#2e2e3c]/60 px-3 py-2.5">
       <p className="font-mono text-[9px] uppercase tracking-widest" style={{ color }}>{label}</p>
       <p className="font-mono text-base font-bold text-[#f8f8fc]">{value}</p>
     </div>
@@ -311,7 +311,7 @@ function EmailModal({ customer, onClose }: { customer: ScoredCustomer; onClose: 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
-      <div className="w-full max-w-md rounded-2xl border border-[rgba(255,255,255,0.1)] bg-[#13131a] p-6 shadow-2xl">
+      <div className="w-full max-w-md rounded-2xl border border-[rgba(255,255,255,0.1)] bg-[#25252c] p-6 shadow-2xl">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="font-mono text-sm font-bold text-[#f8f8fc]">Re-engagement Email</h3>
@@ -331,16 +331,16 @@ function EmailModal({ customer, onClose }: { customer: ScoredCustomer; onClose: 
         </div>
         <div className="mb-4 space-y-1">
           <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Message</p>
-          <div className="rounded-xl bg-[#0d0d0f] border border-[rgba(255,255,255,0.06)] p-3 max-h-48 overflow-y-auto">
+          <div className="rounded-xl bg-[#1f1f21] border border-[rgba(255,255,255,0.11)] p-3 max-h-48 overflow-y-auto">
             <p className="font-mono text-[10px] text-[#8585aa] whitespace-pre-wrap leading-relaxed">{body}</p>
           </div>
         </div>
         <div className="flex gap-2">
-          <button onClick={onClose} className="flex-1 rounded-xl border border-[rgba(255,255,255,0.08)] py-2 font-mono text-[11px] text-[#8585aa] hover:border-[#6366f1] transition-colors">
+          <button onClick={onClose} className="flex-1 rounded-xl border border-[rgba(255,255,255,0.13)] py-2 font-mono text-[11px] text-[#8585aa] hover:border-[#6366f1] transition-colors">
             Close
           </button>
           <button onClick={copyAll} className="flex-1 rounded-xl py-2 font-mono text-[11px] font-bold transition-colors"
-            style={{ backgroundColor: copied ? "#10b981" : "#f59e0b", color: "#0d0d0f" }}>
+            style={{ backgroundColor: copied ? "#10b981" : "#f59e0b", color: "#1f1f21" }}>
             {copied ? (
               <span className="flex items-center justify-center gap-1">
                 <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
@@ -383,7 +383,7 @@ function ScoreRing({ score, size = 80 }: { score: number; size?: number }) {
 
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#222235" strokeWidth={size * 0.1} />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#343447" strokeWidth={size * 0.1} />
       <circle
         cx={size / 2} cy={size / 2} r={r}
         fill="none"
@@ -402,7 +402,7 @@ function ScoreRing({ score, size = 80 }: { score: number; size?: number }) {
 
 function ConcentrationBar({ pct, color }: { pct: number; color: string }) {
   return (
-    <div className="h-2 w-full rounded-full bg-[#2a2a3f] overflow-hidden">
+    <div className="h-2 w-full rounded-full bg-[#3c3c51] overflow-hidden">
       <div
         className="h-full rounded-full transition-all duration-700"
         style={{ width: `${clamp(pct, 0, 100)}%`, backgroundColor: color }}
@@ -418,7 +418,7 @@ function CohortCell({ pct, isFirst, isFuture }: { pct: number; isFirst: boolean;
     return <td className="px-2 py-2 text-center"><span className="font-mono text-[9px] text-[#363650]">—</span></td>;
   }
   if (pct === 0 && !isFirst) {
-    return <td className="px-2 py-2 text-center"><span className="font-mono text-[9px] text-[#58588a]">0%</span></td>;
+    return <td className="px-2 py-2 text-center"><span className="font-mono text-[9px] text-[#7575a0]">0%</span></td>;
   }
   // Heatmap: 100% = green, 50% = amber, 0% = red
   const bg = pct >= 80 ? "#10b981" : pct >= 50 ? "#f59e0b" : pct >= 25 ? "#ef4444" : "#ef4444";
@@ -553,7 +553,7 @@ export default function CustomersTab({
   if (!hasRevenue) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
-        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[#13131a] text-[#8585aa]">
+        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-[rgba(255,255,255,0.11)] bg-[#25252c] text-[#8585aa]">
           <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
           </svg>
@@ -687,7 +687,7 @@ export default function CustomersTab({
       {/* ══ §7 NEW — Customer Acquisition ══════════════════════════════════ */}
       <section>
         <SectionHeader title="Customer Acquisition" sub="New customers by month — track if your top-of-funnel is growing" />
-        <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[#13131a] p-5">
+        <div className="rounded-2xl border border-[rgba(255,255,255,0.11)] bg-[#13131a] p-5">
           <div className="flex items-end justify-between gap-1 mb-3">
             {newCustomersByMonth.map((m) => {
               const maxCount = Math.max(...newCustomersByMonth.map((x) => x.count), 1);
@@ -698,14 +698,14 @@ export default function CustomersTab({
                   <span className="font-mono text-[9px] text-[#8585aa]">{m.count > 0 ? m.count : ""}</span>
                   <div
                     className="w-full rounded-t-sm transition-all duration-700"
-                    style={{ height: h, backgroundColor: isLast ? "#f8f8fc" : m.count === 0 ? "#222235" : "#6366f1", opacity: isLast ? 1 : 0.65 + (newCustomersByMonth.indexOf(m) / 6) * 0.35 }}
+                    style={{ height: h, backgroundColor: isLast ? "#f8f8fc" : m.count === 0 ? "#343447" : "#6366f1", opacity: isLast ? 1 : 0.65 + (newCustomersByMonth.indexOf(m) / 6) * 0.35 }}
                   />
-                  <span className="font-mono text-[9px] text-[#58588a]">{m.label}</span>
+                  <span className="font-mono text-[9px] text-[#7575a0]">{m.label}</span>
                 </div>
               );
             })}
           </div>
-          <div className="flex items-center justify-between font-mono text-[9px] text-[#8585aa] pt-2 border-t border-[rgba(255,255,255,0.06)]">
+          <div className="flex items-center justify-between font-mono text-[9px] text-[#8585aa] pt-2 border-t border-[rgba(255,255,255,0.11)]">
             <span>This month: <span className={`font-bold ${newCustomersByMonth[5]?.count === 0 ? "text-[#ef4444]" : "text-[#10b981]"}`}>{newCustomersByMonth[5]?.count ?? 0}</span></span>
             <span>Last month: <span className="font-bold text-[#f8f8fc]">{newCustomersByMonth[4]?.count ?? 0}</span></span>
             <span>All time: <span className="font-bold text-[#f8f8fc]">{stats.totalCustomers}</span></span>
@@ -716,7 +716,7 @@ export default function CustomersTab({
       {/* ══ §1 — Customer Health Score ══════════════════════════════════════ */}
       <section>
         <SectionHeader title="Customer Health Score" sub="Composite score based on recency, purchase frequency, and spend." />
-        <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[#13131a] p-4 sm:p-6">
+        <div className="rounded-2xl border border-[rgba(255,255,255,0.11)] bg-[#13131a] p-4 sm:p-6">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
 
             {/* Left — dial + legend */}
@@ -729,7 +729,7 @@ export default function CustomersTab({
                 </div>
               </div>
               <HealthBadge score={stats.avgHealth} />
-              <p className="font-mono text-[9px] text-[#58588a] text-center">
+              <p className="font-mono text-[9px] text-[#7575a0] text-center">
                 Healthy businesses score 60+
               </p>
               <p className="font-mono text-[9px] text-[#f59e0b] text-center">
@@ -757,7 +757,7 @@ export default function CustomersTab({
                 return (
                   <div key={seg.label} className="flex items-center gap-3">
                     <p className="w-20 font-mono text-[10px] text-[#8585aa] shrink-0">{seg.label}</p>
-                    <div className="flex-1 h-8 rounded-lg bg-[#222235] overflow-hidden relative"
+                    <div className="flex-1 h-8 rounded-lg bg-[#343447] overflow-hidden relative"
                       style={isUrgent && seg.count > 0 ? { boxShadow: `0 0 10px ${seg.color}25` } : undefined}>
                       <div
                         className="h-full rounded-lg transition-all duration-700 flex items-center justify-center gap-2"
@@ -812,13 +812,13 @@ export default function CustomersTab({
       {/* ══ §2 — Top Customers by LTV ══════════════════════════════════════ */}
       <section>
         <SectionHeader title="Top Customers by LTV" sub="Your highest-value customers ranked by total lifetime spend." />
-        <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[#13131a] p-4 sm:p-6">
+        <div className="rounded-2xl border border-[rgba(255,255,255,0.11)] bg-[#25252c] p-4 sm:p-6">
           {/* Table controls */}
           <div className="flex flex-wrap items-center gap-2 mb-4">
             <div className="relative flex-1 min-w-40">
               <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8585aa]"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 15.803a7.5 7.5 0 0010.607 0z" /></svg>
               <input
-                className="w-full rounded-xl border border-[rgba(255,255,255,0.08)] bg-[#0d0d0f] pl-8 pr-3 py-1.5 font-mono text-[11px] text-[#f8f8fc] focus:border-[#6366f1] focus:outline-none"
+                className="w-full rounded-xl border border-[rgba(255,255,255,0.13)] bg-[#1f1f21] pl-8 pr-3 py-1.5 font-mono text-[11px] text-[#f8f8fc] focus:border-[#6366f1] focus:outline-none"
                 placeholder="Search customers..."
                 value={customerSearch}
                 onChange={(e) => setCustomerSearch(e.target.value)}
@@ -832,7 +832,7 @@ export default function CustomersTab({
                   className={`px-2.5 py-1 rounded-full font-mono text-[9px] transition-all border ${
                     customerFilter === f
                       ? "bg-[#6366f1] border-[#6366f1] text-white"
-                      : "border-[rgba(255,255,255,0.08)] text-[#8585aa] hover:border-[#6366f1]"
+                      : "border-[rgba(255,255,255,0.13)] text-[#8585aa] hover:border-[#6366f1]"
                   }`}
                 >
                   {f}
@@ -847,7 +847,7 @@ export default function CustomersTab({
             <div className="overflow-x-auto">
               <table className="w-full min-w-130 text-left">
                 <thead>
-                  <tr className="border-b border-[rgba(255,255,255,0.06)]">
+                  <tr className="border-b border-[rgba(255,255,255,0.11)]">
                     <th className="pb-2 font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Customer</th>
                     <th className="pb-2 text-right font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">LTV</th>
                     <th className="pb-2 text-right font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Orders</th>
@@ -857,7 +857,7 @@ export default function CustomersTab({
                     <th className="pb-2 text-center font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[rgba(255,255,255,0.04)]">
+                <tbody className="divide-y divide-[rgba(255,255,255,0.13)]">
                   {filteredCustomers.map((c, i) => {
                     const days = daysSince(c.lastSeen);
                     const recencyColor = days < 30 ? "#10b981" : days < 90 ? "#f59e0b" : "#ef4444";
@@ -881,7 +881,7 @@ export default function CustomersTab({
                                   )}
                                 </div>
                                 {c.email && (
-                                  <p className="font-mono text-[9px] text-[#58588a] truncate max-w-35">{c.email}</p>
+                                  <p className="font-mono text-[9px] text-[#7575a0] truncate max-w-35">{c.email}</p>
                                 )}
                               </div>
                             </div>
@@ -906,7 +906,7 @@ export default function CustomersTab({
                               <button
                                 onClick={() => setEmailCustomer(c)}
                                 title="Send re-engagement email"
-                                className="flex h-7 w-7 items-center justify-center rounded-lg border border-[rgba(255,255,255,0.08)] text-[#8585aa] hover:border-[#f59e0b] hover:text-[#f59e0b] transition-colors"
+                                className="flex h-7 w-7 items-center justify-center rounded-lg border border-[rgba(255,255,255,0.13)] text-[#8585aa] hover:border-[#f59e0b] hover:text-[#f59e0b] transition-colors"
                               >
                                 <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /></svg>
                               </button>
@@ -916,7 +916,7 @@ export default function CustomersTab({
                         {isExpanded && (
                           <tr key={c.id + "-expanded"}>
                             <td colSpan={7} className="pb-3 pt-0">
-                              <div className="mx-3 rounded-xl border border-[rgba(255,255,255,0.06)] bg-[#0d0d0f] p-4">
+                              <div className="mx-3 rounded-xl border border-[rgba(255,255,255,0.11)] bg-[#1f1f21] p-4">
                                 <div className="flex flex-wrap gap-6 mb-3">
                                   <div>
                                     <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">LTV</p>
@@ -968,7 +968,7 @@ export default function CustomersTab({
       {/* ══ §3 — Cohort Retention ══════════════════════════════════════════ */}
       <section className={locked ? "relative overflow-hidden rounded-2xl" : ""}>
         {locked && (
-          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-[#0d0d0f]/80 backdrop-blur-sm">
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-[#1f1f21]/80 backdrop-blur-sm">
             <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#a78bfa" strokeWidth={1.8}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
             </svg>
@@ -979,7 +979,7 @@ export default function CustomersTab({
           title="Cohort Retention"
           sub="What % of customers acquired each month are still active in subsequent months."
         />
-        <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[#13131a] p-4 sm:p-6">
+        <div className="rounded-2xl border border-[rgba(255,255,255,0.11)] bg-[#25252c] p-4 sm:p-6">
           {cohorts.length === 0 ? (
             <p className="font-mono text-[11px] text-[#8585aa]">Need at least 1 month of data to build cohorts.</p>
           ) : (
@@ -995,7 +995,7 @@ export default function CustomersTab({
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[rgba(255,255,255,0.04)]">
+                  <tbody className="divide-y divide-[rgba(255,255,255,0.13)]">
                     {cohorts.map((row) => {
                       const maxCohortSize = Math.max(...cohorts.map((r) => r.newCustomers), 1);
                       const sizeBarPct = clamp((row.newCustomers / maxCohortSize) * 100, 0, 100);
@@ -1005,7 +1005,7 @@ export default function CustomersTab({
                           <td className="py-2 px-2">
                             <div className="flex items-center gap-2">
                               <span className="font-mono text-[10px] text-[#8585aa] w-4 text-right">{row.newCustomers}</span>
-                              <div className="h-1.5 flex-1 rounded-full bg-[#222235] overflow-hidden">
+                              <div className="h-1.5 flex-1 rounded-full bg-[#343447] overflow-hidden">
                                 <div className="h-full rounded-full bg-[#6366f1]" style={{ width: `${sizeBarPct}%` }} />
                               </div>
                             </div>
@@ -1025,7 +1025,7 @@ export default function CustomersTab({
                       );
                     })}
                     {/* Average row */}
-                    <tr className="border-t-2 border-[rgba(255,255,255,0.08)]">
+                    <tr className="border-t-2 border-[rgba(255,255,255,0.13)]">
                       <td className="py-2 pr-4 font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Average</td>
                       <td className="py-2 px-2" />
                       {cohortAvgByOffset.map((avg, i) => (
@@ -1037,7 +1037,7 @@ export default function CustomersTab({
                   </tbody>
                 </table>
               </div>
-              <p className="mt-4 font-mono text-[10px] text-[#58588a] leading-relaxed">
+              <p className="mt-4 font-mono text-[10px] text-[#7575a0] leading-relaxed">
                 {cohorts.length < 3
                   ? "Your retention looks strong — but with only a few cohorts, this data isn't yet statistically meaningful. Keep growing your base."
                   : "Month 0 = 100% baseline (acquisition month). Lower subsequent months indicate churn."}
@@ -1050,7 +1050,7 @@ export default function CustomersTab({
       {/* ══ §4 — At-Risk Customers ═════════════════════════════════════════ */}
       <section id="at-risk" className={locked ? "relative overflow-hidden rounded-2xl" : ""}>
         {locked && (
-          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-[#0d0d0f]/80 backdrop-blur-sm">
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-[#1f1f21]/80 backdrop-blur-sm">
             <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#a78bfa" strokeWidth={1.8}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
             </svg>
@@ -1060,7 +1060,7 @@ export default function CustomersTab({
         <SectionHeader title="At-Risk Customers" sub="Active customers with no activity in 30+ days, sorted by urgency." />
 
         {atRiskList.length === 0 ? (
-          <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[#13131a] p-5">
+          <div className="rounded-2xl border border-[rgba(255,255,255,0.11)] bg-[#25252c] p-5">
             <div className="flex items-center gap-3 rounded-xl border border-[#10b981]/20 bg-[#10b981]/05 px-4 py-3">
               <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#10b981" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1069,7 +1069,7 @@ export default function CustomersTab({
             </div>
           </div>
         ) : (
-          <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[#13131a] p-4 sm:p-6">
+          <div className="rounded-2xl border border-[rgba(255,255,255,0.11)] bg-[#25252c] p-4 sm:p-6">
             {/* Alert header with CTA */}
             <div className="flex flex-wrap items-center justify-between gap-3 mb-5 rounded-xl border border-[#f59e0b]/25 bg-[#f59e0b]/06 px-4 py-3" style={{ background: "#f59e0b0a" }}>
               <div className="flex items-center gap-2">
@@ -1092,7 +1092,7 @@ export default function CustomersTab({
                   <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /></svg>
                   Email all at-risk
                 </button> */}
-                {/* <button className="rounded-xl bg-[#f59e0b] px-3 py-1.5 font-mono text-[10px] font-bold text-[#0d0d0f] hover:bg-[#fbbf24] transition-colors">
+                {/* <button className="rounded-xl bg-[#f59e0b] px-3 py-1.5 font-mono text-[10px] font-bold text-[#1f1f21] hover:bg-[#fbbf24] transition-colors">
                   → Win-back playbook
                 </button> */}
               </div>
@@ -1112,7 +1112,7 @@ export default function CustomersTab({
                     return (
                       <div
                         key={c.id}
-                        className="flex items-center gap-3 rounded-xl border border-[rgba(255,255,255,0.04)] bg-[#0d0d0f] px-4 py-3 hover:border-[#ef4444]/30 transition-all"
+                        className="flex items-center gap-3 rounded-xl border border-[rgba(255,255,255,0.13)] bg-[#1f1f21] px-4 py-3 hover:border-[#ef4444]/30 transition-all"
                       >
                         <input
                           type="checkbox"
@@ -1127,7 +1127,7 @@ export default function CustomersTab({
                         <Avatar name={c.name} score={c.score} size={28} />
                         <div className="flex-1 min-w-0">
                           <p className="font-mono text-[11px] font-semibold text-[#e0e0f0] truncate">{c.name}</p>
-                          <p className="font-mono text-[9px] text-[#58588a]">
+                          <p className="font-mono text-[9px] text-[#7575a0]">
                             LTV: {fmtCents(c.totalSpent, revCurrency)} · {c.orderCount} orders · Last: {c.lastSeen}
                           </p>
                         </div>
@@ -1164,7 +1164,7 @@ export default function CustomersTab({
                     return (
                       <div
                         key={c.id}
-                        className="flex items-center gap-3 rounded-xl border border-[rgba(255,255,255,0.04)] bg-[#0d0d0f] px-4 py-3 hover:border-[#f59e0b]/30 transition-all"
+                        className="flex items-center gap-3 rounded-xl border border-[rgba(255,255,255,0.13)] bg-[#1f1f21] px-4 py-3 hover:border-[#f59e0b]/30 transition-all"
                       >
                         <input
                           type="checkbox"
@@ -1179,7 +1179,7 @@ export default function CustomersTab({
                         <Avatar name={c.name} score={c.score} size={28} />
                         <div className="flex-1 min-w-0">
                           <p className="font-mono text-[11px] font-semibold text-[#e0e0f0] truncate">{c.name}</p>
-                          <p className="font-mono text-[9px] text-[#58588a]">
+                          <p className="font-mono text-[9px] text-[#7575a0]">
                             LTV: {fmtCents(c.totalSpent, revCurrency)} · {c.orderCount} orders · Last: {c.lastSeen}
                           </p>
                         </div>
@@ -1206,7 +1206,7 @@ export default function CustomersTab({
       {/* ══ §5 — Revenue Concentration ════════════════════════════════════ */}
       <section className={locked ? "relative overflow-hidden rounded-2xl" : ""}>
         {locked && (
-          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-[#0d0d0f]/80 backdrop-blur-sm">
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-[#1f1f21]/80 backdrop-blur-sm">
             <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#a78bfa" strokeWidth={1.8}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
             </svg>
@@ -1226,7 +1226,7 @@ export default function CustomersTab({
           </span>
         </div>
 
-        <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[#13131a] p-4 sm:p-6 space-y-4">
+        <div className="rounded-2xl border border-[rgba(255,255,255,0.11)] bg-[#25252c] p-4 sm:p-6 space-y-4">
           {[
             {
               label: `Top 10% of customers (${Math.max(1, Math.floor(stats.totalCustomers * 0.1))})`,
@@ -1247,23 +1247,23 @@ export default function CustomersTab({
               verdict: stats.bottom50pct < 5 ? "Very low contribution from the majority" : "Good long-tail revenue distribution",
             },
           ].map((row) => (
-            <div key={row.label} className="rounded-xl border bg-[#0d0d0f] p-4" style={{ borderColor: row.color + "30" }}>
+            <div key={row.label} className="rounded-xl border bg-[#1f1f21] p-4" style={{ borderColor: row.color + "30" }}>
               <div className="flex flex-wrap items-center justify-between gap-1 mb-2">
                 <p className="font-mono text-[10px] text-[#bcbcd8]">{row.label}</p>
                 <p className="font-mono text-lg font-bold" style={{ color: row.color }}>{row.pct.toFixed(1)}%</p>
               </div>
-              <div className="h-4 rounded-full bg-[#222235] overflow-hidden mb-2">
+              <div className="h-4 rounded-full bg-[#343447] overflow-hidden mb-2">
                 <div
                   className="h-full rounded-full transition-all duration-700"
                   style={{ width: `${clamp(row.pct, 0, 100)}%`, backgroundColor: row.color }}
                 />
               </div>
-              <p className="font-mono text-[9px] text-[#58588a]">{row.verdict}</p>
+              <p className="font-mono text-[9px] text-[#7575a0]">{row.verdict}</p>
             </div>
           ))}
 
           {/* Pareto callout */}
-          <div className="rounded-xl border border-[rgba(255,255,255,0.06)] bg-[#0d0d0f] p-4">
+          <div className="rounded-xl border border-[rgba(255,255,255,0.11)] bg-[#1f1f21] p-4">
             <div className="flex items-start gap-2 mb-2">
               <span className="text-sm">📊</span>
               <p className="font-mono text-[10px] font-bold text-[#f59e0b]">Pareto Analysis</p>
