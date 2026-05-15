@@ -1464,7 +1464,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
   }
 
   return (
-    <div className="flex w-full min-h-screen" style={{ background: "#0d0d0f" }}>
+    <div className="flex flex-col lg:flex-row w-full" style={{ background: "#0d0d0f" }}>
 
       {/* ── Left sidebar — desktop only ─────────────────────────────────── */}
       <aside className="hidden lg:flex flex-col w-[180px] shrink-0 sticky top-0 h-screen pt-8 pb-6 border-r border-white/[0.05]">
@@ -1520,7 +1520,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
             <button
               key={item.id}
               onClick={() => scrollTo(item.id)}
-              className="shrink-0 rounded-full px-3 py-1.5 font-mono text-[50px] font-semibold border transition-all whitespace-nowrap"
+              className="shrink-0 rounded-full px-3 py-1.5 font-mono text-[11px] font-semibold border transition-all whitespace-nowrap"
               style={{
                 backgroundColor: isActive ? `${item.color}15` : "transparent",
                 borderColor: isActive ? `${item.color}40` : "rgba(255,255,255,0.06)",
