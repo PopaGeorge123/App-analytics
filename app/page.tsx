@@ -477,7 +477,7 @@ export default async function Home() {
                   <h3 className="font-mono text-xl font-bold text-[#f8f8fc] mb-3">6 KPIs. One glance.</h3>
                   <p className="text-[#bcbcd8] leading-relaxed mb-4">Revenue, sessions, ad spend, new customers, conversions, and customer acquisition cost — all with 7-day trends and comparisons to the prior period.</p>
                   <ul className="space-y-2">
-                    {["Revenue & MRR from Stripe", "Sessions & conversions from GA4", "Ad spend & CAC from Meta Ads", "E-commerce orders from Shopify", "Website health score at a glance", "Quick actions & recent activity feed"].map((f) => (
+                    {["Revenue & MRR from Stripe", "Sessions & conversions from GA4", "Ad spend & CAC from Meta Ads", "E-commerce orders from Shopify", "Growth Pulse — rolling 7-day trends", "Quick actions & recent activity feed"].map((f) => (
                       <li key={f} className="flex items-center gap-2 text-sm text-[#e0e0f0]">
                         <span className="h-1.5 w-1.5 rounded-full bg-[#00d4aa] shrink-0" />{f}
                       </li>
@@ -542,55 +542,6 @@ export default async function Home() {
                       </div>
                     </div>
                   ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Website Optimizer */}
-            <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 p-6 md:p-8">
-              <div className="flex flex-col md:flex-row md:items-center gap-8">
-                <div className="flex-1">
-                  <div className="mb-3 inline-flex items-center gap-2 flex-wrap">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#34d399]/20 bg-[#34d399]/8 text-[#34d399]">
-                      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" /></svg>
-                    </div>
-                    <span className="font-mono text-xs font-semibold uppercase tracking-widest text-[#34d399]">Website Optimizer</span>
-                    <span className="font-mono text-[8px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-full border border-[#00d4aa]/30 text-[#00d4aa] bg-[#00d4aa]/8">Premium</span>
-                  </div>
-                  <h3 className="font-mono text-xl font-bold text-[#f8f8fc] mb-3">AI scores your website. Then fixes it.</h3>
-                  <p className="text-[#bcbcd8] leading-relaxed mb-4">AI crawls your website, assigns a health score out of 100, and generates a prioritized task list across UX, SEO, performance, copy, conversion, and accessibility.</p>
-                  <ul className="space-y-2">
-                    {["AI-generated health score 0–100", "Tasks ranked by impact score", "6 categories: UX, SEO, Performance, Copy, Conversion, Accessibility", "Mark tasks complete — score updates live", "Re-analyze anytime with one click"].map((f) => (
-                      <li key={f} className="flex items-center gap-2 text-sm text-[#e0e0f0]">
-                        <span className="h-1.5 w-1.5 rounded-full bg-[#34d399] shrink-0" />{f}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div className="md:w-56 shrink-0">
-                  <div className="rounded-xl border border-[#363650] bg-[#343447] p-4 space-y-3">
-                    <div className="flex items-center gap-4">
-                      <div className="relative flex items-center justify-center">
-                        <svg width="60" height="60" viewBox="0 0 60 60" className="-rotate-90">
-                          <circle cx="30" cy="30" r="24" fill="none" stroke="#363650" strokeWidth="5" />
-                          <circle cx="30" cy="30" r="24" fill="none" stroke="#f59e0b" strokeWidth="5" strokeLinecap="round"
-                            strokeDasharray={`${2 * Math.PI * 24}`} strokeDashoffset={`${2 * Math.PI * 24 * 0.26}`} />
-                        </svg>
-                        <span className="absolute font-mono text-base font-bold text-[#f59e0b]">74</span>
-                      </div>
-                      <div>
-                        <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Health Score</p>
-                        <p className="font-mono text-sm font-semibold text-[#f59e0b]">Average</p>
-                      </div>
-                    </div>
-                    {[{ c: "SEO", l: "Add meta descriptions", pts: 8, color: "#34d399" }, { c: "Perf", l: "Compress hero images", pts: 12, color: "#60a5fa" }, { c: "Copy", l: "Sharpen headline", pts: 6, color: "#f59e0b" }].map((t) => (
-                      <div key={t.c} className="flex items-center gap-2 rounded-lg border border-[#363650] bg-[#2e2e3c] px-2.5 py-2">
-                        <span className="font-mono text-[8px] font-bold px-1.5 rounded" style={{ color: t.color, backgroundColor: `${t.color}18` }}>{t.c}</span>
-                        <span className="flex-1 min-w-0 font-mono text-[9px] text-[#bcbcd8] truncate">{t.l}</span>
-                        <span className="font-mono text-[9px] font-bold text-[#f59e0b]">+{t.pts}</span>
-                      </div>
-                    ))}
-                  </div>
                 </div>
               </div>
             </div>
@@ -721,7 +672,7 @@ export default async function Home() {
                   "Unified KPI dashboard",
                   "Full analytics per platform",
                   "AI Advisor & daily insights",
-                  "Website health score & tasks",
+                  "Growth Pulse & anomaly detection",
                   "Cancel anytime — no charge",
                 ].map((f) => (
                   <li key={f} className="flex items-start gap-3 text-sm text-[#e0e0f0]">
@@ -747,7 +698,7 @@ export default async function Home() {
                 "Full 30-day analytics per platform",
                 "AI Advisor with multi-conversation history",
                 "Daily AI-generated insight",
-                "Website health score & full task list",
+                "Growth Pulse — rolling multi-metric chart",
                 "Anomaly detection & alerts",
                 "Priority support",
                 "7-day free trial · cancel before day 8",
@@ -863,7 +814,7 @@ export default async function Home() {
             <span className="text-[#00d4aa]">Start knowing.</span>
           </h2>
           <p className="mb-10 text-lg text-[#bcbcd8] max-w-lg mx-auto">
-            Connect your live integrations in minutes. Get a unified dashboard, AI-generated daily insights, and a website optimizer — all your data, all in one place.
+            Connect your live integrations in minutes. Get a unified dashboard, AI-generated daily insights, and anomaly alerts — all your data, all in one place.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <CheckoutButton className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-8 py-4 font-mono text-sm font-bold uppercase tracking-wider text-[#252531] transition-all hover:bg-[#00bfa0] hover:shadow-[0_0_40px_rgba(0,212,170,0.35)]">
