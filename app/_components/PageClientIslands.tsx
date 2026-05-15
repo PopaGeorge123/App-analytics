@@ -306,7 +306,7 @@ export function DashboardMockup() {
   const activePremium = tabs.find((t) => t.id === activeTab)?.premium ?? false;
 
   return (
-    <div className="relative w-full max-w-xl mx-auto select-none">
+    <div className="relative w-11/12 md:w-full max-w-xl mx-auto select-none">
       <div className="pointer-events-none absolute -inset-6 rounded-3xl bg-[#00d4aa]/6 blur-3xl" />
       <div className="relative rounded-2xl border border-[#363650] bg-[#1c1c2a]/95 shadow-2xl overflow-hidden">
         <div className="flex items-center gap-1.5 px-4 pt-3 pb-0">

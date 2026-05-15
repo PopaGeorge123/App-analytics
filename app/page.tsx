@@ -268,7 +268,7 @@ export default async function Home() {
                 <span style={{ color: palette.dot }}>{hero.headlineAccent}</span>
               </h1>
 
-              <p className="mb-8 w-full max-w-lg text-sm leading-relaxed text-[#bcbcd8] sm:text-base lg:text-lg">
+              <p className="mb-8 w-11/12 md:w-full max-w-lg text-sm leading-relaxed text-[#bcbcd8] sm:text-base lg:text-lg">
                 {heroSub.split(/(\*\*[^*]+\*\*)/).map((seg, i) =>
                   seg.startsWith("**") ? (
                     <strong key={i} className="text-[#f8f8fc] font-semibold">
