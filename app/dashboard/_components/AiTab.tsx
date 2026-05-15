@@ -154,8 +154,7 @@ function priorityLabel(p: ParsedAction["priority"]) {
 }
 
 function parseInsightContent(raw: string): ParsedInsight {
-  // Split on bold headers (**Header**) or ## headers
-  const sectionRe = /^(?:\*\*([^*]+)\*\*|##\s*(.+))$/m;
+  // Split on bold headers (**Header**) or ## / # headers
   const lines = raw.split("\n");
 
   type Section = { header: string; lines: string[] };
@@ -163,10 +162,16 @@ function parseInsightContent(raw: string): ParsedInsight {
   let current: Section = { header: "", lines: [] };
 
   for (const line of lines) {
-    const m = line.match(/^(?:\*\*([^*\n]+)\*\*|##\s*(.+))$/);
+    // Match ## Header, # Header, or **Header** — strip emojis from the matched header text
+    const m = line.match(/^(?:#{1,3}\s*(.+)|\*\*([^*\n]+)\*\*)$/);
     if (m) {
       if (current.lines.some((l) => l.trim())) sections.push(current);
-      current = { header: (m[1] || m[2] || "").trim(), lines: [] };
+      const rawHeader = (m[1] || m[2] || "").trim();
+      // Strip emoji characters from header for matching purposes
+      const header = rawHeader.replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27FF}\u{FE00}-\u{FEFF}]/gu, "").trim();
+      current = { header, lines: [] };
+    } else if (/^-{3,}$/.test(line.trim())) {
+      // Skip horizontal rules entirely
     } else {
       current.lines.push(line);
     }
@@ -288,6 +293,8 @@ function InsightRenderer({
             {parsed.snapshot.split("\n").map((line, i) => {
               const t = line.trim();
               if (!t) return null;
+              // Skip leftover markdown artifacts
+              if (/^#{1,3}\s/.test(t) || /^-{3,}$/.test(t)) return null;
               if (t.startsWith("- ") || t.startsWith("* ")) {
                 return (
                   <div key={i} style={{ display: "flex", gap: 8, marginBottom: 4 }}>
@@ -1368,7 +1375,7 @@ function DemoAiView() {
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            padding: "14px 20px",
+            padding: isMobile ? "10px 12px" : "14px 20px",
             borderBottom: "1px solid rgba(255,255,255,0.06)",
           }}
         >
@@ -1561,7 +1568,7 @@ function DemoAiView() {
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              padding: "14px 20px",
+              padding: isMobile ? "10px 12px" : "14px 20px",
               borderBottom: "1px solid rgba(255,255,255,0.06)",
             }}
           >
@@ -1967,6 +1974,16 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
 
   const activeConv = conversations.find((c) => c.id === activeConvId) ?? null;
 
+  // ── Mobile detection ───────────────────────────────────────────────────
+  const [isMobile, setIsMobile] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
   // ── isPremium gate ─────────────────────────────────────────────────────
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   async function handleCheckout() {
@@ -2083,9 +2100,9 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
     <div style={{ display: "flex", flexDirection: "column", gap: 24, width: "100%" }}>
 
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
         <div>
-          <h1 style={{ fontFamily: "monospace", fontSize: 24, fontWeight: 700, color: "#f8f8fc", margin: 0 }}>AI Advisor</h1>
+          <h1 style={{ fontFamily: "monospace", fontSize: isMobile ? 20 : 24, fontWeight: 700, color: "#f8f8fc", margin: 0 }}>AI Advisor</h1>
           <p style={{ fontFamily: "monospace", fontSize: 13, color: "#bcbcd8", marginTop: 4 }}>
             Analyzes your Stripe, GA4, Meta &amp; more in real time
           </p>
@@ -2198,7 +2215,7 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            padding: "14px 20px",
+            padding: isMobile ? "10px 12px" : "14px 20px",
             borderBottom: "1px solid rgba(255,255,255,0.06)",
           }}
         >
@@ -2302,82 +2319,169 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
       </div>
 
       {/* Chat area */}
-      <div style={{ display: "flex", gap: 16, minHeight: 480 }}>
+      <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: 16, minHeight: isMobile ? "unset" : 480 }}>
 
-        {/* Sidebar */}
-        <div
-          style={{
-            width: 240,
-            flexShrink: 0,
-            borderRadius: 16,
-            border: "1px solid rgba(255,255,255,0.06)",
-            background: "#13131a",
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column",
-          }}
-        >
+        {/* Sidebar — desktop: always visible, mobile: collapsible */}
+        {isMobile ? (
+          <>
+            {/* Mobile: compact header bar with conversation selector */}
+            <div
+              style={{
+                borderRadius: 12,
+                border: "1px solid rgba(255,255,255,0.06)",
+                background: "#13131a",
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "10px 12px",
+                }}
+              >
+                <button
+                  onClick={() => setShowSidebar((v) => !v)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "#bcbcd8",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    padding: 0,
+                  }}
+                >
+                  <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" /></svg>
+                  {activeConv ? activeConv.title : "Chats"}
+                  <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d={showSidebar ? "M4.5 15.75l7.5-7.5 7.5 7.5" : "M19.5 8.25l-7.5 7.5-7.5-7.5"} /></svg>
+                </button>
+                <button
+                  onClick={createConversation}
+                  disabled={creatingConv}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    padding: "5px 10px",
+                    borderRadius: 8,
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    background: "rgba(99,102,241,0.08)",
+                    color: "#a5b4fc",
+                    cursor: creatingConv ? "not-allowed" : "pointer",
+                  }}
+                >
+                  {creatingConv ? <Spinner size={10} /> : "+ New"}
+                </button>
+              </div>
+              {/* Collapsible conversation list */}
+              {showSidebar && (
+                <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", padding: 8, display: "flex", flexDirection: "column", gap: 2, maxHeight: 200, overflowY: "auto" }}>
+                  {convsLoading ? (
+                    [1, 2].map((i) => (
+                      <div key={i} style={{ height: 36, borderRadius: 10, background: "rgba(255,255,255,0.05)", animation: "pulse 1.5s ease-in-out infinite" }} />
+                    ))
+                  ) : conversations.length === 0 ? (
+                    <p style={{ fontSize: 12, color: "#8585aa", textAlign: "center", padding: "12px 0" }}>No chats yet. Click &quot;+ New&quot; to start.</p>
+                  ) : (
+                    conversations.map((conv) => (
+                      <ConvItem
+                        key={conv.id}
+                        conv={conv}
+                        isActive={conv.id === activeConvId}
+                        onSelect={() => { setActiveConvId(conv.id); setShowSidebar(false); }}
+                        onDelete={() => deleteConversation(conv.id)}
+                        onRename={(title) => renameConversation(conv.id, title)}
+                        messageCount={conv.id === activeConvId ? messages.length : undefined}
+                      />
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+          </>
+        ) : (
+          /* Desktop sidebar */
           <div
             style={{
+              width: 240,
+              flexShrink: 0,
+              borderRadius: 16,
+              border: "1px solid rgba(255,255,255,0.06)",
+              background: "#13131a",
+              overflow: "hidden",
               display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "10px 12px",
-              borderBottom: "1px solid rgba(255,255,255,0.06)",
+              flexDirection: "column",
             }}
           >
-            <span style={{ fontSize: 11, fontWeight: 700, color: "#bcbcd8", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-              Chats
-            </span>
-            <button
-              onClick={createConversation}
-              disabled={creatingConv}
+            <div
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 4,
-                fontSize: 10,
-                fontWeight: 600,
-                padding: "4px 8px",
-                borderRadius: 6,
-                border: "1px solid rgba(255,255,255,0.08)",
-                background: "#0d0d0f",
-                color: "#bcbcd8",
-                cursor: creatingConv ? "not-allowed" : "pointer",
-                opacity: creatingConv ? 0.5 : 1,
+                justifyContent: "space-between",
+                padding: "10px 12px",
+                borderBottom: "1px solid rgba(255,255,255,0.06)",
               }}
             >
-              {creatingConv ? <Spinner size={10} /> : "+ New"}
-            </button>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#bcbcd8", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                Chats
+              </span>
+              <button
+                onClick={createConversation}
+                disabled={creatingConv}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
+                  fontSize: 10,
+                  fontWeight: 600,
+                  padding: "4px 8px",
+                  borderRadius: 6,
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  background: "#0d0d0f",
+                  color: "#bcbcd8",
+                  cursor: creatingConv ? "not-allowed" : "pointer",
+                  opacity: creatingConv ? 0.5 : 1,
+                }}
+              >
+                {creatingConv ? <Spinner size={10} /> : "+ New"}
+              </button>
+            </div>
+            <div style={{ flex: 1, overflowY: "auto", padding: 8, display: "flex", flexDirection: "column", gap: 2 }}>
+              {convsLoading ? (
+                [1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    style={{ height: 36, borderRadius: 10, background: "rgba(255,255,255,0.05)", animation: "pulse 1.5s ease-in-out infinite" }}
+                  />
+                ))
+              ) : conversations.length === 0 ? (
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "32px 8px", textAlign: "center" }}>
+                  <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="#8585aa" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" /></svg>
+                  <p style={{ fontSize: 11, color: "#8585aa" }}>No chats yet.<br />Click &ldquo;+ New&rdquo; to start.</p>
+                </div>
+              ) : (
+                conversations.map((conv) => (
+                  <ConvItem
+                    key={conv.id}
+                    conv={conv}
+                    isActive={conv.id === activeConvId}
+                    onSelect={() => setActiveConvId(conv.id)}
+                    onDelete={() => deleteConversation(conv.id)}
+                    onRename={(title) => renameConversation(conv.id, title)}
+                    messageCount={conv.id === activeConvId ? messages.length : undefined}
+                  />
+                ))
+              )}
+            </div>
           </div>
-          <div style={{ flex: 1, overflowY: "auto", padding: 8, display: "flex", flexDirection: "column", gap: 2 }}>
-            {convsLoading ? (
-              [1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  style={{ height: 36, borderRadius: 10, background: "rgba(255,255,255,0.05)", animation: "pulse 1.5s ease-in-out infinite" }}
-                />
-              ))
-            ) : conversations.length === 0 ? (
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "32px 8px", textAlign: "center" }}>
-                <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="#8585aa" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" /></svg>
-                <p style={{ fontSize: 11, color: "#8585aa" }}>No chats yet.<br />Click &ldquo;+ New&rdquo; to start.</p>
-              </div>
-            ) : (
-              conversations.map((conv) => (
-                <ConvItem
-                  key={conv.id}
-                  conv={conv}
-                  isActive={conv.id === activeConvId}
-                  onSelect={() => setActiveConvId(conv.id)}
-                  onDelete={() => deleteConversation(conv.id)}
-                  onRename={(title) => renameConversation(conv.id, title)}
-                  messageCount={conv.id === activeConvId ? messages.length : undefined}
-                />
-              ))
-            )}
-          </div>
-        </div>
+        )}
 
         {/* Chat panel */}
         <div
@@ -2398,7 +2502,7 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              padding: "14px 20px",
+              padding: isMobile ? "10px 12px" : "14px 20px",
               borderBottom: "1px solid rgba(255,255,255,0.06)",
             }}
           >
@@ -2462,12 +2566,12 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
             style={{
               flex: 1,
               overflowY: "auto",
-              padding: "16px 20px",
+              padding: isMobile ? "12px 10px" : "16px 20px",
               display: "flex",
               flexDirection: "column",
               gap: 16,
-              minHeight: 280,
-              maxHeight: 420,
+              minHeight: isMobile ? 240 : 280,
+              maxHeight: isMobile ? "60vh" : 420,
             }}
           >
             {!activeConvId ? (

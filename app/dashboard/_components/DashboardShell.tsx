@@ -772,7 +772,7 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
           </div>
         )}
 
-        <div className={activeTab === "settings" ? "" : "p-6 lg:p-8"}>
+        <div className={activeTab === "settings" ? "" : activeTab === "ai" ? "p-3 sm:p-6 lg:p-8" : "p-6 lg:p-8"}>
           {/* ── Dismissable trial banner — shown at top of content when on trial ── */}
           {isOnTrial && !trialBannerDismissed && !isDemo && activeTab !== "settings" && (
             <div className={`mb-6 flex items-center gap-3 rounded-xl border px-4 py-3 ${trialUrgent ? "border-red-500/30 bg-red-500/8" : "border-[#f59e0b]/30 bg-[#f59e0b]/8"}`}>
