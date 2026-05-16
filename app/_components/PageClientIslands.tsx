@@ -439,7 +439,9 @@ export function Nav() {
       scrolled ? "border-b border-[#363650] bg-[#252531]/90" : "bg-[#252531]/60 border-b border-[#363650]/40"
     }`}>
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        <img src="/fold-primary-dark.svg" alt="Fold" className="h-9 w-auto" />
+        <a href="/">
+          <img src="/fold-primary-dark.svg" alt="Fold" className="h-9 w-auto" />
+        </a>
         <div className="hidden md:flex items-center gap-8">
           {links.map((l) => (
             <a key={l.href} href={l.href} className="font-mono text-xs uppercase tracking-widest text-[#8585aa] transition-colors hover:text-[#f8f8fc]">

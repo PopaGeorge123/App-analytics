@@ -1214,7 +1214,7 @@ export default function LearnPage() {
               </a>
             ))}
           </div>
-          <p className="font-mono text-[10px] text-[#8585aa]">© 2025 Fold Analytics</p>
+          <p className="font-mono text-[10px] text-[#8585aa]">© 2026 Fold Analytics</p>
         </div>
       </footer>
     </div>

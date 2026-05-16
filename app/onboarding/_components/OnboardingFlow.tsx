@@ -1121,7 +1121,7 @@ function ApiKeyForm({
             onChange={(e) => onChange(field.name, e.target.value)}
             placeholder={field.placeholder}
             autoComplete="off"
-            className="w-full rounded-lg border border-[#303042] bg-[#1e1e30] px-3 py-2.5 font-mono text-[12px] text-[#e8e8f8] placeholder-[#252535] outline-none transition focus:border-[#00d4aa]/35 focus:ring-1 focus:ring-[#00d4aa]/15"
+            className="w-full rounded-lg border border-[#303042] bg-[#1e1e30] px-3 py-2.5 font-mono text-[12px] text-[#e8e8f8] placeholder-[#636363] outline-none transition focus:border-[#00d4aa]/35 focus:ring-1 focus:ring-[#00d4aa]/15"
           />
         </div>
       ))}
@@ -1197,7 +1197,7 @@ function ShopifyForm({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="yourstore.myshopify.com"
-          className="w-full rounded-lg border border-[#303042] bg-[#1e1e30] px-3 py-2.5 font-mono text-[12px] text-[#e8e8f8] placeholder-[#252535] outline-none transition focus:border-[#96bf48]/35 focus:ring-1 focus:ring-[#96bf48]/15"
+          className="w-full rounded-lg border border-[#303042] bg-[#1e1e30] px-3 py-2.5 font-mono text-[12px] text-[#e8e8f8] placeholder-[#636363] outline-none transition focus:border-[#96bf48]/35 focus:ring-1 focus:ring-[#96bf48]/15"
           onKeyDown={(e) => e.key === "Enter" && onSubmit()}
         />
       </div>
