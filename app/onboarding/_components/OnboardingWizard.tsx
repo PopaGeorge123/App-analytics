@@ -43,9 +43,9 @@ function StepBar({ current, onGoTo }: { current: number; onGoTo: (n: 1 | 2 | 3) 
               <div
                 className="flex h-6 w-6 items-center justify-center rounded-full font-mono text-[10px] font-bold transition-all"
                 style={{
-                  backgroundColor: done ? "#00d4aa" : active ? "#00d4aa18" : "#2c2c40",
-                  border: active ? "1px solid #00d4aa" : done ? "none" : "1px solid #2d2d44",
-                  color: done ? "#090911" : active ? "#00d4aa" : "#3a3a55",
+                  backgroundColor: done ? "#00d4aa" : active ? "#00d4aa18" : "#3a3a5e",
+                  border: active ? "1px solid #00d4aa" : done ? "none" : "1px solid #505070",
+                  color: done ? "#0a0a18" : active ? "#00d4aa" : "#7070a0",
                 }}
               >
                 {done ? (
@@ -56,7 +56,7 @@ function StepBar({ current, onGoTo }: { current: number; onGoTo: (n: 1 | 2 | 3) 
               </div>
               <span
                 className="font-mono text-[9px] whitespace-nowrap"
-                style={{ color: active ? "#00d4aa" : done ? "#4a6a65" : "#2d2d44" }}
+                style={{ color: active ? "#00d4aa" : done ? "#5aaa90" : "#7070a0" }}
               >
                 {s.label}
               </span>
@@ -64,7 +64,7 @@ function StepBar({ current, onGoTo }: { current: number; onGoTo: (n: 1 | 2 | 3) 
             {i < STEPS.length - 1 && (
               <div
                 className="flex-1 h-px mx-2 mb-4 transition-all"
-                style={{ backgroundColor: current > s.n ? "#00d4aa40" : "#303042" }}
+                style={{ backgroundColor: current > s.n ? "#00d4aa40" : "#3a3a58" }}
               />
             )}
           </React.Fragment>
@@ -164,7 +164,7 @@ function Step1({
   return (
     <div className="flex min-h-[calc(100vh-57px)]">
       {/* ── Left panel — decorative / context ──────────────────────────── */}
-      <aside className="hidden lg:flex w-105 shrink-0 flex-col justify-between border-r border-[#252531] bg-[#0b0b14] px-10 py-14">
+      <aside className="hidden lg:flex w-105 shrink-0 flex-col justify-between border-r border-[#30305a] bg-[#17172e] px-10 py-14">
         <div>
           <div className="mb-10 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#00d4aa]/20 bg-[#00d4aa]/8">
             <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#00d4aa" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
@@ -175,7 +175,7 @@ function Step1({
           <h1 className="mb-3 text-2xl font-semibold tracking-tight text-[#f0f0fa]">
             Start with your website
           </h1>
-          <p className="text-[15px] leading-relaxed text-[#46466a]">
+          <p className="text-[15px] leading-relaxed text-[#8888b0]">
             Paste your URL and our AI will read your site in seconds — extracting your business name, what you do, and your industry.
           </p>
 
@@ -189,14 +189,14 @@ function Step1({
                 <span className="mt-0.5 shrink-0 font-mono text-[11px] text-[#00d4aa]/60">{item.icon}</span>
                 <div>
                   <p className="mb-0.5 text-[13px] font-medium text-[#c8c8e8]">{item.title}</p>
-                  <p className="text-[12px] leading-relaxed text-[#3a3a58]">{item.body}</p>
+                  <p className="text-[12px] leading-relaxed text-[#7878a8]">{item.body}</p>
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        <p className="font-mono text-[10px] text-[#252535]">Step 1 of 3</p>
+        <p className="font-mono text-[10px] text-[#5858a0]">Step 1 of 3</p>
       </aside>
 
       {/* ── Right panel — form ─────────────────────────────────────────── */}
@@ -206,18 +206,18 @@ function Step1({
           {/* Mobile-only heading */}
           <div className="mb-8 lg:hidden">
             <h2 className="text-xl font-semibold text-[#f0f0fa]">Start with your website</h2>
-            <p className="mt-1 text-sm text-[#46466a]">We'll scan it and generate a description of your business.</p>
+            <p className="mt-1 text-sm text-[#8888b0]">We'll scan it and generate a description of your business.</p>
           </div>
 
           {/* URL card */}
-          <div className="rounded-2xl border border-[#161624] bg-[#0e0e1b] p-6">
-            <label className="mb-3 block text-[11px] font-semibold uppercase tracking-widest text-[#3a3a58]">
+          <div className="rounded-2xl border border-[#2e2e4a] bg-[#1e1e32] p-6">
+            <label className="mb-3 block text-[11px] font-semibold uppercase tracking-widest text-[#7878a8]">
               Website URL
             </label>
             <div className="flex gap-2.5">
               <div className="relative flex-1">
                 <div className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center">
-                  <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#2e2e48" strokeWidth={2}>
+                  <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#5a5a80" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
                   </svg>
                 </div>
@@ -227,7 +227,7 @@ function Step1({
                   onChange={(e) => { setUrl(e.target.value); setExtracted(false); setExtractError(""); }}
                   onKeyDown={(e) => e.key === "Enter" && !extracting && handleExtract()}
                   placeholder="https://yourwebsite.com"
-                  className="w-full rounded-xl border border-[#1c1c2e] bg-[#090912] pl-10 pr-4 py-3 text-sm text-[#e8e8f8] placeholder-[#252538] outline-none transition focus:border-[#00d4aa]/40 focus:ring-2 focus:ring-[#00d4aa]/10"
+                  className="w-full rounded-xl border border-[#303055] bg-[#171728] pl-10 pr-4 py-3 text-sm text-[#e8e8f8] placeholder-[#54547a] outline-none transition focus:border-[#00d4aa]/40 focus:ring-2 focus:ring-[#00d4aa]/10"
                 />
               </div>
               <button
@@ -266,7 +266,7 @@ function Step1({
             {extracting && (
               <div className="mt-4 space-y-2.5">
                 {[80, 60, 90].map((w, i) => (
-                  <div key={i} className="h-3 rounded-full bg-[#252531] animate-pulse" style={{ width: `${w}%` }} />
+                  <div key={i} className="h-3 rounded-full bg-[#30305a] animate-pulse" style={{ width: `${w}%` }} />
                 ))}
               </div>
             )}
@@ -274,7 +274,7 @@ function Step1({
 
           {/* Extracted results card */}
           {(extracted || description) && !extracting && (
-            <div className="mt-4 rounded-2xl border border-[#00d4aa]/15 bg-[#0a1412] p-6 space-y-5">
+            <div className="mt-4 rounded-2xl border border-[#00d4aa]/15 bg-[#182422] p-6 space-y-5">
               {/* Badge */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -287,7 +287,7 @@ function Step1({
                 </div>
                 <button
                   onClick={() => { setExtracted(false); setDescription(""); setBusinessName(""); setIndustry(""); }}
-                  className="text-[11px] text-[#2a4a46] hover:text-[#3a6860] transition"
+                  className="text-[11px] text-[#5aafa8] hover:text-[#7acfc8] transition"
                 >
                   Clear
                 </button>
@@ -295,35 +295,35 @@ function Step1({
 
               {businessName && (
                 <div>
-                  <label className="mb-1.5 block text-[11px] font-medium text-[#2d5a54]">Business name</label>
+                  <label className="mb-1.5 block text-[11px] font-medium text-[#5aafa8]">Business name</label>
                   <input
                     type="text"
                     value={businessName}
                     onChange={(e) => setBusinessName(e.target.value)}
-                    className="w-full rounded-xl border border-[#152422] bg-[#081110] px-4 py-2.5 text-sm text-[#d8d8f0] placeholder-[#1e3530] outline-none transition focus:border-[#00d4aa]/35 focus:ring-2 focus:ring-[#00d4aa]/8"
+                    className="w-full rounded-xl border border-[#2a4040] bg-[#121e1c] px-4 py-2.5 text-sm text-[#d8d8f0] placeholder-[#4a7a74] outline-none transition focus:border-[#00d4aa]/35 focus:ring-2 focus:ring-[#00d4aa]/8"
                   />
                 </div>
               )}
 
               <div>
                 <div className="mb-1.5 flex items-center justify-between">
-                  <label className="text-[11px] font-medium text-[#2d5a54]">Business description</label>
-                  <span className="text-[10px] text-[#1a3330]">{description.length} chars</span>
+                  <label className="text-[11px] font-medium text-[#5aafa8]">Business description</label>
+                  <span className="text-[10px] text-[#4a9090]">{description.length} chars</span>
                 </div>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={4}
-                  className="w-full resize-none rounded-xl border border-[#152422] bg-[#081110] px-4 py-3 text-sm text-[#d8d8f0] placeholder-[#1e3530] outline-none transition focus:border-[#00d4aa]/35 focus:ring-2 focus:ring-[#00d4aa]/8 leading-relaxed"
+                  className="w-full resize-none rounded-xl border border-[#2a4040] bg-[#121e1c] px-4 py-3 text-sm text-[#d8d8f0] placeholder-[#4a7a74] outline-none transition focus:border-[#00d4aa]/35 focus:ring-2 focus:ring-[#00d4aa]/8 leading-relaxed"
                   placeholder="Describe what your business does, who your customers are, and what problem you solve…"
                 />
-                <p className="mt-1.5 text-[11px] text-[#1a3330]">
+                <p className="mt-1.5 text-[11px] text-[#4a9090]">
                   Used privately by the AI advisor. Never shared or sold.
                 </p>
               </div>
 
               <div>
-                <label className="mb-2 block text-[11px] font-medium text-[#2d5a54]">Industry</label>
+                <label className="mb-2 block text-[11px] font-medium text-[#5aafa8]">Industry</label>
                 <div className="flex flex-wrap gap-1.5">
                   {["SaaS", "E-commerce", "Agency", "Media & Content", "Marketplace", "Consumer App", "Fintech", "Healthcare", "Education", "Other"].map((opt) => (
                     <button
@@ -332,9 +332,9 @@ function Step1({
                       onClick={() => setIndustry(opt)}
                       className="rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-all"
                       style={{
-                        backgroundColor: industry === opt ? "#00d4aa15" : "#0b1613",
-                        borderColor:     industry === opt ? "#00d4aa35" : "#152422",
-                        color:           industry === opt ? "#00d4aa" : "#2d5a54",
+                        backgroundColor: industry === opt ? "#00d4aa15" : "#182422",
+                        borderColor:     industry === opt ? "#00d4aa35" : "#2a4040",
+                        color:           industry === opt ? "#00d4aa" : "#5aafa8",
                       }}
                     >
                       {opt}
@@ -348,14 +348,14 @@ function Step1({
           {/* Manual entry prompt — only shown when URL is empty and no extraction */}
           {!extracted && !description && !extracting && (
             <div className="mt-3 flex items-center gap-2">
-              <div className="h-px flex-1 bg-[#252531]" />
+              <div className="h-px flex-1 bg-[#30305a]" />
               <button
                 onClick={() => { setExtracted(true); }}
-                className="shrink-0 text-[11px] text-[#252535] transition hover:text-[#46466a]"
+                className="shrink-0 text-[11px] text-[#5858a0] transition hover:text-[#8888b0]"
               >
                 Skip scan — enter description manually
               </button>
-              <div className="h-px flex-1 bg-[#252531]" />
+              <div className="h-px flex-1 bg-[#30305a]" />
             </div>
           )}
 
@@ -384,7 +384,7 @@ function Step1({
             </button>
             <button
               onClick={handleSkip}
-              className="rounded-xl border border-[#161624] px-4 py-3.5 text-[12px] text-[#3a3a55] transition hover:border-[#343447] hover:text-[#58588a]"
+              className="rounded-xl border border-[#2e2e4a] px-4 py-3.5 text-[12px] text-[#8080b0] transition hover:border-[#343447] hover:text-[#a0a0c8]"
             >
               Skip
             </button>
@@ -478,7 +478,7 @@ function Step2({
   return (
     <div className="flex min-h-[calc(100vh-57px)]">
       {/* ── Left panel ─────────────────────────────────────────────────── */}
-      <aside className="hidden lg:flex w-105 shrink-0 flex-col justify-between border-r border-[#252531] bg-[#0b0b14] px-10 py-14">
+      <aside className="hidden lg:flex w-105 shrink-0 flex-col justify-between border-r border-[#30305a] bg-[#17172e] px-10 py-14">
         <div>
           <div className="mb-10 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#6366f1]/20 bg-[#6366f1]/8">
             <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#818cf8" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
@@ -488,7 +488,7 @@ function Step2({
           <h1 className="mb-3 text-2xl font-semibold tracking-tight text-[#f0f0fa]">
             Your business profile
           </h1>
-          <p className="text-[15px] leading-relaxed text-[#46466a]">
+          <p className="text-[15px] leading-relaxed text-[#8888b0]">
             A few quick answers help us show the right metrics, benchmarks, and AI recommendations for your stage and industry.
           </p>
 
@@ -502,14 +502,14 @@ function Step2({
                 <span className="mt-0.5 shrink-0 text-[11px] text-[#6366f1]/50">✦</span>
                 <div>
                   <p className="mb-0.5 text-[13px] font-medium text-[#c8c8e8]">{item.title}</p>
-                  <p className="text-[12px] leading-relaxed text-[#3a3a58]">{item.body}</p>
+                  <p className="text-[12px] leading-relaxed text-[#7878a8]">{item.body}</p>
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        <p className="font-mono text-[10px] text-[#252535]">Step 2 of 3</p>
+        <p className="font-mono text-[10px] text-[#5858a0]">Step 2 of 3</p>
       </aside>
 
       {/* ── Right panel — form ─────────────────────────────────────────── */}
@@ -519,14 +519,14 @@ function Step2({
           {/* Mobile-only heading */}
           <div className="mb-8 lg:hidden">
             <h2 className="text-xl font-semibold text-[#f0f0fa]">Your business profile</h2>
-            <p className="mt-1 text-sm text-[#46466a]">Helps us tailor benchmarks and AI recommendations.</p>
+            <p className="mt-1 text-sm text-[#8888b0]">Helps us tailor benchmarks and AI recommendations.</p>
           </div>
 
           <div className="space-y-5">
             {/* Industry */}
-            <div className="rounded-2xl border border-[#161624] bg-[#0e0e1b] p-5">
+            <div className="rounded-2xl border border-[#2e2e4a] bg-[#1e1e32] p-5">
               <div className="mb-3 flex items-center justify-between">
-                <label className="text-[11px] font-semibold uppercase tracking-widest text-[#3a3a58]">
+                <label className="text-[11px] font-semibold uppercase tracking-widest text-[#7878a8]">
                   Industry <span className="text-[#ef4444] normal-case tracking-normal font-normal">required</span>
                 </label>
                 {industry && <span className="rounded-md bg-[#6366f1]/10 px-2 py-0.5 text-[11px] text-[#818cf8]">{industry}</span>}
@@ -539,9 +539,9 @@ function Step2({
                     onClick={() => setIndustry(opt)}
                     className="rounded-xl border px-3.5 py-2 text-[12px] font-medium transition-all active:scale-[0.97]"
                     style={{
-                      backgroundColor: industry === opt ? "#6366f115" : "#090912",
-                      borderColor:     industry === opt ? "#6366f140" : "#1c1c2e",
-                      color:           industry === opt ? "#818cf8" : "#46466a",
+                      backgroundColor: industry === opt ? "#6366f115" : "#171728",
+                      borderColor:     industry === opt ? "#6366f140" : "#303055",
+                      color:           industry === opt ? "#818cf8" : "#8888b0",
                     }}
                   >
                     {opt}
@@ -551,9 +551,9 @@ function Step2({
             </div>
 
             {/* Team size */}
-            <div className="rounded-2xl border border-[#161624] bg-[#0e0e1b] p-5">
+            <div className="rounded-2xl border border-[#2e2e4a] bg-[#1e1e32] p-5">
               <div className="mb-3 flex items-center justify-between">
-                <label className="text-[11px] font-semibold uppercase tracking-widest text-[#3a3a58]">
+                <label className="text-[11px] font-semibold uppercase tracking-widest text-[#7878a8]">
                   Team size <span className="text-[#ef4444] normal-case tracking-normal font-normal">required</span>
                 </label>
                 {employeeCount && (
@@ -570,9 +570,9 @@ function Step2({
                     onClick={() => setEmployeeCount(opt.value)}
                     className="rounded-xl border px-4 py-2.5 text-[12px] font-medium transition-all active:scale-[0.97]"
                     style={{
-                      backgroundColor: employeeCount === opt.value ? "#6366f115" : "#090912",
-                      borderColor:     employeeCount === opt.value ? "#6366f140" : "#1c1c2e",
-                      color:           employeeCount === opt.value ? "#818cf8" : "#46466a",
+                      backgroundColor: employeeCount === opt.value ? "#6366f115" : "#171728",
+                      borderColor:     employeeCount === opt.value ? "#6366f140" : "#303055",
+                      color:           employeeCount === opt.value ? "#818cf8" : "#8888b0",
                     }}
                   >
                     {opt.label}
@@ -582,9 +582,9 @@ function Step2({
             </div>
 
             {/* Monthly revenue */}
-            <div className="rounded-2xl border border-[#161624] bg-[#0e0e1b] p-5">
+            <div className="rounded-2xl border border-[#2e2e4a] bg-[#1e1e32] p-5">
               <div className="mb-3 flex items-center justify-between">
-                <label className="text-[11px] font-semibold uppercase tracking-widest text-[#3a3a58]">
+                <label className="text-[11px] font-semibold uppercase tracking-widest text-[#7878a8]">
                   Monthly revenue <span className="text-[#ef4444] normal-case tracking-normal font-normal">required</span>
                 </label>
                 {monthlyRevenue && (
@@ -601,9 +601,9 @@ function Step2({
                     onClick={() => setMonthlyRevenue(opt.value)}
                     className="rounded-xl border px-3.5 py-2 text-[12px] font-medium transition-all active:scale-[0.97]"
                     style={{
-                      backgroundColor: monthlyRevenue === opt.value ? "#6366f115" : "#090912",
-                      borderColor:     monthlyRevenue === opt.value ? "#6366f140" : "#1c1c2e",
-                      color:           monthlyRevenue === opt.value ? "#818cf8" : "#46466a",
+                      backgroundColor: monthlyRevenue === opt.value ? "#6366f115" : "#171728",
+                      borderColor:     monthlyRevenue === opt.value ? "#6366f140" : "#303055",
+                      color:           monthlyRevenue === opt.value ? "#818cf8" : "#8888b0",
                     }}
                   >
                     {opt.label}
@@ -613,10 +613,10 @@ function Step2({
             </div>
 
             {/* Referral source */}
-            <div className="rounded-2xl border border-[#161624] bg-[#0e0e1b] p-5">
+            <div className="rounded-2xl border border-[#2e2e4a] bg-[#1e1e32] p-5">
               <div className="mb-3 flex items-center gap-2">
-                <label className="text-[11px] font-semibold uppercase tracking-widest text-[#3a3a58]">How did you hear about Fold?</label>
-                <span className="text-[10px] text-[#252535]">optional</span>
+                <label className="text-[11px] font-semibold uppercase tracking-widest text-[#7878a8]">How did you hear about Fold?</label>
+                <span className="text-[10px] text-[#5858a0]">optional</span>
               </div>
               <div className="flex flex-wrap gap-2">
                 {REFERRAL_OPTIONS.map((opt) => (
@@ -626,9 +626,9 @@ function Step2({
                     onClick={() => setReferralSource(referralSource === opt.value ? "" : opt.value)}
                     className="rounded-xl border px-3.5 py-2 text-[12px] font-medium transition-all active:scale-[0.97]"
                     style={{
-                      backgroundColor: referralSource === opt.value ? "#6366f115" : "#090912",
-                      borderColor:     referralSource === opt.value ? "#6366f140" : "#1c1c2e",
-                      color:           referralSource === opt.value ? "#818cf8" : "#46466a",
+                      backgroundColor: referralSource === opt.value ? "#6366f115" : "#171728",
+                      borderColor:     referralSource === opt.value ? "#6366f140" : "#303055",
+                      color:           referralSource === opt.value ? "#818cf8" : "#8888b0",
                     }}
                   >
                     {opt.label}
@@ -642,7 +642,7 @@ function Step2({
           <div className="mt-6 flex items-center gap-3">
             <button
               onClick={onBack}
-              className="flex items-center gap-1.5 rounded-xl border border-[#161624] px-4 py-3.5 text-[12px] text-[#3a3a55] transition hover:border-[#222238] hover:text-[#58588a]"
+              className="flex items-center gap-1.5 rounded-xl border border-[#2e2e4a] px-4 py-3.5 text-[12px] text-[#8080b0] transition hover:border-[#404068] hover:text-[#a0a0c8]"
             >
               <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
@@ -671,7 +671,7 @@ function Step2({
               )}
             </button>
           </div>
-          <p className="mt-3 text-center text-[11px] text-[#303040]">
+          <p className="mt-3 text-center text-[11px] text-[#7070a0]">
             This data is private — never shared or used for ads
           </p>
         </div>
@@ -762,21 +762,21 @@ export default function OnboardingWizard({
   }
 
   return (
-    <div className="min-h-screen bg-[#090911] text-[#f8f8fc]">
+    <div className="min-h-screen bg-[#13132a] text-[#f8f8fc]">
       {/* ── Top bar ───────────────────────────────────────────────────────── */}
-      <header className="border-b border-[#303042] bg-[#1f1f2c]/90 backdrop-blur-sm px-6 py-3.5 sticky top-0 z-30">
+      <header className="border-b border-[#3a3a58] bg-[#22223a]/90 backdrop-blur-sm px-6 py-3.5 sticky top-0 z-30">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
           <a href="/">
             <img src="/fold-primary-dark.svg" alt="Fold" className="h-7 w-auto" />
           </a>
           <StepBar current={step} onGoTo={(n) => setStep(n)} />
           <div className="flex items-center gap-3">
-            <span className="hidden font-mono text-[11px] text-[#3a3a55] sm:block truncate max-w-40">
+            <span className="hidden font-mono text-[11px] text-[#8080b0] sm:block truncate max-w-40">
               {userEmail}
             </span>
             <button
               onClick={skipToDashboard}
-              className="font-mono text-[10px] text-[#2d2d44] hover:text-[#4a4a6a] transition underline-offset-2 hover:underline"
+              className="font-mono text-[10px] text-[#505070] hover:text-[#4a4a6a] transition underline-offset-2 hover:underline"
             >
               Skip
             </button>
