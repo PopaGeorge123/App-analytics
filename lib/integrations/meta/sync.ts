@@ -56,6 +56,7 @@ export async function syncMetaData(userId: string): Promise<void> {
 
   const date     = yesterday();
   const currency = (integration.currency as string | null) ?? "USD";
+  console.log(`[meta/sync] userId=${userId} accountId=${integration.account_id} currency=${currency}`);
   const raw      = await fetchMetaInsights(
     integration.account_id,
     integration.access_token,

@@ -33,12 +33,28 @@ export async function handleMetaCallback(
 
   // Get ad account ID + currency
   const adAccountRes = await fetch(
-    `https://graph.facebook.com/v20.0/me/adaccounts?fields=id,currency&access_token=${accessToken}`
+    `https://graph.facebook.com/v20.0/me/adaccounts?fields=id,currency,account_status&access_token=${accessToken}`
   );
   const adAccountData = await adAccountRes.json();
+  console.log("[meta/callback] adaccounts raw response:", JSON.stringify(adAccountData));
+
   const firstAccount  = adAccountData.data?.[0] ?? {};
   const accountId: string  = firstAccount.id       ?? "";
-  const currency: string   = firstAccount.currency ?? "USD";
+  let   currency: string   = (firstAccount.currency as string | undefined) ?? "";
+
+  // If currency missing from adaccounts response, fetch it directly from the account
+  if (!currency && accountId) {
+    const directRes  = await fetch(
+      `https://graph.facebook.com/v20.0/${accountId}?fields=currency&access_token=${accessToken}`
+    );
+    const directData = await directRes.json();
+    console.log("[meta/callback] direct account fetch:", JSON.stringify(directData));
+    currency = (directData.currency as string | undefined) ?? "USD";
+  }
+
+  if (!currency) currency = "USD";
+
+  console.log(`[meta/callback] resolved accountId=${accountId} currency=${currency}`);
 
   // Fetch current account_id before overwriting so the daemon can detect a change
   const db = createServiceClient();
