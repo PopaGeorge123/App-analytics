@@ -8,15 +8,15 @@ function FoldLogo({ height = 28 }: { height?: number }) {
     <svg width={width} height={height} viewBox="0 0 120 52" fill="none" xmlns="http://www.w3.org/2000/svg">
       <g clipPath="url(#fold_logo_clip)">
         <path d="M39 0H13C5.8203 0 0 5.8203 0 13V39C0 46.1797 5.8203 52 13 52H39C46.1797 52 52 46.1797 52 39V13C52 5.8203 46.1797 0 39 0Z" fill="#00D4AA"/>
-        <path d="M21 15C21 12.7909 19.2091 11 17 11C14.7909 11 13 12.7909 13 15V37C13 39.2091 14.7909 41 17 41C19.2091 41 21 39.2091 21 37V15Z" fill="#0A0F0D"/>
-        <path d="M35 11H17C14.7909 11 13 12.7909 13 15C13 17.2091 14.7909 19 17 19H35C37.2091 19 39 17.2091 39 15C39 12.7909 37.2091 11 35 11Z" fill="#0A0F0D"/>
-        <path d="M29.5 27H16.5C14.567 27 13 28.567 13 30.5C13 32.433 14.567 34 16.5 34H29.5C31.433 34 33 32.433 33 30.5C33 28.567 31.433 27 29.5 27Z" fill="#0A0F0D"/>
-        <path d="M61.976 29V18.752H59.672V15.944H61.976V15.512C61.976 14.52 62.176 13.68 62.576 12.992C62.992 12.288 63.568 11.752 64.304 11.384C65.04 11.016 65.912 10.832 66.92 10.832C67.112 10.832 67.32 10.848 67.544 10.88C67.784 10.896 67.984 10.92 68.144 10.952V13.664C67.984 13.632 67.832 13.616 67.688 13.616C67.56 13.6 67.44 13.592 67.328 13.592C66.624 13.592 66.08 13.752 65.696 14.072C65.312 14.376 65.12 14.856 65.12 15.512V15.944H68.024V18.752H65.12V29H61.976ZM76.223 29.288C74.943 29.288 73.775 28.992 72.719 28.4C71.679 27.808 70.847 27 70.223 25.976C69.615 24.952 69.311 23.784 69.311 22.472C69.311 21.16 69.615 19.992 70.223 18.968C70.847 17.944 71.679 17.136 72.719 16.544C73.759 15.952 74.927 15.656 76.223 15.656C77.503 15.656 78.663 15.952 79.703 16.544C80.743 17.136 81.567 17.944 82.175 18.968C82.799 19.976 83.111 21.144 83.111 22.472C83.111 23.784 82.799 24.952 82.175 25.976C81.551 27 80.719 27.808 79.679 28.4C78.639 28.992 77.487 29.288 76.223 29.288ZM76.223 26.408C76.927 26.408 77.543 26.24 78.071 25.904C78.615 25.568 79.039 25.104 79.343 24.512C79.663 23.904 79.823 23.224 79.823 22.472C79.823 21.704 79.663 21.032 79.343 20.456C79.039 19.864 78.615 19.4 78.071 19.064C77.543 18.712 76.927 18.536 76.223 18.536C75.503 18.536 74.871 18.712 74.327 19.064C73.783 19.4 73.351 19.864 73.031 20.456C72.727 21.032 72.575 21.704 72.575 22.472C72.575 23.224 72.727 23.904 73.031 24.512C73.351 25.104 73.783 25.568 74.327 25.904C74.871 26.24 75.503 26.408 76.223 26.408ZM85.4953 29V10.832H88.6393V29H85.4953ZM97.6141 29.288C96.3501 29.288 95.2221 28.992 94.2301 28.4C93.2381 27.792 92.4541 26.968 91.8781 25.928C91.3021 24.888 91.0141 23.736 91.0141 22.472C91.0141 21.192 91.3021 20.04 91.8781 19.016C92.4541 17.992 93.2381 17.176 94.2301 16.568C95.2381 15.96 96.3581 15.656 97.5901 15.656C98.5821 15.656 99.4621 15.856 100.23 16.256C101.014 16.64 101.63 17.184 102.078 17.888L101.598 18.536V10.832H104.742V29H101.766V26.48L102.102 27.104C101.654 27.808 101.03 28.352 100.23 28.736C99.4301 29.104 98.5581 29.288 97.6141 29.288ZM97.9501 26.408C98.6701 26.408 99.3021 26.24 99.8461 25.904C100.39 25.568 100.814 25.104 101.118 24.512C101.438 23.92 101.598 23.24 101.598 22.472C101.598 21.72 101.438 21.048 101.118 20.456C100.814 19.848 100.39 19.376 99.8461 19.04C99.3021 18.704 98.6701 18.536 97.9501 18.536C97.2461 18.536 96.6141 18.712 96.0541 19.064C95.4941 19.4 95.0541 19.864 94.7341 20.456C94.4301 21.032 94.2781 21.704 94.2781 22.472C94.2781 23.24 94.4301 23.92 94.7341 24.512C95.0541 25.104 95.4941 25.568 96.0541 25.904C96.6141 26.24 97.2461 26.408 97.9501 26.408Z" fill="white"/>
+        <path d="M21 15C21 12.7909 19.2091 11 17 11C14.7909 11 13 12.7909 13 15V37C13 39.2091 14.7909 41 17 41C19.2091 41 21 39.2091 21 37V15Z" fill="#f4faf8"/>
+        <path d="M35 11H17C14.7909 11 13 12.7909 13 15C13 17.2091 14.7909 19 17 19H35C37.2091 19 39 17.2091 39 15C39 12.7909 37.2091 11 35 11Z" fill="#f4faf8"/>
+        <path d="M29.5 27H16.5C14.567 27 13 28.567 13 30.5C13 32.433 14.567 34 16.5 34H29.5C31.433 34 33 32.433 33 30.5C33 28.567 31.433 27 29.5 27Z" fill="#f4faf8"/>
+        <path d="M61.976 29V18.752H59.672V15.944H61.976V15.512C61.976 14.52 62.176 13.68 62.576 12.992C62.992 12.288 63.568 11.752 64.304 11.384C65.04 11.016 65.912 10.832 66.92 10.832C67.112 10.832 67.32 10.848 67.544 10.88C67.784 10.896 67.984 10.92 68.144 10.952V13.664C67.984 13.632 67.832 13.616 67.688 13.616C67.56 13.6 67.44 13.592 67.328 13.592C66.624 13.592 66.08 13.752 65.696 14.072C65.312 14.376 65.12 14.856 65.12 15.512V15.944H68.024V18.752H65.12V29H61.976ZM76.223 29.288C74.943 29.288 73.775 28.992 72.719 28.4C71.679 27.808 70.847 27 70.223 25.976C69.615 24.952 69.311 23.784 69.311 22.472C69.311 21.16 69.615 19.992 70.223 18.968C70.847 17.944 71.679 17.136 72.719 16.544C73.759 15.952 74.927 15.656 76.223 15.656C77.503 15.656 78.663 15.952 79.703 16.544C80.743 17.136 81.567 17.944 82.175 18.968C82.799 19.976 83.111 21.144 83.111 22.472C83.111 23.784 82.799 24.952 82.175 25.976C81.551 27 80.719 27.808 79.679 28.4C78.639 28.992 77.487 29.288 76.223 29.288ZM76.223 26.408C76.927 26.408 77.543 26.24 78.071 25.904C78.615 25.568 79.039 25.104 79.343 24.512C79.663 23.904 79.823 23.224 79.823 22.472C79.823 21.704 79.663 21.032 79.343 20.456C79.039 19.864 78.615 19.4 78.071 19.064C77.543 18.712 76.927 18.536 76.223 18.536C75.503 18.536 74.871 18.712 74.327 19.064C73.783 19.4 73.351 19.864 73.031 20.456C72.727 21.032 72.575 21.704 72.575 22.472C72.575 23.224 72.727 23.904 73.031 24.512C73.351 25.104 73.783 25.568 74.327 25.904C74.871 26.24 75.503 26.408 76.223 26.408ZM85.4953 29V10.832H88.6393V29H85.4953ZM97.6141 29.288C96.3501 29.288 95.2221 28.992 94.2301 28.4C93.2381 27.792 92.4541 26.968 91.8781 25.928C91.3021 24.888 91.0141 23.736 91.0141 22.472C91.0141 21.192 91.3021 20.04 91.8781 19.016C92.4541 17.992 93.2381 17.176 94.2301 16.568C95.2381 15.96 96.3581 15.656 97.5901 15.656C98.5821 15.656 99.4621 15.856 100.23 16.256C101.014 16.64 101.63 17.184 102.078 17.888L101.598 18.536V10.832H104.742V29H101.766V26.48L102.102 27.104C101.654 27.808 101.03 28.352 100.23 28.736C99.4301 29.104 98.5581 29.288 97.6141 29.288ZM97.9501 26.408C98.6701 26.408 99.3021 26.24 99.8461 25.904C100.39 25.568 100.814 25.104 101.118 24.512C101.438 23.92 101.598 23.24 101.598 22.472C101.598 21.72 101.438 21.048 101.118 20.456C100.814 19.848 100.39 19.376 99.8461 19.04C99.3021 18.704 98.6701 18.536 97.9501 18.536C97.2461 18.536 96.6141 18.712 96.0541 19.064C95.4941 19.4 95.0541 19.864 94.7341 20.456C94.4301 21.032 94.2781 21.704 94.2781 22.472C94.2781 23.24 94.4301 23.92 94.7341 24.512C95.0541 25.104 95.4941 25.568 96.0541 25.904C96.6141 26.24 97.2461 26.408 97.9501 26.408Z" fill="#1a1a2e"/>
         <path d="M59.33 44L61.52 37H62.49L64.67 44H63.75L63.24 42.26H60.76L60.25 44H59.33ZM61.98 38.18L60.97 41.56H63.03L62.02 38.18H61.98ZM65.5661 44V37H66.4261L69.6061 42.53V37H70.4361V44H69.5661L66.3861 38.47V44H65.5661ZM71.3222 44L73.5122 37H74.4822L76.6622 44H75.7422L75.2322 42.26H72.7522L72.2422 44H71.3222ZM73.9722 38.18L72.9622 41.56H75.0222L74.0122 38.18H73.9722ZM77.8583 44V37H78.6983V43.24H82.2483V44H77.8583ZM85.5644 44V41.25L83.2944 37H84.2444L85.9844 40.4L87.7244 37H88.6744L86.4044 41.25V44H85.5644ZM91.5605 44V37.76H89.6805V37H94.2805V37.76H92.4005V44H91.5605ZM95.9666 44V43.27H97.5566V37.73H95.9666V37H99.9866V37.73H98.3966V43.27H99.9866V44H95.9666ZM104.023 44.12C103.456 44.12 102.966 43.97 102.553 43.67C102.146 43.37 101.833 42.95 101.613 42.41C101.399 41.87 101.293 41.2333 101.293 40.5C101.293 39.7733 101.399 39.14 101.613 38.6C101.833 38.0533 102.146 37.63 102.553 37.33C102.966 37.03 103.456 36.88 104.023 36.88C104.743 36.88 105.323 37.08 105.763 37.48C106.203 37.8733 106.459 38.4 106.533 39.06H105.603C105.536 38.6667 105.369 38.3367 105.103 38.07C104.836 37.8033 104.476 37.67 104.023 37.67C103.443 37.67 102.986 37.9233 102.653 38.43C102.319 38.93 102.153 39.62 102.153 40.5C102.153 41.3867 102.319 42.08 102.653 42.58C102.986 43.08 103.443 43.33 104.023 43.33C104.496 43.33 104.859 43.2033 105.113 42.95C105.373 42.6967 105.536 42.37 105.603 41.97H106.533C106.426 42.6367 106.159 43.1633 105.733 43.55C105.313 43.93 104.743 44.12 104.023 44.12ZM110.039 44.12C109.545 44.12 109.115 44.0267 108.749 43.84C108.389 43.6533 108.109 43.3933 107.909 43.06C107.715 42.7267 107.615 42.3367 107.609 41.89H108.489C108.495 42.29 108.629 42.6367 108.889 42.93C109.155 43.2167 109.539 43.36 110.039 43.36C110.499 43.36 110.852 43.25 111.099 43.03C111.352 42.8033 111.479 42.5333 111.479 42.22C111.479 41.96 111.419 41.7433 111.299 41.57C111.179 41.39 110.982 41.2333 110.709 41.1C110.442 40.96 110.082 40.8167 109.629 40.67C108.989 40.4767 108.522 40.2133 108.229 39.88C107.935 39.5467 107.789 39.1333 107.789 38.64C107.789 38.3067 107.875 38.0067 108.049 37.74C108.222 37.4733 108.472 37.2633 108.799 37.11C109.125 36.9567 109.522 36.88 109.989 36.88C110.429 36.88 110.812 36.9633 111.139 37.13C111.472 37.29 111.729 37.5167 111.909 37.81C112.095 38.1033 112.189 38.44 112.189 38.82H111.309C111.309 38.6333 111.259 38.45 111.159 38.27C111.059 38.09 110.909 37.94 110.709 37.82C110.509 37.7 110.255 37.64 109.949 37.64C109.582 37.64 109.275 37.73 109.029 37.91C108.782 38.0833 108.659 38.3233 108.659 38.63C108.659 38.8633 108.712 39.06 108.819 39.22C108.932 39.38 109.115 39.5267 109.369 39.66C109.622 39.7867 109.965 39.9233 110.399 40.07C110.805 40.2033 111.152 40.36 111.439 40.54C111.732 40.7133 111.955 40.93 112.109 41.19C112.269 41.45 112.349 41.7733 112.349 42.16C112.349 42.54 112.252 42.8767 112.059 43.17C111.865 43.4633 111.595 43.6967 111.249 43.87C110.902 44.0367 110.499 44.12 110.039 44.12Z" fill="#00D4AA"/>
       </g>
       <defs>
         <clipPath id="fold_logo_clip">
-          <rect width="120" height="52" fill="white"/>
+          <rect width="120" height="52" fill="#1a1a2e"/>
         </clipPath>
       </defs>
     </svg>
@@ -64,13 +64,13 @@ export default async function PublicPlaybookPage({ params }: { params: Promise<{
   const catColor = CAT_COLORS[playbook.category] ?? "#6366f1";
 
   return (
-    <div style={{ minHeight: "100vh", background: "#09090f", fontFamily: "'Inter', system-ui, sans-serif", padding: "0" }}>
+    <div style={{ minHeight: "100vh", background: "#f5f5f8", fontFamily: "'Inter', system-ui, sans-serif", padding: "0" }}>
       {/* Top bar */}
-      <div style={{ borderBottom: "1px solid #303040", background: "#21212c", padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div style={{ borderBottom: "1px solid #ebebf5", background: "#f3f3fb", padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <FoldLogo height={26} />
-          <span style={{ color: "#363650", margin: "0 4px" }}>/</span>
-          <span style={{ fontFamily: "monospace", fontSize: 11, color: "#8585aa" }}>Shared Playbook</span>
+          <span style={{ color: "#9090b8", margin: "0 4px" }}>/</span>
+          <span style={{ fontFamily: "monospace", fontSize: 11, color: "#6a6a90" }}>Shared Playbook</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <span style={{ fontFamily: "monospace", fontSize: 10, color: "#58588a" }}>
@@ -78,7 +78,7 @@ export default async function PublicPlaybookPage({ params }: { params: Promise<{
           </span>
           <a
             href="/signup"
-            style={{ borderRadius: 8, background: "#00d4aa", color: "#1c1c26", fontFamily: "monospace", fontSize: 11, fontWeight: 700, padding: "6px 14px", textDecoration: "none" }}
+            style={{ borderRadius: 8, background: "#00d4aa", color: "#f3f3fa", fontFamily: "monospace", fontSize: 11, fontWeight: 700, padding: "6px 14px", textDecoration: "none" }}
           >
             Try Fold free →
           </a>
@@ -89,7 +89,7 @@ export default async function PublicPlaybookPage({ params }: { params: Promise<{
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "40px 24px 80px" }}>
         {/* Attribution */}
         <p style={{ fontFamily: "monospace", fontSize: 11, color: "#58588a", marginBottom: 24 }}>
-          Shared by <span style={{ color: "#bcbcd8" }}>{sharedBy}</span>
+          Shared by <span style={{ color: "#5a5a7a" }}>{sharedBy}</span>
         </p>
 
         {/* Severity + category badges */}
@@ -104,7 +104,7 @@ export default async function PublicPlaybookPage({ params }: { params: Promise<{
         </div>
 
         {/* Title */}
-        <h1 style={{ fontSize: 28, fontWeight: 800, color: "#f8f8fc", lineHeight: 1.3, margin: "0 0 12px 0" }}>{playbook.title}</h1>
+        <h1 style={{ fontSize: 28, fontWeight: 800, color: "#1a1a2e", lineHeight: 1.3, margin: "0 0 12px 0" }}>{playbook.title}</h1>
 
         {/* Problem */}
         <p style={{ fontSize: 15, color: "#94a3b8", lineHeight: 1.7, margin: "0 0 32px 0" }}>{playbook.problem}</p>
@@ -124,11 +124,11 @@ export default async function PublicPlaybookPage({ params }: { params: Promise<{
         {/* Triggered By */}
         {playbook.triggeredBy && playbook.triggeredBy.length > 0 && (
           <div style={{ marginBottom: 32 }}>
-            <p style={{ fontFamily: "monospace", fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", color: "#8585aa", marginBottom: 12 }}>Triggered By</p>
+            <p style={{ fontFamily: "monospace", fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", color: "#6a6a90", marginBottom: 12 }}>Triggered By</p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
               {playbook.triggeredBy.map((t, i) => (
-                <div key={i} style={{ borderRadius: 8, border: "1px solid #2a2a3a", background: "#25252c", padding: "8px 14px" }}>
-                  <p style={{ fontFamily: "monospace", fontSize: 10, color: "#8585aa", marginBottom: 2 }}>{t.label}</p>
+                <div key={i} style={{ borderRadius: 8, border: "1px solid #d4d4e8", background: "#ffffff", padding: "8px 14px" }}>
+                  <p style={{ fontFamily: "monospace", fontSize: 10, color: "#6a6a90", marginBottom: 2 }}>{t.label}</p>
                   <p style={{ fontFamily: "monospace", fontSize: 13, fontWeight: 700, color: "#f87171" }}>{t.value}</p>
                   <p style={{ fontFamily: "monospace", fontSize: 10, color: "#58588a" }}>vs {t.benchmark}</p>
                 </div>
@@ -139,17 +139,17 @@ export default async function PublicPlaybookPage({ params }: { params: Promise<{
 
         {/* Steps */}
         <div>
-          <p style={{ fontFamily: "monospace", fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", color: "#8585aa", marginBottom: 16 }}>
+          <p style={{ fontFamily: "monospace", fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", color: "#6a6a90", marginBottom: 16 }}>
             Action Steps
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {playbook.steps.map((step: AiPlaybookStep, i: number) => (
-              <div key={i} style={{ borderRadius: 12, border: "1px solid #303040", background: "#25252c", padding: "16px 20px", display: "flex", gap: 14, alignItems: "flex-start" }}>
+              <div key={i} style={{ borderRadius: 12, border: "1px solid #d4d4e8", background: "#ffffff", padding: "16px 20px", display: "flex", gap: 14, alignItems: "flex-start" }}>
                 <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#6366f1", color: "#fff", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
                   {i + 1}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: 14, fontWeight: 600, color: "#f8f8fc", margin: "0 0 6px 0" }}>{step.action}</p>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: "#1a1a2e", margin: "0 0 6px 0" }}>{step.action}</p>
                   <p style={{ fontSize: 13, color: "#94a3b8", lineHeight: 1.6, margin: 0 }}>{step.detail}</p>
                   {step.link && (
                     <a
@@ -168,15 +168,15 @@ export default async function PublicPlaybookPage({ params }: { params: Promise<{
         </div>
 
         {/* Footer CTA */}
-        <div style={{ marginTop: 48, borderRadius: 16, border: "1px solid #303040", background: "#21212c", padding: "28px 32px", textAlign: "center" }}>
+        <div style={{ marginTop: 48, borderRadius: 16, border: "1px solid #d4d4e8", background: "#f3f3fb", padding: "28px 32px", textAlign: "center" }}>
           <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
             <FoldLogo height={22} />
           </div>
-          <p style={{ fontSize: 18, fontWeight: 700, color: "#f8f8fc", marginBottom: 8 }}>Get playbooks like this for your business</p>
-          <p style={{ fontSize: 13, color: "#8585aa", marginBottom: 20 }}>Fold connects your Stripe, GA4, Meta Ads and more — and generates weekly AI fix-it playbooks.</p>
+          <p style={{ fontSize: 18, fontWeight: 700, color: "#1a1a2e", marginBottom: 8 }}>Get playbooks like this for your business</p>
+          <p style={{ fontSize: 13, color: "#6a6a90", marginBottom: 20 }}>Fold connects your Stripe, GA4, Meta Ads and more — and generates weekly AI fix-it playbooks.</p>
           <a
             href="/signup"
-            style={{ display: "inline-block", borderRadius: 10, background: "#00d4aa", color: "#1c1c26", fontFamily: "monospace", fontSize: 13, fontWeight: 800, padding: "12px 28px", textDecoration: "none" }}
+            style={{ display: "inline-block", borderRadius: 10, background: "#00d4aa", color: "#f3f3fa", fontFamily: "monospace", fontSize: 13, fontWeight: 800, padding: "12px 28px", textDecoration: "none" }}
           >
             Start free trial →
           </a>

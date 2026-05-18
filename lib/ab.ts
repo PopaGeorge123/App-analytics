@@ -61,7 +61,7 @@ const VARIANTS: Record<AbVariant, HeroCopy> = {
     badgeColor: "amber",
     headline: "Stop opening 5 tabs to understand ",
     headlineAccent: "your own business.",
-    sub: `Stripe. GA4. Meta Ads. Shopify. Mailchimp. Every Monday you piece them together — and still aren't confident you have the full picture. Fold connects {integrations}+ live integrations into one dashboard that tells you exactly what changed, why, and what to fix first. Check-in done in 30 seconds.`,
+    sub: `Fold connects {integrations}+ live integrations into one dashboard that tells you exactly what changed, why, and what to fix first. Check-in done in 30 seconds.`,
     cta: "Replace my 5-tab Monday",
   },
 
@@ -75,7 +75,7 @@ const VARIANTS: Record<AbVariant, HeroCopy> = {
     badgeColor: "red",
     headline: "Your revenue is dropping ",
     headlineAccent: "and you don't know yet.",
-    sub: `By the time you open your dashboards, the damage is compounding. Fold watches your Stripe, GA4, Meta Ads, and Shopify 24/7 — and alerts you the moment something breaks, with the exact reason in plain English. Catch it in hours, not days.`,
+    sub: `By the time you open your dashboards, the damage is compounding. Fold watches your Stripe, GA4, Meta Ads, and more 24/7 — and alerts you the moment something breaks, with the exact reason in plain English.`,
     cta: "Catch my next revenue drop early",
   },
 
@@ -89,7 +89,7 @@ const VARIANTS: Record<AbVariant, HeroCopy> = {
     badgeColor: "orange",
     headline: "You're spending on ads ",
     headlineAccent: "that might be losing money.",
-    sub: `Without connecting your Meta Ads spend to real Stripe revenue, you're optimizing for clicks — not cash. Fold links your ad campaigns directly to payments, shows real ROAS and CAC daily, and tells you exactly which campaigns to scale and which to kill.`,
+    sub: `Fold links your ad campaigns directly to payments, shows real ROAS and CAC daily, and tells you exactly which campaigns to scale and which to kill.`,
     cta: "Show me my real ad ROI",
   },
 
@@ -103,7 +103,7 @@ const VARIANTS: Record<AbVariant, HeroCopy> = {
     badgeColor: "teal",
     headline: "Every answer. ",
     headlineAccent: "Zero spreadsheets.",
-    sub: `You didn't start a business to live in dashboards. Fold pulls from {integrations}+ live integrations, runs the analysis automatically, and delivers one plain-English summary every morning: what changed, what's at risk, and exactly what to do next. No analyst. No guesswork.`,
+    sub: `You didn't start a business to live in dashboards. Fold pulls from {integrations}+ live integrations, runs the analysis automatically, and delivers one plain-English summary every morning. No analyst. No guesswork.`,
     cta: "Get my daily business briefing",
   },
 };

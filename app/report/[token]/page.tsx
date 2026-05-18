@@ -110,11 +110,11 @@ export default async function ReportPage({
   if (!row) notFound();
   if (new Date((row as ShareTokenRow).expires_at) < new Date()) {
     return (
-      <main className="min-h-screen bg-[#1c1c21] flex items-center justify-center p-6">
+      <main className="min-h-screen bg-[#f5f5f8] flex items-center justify-center p-6">
         <div className="text-center space-y-3">
           <p className="font-mono text-3xl">⏳</p>
-          <h1 className="font-mono text-lg font-bold text-[#f8f8fc]">This report has expired</h1>
-          <p className="font-mono text-sm text-[#8585aa]">The link was valid for 30 days and has now expired.</p>
+          <h1 className="font-mono text-lg font-bold text-[#1a1a2e]">This report has expired</h1>
+          <p className="font-mono text-sm text-[#6a6a90]">The link was valid for 30 days and has now expired.</p>
         </div>
       </main>
     );
@@ -128,9 +128,9 @@ export default async function ReportPage({
   const maxRev = Math.max(...(p.dailyRevenue ?? []).map((d) => d.revenue), 1);
 
   return (
-    <main className="min-h-screen bg-[#1c1c21] text-[#e5e5e5]" style={{ fontFamily: "'ui-monospace','SFMono-Regular','Menlo',monospace" }}>
+    <main className="min-h-screen bg-[#f5f5f8] text-[#2a2a3e]" style={{ fontFamily: "'ui-monospace','SFMono-Regular','Menlo',monospace" }}>
       {/* ── Header ─────────────────────────────────────────── */}
-      <div className="border-b border-[#303242] bg-[#1f1f26]">
+      <div className="border-b border-[#ccccec] bg-[#f4f4fa]">
         <div className="mx-auto max-w-3xl px-6 py-5 flex items-center justify-between">
         <div className="flex items-center gap-3">
             <a
@@ -149,7 +149,7 @@ export default async function ReportPage({
             </a>
           </div>
           <div className="flex items-center gap-3">
-            <span className="rounded-full border border-[#363650] px-3 py-1 text-[10px] text-[#8585aa]">
+            <span className="rounded-full border border-[#d4d4e8] px-3 py-1 text-[10px] text-[#6a6a90]">
               Read-only report
             </span>
             {(report.view_count ?? 0) > 0 && (
@@ -163,8 +163,8 @@ export default async function ReportPage({
 
         {/* ── Title block ──────────────────────────────────── */}
         <div>
-          <h1 className="text-xl font-bold text-[#f8f8fc]">{report.label}</h1>
-          <div className="mt-2 flex flex-wrap items-center gap-4 text-[11px] text-[#8585aa]">
+          <h1 className="text-xl font-bold text-[#1a1a2e]">{report.label}</h1>
+          <div className="mt-2 flex flex-wrap items-center gap-4 text-[11px] text-[#6a6a90]">
             <span>{fmtDate(report.date_from)} — {fmtDate(report.date_to)}</span>
             <span>·</span>
             <span>Shared by {p.sharedBy}</span>
@@ -174,7 +174,7 @@ export default async function ReportPage({
                 <span
                   key={pl}
                   className="rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-widest"
-                  style={{ backgroundColor: (PLATFORM_COLORS[pl] ?? "#8585aa") + "18", color: PLATFORM_COLORS[pl] ?? "#8585aa" }}
+                  style={{ backgroundColor: (PLATFORM_COLORS[pl] ?? "#6a6a90") + "18", color: PLATFORM_COLORS[pl] ?? "#6a6a90" }}
                 >
                   {PLATFORM_LABELS[pl] ?? pl}
                 </span>
@@ -209,7 +209,7 @@ export default async function ReportPage({
 
         {/* ── Efficiency row ────────────────────────────────── */}
         {(p.roas !== null || p.cpc !== null || p.convRate !== null) && (
-          <div className="flex flex-wrap gap-4 rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 px-6 py-4">
+          <div className="flex flex-wrap gap-4 rounded-2xl border border-[#d4d4e8] bg-[#f0f0f8]/60 px-6 py-4">
             {p.roas !== null && (
               <MetricPill label="ROAS" value={`${p.roas.toFixed(2)}×`} />
             )}
@@ -227,9 +227,9 @@ export default async function ReportPage({
 
         {/* ── Revenue sparkline ─────────────────────────────── */}
         {report.platforms.includes("stripe") && p.dailyRevenue.length > 1 && (
-          <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 p-5 space-y-3">
+          <div className="rounded-2xl border border-[#d4d4e8] bg-[#f0f0f8]/60 p-5 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-[9px] uppercase tracking-widest text-[#8585aa]">Daily Revenue</span>
+              <span className="text-[9px] uppercase tracking-widest text-[#6a6a90]">Daily Revenue</span>
               <span className="text-[9px] text-[#58588a]">Stripe</span>
             </div>
             <div className="flex items-end gap-px h-16">
@@ -254,7 +254,7 @@ export default async function ReportPage({
         )}
 
         {/* ── Footer ───────────────────────────────────────── */}
-        <div className="border-t border-[#303242] pt-6 flex flex-col items-center gap-2 text-center">
+        <div className="border-t border-[#ccccec] pt-6 flex flex-col items-center gap-2 text-center">
           <p className="text-[10px] text-[#58588a]">
             Generated by <span className="text-[#00d4aa]">Fold</span> · Expires {fmtDate(report.expires_at)} · Read-only snapshot
           </p>
@@ -285,8 +285,8 @@ function KpiCard({ label, value, color }: { label: string; value: string; color:
 function MetricPill({ label, value }: { label: string; value: string }) {
   return (
     <div className="space-y-0.5">
-      <p className="text-[9px] uppercase tracking-widest text-[#8585aa]">{label}</p>
-      <p className="text-sm font-bold text-[#f8f8fc]">{value}</p>
+      <p className="text-[9px] uppercase tracking-widest text-[#6a6a90]">{label}</p>
+      <p className="text-sm font-bold text-[#1a1a2e]">{value}</p>
     </div>
   );
 }

@@ -25,16 +25,16 @@ export default function BlogIndex() {
     <main className="mx-auto max-w-5xl px-5 py-16">
       {/* Hero */}
       <div className="mb-14 text-center">
-        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#363650] bg-[#2e2e3c] px-3 py-1.5">
+        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#d4d4e8] bg-[#f0f0f8] px-3 py-1.5">
           <span className="h-1.5 w-1.5 rounded-full bg-[#00d4aa]" />
-          <span className="font-mono text-[10px] uppercase tracking-widest text-[#8585aa]">Fold Blog</span>
+          <span className="font-mono text-[10px] uppercase tracking-widest text-[#6a6a90]">Fold Blog</span>
         </div>
-        <h1 className="text-3xl font-bold tracking-tight text-[#f8f8fc] sm:text-4xl">
+        <h1 className="text-3xl font-bold tracking-tight text-[#1a1a2e] sm:text-4xl">
           Guides, strategies &amp; comparisons
           <br />
           <span className="text-[#00d4aa]">for founders who track their numbers.</span>
         </h1>
-        <p className="mx-auto mt-4 max-w-xl font-mono text-sm text-[#8585aa]">
+        <p className="mx-auto mt-4 max-w-xl font-mono text-sm text-[#6a6a90]">
           No fluff. Just the analytics knowledge, tool comparisons, and growth playbooks that
           help bootstrapped founders make better decisions faster.
         </p>
@@ -49,7 +49,7 @@ export default function BlogIndex() {
             <Link
               key={post.slug}
               href={`/blog/${post.slug}`}
-              className="group flex flex-col rounded-2xl border border-[#363650] bg-[#2e2e3c] p-5 transition-all duration-150 hover:border-[#00d4aa]/30 hover:bg-[#222236]"
+              className="group flex flex-col rounded-2xl border border-[#d4d4e8] bg-[#f0f0f8] p-5 transition-all duration-150 hover:border-[#00d4aa]/30 hover:bg-[#f2f2f8]"
             >
               <div className="mb-3 flex items-center justify-between">
                 <span
@@ -60,10 +60,10 @@ export default function BlogIndex() {
                 </span>
                 <span className="font-mono text-[10px] text-[#58588a]">{post.readMinutes} min read</span>
               </div>
-              <h2 className="mb-2 flex-1 font-mono text-sm font-bold leading-snug text-[#f8f8fc] group-hover:text-[#00d4aa] transition-colors">
+              <h2 className="mb-2 flex-1 font-mono text-sm font-bold leading-snug text-[#1a1a2e] group-hover:text-[#00d4aa] transition-colors">
                 {post.title}
               </h2>
-              <p className="mt-2 font-mono text-[11px] leading-relaxed text-[#8585aa] line-clamp-3">
+              <p className="mt-2 font-mono text-[11px] leading-relaxed text-[#6a6a90] line-clamp-3">
                 {post.description}
               </p>
               <div className="mt-4 flex items-center justify-between">
@@ -81,16 +81,16 @@ export default function BlogIndex() {
 
       {/* CTA */}
       <div className="mt-20 rounded-2xl border border-[#00d4aa]/20 bg-[#00d4aa]/5 p-10 text-center">
-        <h2 className="mb-3 font-mono text-xl font-bold text-[#f8f8fc]">
+        <h2 className="mb-3 font-mono text-xl font-bold text-[#1a1a2e]">
           Stop reading about metrics. Start tracking them.
         </h2>
-        <p className="mx-auto mb-6 max-w-md font-mono text-sm text-[#8585aa]">
+        <p className="mx-auto mb-6 max-w-md font-mono text-sm text-[#6a6a90]">
           Fold connects to Stripe, Meta, Google Ads, GA4, and 20+ other platforms in minutes.
           Your complete business picture — in one dashboard.
         </p>
         <Link
           href="/signup"
-          className="inline-block rounded-xl bg-[#00d4aa] px-8 py-3 font-mono text-sm font-bold text-[#252531] transition hover:bg-[#00bfa0]"
+          className="inline-block rounded-xl bg-[#00d4aa] px-8 py-3 font-mono text-sm font-bold text-[#3a3a4e] transition hover:bg-[#00bfa0]"
         >
           Start free trial →
         </Link>

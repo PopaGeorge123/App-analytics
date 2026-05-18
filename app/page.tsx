@@ -11,8 +11,8 @@ import { getHeroCopy, AB_COOKIE } from "@/lib/ab";
 function IntegrationPill({ name, color }: { name: string; color: string }) {
   return (
     <span
-      className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider"
-      style={{ borderColor: `${color}35`, color, backgroundColor: `${color}10` }}
+      className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider"
+      style={{ color, backgroundColor: `${color}12` }}
     >
       <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} />
       {name}
@@ -35,14 +35,14 @@ function FeatureCard({
   color?: string;
 }) {
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 p-6 transition-all duration-300 hover:border-[#00d4aa]/30 hover:shadow-[0_0_40px_rgba(0,212,170,0.06)]">
+    <div className="group relative overflow-hidden rounded-2xl bg-white shadow-[0_1px_4px_rgba(0,0,0,0.05)] ring-1 ring-black/[0.04] p-6 transition-all duration-300 hover:border-[#00d4aa]/30 hover:shadow-[0_0_40px_rgba(0,212,170,0.06)]">
       <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100 bg-[radial-gradient(ellipse_at_top_left,rgba(0,212,170,0.04)_0%,transparent_65%)]" />
       <div className="relative">
-        <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[#363650] bg-[#343447] transition-all group-hover:border-[#00d4aa]/30" style={{ color }}>
+        <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[#f4f4fc] transition-all group-hover:bg-[#00d4aa]/8" style={{ color }}>
           {icon}
         </div>
-        <h3 className="mb-2 font-mono text-sm font-semibold uppercase tracking-wide text-[#f8f8fc]">{title}</h3>
-        <p className="text-sm leading-relaxed text-[#bcbcd8]">{description}</p>
+        <h3 className="mb-2 font-mono text-sm font-semibold uppercase tracking-wide text-[#1a1a2e]">{title}</h3>
+        <p className="text-sm leading-relaxed text-[#4a4a6a]">{description}</p>
       </div>
     </div>
   );
@@ -55,14 +55,14 @@ function Step({ n, title, description }: { n: number; title: string; description
   return (
     <div className="relative flex gap-5">
       <div className="flex flex-col items-center">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#00d4aa]/30 bg-[#00d4aa]/8 font-mono text-sm font-bold text-[#00d4aa]">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#00d4aa]/10 font-mono text-sm font-bold text-[#00d4aa]">
           {n}
         </div>
         {n < 3 && <div className="mt-3 flex-1 w-px bg-linear-to-b from-[#00d4aa]/20 to-transparent min-h-8" />}
       </div>
       <div className="pb-10">
-        <h3 className="font-mono text-base font-bold text-[#f8f8fc] mb-2">{title}</h3>
-        <p className="text-sm leading-relaxed text-[#bcbcd8]">{description}</p>
+        <h3 className="font-mono text-base font-bold text-[#1a1a2e] mb-2">{title}</h3>
+        <p className="text-sm leading-relaxed text-[#4a4a6a]">{description}</p>
       </div>
     </div>
   );
@@ -87,45 +87,45 @@ function PricingCard({
   highlight?: boolean;
 }) {
   return (
-    <div className={`relative flex flex-col rounded-2xl border p-8 transition-all ${
+    <div className={`relative flex flex-col rounded-2xl p-8 transition-all ${
       highlight
-        ? "border-[#00d4aa]/40 bg-[#00d4aa]/5 shadow-[0_0_60px_rgba(0,212,170,0.08)]"
-        : "border-[#363650] bg-[#2e2e3c]/60"
+        ? "ring-1 ring-[#00d4aa]/30 bg-white shadow-[0_2px_20px_rgba(0,212,170,0.10)]"
+        : "bg-white shadow-[0_1px_4px_rgba(0,0,0,0.05)] ring-1 ring-black/[0.04]"
     }`}>
       {highlight && (
-        <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full border border-[#00d4aa]/40 bg-[#252531] px-4 py-1 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#00d4aa]">
+        <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-[#00d4aa] px-4 py-1 font-mono text-[9px] font-semibold uppercase tracking-widest text-white shadow-[0_2px_8px_rgba(0,212,170,0.4)]">
           Most Popular
         </div>
       )}
       <div className="mb-6">
-        <p className="font-mono text-xs font-semibold uppercase tracking-widest text-[#8585aa] mb-2">{name}</p>
+        <p className="font-mono text-xs font-semibold uppercase tracking-widest text-[#6a6a90] mb-2">{name}</p>
         {highlight ? (
           <>
             {/* Trial price tag */}
             <div className="mb-3">
-              <div className="inline-flex items-baseline gap-1.5 rounded-xl border border-[#00d4aa]/25 bg-[#00d4aa]/8 px-3.5 py-2 mb-2">
+              <div className="inline-flex items-baseline gap-1.5 rounded-xl bg-[#00d4aa]/8 px-3.5 py-2 mb-2">
                 <span className="font-mono text-4xl font-bold text-[#00d4aa]">$0</span>
                 <span className="font-mono text-sm text-[#00d4aa]/70">/ 7 days</span>
               </div>
               <div className="flex items-center gap-2 mt-1.5">
-                <svg className="h-3 w-3 text-[#8585aa]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className="h-3 w-3 text-[#6a6a90]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
-                <span className="font-mono text-sm text-[#8585aa]">then <span className="text-[#f8f8fc] font-semibold">{price}</span> / month</span>
+                <span className="font-mono text-sm text-[#6a6a90]">then <span className="text-[#1a1a2e] font-semibold">{price}</span> / month</span>
               </div>
             </div>
           </>
         ) : (
           <div className="flex items-end gap-1.5 mb-3">
-            <span className="font-mono text-4xl font-bold text-[#f8f8fc]">{price}</span>
-            {price !== "Free" && <span className="font-mono text-sm text-[#8585aa] mb-1">/ month</span>}
+            <span className="font-mono text-4xl font-bold text-[#1a1a2e]">{price}</span>
+            {price !== "Free" && <span className="font-mono text-sm text-[#6a6a90] mb-1">/ month</span>}
           </div>
         )}
-        <p className="text-sm text-[#bcbcd8]">{description}</p>
+        <p className="text-sm text-[#4a4a6a]">{description}</p>
       </div>
       <ul className="flex-1 space-y-3 mb-8">
         {features.map((f) => (
-          <li key={f} className="flex items-start gap-3 text-sm text-[#e0e0f0]">
+          <li key={f} className="flex items-start gap-3 text-sm text-[#3a3a58]">
             <svg className="mt-0.5 h-4 w-4 shrink-0 text-[#00d4aa]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
             </svg>
@@ -134,9 +134,9 @@ function PricingCard({
         ))}
       </ul>
       {highlight ? (
-        <CheckoutButton className={`block w-full rounded-xl py-3 text-center font-mono text-sm font-semibold uppercase tracking-wider transition-all bg-[#00d4aa] text-[#252531] hover:bg-[#00bfa0]`}>{cta}</CheckoutButton>
+        <CheckoutButton className={`block w-full rounded-xl py-3 text-center font-mono text-sm font-semibold uppercase tracking-wider transition-all bg-[#00d4aa] text-[#fafafa] hover:bg-[#00bfa0]`}>{cta}</CheckoutButton>
       ) : (
-        <Link href="/signup" className={`block w-full rounded-xl py-3 text-center font-mono text-sm font-semibold uppercase tracking-wider transition-all border border-[#363650] text-[#bcbcd8] hover:border-[#00d4aa]/40 hover:text-[#00d4aa]`}>{cta}</Link>
+        <Link href="/signup" className={`block w-full rounded-xl py-3 text-center font-mono text-sm font-semibold uppercase tracking-wider transition-all text-[#6a6a90] hover:text-[#00d4aa] hover:bg-[#00d4aa]/5`}>{cta}</Link>
       )}
     </div>
   );
@@ -199,17 +199,17 @@ function SecurityBadges() {
   ];
 
   return (
-    <div className="mt-10 rounded-2xl border border-[#363650] bg-[#2e2e3c]/40 px-6 py-5">
-      <p className="mb-4 text-center font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Security & Privacy</p>
+    <div className="mt-10 rounded-2xl bg-white/80 shadow-[0_1px_4px_rgba(0,0,0,0.04)] px-6 py-5">
+      <p className="mb-4 text-center font-mono text-[9px] uppercase tracking-widest text-[#6a6a90]">Security & Privacy</p>
       <div className="flex flex-wrap justify-center gap-4 sm:gap-6">
         {badges.map((b) => (
           <div key={b.label} className="flex items-center gap-2.5">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-[#00d4aa]/20 bg-[#00d4aa]/8 text-[#00d4aa]">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#00d4aa]/8 text-[#00d4aa]">
               {b.icon}
             </div>
             <div>
-              <p className="font-mono text-[11px] font-semibold text-[#f8f8fc]">{b.label}</p>
-              <p className="font-mono text-[9px] text-[#8585aa]">{b.sub}</p>
+              <p className="font-mono text-[11px] font-semibold text-[#1a1a2e]">{b.label}</p>
+              <p className="font-mono text-[9px] text-[#6a6a90]">{b.sub}</p>
             </div>
           </div>
         ))}
@@ -238,7 +238,7 @@ export default async function Home() {
   };
   const palette = badgePalette[hero.badgeColor];
   return (
-    <div className="min-h-screen bg-[#252531] text-[#f8f8fc]">
+    <div className="min-h-screen bg-[#f5f5f8] text-[#1a1a2e]">
       <Nav />
 
       {/* ── HERO ──────────────────────────────────────────────────────────── */}
@@ -263,15 +263,15 @@ export default async function Home() {
                 </span>
               </div>
 
-              <h1 className="mb-6 font-mono text-[1.75rem] leading-snug font-bold tracking-tight text-[#f8f8fc] sm:text-4xl lg:text-[3.4rem] lg:leading-tight">
+              <h1 className="mb-6 font-mono text-[1.75rem] leading-snug font-bold tracking-tight text-[#1a1a2e] sm:text-4xl lg:text-[3.4rem] lg:leading-tight">
                 {hero.headline}
                 <span style={{ color: palette.dot }}>{hero.headlineAccent}</span>
               </h1>
 
-              <p className="mb-8 w-11/12 md:w-full max-w-lg text-sm leading-relaxed text-[#bcbcd8] sm:text-base lg:text-lg">
+              <p className="mb-8 w-11/12 md:w-full max-w-lg text-sm leading-relaxed text-[#4a4a6a] sm:text-base lg:text-lg">
                 {heroSub.split(/(\*\*[^*]+\*\*)/).map((seg, i) =>
                   seg.startsWith("**") ? (
-                    <strong key={i} className="text-[#f8f8fc] font-semibold">
+                    <strong key={i} className="text-[#1a1a2e] font-semibold">
                       {seg.slice(2, -2)}
                     </strong>
                   ) : (
@@ -281,7 +281,7 @@ export default async function Home() {
               </p>
 
               <div className="mb-8 flex flex-wrap gap-3">
-                <a href="/signup" className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-5 py-3 font-mono text-sm font-semibold uppercase tracking-wider text-[#252531] transition-all hover:bg-[#00bfa0] hover:shadow-[0_0_30px_rgba(0,212,170,0.3)] sm:px-6 sm:py-3.5">
+                <a href="/signup" className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-5 py-3 font-mono text-sm font-semibold uppercase tracking-wider text-[#fafafa] transition-all hover:bg-[#00bfa0] hover:shadow-[0_0_30px_rgba(0,212,170,0.3)] sm:px-6 sm:py-3.5">
                   {hero.cta}
                   <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
                 </a>
@@ -299,7 +299,7 @@ export default async function Home() {
                   { icon: "✓", text: "Live in 90 seconds" },
                   { icon: "✓", text: "Read-only — we never touch your data" },
                 ].map((pill) => (
-                  <span key={pill.text} className="inline-flex items-center gap-1.5 rounded-full border border-[#363650] bg-[#2e2e3c] px-3 py-1 font-mono text-[10px] font-semibold text-[#bcbcd8]">
+                  <span key={pill.text} className="inline-flex items-center gap-1.5 px-1 font-mono text-[10px] font-semibold text-[#6a6a90]">
                     <span className="text-[#00d4aa]">{pill.icon}</span>
                     {pill.text}
                   </span>
@@ -315,10 +315,10 @@ export default async function Home() {
       </section>
 
       {/* ── PAIN STRIP ────────────────────────────────────────────────────── */}
-      <section className="border-t border-[#363650] bg-[#21212c] px-6 py-10">
+      <section className="px-6 py-14">
         <div className="mx-auto max-w-4xl">
-          <p className="mb-6 text-center font-mono text-[10px] uppercase tracking-widest text-[#58588a]">This is costing you money right now</p>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <p className="mb-8 text-center font-mono text-[10px] uppercase tracking-widest text-[#8888aa]">This is costing you money right now</p>
+          <div className="grid gap-4 sm:grid-cols-3">
             {[
               {
                 bad: "Revenue dropped 18% last Tuesday — you found out Friday",
@@ -333,14 +333,14 @@ export default async function Home() {
                 good: "AI scores your site and ranks every fix by revenue impact.",
               },
             ].map((item) => (
-              <div key={item.bad} className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 p-4 space-y-3">
+              <div key={item.bad} className="rounded-2xl bg-white shadow-[0_1px_3px_rgba(0,0,0,0.05)] p-5 space-y-3">
                 <div className="flex items-start gap-2.5">
                   <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#f87171]/10 text-[#f87171] font-bold text-[10px]">✕</span>
-                  <p className="text-sm text-[#8585aa] leading-snug">{item.bad}</p>
+                  <p className="text-sm text-[#8888aa] leading-snug">{item.bad}</p>
                 </div>
                 <div className="flex items-start gap-2.5">
                   <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#00d4aa]/10 text-[#00d4aa] font-bold text-[10px]">✓</span>
-                  <p className="text-sm font-semibold text-[#f8f8fc] leading-snug">{item.good}</p>
+                  <p className="text-sm font-semibold text-[#1a1a2e] leading-snug">{item.good}</p>
                 </div>
               </div>
             ))}
@@ -349,18 +349,18 @@ export default async function Home() {
       </section>
 
       {/* ── SOCIAL PROOF BAR ──────────────────────────────────────────────── */}
-      <section className="border-y border-[#363650] bg-[#2e2e3c]/60">
-        <div className="mx-auto max-w-6xl px-6 py-8">
-          <div className="grid grid-cols-2 gap-6 sm:grid-cols-4 sm:divide-x sm:divide-[#363650]">
+      <section className="py-12">
+        <div className="mx-auto max-w-5xl px-6">
+          <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
             {[
               { label: "Live integrations", value: <AnimatedCounter target={LIVE_INTEGRATIONS.length} />, color: "#00d4aa" },
               { label: "Founders using Fold", value: <LiveUserCount  />, color: "#00d4aa" },
               { label: "Avg. time to first insight", value: "< 2 min", color: "#00d4aa" },
               { label: "Revenue leaks found", value: "Daily", color: "#f87171" },
             ].map((s, i) => (
-              <div key={i} className="text-center sm:px-6">
-                <p className="font-mono text-xs uppercase tracking-widest text-[#8585aa]">{s.label}</p>
-                <p className="mt-1 font-mono text-3xl font-bold" style={{ color: s.color }}>{s.value}</p>
+              <div key={i} className="text-center">
+                <p className="font-mono text-3xl font-bold" style={{ color: s.color }}>{s.value}</p>
+                <p className="mt-1 font-mono text-[10px] uppercase tracking-widest text-[#9090b0]">{s.label}</p>
               </div>
             ))}
           </div>
@@ -372,8 +372,8 @@ export default async function Home() {
         <div className="mx-auto max-w-6xl">
           <div className="mb-16 text-center">
             <p className="mb-3 font-mono text-xs font-semibold uppercase tracking-widest text-[#00d4aa]">How it works</p>
-            <h2 className="font-mono text-3xl font-bold text-[#f8f8fc] sm:text-4xl">Stop flying blind. Start seeing the leaks.</h2>
-            <p className="mx-auto mt-4 max-w-xl text-[#bcbcd8]">
+            <h2 className="font-mono text-3xl font-bold text-[#1a1a2e] sm:text-4xl">Stop flying blind. Start seeing the leaks.</h2>
+            <p className="mx-auto mt-4 max-w-xl text-[#4a4a6a]">
               Three steps from &ldquo;something is wrong but I don&apos;t know what&rdquo; to &ldquo;here&apos;s the exact problem and what to do about it.&rdquo;
             </p>
           </div>
@@ -408,10 +408,10 @@ export default async function Home() {
                   <Link
                     key={p.id}
                     href={`/learn/${p.id}`}
-                    className="flex items-center gap-3 group rounded-xl px-3 py-2 transition-colors hover:bg-[#2e2e3c] border border-transparent hover:border-[#363650]"
+                    className="flex items-center gap-3 group rounded-xl px-3 py-2 transition-colors hover:bg-[#f5f5fa]"
                   >
                     <div
-                      className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#363650] bg-[#2e2e3c] overflow-hidden transition-colors group-hover:border-[#00d4aa]/40"
+                      className="flex h-9 w-9 items-center justify-center rounded-xl overflow-hidden transition-all group-hover:ring-1 group-hover:ring-[#00d4aa]/30"
                       style={{ backgroundColor: `${p.color}12` }}
                     >
                       <img
@@ -423,8 +423,8 @@ export default async function Home() {
                       />
                     </div>
                     <div>
-                      <p className="font-mono text-xs font-semibold text-[#f8f8fc] group-hover:text-[#00d4aa] transition-colors">{p.name}</p>
-                      <p className="font-mono text-[9px] text-[#8585aa]">{subs[p.id] ?? p.description}</p>
+                      <p className="font-mono text-xs font-semibold text-[#1a1a2e] group-hover:text-[#00d4aa] transition-colors">{p.name}</p>
+                      <p className="font-mono text-[9px] text-[#6a6a90]">{subs[p.id] ?? p.description}</p>
                     </div>
                   </Link>
                 ))}
@@ -438,7 +438,7 @@ export default async function Home() {
           <div className="mt-8 text-center">
             <a
               href="/learn"
-              className="inline-flex items-center gap-2 font-mono text-xs font-semibold uppercase tracking-widest text-[#8585aa] transition-colors hover:text-[#00d4aa]"
+              className="inline-flex items-center gap-2 font-mono text-xs font-semibold uppercase tracking-widest text-[#6a6a90] transition-colors hover:text-[#00d4aa]"
             >
               See every feature & integration explained in detail
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -457,40 +457,40 @@ export default async function Home() {
         <div className="relative mx-auto max-w-6xl">
           <div className="mb-16 text-center">
             <p className="mb-3 font-mono text-xs font-semibold uppercase tracking-widest text-[#00d4aa]">Features</p>
-            <h2 className="font-mono text-3xl font-bold text-[#f8f8fc] sm:text-4xl">Every leak, caught. Every decision, backed.</h2>
-            <p className="mx-auto mt-4 max-w-xl text-[#bcbcd8]">Four modules and nine intelligence features — built to find revenue problems before they compound.</p>
+            <h2 className="font-mono text-3xl font-bold text-[#1a1a2e] sm:text-4xl">Every leak, caught. Every decision, backed.</h2>
+            <p className="mx-auto mt-4 max-w-xl text-[#4a4a6a]">Four modules and nine intelligence features — built to find revenue problems before they compound.</p>
           </div>
 
           {/* Module deep-dives */}
           <div className="space-y-6 mb-10">
 
             {/* Overview */}
-            <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 p-6 md:p-8">
+            <div className="rounded-2xl bg-white shadow-[0_1px_4px_rgba(0,0,0,0.06)] ring-1 ring-black/[0.04] p-6 md:p-8">
               <div className="flex flex-col md:flex-row md:items-center gap-8">
                 <div className="flex-1">
                   <div className="mb-3 inline-flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#00d4aa]/20 bg-[#00d4aa]/8 text-[#00d4aa]">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#00d4aa]/10 text-[#00d4aa]">
                       <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" /></svg>
                     </div>
                     <span className="font-mono text-xs font-semibold uppercase tracking-widest text-[#00d4aa]">Overview Dashboard</span>
                   </div>
-                  <h3 className="font-mono text-xl font-bold text-[#f8f8fc] mb-3">6 KPIs. One glance.</h3>
-                  <p className="text-[#bcbcd8] leading-relaxed mb-4">Revenue, sessions, ad spend, new customers, conversions, and customer acquisition cost — all with 7-day trends and comparisons to the prior period.</p>
+                  <h3 className="font-mono text-xl font-bold text-[#1a1a2e] mb-3">6 KPIs. One glance.</h3>
+                  <p className="text-[#4a4a6a] leading-relaxed mb-4">Revenue, sessions, ad spend, new customers, conversions, and customer acquisition cost — all with 7-day trends and comparisons to the prior period.</p>
                   <ul className="space-y-2">
                     {["Revenue & MRR from Stripe", "Sessions & conversions from GA4", "Ad spend & CAC from Meta Ads", "E-commerce orders from Shopify", "Growth Pulse — rolling 7-day trends", "Quick actions & recent activity feed"].map((f) => (
-                      <li key={f} className="flex items-center gap-2 text-sm text-[#e0e0f0]">
+                      <li key={f} className="flex items-center gap-2 text-sm text-[#3a3a58]">
                         <span className="h-1.5 w-1.5 rounded-full bg-[#00d4aa] shrink-0" />{f}
                       </li>
                     ))}
                   </ul>
                 </div>
                 <div className="md:w-56 shrink-0">
-                  <div className="rounded-xl border border-[#363650] bg-[#343447] p-4">
+                  <div className="rounded-2xl bg-[#f5f5fb] p-4">
                     <div className="grid grid-cols-2 gap-2 mb-3">
                       {[{ l: "Revenue", v: "$12.4k", up: true }, { l: "Sessions", v: "9,340", up: true }, { l: "Ad Spend", v: "$1,920", up: false }, { l: "CAC", v: "$22.86", up: true }].map((k) => (
-                        <div key={k.l} className="rounded-lg border border-[#363650] bg-[#2e2e3c] p-2">
-                          <p className="font-mono text-[8px] uppercase tracking-widest text-[#8585aa]">{k.l}</p>
-                          <p className="font-mono text-sm font-bold text-[#f8f8fc]">{k.v}</p>
+                        <div key={k.l} className="rounded-lg bg-[#f8f8fc] p-2">
+                          <p className="font-mono text-[8px] uppercase tracking-widest text-[#6a6a90]">{k.l}</p>
+                          <p className="font-mono text-sm font-bold text-[#1a1a2e]">{k.v}</p>
                           <p className={`font-mono text-[9px] ${k.up ? "text-[#00d4aa]" : "text-red-400"}`}>{k.up ? "▲ 8.2%" : "▼ 3.4%"}</p>
                         </div>
                       ))}
@@ -506,21 +506,21 @@ export default async function Home() {
             </div>
 
             {/* Analytics */}
-            <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 p-6 md:p-8">
+            <div className="rounded-2xl bg-white shadow-[0_1px_4px_rgba(0,0,0,0.06)] ring-1 ring-black/[0.04] p-6 md:p-8">
               <div className="flex flex-col md:flex-row-reverse md:items-center gap-8">
                 <div className="flex-1">
                   <div className="mb-3 inline-flex items-center gap-2 flex-wrap">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#6366f1]/20 bg-[#6366f1]/8 text-[#6366f1]">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#6366f1]/10 text-[#6366f1]">
                       <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>
                     </div>
                     <span className="font-mono text-xs font-semibold uppercase tracking-widest text-[#6366f1]">Analytics</span>
                     <span className="font-mono text-[8px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-full border border-[#00d4aa]/30 text-[#00d4aa] bg-[#00d4aa]/8">Premium</span>
                   </div>
-                  <h3 className="font-mono text-xl font-bold text-[#f8f8fc] mb-3">Deep-dive into every metric.</h3>
-                  <p className="text-[#bcbcd8] leading-relaxed mb-4">Full 30-day daily breakdown per platform. Sparklines, trend percentages, and per-integration deep dives — Stripe, GA4, Meta Ads, Shopify, and all your other connected tools each get their own view.</p>
+                  <h3 className="font-mono text-xl font-bold text-[#1a1a2e] mb-3">Deep-dive into every metric.</h3>
+                  <p className="text-[#4a4a6a] leading-relaxed mb-4">Full 30-day daily breakdown per platform. Sparklines, trend percentages, and per-integration deep dives — Stripe, GA4, Meta Ads, Shopify, and all your other connected tools each get their own view.</p>
                   <ul className="space-y-2">
                     {["30-day daily time-series per integration", "Stripe: MRR, revenue, new customers, refunds", "GA4: sessions, bounce rate, conversions, top pages", "Meta Ads: spend, ROAS, CPC, impressions", "Shopify, Mailchimp & more"].map((f) => (
-                      <li key={f} className="flex items-center gap-2 text-sm text-[#e0e0f0]">
+                      <li key={f} className="flex items-center gap-2 text-sm text-[#3a3a58]">
                         <span className="h-1.5 w-1.5 rounded-full bg-[#6366f1] shrink-0" />{f}
                       </li>
                     ))}
@@ -530,7 +530,7 @@ export default async function Home() {
                   {[{ n: "Stripe", c: "#6366f1", bars: [40, 55, 48, 70, 65, 80, 88] },
                     { n: "GA4", c: "#f59e0b", bars: [30, 45, 42, 58, 52, 68, 76] },
                     { n: "Meta", c: "#f87171", bars: [20, 30, 25, 38, 32, 28, 35] }].map((pl) => (
-                    <div key={pl.n} className="rounded-xl border border-[#363650] bg-[#343447] p-3">
+                    <div key={pl.n} className="rounded-xl bg-[#f5f5fb] p-3">
                       <div className="flex justify-between mb-1.5">
                         <span className="font-mono text-[9px] uppercase tracking-widest" style={{ color: pl.c }}>{pl.n}</span>
                         <span className="font-mono text-[9px] font-bold text-[#00d4aa]">▲ 12%</span>
@@ -547,39 +547,39 @@ export default async function Home() {
             </div>
 
             {/* AI Advisor */}
-            <div className="rounded-2xl border border-[#00d4aa]/15 bg-[#00d4aa]/3 p-6 md:p-8">
+            <div className="rounded-2xl bg-white shadow-[0_1px_4px_rgba(0,0,0,0.06)] ring-1 ring-[#00d4aa]/15 p-6 md:p-8">
               <div className="flex flex-col md:flex-row-reverse md:items-center gap-8">
                 <div className="flex-1">
                   <div className="mb-3 inline-flex items-center gap-2 flex-wrap">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#00d4aa]/20 bg-[#00d4aa]/8 text-[#00d4aa]">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#00d4aa]/10 text-[#00d4aa]">
                       <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" /></svg>
                     </div>
                     <span className="font-mono text-xs font-semibold uppercase tracking-widest text-[#00d4aa]">AI Advisor</span>
                     <span className="font-mono text-[8px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-full border border-[#00d4aa]/30 text-[#00d4aa] bg-[#00d4aa]/8">Premium</span>
                   </div>
-                  <h3 className="font-mono text-xl font-bold text-[#f8f8fc] mb-3">Ask your data anything.</h3>
-                  <p className="text-[#bcbcd8] leading-relaxed mb-4">Multiple persistent conversations, each with full context of your live data across all connected integrations. Get a fresh daily insight generated automatically — and chat with follow-ups any time.</p>
+                  <h3 className="font-mono text-xl font-bold text-[#1a1a2e] mb-3">Ask your data anything.</h3>
+                  <p className="text-[#4a4a6a] leading-relaxed mb-4">Multiple persistent conversations, each with full context of your live data across all connected integrations. Get a fresh daily insight generated automatically — and chat with follow-ups any time.</p>
                   <ul className="space-y-2">
                     {["Daily AI-generated insight from your live data", "Multi-conversation chat — revisit old chats anytime", "Ask anything: \"Why did revenue drop last Tuesday?\"", "AI has full context of all your connected integrations", "Rename, organize, and manage chat history"].map((f) => (
-                      <li key={f} className="flex items-center gap-2 text-sm text-[#e0e0f0]">
+                      <li key={f} className="flex items-center gap-2 text-sm text-[#3a3a58]">
                         <span className="h-1.5 w-1.5 rounded-full bg-[#00d4aa] shrink-0" />{f}
                       </li>
                     ))}
                   </ul>
                 </div>
                 <div className="md:w-56 shrink-0 space-y-2">
-                  <div className="rounded-xl border border-[#00d4aa]/20 bg-[#00d4aa]/5 p-3">
+                  <div className="rounded-xl bg-[#f0faf6] p-3">
                     <p className="font-mono text-[8px] uppercase tracking-widest text-[#00d4aa] mb-1.5">Daily Insight</p>
-                    <p className="font-mono text-[10px] text-[#e0e0f0] leading-relaxed"><span className="text-[#f8f8fc] font-semibold">Revenue up 8.2%</span> this week. Highest-converting source is organic search (34% CR). CAC improved 18% — your last A/B test is working.</p>
+                    <p className="font-mono text-[10px] text-[#3a3a58] leading-relaxed"><span className="text-[#1a1a2e] font-semibold">Revenue up 8.2%</span> this week. Highest-converting source is organic search (34% CR). CAC improved 18% — your last A/B test is working.</p>
                   </div>
                   <div className="flex justify-end">
-                    <div className="max-w-[90%] rounded-xl bg-[#6366f1]/12 border border-[#6366f1]/20 px-3 py-2 font-mono text-[10px] text-[#e0e0f0]">
+                    <div className="max-w-[90%] rounded-xl bg-[#6366f1]/8 px-3 py-2 font-mono text-[10px] text-[#3a3a58]">
                       Why did revenue drop last Tuesday?
                     </div>
                   </div>
-                  <div className="rounded-xl border border-[#363650] bg-[#343447] px-3 py-2">
+                  <div className="rounded-xl bg-[#f5f5fb] px-3 py-2">
                     <p className="font-mono text-[8px] uppercase tracking-widest text-[#00d4aa] mb-1">AI Advisor</p>
-                    <p className="font-mono text-[10px] text-[#e0e0f0] leading-relaxed">Revenue dropped 18% because your Meta campaign hit its budget cap at 2pm. Paid sessions fell 42%. Increase daily budget by ~$40 to fix it.</p>
+                    <p className="font-mono text-[10px] text-[#3a3a58] leading-relaxed">Revenue dropped 18% because your Meta campaign hit its budget cap at 2pm. Paid sessions fell 42%. Increase daily budget by ~$40 to fix it.</p>
                   </div>
                 </div>
               </div>
@@ -642,29 +642,29 @@ export default async function Home() {
       </section>
 
       {/* ── PRICING ───────────────────────────────────────────────────────── */}
-      <section id="pricing" className="relative px-6 py-24 border-t border-[#363650]">
+      <section id="pricing" className="relative px-6 py-24 border-t border-[#f0f0f8]">
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <div className="h-125 w-125 rounded-full bg-[#6366f1]/4 blur-3xl" />
         </div>
         <div className="relative mx-auto max-w-6xl">
           <div className="mb-16 text-center">
             <p className="mb-3 font-mono text-xs font-semibold uppercase tracking-widest text-[#00d4aa]">Pricing</p>
-            <h2 className="font-mono text-3xl font-bold text-[#f8f8fc] sm:text-4xl">Simple, transparent pricing</h2>
-            <p className="mx-auto mt-4 max-w-xl text-[#bcbcd8]">Try every feature free for 7 days. No card required — upgrade to Pro when you&apos;re ready. Cancel anytime.</p>
+            <h2 className="font-mono text-3xl font-bold text-[#1a1a2e] sm:text-4xl">Simple, transparent pricing</h2>
+            <p className="mx-auto mt-4 max-w-xl text-[#4a4a6a]">Try every feature free for 7 days. No card required — upgrade to Pro when you&apos;re ready. Cancel anytime.</p>
           </div>
           <div className="grid gap-6 sm:grid-cols-2 max-w-3xl mx-auto">
             {/* Free Trial card */}
-            <div className="relative flex flex-col rounded-2xl border border-[#a78bfa]/30 bg-[#a78bfa]/5 p-8">
-              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full border border-[#a78bfa]/40 bg-[#252531] px-4 py-1 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#a78bfa]">
+            <div className="relative flex flex-col rounded-2xl bg-white shadow-[0_1px_4px_rgba(0,0,0,0.05)] ring-1 ring-[#a78bfa]/15 p-8">
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-[#a78bfa] px-4 py-1 font-mono text-[9px] font-semibold uppercase tracking-widest text-white shadow-[0_2px_8px_rgba(167,139,250,0.35)]">
                 Start here
               </div>
               <div className="mb-6">
-                <p className="font-mono text-xs font-semibold uppercase tracking-widest text-[#8585aa] mb-2">Free Trial</p>
-                <div className="inline-flex items-baseline gap-1.5 rounded-xl border border-[#a78bfa]/25 bg-[#a78bfa]/8 px-3.5 py-2 mb-3">
+                <p className="font-mono text-xs font-semibold uppercase tracking-widest text-[#6a6a90] mb-2">Free Trial</p>
+                <div className="inline-flex items-baseline gap-1.5 rounded-xl bg-[#a78bfa]/8 px-3.5 py-2 mb-3">
                   <span className="font-mono text-4xl font-bold text-[#a78bfa]">$0</span>
                   <span className="font-mono text-sm text-[#a78bfa]/70">/ 7 days</span>
                 </div>
-                <p className="text-sm text-[#bcbcd8]">Every Premium feature. Fully unlocked. No restrictions — no card required for the trial, upgrade to $19/mo whenever you&apos;re ready.</p>
+                <p className="text-sm text-[#4a4a6a]">Every Premium feature. Fully unlocked. No restrictions — no card required for the trial, upgrade to $19/mo whenever you&apos;re ready.</p>
               </div>
               <ul className="flex-1 space-y-3 mb-8">
                 {[
@@ -675,7 +675,7 @@ export default async function Home() {
                   "Growth Pulse & anomaly detection",
                   "Cancel anytime — no charge",
                 ].map((f) => (
-                  <li key={f} className="flex items-start gap-3 text-sm text-[#e0e0f0]">
+                  <li key={f} className="flex items-start gap-3 text-sm text-[#3a3a58]">
                     <svg className="mt-0.5 h-4 w-4 shrink-0 text-[#a78bfa]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                     </svg>
@@ -707,7 +707,7 @@ export default async function Home() {
               highlight
             />
           </div>
-          <p className="mt-5 text-center font-mono text-[11px] text-[#8585aa]">
+          <p className="mt-5 text-center font-mono text-[11px] text-[#6a6a90]">
             Not ready to commit?{" "}
             <a href="/signup" className="text-[#00d4aa] hover:underline">Create a free account</a>
             {" "}to explore the app — you can start your trial any time from inside the dashboard.
@@ -716,7 +716,7 @@ export default async function Home() {
       </section>
 
       {/* ── FOUNDER ───────────────────────────────────────────────────────── */}
-      <section className="border-t border-[#363650] px-6 py-24">
+      <section className="border-t border-[#f0f0f8] px-6 py-24">
         <div className="mx-auto max-w-4xl">
           <div className="flex flex-col items-center gap-10 md:flex-row md:items-start md:gap-14">
             {/* Photo */}
@@ -726,11 +726,11 @@ export default async function Home() {
                 <img
                   src="/founder-george-popa.jpg"
                   alt="George Popa — Founder of Fold"
-                  className="relative h-48 w-48 rounded-2xl object-cover object-top border border-[#363650] shadow-xl"
+                  className="relative h-48 w-48 rounded-2xl object-cover object-top shadow-md"
                 />
               </div>
               <div className="mt-3 text-center">
-                <p className="font-mono text-sm font-bold text-[#f8f8fc]">George Popa</p>
+                <p className="font-mono text-sm font-bold text-[#1a1a2e]">George Popa</p>
                 <p className="font-mono text-[10px] uppercase tracking-widest text-[#00d4aa]">Founder &amp; CEO</p>
               </div>
             </div>
@@ -739,16 +739,16 @@ export default async function Home() {
             <div className="flex-1 space-y-5">
               <div>
                 <p className="mb-2 font-mono text-[10px] font-semibold uppercase tracking-widest text-[#00d4aa]">Why I built Fold</p>
-                <h2 className="font-mono text-2xl font-bold text-[#f8f8fc] sm:text-3xl leading-snug">
+                <h2 className="font-mono text-2xl font-bold text-[#1a1a2e] sm:text-3xl leading-snug">
                   Built by a founder,<br className="hidden sm:block" /> for founders.
                 </h2>
               </div>
 
-              <p className="text-[#bcbcd8] leading-relaxed">
+              <p className="text-[#4a4a6a] leading-relaxed">
                 I ran a small SaaS and every Monday I'd open five browser tabs, Stripe, Google Analytics, Mailchimp, Meta Ads, Shopify, just to piece together what happened last week. It took 40 minutes and I still wasn't sure I had the full picture.
               </p>
-              <p className="text-[#bcbcd8] leading-relaxed">
-                Fold is the dashboard I wish existed. Every metric you care about, in one place, with a plain-English summary that tells you <em className="text-[#f8f8fc] not-italic font-medium">why</em> things moved, not just that they did. No data science degree required.
+              <p className="text-[#4a4a6a] leading-relaxed">
+                Fold is the dashboard I wish existed. Every metric you care about, in one place, with a plain-English summary that tells you <em className="text-[#1a1a2e] not-italic font-medium">why</em> things moved, not just that they did. No data science degree required.
               </p>
 
               {/* Credibility bar */}
@@ -760,7 +760,7 @@ export default async function Home() {
                 ].map(({ label }) => (
                   <span
                     key={label}
-                    className="rounded-lg border border-[#303042] bg-[#252531] px-3 py-1.5 font-mono text-[10px] text-[#8585aa]"
+                    className="rounded-lg bg-[#f5f5f8] px-3 py-1.5 font-mono text-[10px] text-[#6a6a90]"
                   >
                     {label}
                   </span>
@@ -779,17 +779,17 @@ export default async function Home() {
       </section>
 
       {/* ── FAQ ───────────────────────────────────────────────────────────── */}
-      <section id="faq" className="px-6 py-24 border-t border-[#363650]">
+      <section id="faq" className="px-6 py-24 border-t border-[#f0f0f8]">
         <div className="mx-auto max-w-3xl">
           <div className="mb-12 text-center">
             <p className="mb-3 font-mono text-xs font-semibold uppercase tracking-widest text-[#00d4aa]">FAQ</p>
-            <h2 className="font-mono text-3xl font-bold text-[#f8f8fc] sm:text-4xl">Common questions</h2>
-            <p className="mx-auto mt-4 max-w-lg text-[#bcbcd8]">Everything you need to know before you connect your first integration.</p>
+            <h2 className="font-mono text-3xl font-bold text-[#1a1a2e] sm:text-4xl">Common questions</h2>
+            <p className="mx-auto mt-4 max-w-lg text-[#4a4a6a]">Everything you need to know before you connect your first integration.</p>
           </div>
-          <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 px-6 divide-y-0">
+          <div className="rounded-2xl bg-white shadow-[0_1px_4px_rgba(0,0,0,0.05)] px-6 divide-y-0">
             <FaqSection />
           </div>
-          <p className="mt-6 text-center font-mono text-xs text-[#8585aa]">
+          <p className="mt-6 text-center font-mono text-xs text-[#6a6a90]">
             Still have questions?{" "}
             <a href="mailto:info@usefold.io" className="text-[#00d4aa] hover:underline">Email us →</a>
           </p>
@@ -797,44 +797,44 @@ export default async function Home() {
       </section>
 
       {/* ── FINAL CTA ─────────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden px-6 py-32 border-t border-[#363650]">
+      <section className="relative overflow-hidden px-6 py-32 border-t border-[#f0f0f8]">
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <div className="h-125 w-125 rounded-full bg-[#00d4aa]/5 blur-3xl" />
         </div>
         <div className="pointer-events-none absolute -top-20 left-1/2 -translate-x-1/2 h-64 w-150 rounded-full bg-[#00d4aa]/4 blur-3xl" />
         <div className="relative mx-auto max-w-2xl text-center">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#00d4aa]/25 bg-[#00d4aa]/8 px-3 py-1.5">
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-[#00d4aa]/10 px-3 py-1.5">
             <span className="h-1.5 w-1.5 rounded-full bg-[#00d4aa] animate-pulse" />
             <span className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#00d4aa]">7-day free trial · No card required · $19/mo after</span>
           </div>
-          <h2 className="mb-4 font-mono text-4xl font-bold text-[#f8f8fc] sm:text-5xl leading-tight">
+          <h2 className="mb-4 font-mono text-4xl font-bold text-[#1a1a2e] sm:text-5xl leading-tight">
             Stop guessing.
             <br />
             <span className="text-[#00d4aa]">Start knowing.</span>
           </h2>
-          <p className="mb-10 text-lg text-[#bcbcd8] max-w-lg mx-auto">
+          <p className="mb-10 text-lg text-[#4a4a6a] max-w-lg mx-auto">
             Connect your live integrations in minutes. Get a unified dashboard, AI-generated daily insights, and anomaly alerts — all your data, all in one place.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <CheckoutButton className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-8 py-4 font-mono text-sm font-bold uppercase tracking-wider text-[#252531] transition-all hover:bg-[#00bfa0] hover:shadow-[0_0_40px_rgba(0,212,170,0.35)]">
+            <a href="/signup" className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-8 py-4 font-mono text-sm font-bold uppercase tracking-wider text-[#fafafa] transition-all hover:bg-[#00bfa0] hover:shadow-[0_0_40px_rgba(0,212,170,0.35)]">
               Start 7-day free trial
               <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
-            </CheckoutButton>
-            <a href="/login" className="font-mono text-sm text-[#8585aa] uppercase tracking-widest hover:text-[#f8f8fc] transition-colors">
+            </a>
+            <a href="/login" className="font-mono text-sm text-[#6a6a90] uppercase tracking-widest hover:text-[#1a1a2e] transition-colors">
               Already have an account? Sign in →
             </a>
           </div>
-          <p className="mt-6 font-mono text-[10px] text-[#8585aa]">7 days free · no card required · $19/month after · cancel anytime</p>
+          <p className="mt-6 font-mono text-[10px] text-[#6a6a90]">7 days free · no card required · $19/month after · cancel anytime</p>
         </div>
       </section>
 
       {/* ── FOOTER ────────────────────────────────────────────────────────── */}
-      <footer className="border-t border-[#363650] px-6 py-14">
+      <footer className="border-t border-[#f0f0f8] px-6 py-14">
         <div className="mx-auto max-w-6xl">
           <div className="grid grid-cols-1 gap-10 sm:grid-cols-3">
             <div>
               <img src="/fold-primary-dark.svg" alt="Fold" className="h-9 w-auto mb-3" />
-              <p className="text-sm text-[#8585aa] leading-relaxed max-w-xs">
+              <p className="text-sm text-[#6a6a90] leading-relaxed max-w-xs">
                 AI-powered business intelligence for small business founders. Know what&apos;s happening. Know what to do.
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
@@ -847,24 +847,24 @@ export default async function Home() {
               </div>
             </div>
             <div>
-              <p className="font-mono text-[10px] uppercase tracking-widest text-[#8585aa] mb-4">Product</p>
+              <p className="font-mono text-[10px] uppercase tracking-widest text-[#6a6a90] mb-4">Product</p>
               <ul className="space-y-3">
                 {[{ l: "Features", h: "#features" }, { l: "How it works", h: "#how-it-works" }, { l: "Pricing", h: "#pricing" }, { l: "FAQ", h: "#faq" }, { l: "Sign in", h: "/login" }, { l: "Get started free", h: "/signup" }].map((item) => (
-                  <li key={item.l}><a href={item.h} className="text-sm text-[#8585aa] hover:text-[#f8f8fc] transition-colors">{item.l}</a></li>
+                  <li key={item.l}><a href={item.h} className="text-sm text-[#6a6a90] hover:text-[#1a1a2e] transition-colors">{item.l}</a></li>
                 ))}
               </ul>
             </div>
             <div>
-              <p className="font-mono text-[10px] uppercase tracking-widest text-[#8585aa] mb-4">Legal</p>
+              <p className="font-mono text-[10px] uppercase tracking-widest text-[#6a6a90] mb-4">Legal</p>
               <ul className="space-y-3">
                 {[{ l: "Privacy Policy", h: "/privacy" }, { l: "Terms of Service", h: "/terms" }].map((item) => (
-                  <li key={item.l}><a href={item.h} className="text-sm text-[#8585aa] hover:text-[#f8f8fc] transition-colors">{item.l}</a></li>
+                  <li key={item.l}><a href={item.h} className="text-sm text-[#6a6a90] hover:text-[#1a1a2e] transition-colors">{item.l}</a></li>
                 ))}
               </ul>
             </div>
           </div>
-          <div className="mt-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-t border-[#363650] pt-8">
-            <p className="font-mono text-[11px] text-[#8585aa]">© 2026 Fold. Built for founders who want clarity, not complexity.</p>
+          <div className="mt-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-t border-[#f0f0f8] pt-8">
+            <p className="font-mono text-[11px] text-[#6a6a90]">© 2026 Fold. Built for founders who want clarity, not complexity.</p>
             <div className="flex items-center gap-1.5">
               <span className="h-1.5 w-1.5 rounded-full bg-[#00d4aa] animate-pulse" />
               <span className="font-mono text-[10px] text-[#00d4aa]">Systems nominal</span>

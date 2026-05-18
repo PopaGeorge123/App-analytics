@@ -62,14 +62,14 @@ export default function OnboardingModal({ hasNoConnections, onNavigateToSettings
       aria-modal="true"
       aria-label="Connect Stripe"
     >
-      <div className="relative w-full max-w-md rounded-2xl border border-[#363650] bg-[#2e2e3c] shadow-2xl overflow-hidden">
+      <div className="relative w-full max-w-md rounded-2xl border border-[#d4d4e8] bg-[#f2f2f8] shadow-2xl overflow-hidden">
 
         {/* Top accent bar */}
         <div className="h-1 w-full bg-linear-to-r from-[#00d4aa] via-[#6366f1] to-[#00d4aa]" />
 
         {/* Body */}
         <div className="px-8 pt-7 pb-8">
-          <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa] mb-4">
+          <p className="font-mono text-[9px] uppercase tracking-widest text-[#6a6a90] mb-4">
             Step 1 of 1 · connect your first integration
           </p>
 
@@ -80,10 +80,10 @@ export default function OnboardingModal({ hasNoConnections, onNavigateToSettings
                 <path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.591-7.305z" fill="currentColor" />
               </svg>
             </div>
-            <h2 className="font-mono text-xl font-bold text-[#f8f8fc]">Connect Stripe</h2>
+            <h2 className="font-mono text-xl font-bold text-[#1a1a2e]">Connect Stripe</h2>
           </div>
 
-          <p className="text-sm leading-relaxed text-[#bcbcd8] mb-6">
+          <p className="text-sm leading-relaxed text-[#4a4a6a] mb-6">
             Link your Stripe account to instantly see revenue, new customers, refunds, and daily transaction trends — all in one place.
           </p>
 
@@ -99,7 +99,7 @@ export default function OnboardingModal({ hasNoConnections, onNavigateToSettings
           <div className="flex flex-col gap-3">
             <a
               href="/api/auth/stripe/url"
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#635bff] py-3 font-mono text-sm font-semibold uppercase tracking-wider text-white transition-all hover:opacity-90"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#635bff] py-3 font-mono text-sm font-semibold uppercase tracking-wider text-[#1a1a2e] transition-all hover:opacity-90"
             >
               Connect Stripe
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -109,7 +109,7 @@ export default function OnboardingModal({ hasNoConnections, onNavigateToSettings
 
             <button
               onClick={handleLater}
-              className="w-full rounded-xl border border-[#363650] py-2.5 font-mono text-xs uppercase tracking-wider text-[#8585aa] transition-all hover:border-[#8585aa] hover:text-[#bcbcd8]"
+              className="w-full rounded-xl border border-[#d4d4e8] py-2.5 font-mono text-xs uppercase tracking-wider text-[#6a6a90] transition-all hover:border-[#6a6a90] hover:text-[#4a4a6a]"
             >
               Maybe later — show me where to connect
             </button>
@@ -120,7 +120,7 @@ export default function OnboardingModal({ hasNoConnections, onNavigateToSettings
         <button
           onClick={snooze}
           aria-label="Dismiss — remind me tomorrow"
-          className="absolute top-4 right-4 flex h-7 w-7 items-center justify-center rounded-lg text-[#8585aa] hover:bg-[#363650] hover:text-[#f8f8fc] transition-colors"
+          className="absolute top-4 right-4 flex h-7 w-7 items-center justify-center rounded-lg text-[#6a6a90] hover:bg-[#d4d4e8] hover:text-[#1a1a2e] transition-colors"
         >
           <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />

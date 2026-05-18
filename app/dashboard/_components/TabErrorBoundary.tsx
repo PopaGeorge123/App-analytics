@@ -55,16 +55,16 @@ export default class TabErrorBoundary extends Component<Props, State> {
         <p className="font-mono text-[10px] uppercase tracking-widest text-red-400 mb-2">
           {this.props.tabName} tab error
         </p>
-        <h2 className="font-mono text-base font-bold text-[#f8f8fc] mb-2">
+        <h2 className="font-mono text-base font-bold text-[#1a1a2e] mb-2">
           Something went wrong
         </h2>
-        <p className="max-w-sm text-sm text-[#8585aa] leading-relaxed mb-6">
+        <p className="max-w-sm text-sm text-[#6a6a90] leading-relaxed mb-6">
           {this.state.errorMessage}
         </p>
 
         <button
           onClick={this.reset}
-          className="inline-flex items-center gap-2 rounded-xl border border-[#363650] bg-[#343447] px-5 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider text-[#bcbcd8] transition-all hover:border-[#00d4aa]/40 hover:text-[#00d4aa]"
+          className="inline-flex items-center gap-2 rounded-xl border border-[#d4d4e8] bg-[#e8e8f4] px-5 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider text-[#4a4a6a] transition-all hover:border-[#00d4aa]/40 hover:text-[#00d4aa]"
         >
           <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />

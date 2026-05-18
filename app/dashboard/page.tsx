@@ -133,16 +133,16 @@ export default async function DashboardPage({
   }
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-[#252531] text-[#f8f8fc]">
+    <div className="flex h-screen flex-col overflow-hidden bg-[#fafafa] text-[#1a1a2e]">
       {/* ── Top bar ──────────────────────────────────────── */}
-      <header className="sticky top-0 z-40 border-b border-[#363650] bg-[#2e2e3c]/95 backdrop-blur-md">
+      <header className="sticky top-0 z-40 border-b border-[#d4d4e8] bg-[#f2f2f8]/95 backdrop-blur-md">
         <div className="flex items-center justify-between px-5 py-3">
           <div className="flex items-center gap-3">
             <a href="/" className="flex items-center gap-2.5 group">
               <img src="/fold-icon.svg" alt="Fold" className="h-7 w-auto transition-opacity group-hover:opacity-80" />
             </a>
-            <span className="hidden text-[#8585aa] sm:block">/</span>
-            <span className="hidden font-mono text-[10px] font-semibold uppercase tracking-widest text-[#8585aa] sm:block">
+            <span className="hidden text-[#6a6a90] sm:block">/</span>
+            <span className="hidden font-mono text-[10px] font-semibold uppercase tracking-widest text-[#6a6a90] sm:block">
               Dashboard
             </span>
           </div>
@@ -160,12 +160,12 @@ export default async function DashboardPage({
                 {trialTimeLabelServer}
               </span>
             )}
-            <div className="hidden h-4 w-px bg-[#363650] sm:block" />
-            <span className="hidden truncate max-w-48 font-mono text-[11px] text-[#8585aa] sm:block">{user.email}</span>
+            <div className="hidden h-4 w-px bg-[#d4d4e8] sm:block" />
+            <span className="hidden truncate max-w-48 font-mono text-[11px] text-[#6a6a90] sm:block">{user.email}</span>
             <form action={signOut}>
               <button
                 type="submit"
-                className="flex items-center gap-1.5 rounded-xl border border-[#363650] bg-[#343447] px-3 py-2 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#bcbcd8] transition-all hover:border-red-500/30 hover:bg-red-500/5 hover:text-red-400"
+                className="flex items-center gap-1.5 rounded-xl border border-[#d4d4e8] bg-[#e8e8f4] px-3 py-2 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#4a4a6a] transition-all hover:border-red-500/30 hover:bg-red-500/5 hover:text-red-400"
               >
                 <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />

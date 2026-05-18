@@ -271,7 +271,7 @@ function InsightRenderer({
       {parsed.snapshot && (
         <div
           style={{
-            background: "#0f172a",
+            background: "#f0f0fa",
             borderLeft: "4px solid #6366f1",
             borderRadius: "0 8px 8px 0",
             padding: "12px 16px",
@@ -289,7 +289,7 @@ function InsightRenderer({
           >
             <span style={{ display: "flex", alignItems: "center", gap: 6 }}><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>Today&apos;s Snapshot</span>
           </div>
-          <div style={{ fontSize: 14, lineHeight: 1.7, color: "#c7d2fe" }}>
+          <div style={{ fontSize: 14, lineHeight: 1.7, color: "#4a4a6a" }}>
             {parsed.snapshot.split("\n").map((line, i) => {
               const t = line.trim();
               if (!t) return null;
@@ -318,7 +318,7 @@ function InsightRenderer({
               fontWeight: 700,
               letterSpacing: "0.08em",
               textTransform: "uppercase",
-              color: "#8585aa",
+              color: "#6a6a90",
             }}
           >
             Signals
@@ -327,7 +327,7 @@ function InsightRenderer({
             <div
               key={i}
               style={{
-                background: "#25252c",
+                background: "#f8f8fc",
                 borderLeft: `3px solid ${severityColor(obs.severity)}`,
                 borderRadius: "0 8px 8px 0",
                 padding: "10px 14px",
@@ -335,11 +335,11 @@ function InsightRenderer({
             >
               <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
                 <SeverityIcon severity={obs.severity} />
-                <span style={{ fontSize: 13, fontWeight: 600, color: "#f8f8fc" }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: "#1a1a2e" }}>
                   <InlineText text={obs.title} />
                 </span>
               </div>
-              <div style={{ fontSize: 13, color: "#94a3b8", lineHeight: 1.6 }}>
+              <div style={{ fontSize: 13, color: "#5a5a7a", lineHeight: 1.6 }}>
                 <InlineText text={obs.body} />
               </div>
             </div>
@@ -356,7 +356,7 @@ function InsightRenderer({
               fontWeight: 700,
               letterSpacing: "0.08em",
               textTransform: "uppercase",
-              color: "#8585aa",
+              color: "#6a6a90",
             }}
           >
             Recommended Actions
@@ -365,8 +365,8 @@ function InsightRenderer({
             <div
               key={i}
               style={{
-                background: "#25252c",
-                border: "1px solid rgba(255,255,255,0.11)",
+                background: "#ffffff",
+                border: "1px solid rgba(0,0,0,0.07)",
                 borderRadius: 10,
                 padding: "12px 14px",
                 display: "flex",
@@ -418,11 +418,11 @@ function InsightRenderer({
                     {priorityLabel(act.priority)}
                   </span>
                 </div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "#f8f8fc", marginBottom: 3 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "#1a1a2e", marginBottom: 3 }}>
                   <InlineText text={act.title} />
                 </div>
                 {act.description && (
-                  <div style={{ fontSize: 12, color: "#94a3b8", lineHeight: 1.6 }}>
+                  <div style={{ fontSize: 12, color: "#5a5a7a", lineHeight: 1.6 }}>
                     <InlineText text={act.description} />
                   </div>
                 )}
@@ -436,7 +436,7 @@ function InsightRenderer({
       {parsed.keyInsight && (
         <div
           style={{
-            background: "#1e1b4b",
+            background: "#f0f0ff",
             borderLeft: "4px solid #6366f1",
             borderRadius: "0 8px 8px 0",
             padding: "14px 16px",
@@ -454,7 +454,7 @@ function InsightRenderer({
           >
             <span style={{ display: "flex", alignItems: "center", gap: 6 }}><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>One Insight Worth Knowing</span>
           </div>
-          <div style={{ fontSize: 14, lineHeight: 1.8, color: "#c7d2fe" }}>
+          <div style={{ fontSize: 14, lineHeight: 1.8, color: "#4a4a6a" }}>
             <InlineText text={parsed.keyInsight} />
           </div>
         </div>
@@ -469,7 +469,7 @@ function InsightRenderer({
               fontWeight: 700,
               letterSpacing: "0.08em",
               textTransform: "uppercase",
-              color: "#8585aa",
+              color: "#6a6a90",
               marginRight: 4,
             }}
           >
@@ -545,7 +545,7 @@ function AiMessageBody({
     if (t.startsWith("## ")) {
       const headText = t.slice(3).replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, "").trim();
       return (
-        <p key={i} style={{ fontWeight: 700, color: "#f8f8fc", margin: "18px 0 6px 0", fontSize: 16, borderBottom: "1px solid rgba(255,255,255,0.07)", paddingBottom: 4 }}>
+        <p key={i} style={{ fontWeight: 700, color: "#1a1a2e", margin: "18px 0 6px 0", fontSize: 16, borderBottom: "1px solid rgba(255,255,255,0.07)", paddingBottom: 4 }}>
           <InlineText text={headText} />
         </p>
       );
@@ -553,7 +553,7 @@ function AiMessageBody({
     if (t.startsWith("# ")) {
       const headText = t.slice(2).replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, "").trim();
       return (
-        <p key={i} style={{ fontWeight: 800, color: "#f8f8fc", margin: "0 0 12px 0", fontSize: 18 }}>
+        <p key={i} style={{ fontWeight: 800, color: "#1a1a2e", margin: "0 0 12px 0", fontSize: 18 }}>
           <InlineText text={headText} />
         </p>
       );
@@ -561,7 +561,7 @@ function AiMessageBody({
 
     if (t.startsWith("**") && t.endsWith("**")) {
       return (
-        <p key={i} style={{ fontWeight: 600, color: "#e2e8f0", margin: "10px 0 4px 0", fontSize: 14 }}>
+        <p key={i} style={{ fontWeight: 600, color: "#2a2a3e", margin: "10px 0 4px 0", fontSize: 14 }}>
           {t.slice(2, -2).replace(/\*\*/g, "")}
         </p>
       );
@@ -570,7 +570,7 @@ function AiMessageBody({
       return (
         <div key={i} style={{ display: "flex", gap: 8, marginBottom: 5, alignItems: "flex-start" }}>
           <svg width="6" height="6" viewBox="0 0 6 6" style={{ flexShrink: 0, marginTop: 6 }}><circle cx="3" cy="3" r="3" fill="#6366f1" /></svg>
-          <span style={{ fontSize: 14, color: "#c0c0d5", lineHeight: 1.65 }}>
+          <span style={{ fontSize: 14, color: "#4a4a6a", lineHeight: 1.65 }}>
             <InlineText text={t.slice(2)} />
           </span>
         </div>
@@ -598,14 +598,14 @@ function AiMessageBody({
           >
             {numMatch[1]}
           </span>
-          <span style={{ fontSize: 14, color: "#c0c0d5", lineHeight: 1.65 }}>
+          <span style={{ fontSize: 14, color: "#4a4a6a", lineHeight: 1.65 }}>
             <InlineText text={numMatch[2]} />
           </span>
         </div>
       );
     }
     return (
-      <p key={i} style={{ fontSize: 14, color: "#c0c0d5", lineHeight: 1.7, margin: "0 0 6px 0" }}>
+      <p key={i} style={{ fontSize: 14, color: "#4a4a6a", lineHeight: 1.7, margin: "0 0 6px 0" }}>
         <InlineText text={t} />
       </p>
     );
@@ -652,7 +652,7 @@ function AiMessageBody({
         <div style={{ flex: 1 }}>
           {linkMatch ? (
             <>
-              <span style={{ fontSize: 13, color: "#c7d2fe", fontWeight: 500 }}>{linkMatch[1]}</span>
+              <span style={{ fontSize: 13, color: "#4a4a6a", fontWeight: 500 }}>{linkMatch[1]}</span>
               <a
                 href={linkMatch[2]}
                 style={{
@@ -667,7 +667,7 @@ function AiMessageBody({
               </a>
             </>
           ) : (
-            <span style={{ fontSize: 13, color: "#c7d2fe", fontWeight: 500 }}>
+            <span style={{ fontSize: 13, color: "#4a4a6a", fontWeight: 500 }}>
               <InlineText text={numMatch[2]} />
             </span>
           )}
@@ -736,14 +736,14 @@ function AiMessageBody({
           )}
           <tbody>
             {body.map((row, ri) => (
-              <tr key={ri} style={{ background: ri % 2 === 0 ? "rgba(255,255,255,0.02)" : "transparent" }}>
+              <tr key={ri} style={{ background: ri % 2 === 0 ? "rgba(0,0,0,0.02)" : "transparent" }}>
                 {row.map((cell, ci) => (
                   <td
                     key={ci}
                     style={{
                       padding: "7px 12px",
                       color: ci === 0 ? "#e2e8f0" : "#c0c0d5",
-                      borderBottom: "1px solid rgba(255,255,255,0.13)",
+                      borderBottom: "1px solid rgba(0,0,0,0.08)",
                       verticalAlign: "top",
                     }}
                   >
@@ -894,7 +894,7 @@ function ConvItem({
         background: isActive
           ? "rgba(99,102,241,0.08)"
           : hovered
-          ? "rgba(255,255,255,0.13)"
+          ? "rgba(0,0,0,0.08)"
           : "transparent",
         transition: "background 0.15s",
       }}
@@ -940,7 +940,7 @@ function ConvItem({
               borderBottom: "1px solid rgba(99,102,241,0.4)",
               outline: "none",
               fontSize: 12,
-              color: "#f8f8fc",
+              color: "#1a1a2e",
             }}
           />
         ) : (
@@ -948,7 +948,7 @@ function ConvItem({
             <div
               style={{
                 fontSize: 12,
-                color: isActive ? "#f8f8fc" : "#bcbcd8",
+                color: isActive ? "#1a1a2e" : "#4a4a6a",
                 fontWeight: isActive ? 600 : 400,
                 overflow: "hidden",
                 whiteSpace: "nowrap",
@@ -957,7 +957,7 @@ function ConvItem({
             >
               {conv.title}
             </div>
-            <div style={{ fontSize: 10, color: "#8585aa", marginTop: 1 }}>
+            <div style={{ fontSize: 10, color: "#6a6a90", marginTop: 1 }}>
               {messageCount != null ? `${messageCount} msg${messageCount !== 1 ? "s" : ""} · ` : ""}
               {relativeDate(conv.updated_at)}
             </div>
@@ -977,7 +977,7 @@ function ConvItem({
               cursor: "pointer",
               padding: 3,
               borderRadius: 4,
-              color: "#8585aa",
+              color: "#6a6a90",
             }}
           >
             <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -993,7 +993,7 @@ function ConvItem({
               cursor: "pointer",
               padding: 3,
               borderRadius: 4,
-              color: "#8585aa",
+              color: "#6a6a90",
             }}
           >
             <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1032,10 +1032,10 @@ function EmptyNewChat({ onSuggest }: { onSuggest: (q: string) => void }) {
         <div style={{ marginBottom: 8 }}><svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="#6366f1" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
           </svg></div>
-        <p style={{ fontSize: 15, fontWeight: 600, color: "#f8f8fc", marginBottom: 4 }}>
+        <p style={{ fontSize: 15, fontWeight: 600, color: "#1a1a2e", marginBottom: 4 }}>
           Ask me anything about your business
         </p>
-        <p style={{ fontSize: 13, color: "#8585aa", maxWidth: 300 }}>
+        <p style={{ fontSize: 13, color: "#6a6a90", maxWidth: 300 }}>
           I have full context of your Stripe revenue, GA4 traffic, and Meta ad spend data.
         </p>
       </div>
@@ -1053,13 +1053,13 @@ function EmptyNewChat({ onSuggest }: { onSuggest: (q: string) => void }) {
             key={s.q}
             onClick={() => onSuggest(s.q)}
             style={{
-              background: "#25252c",
-              border: "1px solid rgba(255,255,255,0.13)",
+              background: "#f5f5fa",
+              border: "1px solid rgba(0,0,0,0.08)",
               borderRadius: 10,
               padding: "12px 14px",
               textAlign: "left",
               cursor: "pointer",
-              color: "#bcbcd8",
+              color: "#4a4a6a",
               fontSize: 12,
               fontWeight: 500,
               display: "flex",
@@ -1102,7 +1102,7 @@ function ChatInputBar({
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;
 }) {
   return (
-    <div style={{ borderTop: "1px solid rgba(255,255,255,0.11)", padding: "10px 16px 12px" }}>
+    <div style={{ borderTop: "1px solid rgba(0,0,0,0.07)", padding: "10px 16px 12px" }}>
       {/* Quick prompt chips — hide while typing */}
       {!value && (
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
@@ -1116,9 +1116,9 @@ function ChatInputBar({
                 fontSize: 11,
                 padding: "4px 10px",
                 borderRadius: 16,
-                border: "1px solid rgba(255,255,255,0.13)",
-                background: "rgba(255,255,255,0.03)",
-                color: "#8585aa",
+                border: "1px solid rgba(0,0,0,0.08)",
+                background: "rgba(0,0,0,0.02)",
+                color: "#6a6a90",
                 cursor: "pointer",
                 whiteSpace: "nowrap",
               }}
@@ -1142,11 +1142,11 @@ function ChatInputBar({
             flex: 1,
             resize: "none",
             borderRadius: 12,
-            border: "1px solid rgba(255,255,255,0.13)",
-            background: "#1f1f21",
+            border: "1px solid rgba(0,0,0,0.08)",
+            background: "#f5f5f7",
             padding: "10px 14px",
             fontSize: 14,
-            color: "#f8f8fc",
+            color: "#1a1a2e",
             outline: "none",
             minHeight: 44,
             maxHeight: 160,
@@ -1155,7 +1155,7 @@ function ChatInputBar({
             transition: "border-color 0.15s",
           }}
           onFocus={(e) => (e.target.style.borderColor = "rgba(99,102,241,0.4)")}
-          onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.13)")}
+          onBlur={(e) => (e.target.style.borderColor = "rgba(0,0,0,0.08)")}
         />
         <button
           onClick={onSend}
@@ -1185,7 +1185,7 @@ function ChatInputBar({
           )}
         </button>
       </div>
-      <p style={{ marginTop: 6, fontSize: 10, color: "#8585aa" }}>↵ Send · ⇧↵ New line</p>
+      <p style={{ marginTop: 6, fontSize: 10, color: "#6a6a90" }}>↵ Send · ⇧↵ New line</p>
     </div>
   );
 }
@@ -1333,10 +1333,10 @@ function DemoAiView() {
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div>
-          <h1 style={{ fontFamily: "monospace", fontSize: 24, fontWeight: 700, color: "#f8f8fc", margin: 0 }}>
+          <h1 style={{ fontFamily: "monospace", fontSize: 24, fontWeight: 700, color: "#1a1a2e", margin: 0 }}>
             AI Advisor
           </h1>
-          <p style={{ fontFamily: "monospace", fontSize: 13, color: "#bcbcd8", marginTop: 4 }}>
+          <p style={{ fontFamily: "monospace", fontSize: 13, color: "#4a4a6a", marginTop: 4 }}>
             Analyzes your Stripe, GA4, Meta &amp; more in real time
           </p>
         </div>
@@ -1373,7 +1373,7 @@ function DemoAiView() {
         style={{
           borderRadius: 16,
           border: "1px solid rgba(0,212,170,0.15)",
-          background: "#25252c",
+          background: "#ffffff",
           overflow: "hidden",
         }}
       >
@@ -1383,7 +1383,7 @@ function DemoAiView() {
             alignItems: "center",
             justifyContent: "space-between",
             padding: isMobile ? "10px 12px" : "14px 20px",
-            borderBottom: "1px solid rgba(255,255,255,0.11)",
+            borderBottom: "1px solid rgba(0,0,0,0.07)",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -1403,8 +1403,8 @@ function DemoAiView() {
               <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
             </div>
             <div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: "#f8f8fc" }}>Daily AI Insight</div>
-              <div style={{ fontSize: 12, color: "#8585aa" }}>Generated {formatInsightDate(DEMO_INSIGHT.created_at)}</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "#1a1a2e" }}>Daily AI Insight</div>
+              <div style={{ fontSize: 12, color: "#6a6a90" }}>Generated {formatInsightDate(DEMO_INSIGHT.created_at)}</div>
             </div>
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -1416,7 +1416,7 @@ function DemoAiView() {
                 cursor: "pointer",
                 padding: 6,
                 borderRadius: 6,
-                color: "#8585aa",
+                color: "#6a6a90",
                 fontSize: 12,
               }}
             >
@@ -1460,8 +1460,8 @@ function DemoAiView() {
             width: 240,
             flexShrink: 0,
             borderRadius: 16,
-            border: "1px solid rgba(255,255,255,0.11)",
-            background: "#25252c",
+            border: "1px solid rgba(0,0,0,0.07)",
+            background: "#ffffff",
             overflow: "hidden",
             display: "flex",
             flexDirection: "column",
@@ -1473,10 +1473,10 @@ function DemoAiView() {
               alignItems: "center",
               justifyContent: "space-between",
               padding: "10px 12px",
-              borderBottom: "1px solid rgba(255,255,255,0.11)",
+              borderBottom: "1px solid rgba(0,0,0,0.07)",
             }}
           >
-            <span style={{ fontSize: 11, fontWeight: 700, color: "#bcbcd8", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: "#4a4a6a", textTransform: "uppercase", letterSpacing: "0.06em" }}>
               Chats
             </span>
             <a
@@ -1489,9 +1489,9 @@ function DemoAiView() {
                 fontWeight: 600,
                 padding: "4px 8px",
                 borderRadius: 6,
-                border: "1px solid rgba(255,255,255,0.13)",
-                background: "#1f1f21",
-                color: "#bcbcd8",
+                border: "1px solid rgba(0,0,0,0.08)",
+                background: "#f5f5f7",
+                color: "#4a4a6a",
                 textDecoration: "none",
               }}
             >
@@ -1539,7 +1539,7 @@ function DemoAiView() {
                     <div
                       style={{
                         fontSize: 12,
-                        color: isActive ? "#f8f8fc" : "#bcbcd8",
+                        color: isActive ? "#1a1a2e" : "#4a4a6a",
                         fontWeight: isActive ? 600 : 400,
                         overflow: "hidden",
                         whiteSpace: "nowrap",
@@ -1548,7 +1548,7 @@ function DemoAiView() {
                     >
                       {conv.title}
                     </div>
-                    <div style={{ fontSize: 10, color: "#8585aa" }}>{relativeDate(conv.updated_at)}</div>
+                    <div style={{ fontSize: 10, color: "#6a6a90" }}>{relativeDate(conv.updated_at)}</div>
                   </div>
                 </div>
               );
@@ -1562,8 +1562,8 @@ function DemoAiView() {
             flex: 1,
             minWidth: 0,
             borderRadius: 16,
-            border: "1px solid rgba(255,255,255,0.11)",
-            background: "#25252c",
+            border: "1px solid rgba(0,0,0,0.07)",
+            background: "#ffffff",
             overflow: "hidden",
             display: "flex",
             flexDirection: "column",
@@ -1576,7 +1576,7 @@ function DemoAiView() {
               alignItems: "center",
               justifyContent: "space-between",
               padding: isMobile ? "10px 12px" : "14px 20px",
-              borderBottom: "1px solid rgba(255,255,255,0.11)",
+              borderBottom: "1px solid rgba(0,0,0,0.07)",
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -1595,10 +1595,10 @@ function DemoAiView() {
                 <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 002.25-2.25V6.75a2.25 2.25 0 00-2.25-2.25H6.75A2.25 2.25 0 004.5 6.75v10.5a2.25 2.25 0 002.25 2.25zm.75-12h9v9h-9v-9z" /></svg>
               </div>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: "#f8f8fc" }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: "#1a1a2e" }}>
                   {activeConv === "demo-conv-1" ? DEMO_CONV.title : DEMO_CONV_2.title}
                 </div>
-                <div style={{ fontSize: 12, color: "#8585aa" }}>
+                <div style={{ fontSize: 12, color: "#6a6a90" }}>
                   {activeConv === "demo-conv-1" ? `${DEMO_MESSAGES.length} messages` : "Demo conversation"}
                 </div>
               </div>
@@ -1609,7 +1609,7 @@ function DemoAiView() {
           <div
             style={{
               padding: "6px 20px",
-              borderBottom: "1px solid rgba(255,255,255,0.13)",
+              borderBottom: "1px solid rgba(0,0,0,0.08)",
               background: "rgba(99,102,241,0.04)",
               fontSize: 11,
               color: "#6366f1",
@@ -1644,8 +1644,8 @@ function DemoAiView() {
                   padding: 40,
                 }}
               >
-                <p style={{ fontSize: 14, fontWeight: 500, color: "#bcbcd8" }}>Demo conversation</p>
-                <p style={{ fontSize: 12, color: "#8585aa" }}>Sign up to chat about your real business data</p>
+                <p style={{ fontSize: 14, fontWeight: 500, color: "#4a4a6a" }}>Demo conversation</p>
+                <p style={{ fontSize: 12, color: "#6a6a90" }}>Sign up to chat about your real business data</p>
                 <a
                   href="/signup"
                   style={{
@@ -1653,7 +1653,7 @@ function DemoAiView() {
                     alignItems: "center",
                     gap: 6,
                     background: "#00d4aa",
-                    color: "#1f1f21",
+                    color: "#f5f5f7",
                     padding: "10px 20px",
                     borderRadius: 10,
                     fontWeight: 700,
@@ -1685,30 +1685,30 @@ function DemoAiView() {
                       }}
                     >
                       {msg.role === "assistant" && (
-                        <div style={{ fontSize: 10, fontWeight: 600, color: "#8585aa", paddingLeft: 4, display:"flex", alignItems:"center", gap:4 }}><svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 002.25-2.25V6.75a2.25 2.25 0 00-2.25-2.25H6.75A2.25 2.25 0 004.5 6.75v10.5a2.25 2.25 0 002.25 2.25zm.75-12h9v9h-9v-9z" /></svg>AI Advisor</div>
+                        <div style={{ fontSize: 10, fontWeight: 600, color: "#6a6a90", paddingLeft: 4, display:"flex", alignItems:"center", gap:4 }}><svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 002.25-2.25V6.75a2.25 2.25 0 00-2.25-2.25H6.75A2.25 2.25 0 004.5 6.75v10.5a2.25 2.25 0 002.25 2.25zm.75-12h9v9h-9v-9z" /></svg>AI Advisor</div>
                       )}
                       <div
                         style={
                           msg.role === "user"
                             ? {
-                                background: "#1e293b",
-                                border: "1px solid rgba(255,255,255,0.13)",
+                                background: "#eef2f8",
+                                border: "1px solid rgba(0,0,0,0.08)",
                                 borderRadius: "18px 18px 4px 18px",
                                 padding: "10px 16px",
                                 fontSize: 14,
-                                color: "#f8f8fc",
+                                color: "#1a1a2e",
                                 lineHeight: 1.6,
                               }
                             : {
-                                background: "#25252c",
+                                background: "#f5f5fb",
                                 borderLeft: "3px solid #6366f1",
-                                borderTop: "1px solid rgba(255,255,255,0.11)",
-                                borderRight: "1px solid rgba(255,255,255,0.11)",
-                                borderBottom: "1px solid rgba(255,255,255,0.11)",
+                                borderTop: "1px solid rgba(0,0,0,0.07)",
+                                borderRight: "1px solid rgba(0,0,0,0.07)",
+                                borderBottom: "1px solid rgba(0,0,0,0.07)",
                                 borderRadius: "4px 18px 18px 18px",
                                 padding: "12px 16px",
                                 fontSize: 14,
-                                color: "#c0c0d5",
+                                color: "#2a2a3e",
                                 lineHeight: 1.7,
                               }
                         }
@@ -1724,7 +1724,7 @@ function DemoAiView() {
                           <p style={{ margin: 0 }}>{msg.content}</p>
                         )}
                       </div>
-                      <span style={{ fontSize: 10, color: "#8585aa", padding: "0 4px" }}>
+                      <span style={{ fontSize: 10, color: "#6a6a90", padding: "0 4px" }}>
                         {formatTime(msg.created_at)}
                       </span>
                     </div>
@@ -1734,20 +1734,20 @@ function DemoAiView() {
                 {showSignUpPrompt && (
                   <div style={{ display: "flex", justifyContent: "flex-start" }}>
                     <div style={{ display: "flex", flexDirection: "column", gap: 4, maxWidth: "80%", alignItems: "flex-start" }}>
-                      <div style={{ fontSize: 10, fontWeight: 600, color: "#8585aa", paddingLeft: 4, display:"flex", alignItems:"center", gap:4 }}><svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 002.25-2.25V6.75a2.25 2.25 0 00-2.25-2.25H6.75A2.25 2.25 0 004.5 6.75v10.5a2.25 2.25 0 002.25 2.25zm.75-12h9v9h-9v-9z" /></svg>AI Advisor</div>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: "#6a6a90", paddingLeft: 4, display:"flex", alignItems:"center", gap:4 }}><svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 002.25-2.25V6.75a2.25 2.25 0 00-2.25-2.25H6.75A2.25 2.25 0 004.5 6.75v10.5a2.25 2.25 0 002.25 2.25zm.75-12h9v9h-9v-9z" /></svg>AI Advisor</div>
                       <div
                         style={{
-                          background: "#25252c",
+                          background: "#f5f5fb",
                           borderLeft: "3px solid #6366f1",
-                          border: "1px solid rgba(255,255,255,0.11)",
+                          border: "1px solid rgba(0,0,0,0.07)",
                           borderRadius: "4px 18px 18px 18px",
                           padding: "14px 16px",
                           fontSize: 14,
-                          color: "#c0c0d5",
+                          color: "#2a2a3e",
                         }}
                       >
                         <p style={{ margin: "0 0 8px 0" }}>Great question! To answer that with your real data, I need access to your connected integrations.</p>
-                        <p style={{ fontSize: 12, color: "#8585aa", margin: "0 0 14px 0" }}>
+                        <p style={{ fontSize: 12, color: "#6a6a90", margin: "0 0 14px 0" }}>
                           This is a demo — sign up to connect Stripe, GA4, Meta Ads and get answers based on <em>your</em> actual numbers.
                         </p>
                         <a
@@ -1757,7 +1757,7 @@ function DemoAiView() {
                             alignItems: "center",
                             gap: 6,
                             background: "#00d4aa",
-                            color: "#1f1f21",
+                            color: "#f5f5f7",
                             padding: "8px 16px",
                             borderRadius: 10,
                             fontWeight: 700,
@@ -2008,8 +2008,8 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
     return (
       <div style={{ width: "100%" }}>
         <div style={{ marginBottom: 32 }}>
-          <h1 style={{ fontFamily: "monospace", fontSize: 24, fontWeight: 700, color: "#f8f8fc", margin: 0 }}>AI Advisor</h1>
-          <p style={{ marginTop: 6, fontSize: 14, color: "#bcbcd8" }}>Analyzes your Stripe, GA4, Meta &amp; more in real time.</p>
+          <h1 style={{ fontFamily: "monospace", fontSize: 24, fontWeight: 700, color: "#1a1a2e", margin: 0 }}>AI Advisor</h1>
+          <p style={{ marginTop: 6, fontSize: 14, color: "#4a4a6a" }}>Analyzes your Stripe, GA4, Meta &amp; more in real time.</p>
         </div>
         <div
           style={{
@@ -2018,8 +2018,8 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
             alignItems: "center",
             justifyContent: "center",
             borderRadius: 16,
-            border: "1px solid rgba(255,255,255,0.11)",
-            background: "rgba(19,19,26,0.6)",
+            border: "1px solid rgba(0,0,0,0.07)",
+            background: "rgba(240,240,248,0.95)",
             padding: "64px 24px",
             textAlign: "center",
           }}
@@ -2043,10 +2043,10 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
           <p style={{ fontFamily: "monospace", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "#6366f1", marginBottom: 8 }}>
             Premium Feature
           </p>
-          <h2 style={{ fontFamily: "monospace", fontSize: 20, fontWeight: 700, color: "#f8f8fc", marginBottom: 12 }}>
+          <h2 style={{ fontFamily: "monospace", fontSize: 20, fontWeight: 700, color: "#1a1a2e", marginBottom: 12 }}>
             AI Advisor requires Premium
           </h2>
-          <p style={{ fontSize: 14, color: "#bcbcd8", maxWidth: 360, marginBottom: 24 }}>
+          <p style={{ fontSize: 14, color: "#4a4a6a", maxWidth: 360, marginBottom: 24 }}>
             Upgrade to access the AI Advisor, get automated insights, and chat with an AI trained on your real business data.
           </p>
           <div
@@ -2069,7 +2069,7 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
             ].map((f) => (
               <div key={f} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="#00d4aa" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
-                <span style={{ fontFamily: "monospace", fontSize: 11, color: "#bcbcd8" }}>{f}</span>
+                <span style={{ fontFamily: "monospace", fontSize: 11, color: "#4a4a6a" }}>{f}</span>
               </div>
             ))}
           </div>
@@ -2086,7 +2086,7 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
               fontFamily: "monospace",
               fontSize: 14,
               fontWeight: 700,
-              color: "#1f1f21",
+              color: "#f5f5f7",
               border: "none",
               cursor: checkoutLoading ? "default" : "pointer",
               opacity: checkoutLoading ? 0.7 : 1,
@@ -2094,7 +2094,7 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
           >
             {checkoutLoading ? "Redirecting…" : "Start 7-day free trial →"}
           </button>
-          <p style={{ marginTop: 12, fontFamily: "monospace", fontSize: 10, color: "#8585aa" }}>
+          <p style={{ marginTop: 12, fontFamily: "monospace", fontSize: 10, color: "#6a6a90" }}>
             $19/mo after trial · Cancel anytime
           </p>
         </div>
@@ -2109,8 +2109,8 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
       {/* Header */}
       <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
         <div>
-          <h1 style={{ fontFamily: "monospace", fontSize: isMobile ? 20 : 24, fontWeight: 700, color: "#f8f8fc", margin: 0 }}>AI Advisor</h1>
-          <p style={{ fontFamily: "monospace", fontSize: 13, color: "#bcbcd8", marginTop: 4 }}>
+          <h1 style={{ fontFamily: "monospace", fontSize: isMobile ? 20 : 24, fontWeight: 700, color: "#1a1a2e", margin: 0 }}>AI Advisor</h1>
+          <p style={{ fontFamily: "monospace", fontSize: 13, color: "#4a4a6a", marginTop: 4 }}>
             Analyzes your Stripe, GA4, Meta &amp; more in real time
           </p>
         </div>
@@ -2146,7 +2146,7 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
         style={{
           borderRadius: 16,
           border: "1px solid rgba(0,212,170,0.15)",
-          background: "#25252c",
+          background: "#ffffff",
           overflow: "hidden",
         }}
       >
@@ -2157,7 +2157,7 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
             alignItems: "center",
             gap: 12,
             padding: "10px 20px",
-            borderBottom: "1px solid rgba(255,255,255,0.13)",
+            borderBottom: "1px solid rgba(0,0,0,0.08)",
             background: "rgba(23,23,42,0.8)",
             flexWrap: "wrap",
           }}
@@ -2169,7 +2169,7 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
               fontWeight: 700,
               textTransform: "uppercase",
               letterSpacing: "0.08em",
-              color: "#8585aa",
+              color: "#6a6a90",
               flexShrink: 0,
             }}
           >
@@ -2186,9 +2186,9 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
                   fontWeight: 700,
                   padding: "4px 10px",
                   borderRadius: 8,
-                  border: goal === g.id ? "none" : "1px solid rgba(255,255,255,0.13)",
+                  border: goal === g.id ? "none" : "1px solid rgba(0,0,0,0.08)",
                   background: goal === g.id ? g.color : "transparent",
-                  color: goal === g.id ? "#1f1f21" : "#8585aa",
+                  color: goal === g.id ? "#f5f5f7" : "#6a6a90",
                   cursor: "pointer",
                   transition: "all 0.15s",
                   display: "flex",
@@ -2203,14 +2203,14 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
             {goal && (
               <button
                 onClick={() => handleGoalChange(null)}
-                style={{ background: "none", border: "none", cursor: "pointer", color: "#8585aa", padding: 2, display:"flex" }}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "#6a6a90", padding: 2, display:"flex" }}
               >
                 <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             )}
           </div>
           {goal && (
-            <span style={{ marginLeft: "auto", fontFamily: "monospace", fontSize: 9, color: "#8585aa" }}>
+            <span style={{ marginLeft: "auto", fontFamily: "monospace", fontSize: 9, color: "#6a6a90" }}>
               Applied to next insight
             </span>
           )}
@@ -2223,7 +2223,7 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
             alignItems: "center",
             justifyContent: "space-between",
             padding: isMobile ? "10px 12px" : "14px 20px",
-            borderBottom: "1px solid rgba(255,255,255,0.11)",
+            borderBottom: "1px solid rgba(0,0,0,0.07)",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -2242,9 +2242,9 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
               <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
             </div>
             <div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: "#f8f8fc" }}>Daily AI Insight</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "#1a1a2e" }}>Daily AI Insight</div>
               {insight && (
-                <div style={{ fontSize: 12, color: "#8585aa" }}>Generated {formatInsightDate(insight.created_at)}</div>
+                <div style={{ fontSize: 12, color: "#6a6a90" }}>Generated {formatInsightDate(insight.created_at)}</div>
               )}
             </div>
           </div>
@@ -2264,7 +2264,7 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
                   cursor: "pointer",
                   padding: 6,
                   borderRadius: 6,
-                  color: "#8585aa",
+                  color: "#6a6a90",
                   fontSize: 12,
                 }}
               >
@@ -2306,7 +2306,7 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
                   style={{
                     height: 14,
                     borderRadius: 6,
-                    background: "rgba(255,255,255,0.11)",
+                    background: "rgba(0,0,0,0.07)",
                     width: `${w}%`,
                     animation: "pulse 1.5s ease-in-out infinite",
                   }}
@@ -2315,9 +2315,9 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
             </div>
           ) : !insight ? (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, padding: "32px 0", textAlign: "center" }}>
-              <svg width="36" height="36" fill="none" viewBox="0 0 24 24" stroke="#8585aa" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
-              <p style={{ fontSize: 14, fontWeight: 500, color: "#bcbcd8" }}>No insight for today yet</p>
-              <p style={{ fontSize: 12, color: "#8585aa" }}>Click &ldquo;Generate Insight&rdquo; to analyze your current business data</p>
+              <svg width="36" height="36" fill="none" viewBox="0 0 24 24" stroke="#6a6a90" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+              <p style={{ fontSize: 14, fontWeight: 500, color: "#4a4a6a" }}>No insight for today yet</p>
+              <p style={{ fontSize: 12, color: "#6a6a90" }}>Click &ldquo;Generate Insight&rdquo; to analyze your current business data</p>
             </div>
           ) : insightExpanded ? (
             <InsightRenderer content={insight.content} onNavigate={onNavigate} />
@@ -2335,8 +2335,8 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
             <div
               style={{
                 borderRadius: 12,
-                border: "1px solid rgba(255,255,255,0.11)",
-                background: "#25252c",
+                border: "1px solid rgba(0,0,0,0.07)",
+                background: "#ffffff",
                 overflow: "hidden",
               }}
             >
@@ -2357,7 +2357,7 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
                     background: "none",
                     border: "none",
                     cursor: "pointer",
-                    color: "#bcbcd8",
+                    color: "#4a4a6a",
                     fontSize: 13,
                     fontWeight: 600,
                     padding: 0,
@@ -2378,7 +2378,7 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
                     fontWeight: 600,
                     padding: "5px 10px",
                     borderRadius: 8,
-                    border: "1px solid rgba(255,255,255,0.13)",
+                    border: "1px solid rgba(0,0,0,0.08)",
                     background: "rgba(99,102,241,0.08)",
                     color: "#a5b4fc",
                     cursor: creatingConv ? "not-allowed" : "pointer",
@@ -2389,13 +2389,13 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
               </div>
               {/* Collapsible conversation list */}
               {showSidebar && (
-                <div style={{ borderTop: "1px solid rgba(255,255,255,0.11)", padding: 8, display: "flex", flexDirection: "column", gap: 2, maxHeight: 200, overflowY: "auto" }}>
+                <div style={{ borderTop: "1px solid rgba(0,0,0,0.07)", padding: 8, display: "flex", flexDirection: "column", gap: 2, maxHeight: 200, overflowY: "auto" }}>
                   {convsLoading ? (
                     [1, 2].map((i) => (
                       <div key={i} style={{ height: 36, borderRadius: 10, background: "rgba(255,255,255,0.09)", animation: "pulse 1.5s ease-in-out infinite" }} />
                     ))
                   ) : conversations.length === 0 ? (
-                    <p style={{ fontSize: 12, color: "#8585aa", textAlign: "center", padding: "12px 0" }}>No chats yet. Click &quot;+ New&quot; to start.</p>
+                    <p style={{ fontSize: 12, color: "#6a6a90", textAlign: "center", padding: "12px 0" }}>No chats yet. Click &quot;+ New&quot; to start.</p>
                   ) : (
                     conversations.map((conv) => (
                       <ConvItem
@@ -2420,8 +2420,8 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
               width: 240,
               flexShrink: 0,
               borderRadius: 16,
-              border: "1px solid rgba(255,255,255,0.11)",
-              background: "#25252c",
+              border: "1px solid rgba(0,0,0,0.07)",
+              background: "#ffffff",
               overflow: "hidden",
               display: "flex",
               flexDirection: "column",
@@ -2433,10 +2433,10 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
                 alignItems: "center",
                 justifyContent: "space-between",
                 padding: "10px 12px",
-                borderBottom: "1px solid rgba(255,255,255,0.11)",
+                borderBottom: "1px solid rgba(0,0,0,0.07)",
               }}
             >
-              <span style={{ fontSize: 11, fontWeight: 700, color: "#bcbcd8", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#4a4a6a", textTransform: "uppercase", letterSpacing: "0.06em" }}>
                 Chats
               </span>
               <button
@@ -2450,9 +2450,9 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
                   fontWeight: 600,
                   padding: "4px 8px",
                   borderRadius: 6,
-                  border: "1px solid rgba(255,255,255,0.13)",
-                  background: "#1f1f21",
-                  color: "#bcbcd8",
+                  border: "1px solid rgba(0,0,0,0.08)",
+                  background: "#f5f5f7",
+                  color: "#4a4a6a",
                   cursor: creatingConv ? "not-allowed" : "pointer",
                   opacity: creatingConv ? 0.5 : 1,
                 }}
@@ -2470,8 +2470,8 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
                 ))
               ) : conversations.length === 0 ? (
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "32px 8px", textAlign: "center" }}>
-                  <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="#8585aa" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" /></svg>
-                  <p style={{ fontSize: 11, color: "#8585aa" }}>No chats yet.<br />Click &ldquo;+ New&rdquo; to start.</p>
+                  <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="#6a6a90" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" /></svg>
+                  <p style={{ fontSize: 11, color: "#6a6a90" }}>No chats yet.<br />Click &ldquo;+ New&rdquo; to start.</p>
                 </div>
               ) : (
                 conversations.map((conv) => (
@@ -2496,8 +2496,8 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
             flex: 1,
             minWidth: 0,
             borderRadius: 16,
-            border: "1px solid rgba(255,255,255,0.11)",
-            background: "#25252c",
+            border: "1px solid rgba(0,0,0,0.07)",
+            background: "#ffffff",
             overflow: "hidden",
             display: "flex",
             flexDirection: "column",
@@ -2510,7 +2510,7 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
               alignItems: "center",
               justifyContent: "space-between",
               padding: isMobile ? "10px 12px" : "14px 20px",
-              borderBottom: "1px solid rgba(255,255,255,0.11)",
+              borderBottom: "1px solid rgba(0,0,0,0.07)",
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
@@ -2534,7 +2534,7 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
                   style={{
                     fontSize: 14,
                     fontWeight: 600,
-                    color: "#f8f8fc",
+                    color: "#1a1a2e",
                     overflow: "hidden",
                     whiteSpace: "nowrap",
                     textOverflow: "ellipsis",
@@ -2542,7 +2542,7 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
                 >
                   {activeConv ? activeConv.title : "AI Advisor"}
                 </div>
-                <div style={{ fontSize: 12, color: "#8585aa" }}>
+                <div style={{ fontSize: 12, color: "#6a6a90" }}>
                   {!activeConvId
                     ? "Select or create a chat"
                     : messages.length === 0
@@ -2558,7 +2558,7 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
             <div
               style={{
                 padding: "6px 20px",
-                borderBottom: "1px solid rgba(255,255,255,0.13)",
+                borderBottom: "1px solid rgba(0,0,0,0.08)",
                 background: "rgba(99,102,241,0.04)",
                 fontSize: 11,
                 color: "#6366f1",
@@ -2594,8 +2594,8 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
                   padding: 40,
                 }}
               >
-                <svg width="36" height="36" fill="none" viewBox="0 0 24 24" stroke="#8585aa" strokeWidth={1.3}><path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" /></svg>
-                <p style={{ fontSize: 14, color: "#8585aa" }}>Create a new chat to get started</p>
+                <svg width="36" height="36" fill="none" viewBox="0 0 24 24" stroke="#6a6a90" strokeWidth={1.3}><path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" /></svg>
+                <p style={{ fontSize: 14, color: "#6a6a90" }}>Create a new chat to get started</p>
                 <button
                   onClick={createConversation}
                   disabled={creatingConv}
@@ -2659,30 +2659,30 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
                       }}
                     >
                       {msg.role === "assistant" && (
-                        <div style={{ fontSize: 10, fontWeight: 600, color: "#8585aa", paddingLeft: 4, display:"flex", alignItems:"center", gap:4 }}><svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 002.25-2.25V6.75a2.25 2.25 0 00-2.25-2.25H6.75A2.25 2.25 0 004.5 6.75v10.5a2.25 2.25 0 002.25 2.25zm.75-12h9v9h-9v-9z" /></svg>AI Advisor</div>
+                        <div style={{ fontSize: 10, fontWeight: 600, color: "#6a6a90", paddingLeft: 4, display:"flex", alignItems:"center", gap:4 }}><svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 002.25-2.25V6.75a2.25 2.25 0 00-2.25-2.25H6.75A2.25 2.25 0 004.5 6.75v10.5a2.25 2.25 0 002.25 2.25zm.75-12h9v9h-9v-9z" /></svg>AI Advisor</div>
                       )}
                       <div
                         style={
                           msg.role === "user"
                             ? {
-                                background: "#1e293b",
-                                border: "1px solid rgba(255,255,255,0.13)",
+                                background: "#eef2f8",
+                                border: "1px solid rgba(0,0,0,0.08)",
                                 borderRadius: "18px 18px 4px 18px",
                                 padding: "10px 16px",
                                 fontSize: 14,
-                                color: "#f8f8fc",
+                                color: "#1a1a2e",
                                 lineHeight: 1.6,
                               }
                             : {
-                                background: "#25252c",
+                                background: "#f5f5fb",
                                 borderLeft: "3px solid #6366f1",
-                                borderTop: "1px solid rgba(255,255,255,0.11)",
-                                borderRight: "1px solid rgba(255,255,255,0.11)",
-                                borderBottom: "1px solid rgba(255,255,255,0.11)",
+                                borderTop: "1px solid rgba(0,0,0,0.07)",
+                                borderRight: "1px solid rgba(0,0,0,0.07)",
+                                borderBottom: "1px solid rgba(0,0,0,0.07)",
                                 borderRadius: "4px 18px 18px 18px",
                                 padding: "12px 16px",
                                 fontSize: 14,
-                                color: "#c0c0d5",
+                                color: "#2a2a3e",
                                 lineHeight: 1.7,
                               }
                         }
@@ -2699,7 +2699,7 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
                           <p style={{ margin: 0 }}>{msg.content}</p>
                         )}
                       </div>
-                      <span style={{ fontSize: 10, color: "#8585aa", padding: "0 4px" }}>
+                      <span style={{ fontSize: 10, color: "#6a6a90", padding: "0 4px" }}>
                         {formatTime(msg.created_at)}
                       </span>
                     </div>
@@ -2713,9 +2713,9 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
                         display: "flex",
                         alignItems: "center",
                         gap: 8,
-                        background: "#25252c",
+                        background: "#f5f5fb",
                         borderLeft: "3px solid #6366f1",
-                        border: "1px solid rgba(255,255,255,0.11)",
+                        border: "1px solid rgba(0,0,0,0.07)",
                         borderRadius: "4px 18px 18px 18px",
                         padding: "10px 16px",
                       }}
@@ -2736,7 +2736,7 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
                         ))}
                         <style>{`@keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }`}</style>
                       </div>
-                      <span style={{ fontSize: 12, color: "#8585aa" }}>Thinking…</span>
+                      <span style={{ fontSize: 12, color: "#6a6a90" }}>Thinking…</span>
                     </div>
                   </div>
                 )}

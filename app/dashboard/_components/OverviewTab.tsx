@@ -19,7 +19,6 @@ interface OverviewTabProps {
   isPremium: boolean;
   connectedPlatforms: string[];
   snapshots: Snapshot[];
-  /** platform → ISO currency code. e.g. { stripe: "EUR", meta: "USD" } */
   currencies: Record<string, string>;
   onNavigate: (tab: Tab) => void;
 }
@@ -66,7 +65,6 @@ function fmt(n: number, type: "currency" | "number" | "percent" = "number", curr
   return n.toLocaleString("en-US", { maximumFractionDigits: 0 });
 }
 
-/** Extract the Meta ad account currency from snapshots (stored in data.currency) */
 function getMetaCurrency(snaps: Snapshot[]): string {
   const found = [...snaps]
     .reverse()
@@ -74,7 +72,6 @@ function getMetaCurrency(snaps: Snapshot[]): string {
   return ((found?.data as Record<string, unknown>)?.currency as string) ?? "USD";
 }
 
-/** Format Meta spend using the real account currency (NOT /100 — Meta stores full units) */
 function fmtMetaSpend(amount: number, currency: string): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -89,13 +86,6 @@ function trendPct(current: number, prev: number): number | null {
   return ((current - prev) / prev) * 100;
 }
 
-// ── Multi-provider aggregation helpers ──────────────────────────────────────
-
-/**
- * SUM a field across MULTIPLE providers.
- * Use for revenue (Stripe + Paddle + Shopify = total revenue) and
- * ad spend (Meta + Google Ads + TikTok = total spend). These are additive.
- */
 function sumProviders(snaps: Snapshot[], providers: string[], field: string): number {
   return snaps
     .filter((s) => providers.includes(s.provider))
@@ -105,10 +95,6 @@ function sumProviders(snaps: Snapshot[], providers: string[], field: string): nu
     }, 0);
 }
 
-/**
- * AVG a field across MULTIPLE providers (picks the provider with most data points,
- * then averages within it — avoids double-averaging the same day across two tools).
- */
 function avgProviders(snaps: Snapshot[], providers: string[], field: string): number {
   const primary = pickPrimaryAnalyticsProvider(snaps, providers);
   if (!primary) return 0;
@@ -121,14 +107,7 @@ function avgProviders(snaps: Snapshot[], providers: string[], field: string): nu
   return total / rows.length;
 }
 
-/**
- * Returns the analytics provider with the most non-zero data points.
- * Tie-break: prefer the order in ANALYTICS_PROVIDERS (GA4 first).
- * Used to pick a single authoritative source for traffic metrics to avoid
- * double-counting the same visitor across GA4 + Plausible + PostHog.
- */
 function pickPrimaryAnalyticsProvider(snaps: Snapshot[], providers: string[]): string | null {
-  // Map provider → count of days with any data
   const counts: Record<string, number> = {};
   for (const s of snaps) {
     if (!providers.includes(s.provider)) continue;
@@ -136,7 +115,6 @@ function pickPrimaryAnalyticsProvider(snaps: Snapshot[], providers: string[]): s
     const hasData = Object.values(d).some((v) => typeof v === "number" && v > 0);
     if (hasData) counts[s.provider] = (counts[s.provider] ?? 0) + 1;
   }
-  // Sort by count desc, tie-break by position in the providers list
   const sorted = Object.keys(counts).sort((a, b) => {
     const diff = (counts[b] ?? 0) - (counts[a] ?? 0);
     if (diff !== 0) return diff;
@@ -145,9 +123,6 @@ function pickPrimaryAnalyticsProvider(snaps: Snapshot[], providers: string[]): s
   return sorted[0] ?? null;
 }
 
-/**
- * Collect all connected providers that belong to a given group.
- */
 function connectedIn(connected: string[], group: string[]): string[] {
   return connected.filter((p) => group.includes(p));
 }
@@ -193,206 +168,134 @@ function formatDate(): string {
   });
 }
 
-// ── Trend Badge ───────────────────────────────────────────────────────────
+// ── Trend Badge ─────────────────────────────────────────────────────────
 
-function TrendBadge({ current, prev }: { current: number; prev: number }) {
+function TrendBadge({ current, prev, size = "md" }: { current: number; prev: number; size?: "sm" | "md" }) {
   const pct = trendPct(current, prev);
   if (pct === null) return null;
   const up = pct >= 0;
   return (
-    <span
-      className={`inline-flex items-center gap-1 font-mono text-[12px] font-bold px-2 py-0.5 rounded-md ${
-        up ? "text-[#00d4aa] bg-[#00d4aa]/12" : "text-red-400 bg-red-400/12"
-      }`}
+    <span className={`inline-flex items-center gap-0.5 font-mono font-bold rounded-full tabular-nums
+      ${size === "sm" ? "text-[9px] px-1.5 py-0.5" : "text-[11px] px-2 py-0.5"}
+      ${up ? "text-emerald-400 bg-emerald-400/10" : "text-red-400 bg-red-400/10"}`}
     >
-      {up ? "▲" : "▼"} {Math.abs(pct).toFixed(1)}%
+      {up ? "↑" : "↓"}{Math.abs(pct).toFixed(1)}%
     </span>
   );
 }
 
-// ── Mini Sparkline ────────────────────────────────────────────────────────
+// ── Sparkline ─────────────────────────────────────────────────────────────
 
-function MiniSparkline({ data, color }: { data: number[]; color: string }) {
-  const nonZero = data.filter((v) => v > 0);
-  if (nonZero.length < 2) return null;
+function Sparkline({ data, color, width = 80, height = 32, fill = true }: {
+  data: number[]; color: string; width?: number; height?: number; fill?: boolean;
+}) {
+  const valid = data.filter((v) => v > 0);
+  if (valid.length < 2) return null;
   const max = Math.max(...data, 1);
-  const w = 60;
-  const h = 22;
   const pts = data
     .map((v, i) => {
-      const x = (i / (data.length - 1)) * w;
-      const y = h - (v / max) * (h - 3) - 1.5;
+      const x = (i / (data.length - 1)) * width;
+      const y = height - (v / max) * (height - 2) - 1;
       return `${x.toFixed(1)},${y.toFixed(1)}`;
     })
     .join(" ");
   return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="opacity-50 shrink-0">
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="shrink-0 overflow-visible">
+      {fill && (
+        <polygon
+          points={`0,${height} ${pts} ${width},${height}`}
+          fill={color}
+          fillOpacity={0.1}
+        />
+      )}
       <polyline
         points={pts}
         fill="none"
         stroke={color}
-        strokeWidth="1.8"
+        strokeWidth="1.6"
         strokeLinecap="round"
         strokeLinejoin="round"
+        opacity={0.75}
       />
     </svg>
   );
 }
 
-// ── KPI Icons ─────────────────────────────────────────────────────────────
+// ── Full-bleed background sparkline ──────────────────────────────────────
 
-const KPI_ICONS: Record<string, React.ReactNode> = {
-  revenue: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+function BgSparkline({ data, color }: { data: number[]; color: string }) {
+  const valid = data.filter((v) => v > 0);
+  if (valid.length < 2) return null;
+  const w = 400; const h = 120;
+  const max = Math.max(...data, 1);
+  const pts = data
+    .map((v, i) => {
+      const x = (i / (data.length - 1)) * w;
+      const y = h - (v / max) * (h - 8) - 4;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(" ");
+  return (
+    <svg
+      viewBox={`0 0 ${w} ${h}`}
+      preserveAspectRatio="none"
+      className="absolute inset-0 h-full w-full"
+      aria-hidden
+    >
+      <defs>
+        <linearGradient id="bgSparkGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity={0.12} />
+          <stop offset="100%" stopColor={color} stopOpacity={0} />
+        </linearGradient>
+      </defs>
+      <polygon points={`0,${h} ${pts} ${w},${h}`} fill="url(#bgSparkGrad)" />
+      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" opacity={0.3} />
     </svg>
-  ),
-  sessions: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
-    </svg>
-  ),
-  adspend: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-    </svg>
-  ),
-  customers: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <line x1="19" y1="8" x2="19" y2="14" />
-      <line x1="22" y1="11" x2="16" y2="11" />
-    </svg>
-  ),
-  cac: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10" />
-      <path d="M12 8v4l3 3" />
-    </svg>
-  ),
-  bounce: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="23 4 23 10 17 10" />
-      <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" />
-    </svg>
-  ),
-};
-
-// ── KPI Card ──────────────────────────────────────────────────────────────
-
-const KPI_ACCENT_COLORS: Record<string, string> = {
-  revenue: "#635bff",
-  sessions: "#f59e0b",
-  adspend: "#1877f2",
-  customers: "#00d4aa",
-  cac: "#f87171",
-  bounce: "#a78bfa",
-};
-
-function kpiStatusColor(trend: { current: number; prev: number } | null | undefined, accent: string): string {
-  if (!trend?.prev) return accent;
-  const pct = ((trend.current - trend.prev) / trend.prev) * 100;
-  if (pct >= -5) return "#00d4aa";
-  if (pct >= -20) return "#f59e0b";
-  return "#f87171";
+  );
 }
 
-function KpiCard({
-  label,
-  value,
-  sub,
-  trend,
-  icon,
-  sparkData,
-  connectLabel,
-  connectHref,
+// ── Compact stat row ─────────────────────────────────────────────────────
+
+function CompactStat({
+  label, value, trend, spark, accent, connect, connectHref, border = true,
 }: {
   label: string;
   value: string | null;
-  sub?: string | null;
   trend?: { current: number; prev: number } | null;
-  icon: string;
-  sparkData?: number[];
-  connectLabel?: string;
+  spark?: number[];
+  accent: string;
+  connect?: string;
   connectHref?: string;
+  border?: boolean;
 }) {
-  const accent = KPI_ACCENT_COLORS[icon] ?? "#00d4aa";
-  const statusBar = value !== null ? kpiStatusColor(trend, accent) : "#363650";
-
   return (
-    <div
-      className="relative overflow-hidden rounded-2xl border border-[#363650] bg-[#2e2e3c]/70 p-4 sm:p-5 flex flex-col gap-3 transition-all hover:border-[#454560] hover:bg-[#21212a]"
-    >
-      {/* Left accent bar — green/amber/red based on trend status */}
-      <div
-        className="absolute left-0 top-0 bottom-0 w-0.75 rounded-l-2xl transition-colors duration-500"
-        style={{ backgroundColor: statusBar }}
-      />
-      <div className="flex items-center justify-between">
-        <span className="font-mono text-[10px] uppercase tracking-widest text-[#8585aa]">{label}</span>
-        <span style={{ color: accent + "99" }}>{KPI_ICONS[icon]}</span>
-      </div>
-      {value === null ? (
-        <div className="flex flex-col gap-2">
-          <p className="font-mono text-2xl font-bold text-[#7575a0]">—</p>
-          {connectLabel && connectHref ? (
-            <a
-              href={connectHref}
-              className="inline-flex items-center gap-1.5 self-start rounded-lg border border-[#363650] bg-[#343447]/60 px-2.5 py-1.5 font-mono text-[10px] font-semibold text-[#8585aa] hover:border-[#00d4aa]/40 hover:text-[#00d4aa] transition-all"
-            >
-              <svg width="9" height="9" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 4.5v15m7.5-7.5h-15" />
-              </svg>
-              {connectLabel}
-            </a>
-          ) : (
-            <p className="font-mono text-[11px] text-[#7575a0]">Not connected</p>
-          )}
-        </div>
-      ) : (
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-end justify-between gap-2">
-            <p className="font-mono text-2xl font-bold text-[#f8f8fc] leading-none">{value}</p>
-            {sparkData && sparkData.length > 1 && (
-              <MiniSparkline data={sparkData} color={statusBar} />
+    <div className={`flex items-center gap-3 py-3 ${border ? "border-b border-black/8" : ""}`}>
+      {/* Color dot */}
+      <div className="w-1 self-stretch rounded-full shrink-0" style={{ backgroundColor: accent + "60" }} />
+      {/* Label + value */}
+      <div className="flex-1 min-w-0">
+        <p className="font-mono text-[9px] font-medium uppercase tracking-widest text-[#4a4a6a] mb-0.5">{label}</p>
+        {value !== null ? (
+          <p className="font-mono text-[17px] font-bold text-[#1a1a2e] tabular-nums leading-none">{value}</p>
+        ) : (
+          <div className="flex items-center gap-2">
+            <p className="font-mono text-[17px] font-bold text-[#ebebf8] leading-none">—</p>
+            {connect && connectHref && (
+              <a href={connectHref} className="font-mono text-[9px] font-semibold px-2 py-0.5 rounded-full border border-black/10 text-[#4a4a6a] hover:text-[#00d4aa] hover:border-[#00d4aa]/30 transition-colors">
+                + {connect}
+              </a>
             )}
           </div>
-          {trend && <TrendBadge current={trend.current} prev={trend.prev} />}
-          {sub && <p className="font-mono text-[11px] text-[#8585aa] leading-snug">{sub}</p>}
-          {trend && trendPct(trend.current, trend.prev) !== null && (
-            <p className="font-mono text-[9px] text-[#7575a0]">vs prev 7 days</p>
-          )}
-        </div>
+        )}
+      </div>
+      {/* Sparkline */}
+      {value !== null && spark && spark.length > 1 && (
+        <Sparkline data={spark} color={accent} width={52} height={26} />
       )}
-    </div>
-  );
-}
-
-// ── Mini Score Ring ───────────────────────────────────────────────────────
-
-function MiniScoreRing({ score }: { score: number }) {
-  const R = 26;
-  const C = 2 * Math.PI * R;
-  const color = scoreColor(score);
-  return (
-    <div className="relative flex items-center justify-center h-16 w-16 shrink-0">
-      <svg width="64" height="64" viewBox="0 0 64 64" className="-rotate-90">
-        <circle cx="32" cy="32" r={R} fill="none" stroke="#363650" strokeWidth="6" />
-        <circle
-          cx="32" cy="32" r={R}
-          fill="none"
-          stroke={color}
-          strokeWidth="6"
-          strokeLinecap="round"
-          strokeDasharray={C}
-          strokeDashoffset={C * (1 - score / 100)}
-          style={{ transition: "stroke-dashoffset 1s ease-out" }}
-        />
-      </svg>
-      <span className="absolute font-mono text-[13px] font-bold" style={{ color }}>{score}</span>
+      {/* Trend */}
+      {value !== null && trend && (
+        <TrendBadge current={trend.current} prev={trend.prev} size="sm" />
+      )}
     </div>
   );
 }
@@ -400,64 +303,32 @@ function MiniScoreRing({ score }: { score: number }) {
 // ── Goals Widget ─────────────────────────────────────────────────────────
 
 interface Goals {
-  revenueTarget: number;  // cents per MONTH
-  sessionsTarget: number; // per month
+  revenueTarget: number;
+  sessionsTarget: number;
 }
 
-/** Given the N-day running total and elapsed days in current month, project month-end value */
 function projectMonthEnd(runningTotal: number, elapsedDays: number): number {
   if (elapsedDays <= 0) return 0;
   const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
   return (runningTotal / elapsedDays) * daysInMonth;
 }
 
-/** Mini forecast trajectory bar: shows actual so far + projected remainder */
-function TrajectoryBar({
-  actual, projected, target, color,
-}: {
-  actual: number; projected: number; target: number; color: string;
-}) {
-  const max = Math.max(target, projected, actual, 1);
-  const actualPct  = Math.min((actual / max) * 100, 100);
-  const projPct    = Math.min((projected / max) * 100, 100);
-  const targetPct  = Math.min((target / max) * 100, 100);
-  const onTrack    = projected >= target * 0.9;
-
+function GoalBar({ actual, target, color }: { actual: number; target: number; color: string }) {
+  const pct = Math.min((actual / Math.max(target, 1)) * 100, 100);
   return (
-    <div className="relative w-full overflow-visible" style={{ height: 10 }}>
-      {/* track */}
-      <div className="absolute inset-0 rounded-full bg-[#363650]" />
-      {/* projected (faded) */}
-      <div
-        className="absolute left-0 top-0 h-full rounded-full opacity-20 transition-all duration-700"
-        style={{ width: `${projPct}%`, backgroundColor: onTrack ? "#00d4aa" : "#f59e0b" }}
-      />
-      {/* actual (solid) */}
+    <div className="relative h-1.5 w-full rounded-full bg-black/10 overflow-hidden">
       <div
         className="absolute left-0 top-0 h-full rounded-full transition-all duration-700"
-        style={{ width: `${actualPct}%`, backgroundColor: color }}
-      />
-      {/* target tick (goal end-marker) */}
-      <div
-        className="absolute -top-1 w-0.5 rounded-full"
-        style={{ left: `${targetPct}%`, height: 12, backgroundColor: "#f8f8fc", opacity: 0.5 }}
+        style={{ width: `${pct}%`, backgroundColor: color }}
       />
     </div>
   );
 }
 
 function GoalsWidget({
-  revenueMonth,
-  sessionsMonth,
-  stripeConn,
-  ga4Conn,
-  currency = "USD",
+  revenueMonth, sessionsMonth, stripeConn, ga4Conn, currency = "USD",
 }: {
-  revenueMonth: number;
-  sessionsMonth: number;
-  stripeConn: boolean;
-  ga4Conn: boolean;
-  currency?: string;
+  revenueMonth: number; sessionsMonth: number; stripeConn: boolean; ga4Conn: boolean; currency?: string;
 }) {
   const [goals, setGoals] = useState<Goals>({ revenueTarget: 0, sessionsTarget: 0 });
   const [editing, setEditing] = useState(false);
@@ -465,12 +336,7 @@ function GoalsWidget({
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetch("/api/user/settings")
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.goals) setGoals(d.goals);
-      })
-      .catch(() => {});
+    fetch("/api/user/settings").then((r) => r.json()).then((d) => { if (d.goals) setGoals(d.goals); }).catch(() => {});
   }, []);
 
   function openEdit() {
@@ -486,134 +352,91 @@ function GoalsWidget({
       revenueTarget: draft.revenue ? Math.round(parseFloat(draft.revenue) * 100) : 0,
       sessionsTarget: draft.sessions ? parseInt(draft.sessions) : 0,
     };
-    setGoals(updated);
-    setEditing(false);
-    setSaving(true);
-    try {
-      await fetch("/api/user/settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ goals: updated }),
-      });
-    } finally {
-      setSaving(false);
-    }
+    setGoals(updated); setEditing(false); setSaving(true);
+    try { await fetch("/api/user/settings", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ goals: updated }) }); }
+    finally { setSaving(false); }
   }
 
-  // Days elapsed in this calendar month
   const today = new Date();
   const elapsedDays = today.getDate();
   const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
   const daysLeft = daysInMonth - elapsedDays;
-
-  const revProjected  = projectMonthEnd(revenueMonth, elapsedDays);
+  const revProjected = projectMonthEnd(revenueMonth, elapsedDays);
   const sessProjected = projectMonthEnd(sessionsMonth, elapsedDays);
-
   const hasGoals = goals.revenueTarget > 0 || goals.sessionsTarget > 0;
 
   if (!editing && !hasGoals) {
     return (
-      <button
-        onClick={openEdit}
-        className="w-full flex items-center gap-2 rounded-xl border border-dashed border-[#363650] bg-transparent px-4 py-3 text-left text-[#8585aa] hover:border-[#00d4aa]/30 hover:text-[#00d4aa] transition-colors group"
-      >
-        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-          <path d="M3 3v18h18" /><path d="M18 17V9M13 17V5M8 17v-3" />
-        </svg>
-        <span className="font-mono text-[11px]">Set monthly goals + forecast →</span>
+      <button onClick={openEdit} className="group flex items-center gap-3 w-full text-left">
+        <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-dashed border-black/15 text-[#3a3a5a] group-hover:border-[#00d4aa]/40 group-hover:text-[#00d4aa] transition-colors">
+          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 3v18h18" /><path d="M18 17V9M13 17V5M8 17v-3" />
+          </svg>
+        </div>
+        <div>
+          <p className="font-mono text-[11px] font-semibold text-[#4a4a6a] group-hover:text-[#00d4aa] transition-colors">Set monthly goals</p>
+          <p className="font-mono text-[9px] text-[#eaeaf5]">Track revenue + sessions against targets</p>
+        </div>
       </button>
     );
   }
 
   if (editing) {
     return (
-      <div className="rounded-xl border border-[#00d4aa]/20 bg-[#00d4aa]/5 px-4 py-3 space-y-3">
-        <p className="font-mono text-[9px] uppercase tracking-widest text-[#00d4aa]">Monthly goals</p>
+      <div className="space-y-3">
+        <p className="font-mono text-[9px] uppercase tracking-widest text-[#00d4aa] font-semibold">Monthly Goals</p>
         {stripeConn && (
           <div className="flex items-center gap-2">
-            <label className="font-mono text-[10px] text-[#bcbcd8] w-28 shrink-0">Revenue / mo ({currency})</label>
-            <input
-              type="number"
-              placeholder="e.g. 10000"
-              value={draft.revenue}
+            <span className="font-mono text-[10px] text-[#5a5a7a] w-24 shrink-0">Revenue ({currency})</span>
+            <input type="number" placeholder="e.g. 10000" value={draft.revenue}
               onChange={(e) => setDraft((d) => ({ ...d, revenue: e.target.value }))}
-              className="flex-1 bg-[#343447] border border-[#363650] rounded-lg px-3 py-1.5 font-mono text-xs text-[#f8f8fc] placeholder:text-[#7575a0] focus:outline-none focus:border-[#00d4aa]/30"
-            />
+              className="flex-1 bg-[#ffffff] border border-black/12 rounded-lg px-3 py-1.5 font-mono text-xs text-[#1a1a2e] placeholder:text-[#ebebf8] focus:outline-none focus:border-[#00d4aa]/40" />
           </div>
         )}
         {ga4Conn && (
           <div className="flex items-center gap-2">
-            <label className="font-mono text-[10px] text-[#bcbcd8] w-28 shrink-0">Sessions / mo</label>
-            <input
-              type="number"
-              placeholder="e.g. 20000"
-              value={draft.sessions}
+            <span className="font-mono text-[10px] text-[#5a5a7a] w-24 shrink-0">Sessions</span>
+            <input type="number" placeholder="e.g. 20000" value={draft.sessions}
               onChange={(e) => setDraft((d) => ({ ...d, sessions: e.target.value }))}
-              className="flex-1 bg-[#343447] border border-[#363650] rounded-lg px-3 py-1.5 font-mono text-xs text-[#f8f8fc] placeholder:text-[#7575a0] focus:outline-none focus:border-[#00d4aa]/30"
-            />
+              className="flex-1 bg-[#ffffff] border border-black/12 rounded-lg px-3 py-1.5 font-mono text-xs text-[#1a1a2e] placeholder:text-[#ebebf8] focus:outline-none focus:border-[#00d4aa]/40" />
           </div>
         )}
         <div className="flex gap-2">
-          <button onClick={saveGoals} disabled={saving} className="flex-1 rounded-lg bg-[#00d4aa] px-3 py-1.5 font-mono text-xs font-bold text-[#252531] hover:bg-[#00bfa0] transition disabled:opacity-60">{saving ? "Saving…" : "Save"}</button>
-          <button onClick={() => setEditing(false)} className="rounded-lg border border-[#363650] px-3 py-1.5 font-mono text-xs text-[#8585aa] hover:text-[#bcbcd8] transition">Cancel</button>
+          <button onClick={saveGoals} disabled={saving} className="flex-1 rounded-lg bg-[#00d4aa] px-3 py-1.5 font-mono text-xs font-bold text-[#f4efff] hover:bg-[#00bfa0] transition disabled:opacity-60">{saving ? "Saving…" : "Save"}</button>
+          <button onClick={() => setEditing(false)} className="rounded-lg border border-black/12 px-3 py-1.5 font-mono text-xs text-[#5a5a7a] hover:text-[#4a4a6a] transition">Cancel</button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border border-[#363650] bg-[#343447] px-4 py-3 space-y-3">
+    <div className="space-y-3.5">
       <div className="flex items-center justify-between">
-        <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Monthly goals</p>
-        <div className="flex items-center gap-3">
-          <span className="font-mono text-[9px] text-[#7575a0]">{daysLeft}d left</span>
-          <button onClick={openEdit} className="font-mono text-[9px] text-[#8585aa] hover:text-[#00d4aa] transition">Edit</button>
-        </div>
+        <p className="font-mono text-[9px] uppercase tracking-widest text-[#3a3a5a]">{daysLeft}d remaining</p>
+        <button onClick={openEdit} className="font-mono text-[9px] text-[#3a3a5a] hover:text-[#00d4aa] transition">Edit</button>
       </div>
-
       {stripeConn && goals.revenueTarget > 0 && (
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <span className="font-mono text-[11px] font-semibold text-[#bcbcd8]">Revenue</span>
-            <span className="font-mono text-[11px]">
-              <span className="text-[#f8f8fc] font-bold">{fmt(revenueMonth, "currency", currency)}</span>
-              <span className="text-[#7575a0]"> / {fmt(goals.revenueTarget, "currency", currency)}</span>
-            </span>
+            <span className="font-mono text-[10px] text-[#7575a0]">Revenue</span>
+            <span className="font-mono text-[10px] font-bold text-[#1a1a2e] tabular-nums">{fmt(revenueMonth, "currency", currency)} <span className="text-[#eaeaf5] font-normal">/ {fmt(goals.revenueTarget, "currency", currency)}</span></span>
           </div>
-          <TrajectoryBar actual={revenueMonth} projected={revProjected} target={goals.revenueTarget} color="#635bff" />
-          <div className="flex items-center justify-between mt-0.5">
-            {revenueMonth >= goals.revenueTarget ? (
-              <span className="font-mono text-[10px] font-semibold text-[#00d4aa]">🎉 Goal reached!</span>
-            ) : revProjected >= goals.revenueTarget * 0.9 ? (
-              <span className="font-mono text-[10px] font-semibold text-[#00d4aa]">✓ On track · projected {fmt(revProjected, "currency", currency)}</span>
-            ) : (
-              <span className="font-mono text-[10px] font-semibold text-[#f59e0b]">⚠ Below pace · projected {fmt(revProjected, "currency", currency)}</span>
-            )}
-            <span className="font-mono text-[10px] font-bold text-[#8585aa]">{Math.round((revenueMonth / goals.revenueTarget) * 100)}%</span>
-          </div>
+          <GoalBar actual={revenueMonth} target={goals.revenueTarget} color="#635bff" />
+          <p className={`font-mono text-[9px] font-semibold ${revProjected >= goals.revenueTarget * 0.9 ? "text-emerald-400" : "text-amber-400"}`}>
+            {revProjected >= goals.revenueTarget * 0.9 ? "✓ On track" : "⚠ Below pace"} · proj {fmt(revProjected, "currency", currency)}
+          </p>
         </div>
       )}
-
       {ga4Conn && goals.sessionsTarget > 0 && (
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <span className="font-mono text-[11px] font-semibold text-[#bcbcd8]">Sessions</span>
-            <span className="font-mono text-[11px]">
-              <span className="text-[#f8f8fc] font-bold">{fmt(sessionsMonth)}</span>
-              <span className="text-[#7575a0]"> / {fmt(goals.sessionsTarget)}</span>
-            </span>
+            <span className="font-mono text-[10px] text-[#7575a0]">Sessions</span>
+            <span className="font-mono text-[10px] font-bold text-[#1a1a2e] tabular-nums">{fmt(sessionsMonth)} <span className="text-[#eaeaf5] font-normal">/ {fmt(goals.sessionsTarget)}</span></span>
           </div>
-          <TrajectoryBar actual={sessionsMonth} projected={sessProjected} target={goals.sessionsTarget} color="#f59e0b" />
-          <div className="flex items-center justify-between mt-0.5">
-            {sessionsMonth >= goals.sessionsTarget ? (
-              <span className="font-mono text-[10px] font-semibold text-[#00d4aa]">🎉 Goal reached!</span>
-            ) : sessProjected >= goals.sessionsTarget * 0.9 ? (
-              <span className="font-mono text-[10px] font-semibold text-[#00d4aa]">✓ On track · projected {fmt(sessProjected)}</span>
-            ) : (
-              <span className="font-mono text-[10px] font-semibold text-[#f59e0b]">⚠ Below pace · projected {fmt(sessProjected)}</span>
-            )}
-            <span className="font-mono text-[10px] font-bold text-[#8585aa]">{Math.round((sessionsMonth / goals.sessionsTarget) * 100)}%</span>
-          </div>
+          <GoalBar actual={sessionsMonth} target={goals.sessionsTarget} color="#f59e0b" />
+          <p className={`font-mono text-[9px] font-semibold ${sessProjected >= goals.sessionsTarget * 0.9 ? "text-emerald-400" : "text-amber-400"}`}>
+            {sessProjected >= goals.sessionsTarget * 0.9 ? "✓ On track" : "⚠ Below pace"} · proj {fmt(sessProjected)}
+          </p>
         </div>
       )}
     </div>
@@ -629,37 +452,24 @@ const REV_RANGES: { id: RevRange; label: string; days: number }[] = [
   { id: "90d", label: "90D", days: 90 },
 ];
 
-function RevenueOverTimeChart({
-  snapshots,
-  connectedRevenueProviders,
-  currency = "USD",
-  onNavigate,
-}: {
-  snapshots: Snapshot[];
-  connectedRevenueProviders: string[];
-  currency?: string;
-  onNavigate: (tab: Tab) => void;
+function RevenueOverTimeChart({ snapshots, connectedRevenueProviders, currency = "USD", onNavigate }: {
+  snapshots: Snapshot[]; connectedRevenueProviders: string[]; currency?: string; onNavigate: (tab: Tab) => void;
 }) {
   const [range, setRange] = useState<RevRange>("30d");
 
   const chartData = useMemo(() => {
     const days = REV_RANGES.find((r) => r.id === range)!.days;
-    const cutoff = new Date();
-    cutoff.setUTCDate(cutoff.getUTCDate() - days);
+    const cutoff = new Date(); cutoff.setUTCDate(cutoff.getUTCDate() - days);
     const cutoffStr = cutoff.toISOString().slice(0, 10);
-
     const dayMap: Record<string, number> = {};
     for (const snap of snapshots) {
       if (!connectedRevenueProviders.includes(snap.provider)) continue;
       if (snap.date < cutoffStr) continue;
-      const rev = ((snap.data as Record<string, number>).revenue ?? 0);
-      dayMap[snap.date] = (dayMap[snap.date] ?? 0) + rev;
+      dayMap[snap.date] = (dayMap[snap.date] ?? 0) + ((snap.data as Record<string, number>).revenue ?? 0);
     }
-
     const result: { date: string; label: string; revenue: number }[] = [];
     for (let i = days - 1; i >= 0; i--) {
-      const d = new Date();
-      d.setUTCDate(d.getUTCDate() - i);
+      const d = new Date(); d.setUTCDate(d.getUTCDate() - i);
       const key = d.toISOString().slice(0, 10);
       const label = d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
       result.push({ date: key, label, revenue: dayMap[key] ?? 0 });
@@ -667,138 +477,65 @@ function RevenueOverTimeChart({
     return result;
   }, [snapshots, connectedRevenueProviders, range]);
 
-  const totalRevenue = chartData.reduce((a, d) => a + d.revenue, 0);
+  const total = chartData.reduce((a, d) => a + d.revenue, 0);
   const hasData = chartData.some((d) => d.revenue > 0);
-
-  // Trend: compare first half vs second half
-  const half = Math.max(1, Math.floor(chartData.length / 2));
-  const firstHalfRev = chartData.slice(0, half).reduce((a, d) => a + d.revenue, 0);
-  const lastHalfRev  = chartData.slice(-half).reduce((a, d) => a + d.revenue, 0);
-  const trendPct = firstHalfRev > 0 ? ((lastHalfRev - firstHalfRev) / firstHalfRev) * 100 : null;
-  const trendUp = trendPct !== null && trendPct >= 0;
-
   const tickInterval = range === "7d" ? 0 : range === "30d" ? 4 : 13;
-
-  const fmtRevTick = (v: number) => {
+  const fmtTick = (v: number) => {
     const d = v / 100;
     if (d >= 1000) return new Intl.NumberFormat("en-US", { style: "currency", currency, notation: "compact", maximumFractionDigits: 0 }).format(d);
     return new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 0 }).format(d);
   };
 
   return (
-    <div className="rounded-xl border border-[rgba(255,255,255,0.11)] bg-[#13131a] p-4 space-y-3">
-      {/* Header row — matches platform chart legend row style */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2.5 flex-wrap">
-          {/* Revenue "legend" button — always active, matches platform chart toggle style */}
-          <div
-            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-mono text-[11px] font-semibold border"
-            style={{ backgroundColor: "#635bff15", color: "#635bff", borderColor: "#635bff30" }}
-          >
-            <span className="h-1.5 w-1.5 rounded-full bg-[#635bff]" />
-            Revenue
-          </div>
-          {/* Trend badge */}
-          {trendPct !== null && hasData && (
-            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[9px] font-semibold border ${
-              trendUp
-                ? "bg-[#10b981]/10 text-[#10b981] border-[#10b981]/20"
-                : "bg-[#ef4444]/10 text-[#ef4444] border-[#ef4444]/20"
-            }`}>
-              {trendUp ? "▲" : "▼"} {Math.abs(trendPct).toFixed(1)}%
+    <div className="space-y-3">
+      {/* Chart header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <span className="font-mono text-[11px] font-semibold text-[#5a5a7a] uppercase tracking-widest">Revenue over time</span>
+          {hasData && (
+            <span className="font-mono text-sm font-bold text-[#1a1a2e] tabular-nums">
+              {(total / 100).toLocaleString("en-US", { style: "currency", currency, minimumFractionDigits: 0 })}
             </span>
           )}
-          <span className="font-mono text-sm font-bold text-[#f8f8fc]">
-            {(totalRevenue / 100).toLocaleString("en-US", { style: "currency", currency, minimumFractionDigits: 0 })}
-          </span>
         </div>
-
-        <div className="flex items-center gap-2 shrink-0">
-          <div className="flex items-center gap-0.5 rounded-lg border border-[rgba(255,255,255,0.11)] bg-[#1f1f21] p-0.5">
+        <div className="flex items-center gap-1">
+          <div className="flex rounded-lg border border-black/8 bg-black/4 p-0.5">
             {REV_RANGES.map((r) => (
-              <button
-                key={r.id}
-                onClick={() => setRange(r.id)}
-                className={`rounded-md px-2.5 py-1 font-mono text-[10px] font-semibold transition-all ${
-                  range === r.id
-                    ? "bg-[rgba(255,255,255,0.13)] text-[#f8f8fc]"
-                    : "text-[#64748b] hover:text-[#94a3b8]"
-                }`}
-              >
-                {r.label}
-              </button>
+              <button key={r.id} onClick={() => setRange(r.id)}
+                className={`rounded-md px-2.5 py-1 font-mono text-[10px] font-semibold transition-all ${range === r.id ? "bg-black/15 text-[#1a1a2e]" : "text-[#4a4a6a] hover:text-[#5a5a7a]"}`}
+              >{r.label}</button>
             ))}
           </div>
-          <button
-            onClick={() => onNavigate("analytics")}
-            className="font-mono text-[10px] text-[#64748b] hover:text-[#94a3b8] transition-colors"
-          >
-            Details →
-          </button>
         </div>
       </div>
 
-      {/* Chart */}
       {!hasData ? (
-        <div className="flex flex-col items-center justify-center h-44 gap-2">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="text-[#363650]">
-            <path d="M3 17l5-5 4 4 9-9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-          <p className="font-mono text-[11px] text-[#7575a0]">No revenue data in this range</p>
+        <div className="flex items-center justify-center h-40 rounded-2xl border border-black/6 bg-[#ffffff]">
+          <p className="font-mono text-[11px] text-[#ebebf8]">No revenue data in range</p>
         </div>
       ) : (
-        <ResponsiveContainer width="100%" height={220} style={{ outline: "none" }}>
-          <AreaChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 4 }}>
+        <ResponsiveContainer width="100%" height={200} style={{ outline: "none" }}>
+          <AreaChart data={chartData} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
             <defs>
-              <linearGradient id="ovRevGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%"   stopColor="#635bff" stopOpacity={0.15} />
-                <stop offset="100%" stopColor="#635bff" stopOpacity={0.01} />
+              <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#635bff" stopOpacity={0.2} />
+                <stop offset="100%" stopColor="#635bff" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.13)" vertical={false} />
-            <XAxis
-              dataKey="label"
-              tick={{ fill: "#64748b", fontSize: 10, fontFamily: "monospace" }}
-              axisLine={false}
-              tickLine={false}
-              interval={tickInterval}
-              tickMargin={8}
-            />
-            <YAxis
-              tickFormatter={fmtRevTick}
-              tick={{ fill: "#64748b", fontSize: 10, fontFamily: "monospace" }}
-              axisLine={false}
-              tickLine={false}
-              width={52}
-            />
-            <Tooltip
-              content={({ active, payload, label }) => {
-                if (!active || !payload?.length) return null;
-                const val = (payload[0].value as number / 100).toLocaleString("en-US", {
-                  style: "currency", currency, minimumFractionDigits: 2,
-                });
-                return (
-                  <div className="rounded-xl border border-[rgba(255,255,255,0.10)] bg-[#1f1f21] px-3 py-2.5 shadow-2xl">
-                    <p className="font-mono text-[10px] text-[#64748b] mb-1.5">{label}</p>
-                    <div className="flex items-center gap-2 font-mono text-[11px]">
-                      <span className="h-1.5 w-1.5 rounded-full bg-[#635bff]" />
-                      <span className="text-[#94a3b8]">Revenue:</span>
-                      <span className="font-bold text-white">{val}</span>
-                    </div>
-                  </div>
-                );
-              }}
-            />
-            <Area
-              type="monotone"
-              dataKey="revenue"
-              stroke="#635bff"
-              strokeWidth={2}
-              fill="url(#ovRevGrad)"
-              dot={false}
-              activeDot={{ r: 4, fill: "#635bff", strokeWidth: 0 }}
-              isAnimationActive={false}
-            />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.03)" vertical={false} />
+            <XAxis dataKey="label" tick={{ fill: "#3a3a5a", fontSize: 9, fontFamily: "monospace" }} axisLine={false} tickLine={false} interval={tickInterval} tickMargin={8} />
+            <YAxis tickFormatter={fmtTick} tick={{ fill: "#3a3a5a", fontSize: 9, fontFamily: "monospace" }} axisLine={false} tickLine={false} width={48} />
+            <Tooltip content={({ active, payload, label }) => {
+              if (!active || !payload?.length) return null;
+              const val = (payload[0].value as number / 100).toLocaleString("en-US", { style: "currency", currency, minimumFractionDigits: 2 });
+              return (
+                <div className="rounded-xl border border-black/12 bg-[#f4f4f8] px-3 py-2 shadow-2xl">
+                  <p className="font-mono text-[9px] text-[#4a4a6a] mb-1">{label}</p>
+                  <p className="font-mono text-sm font-bold text-[#1a1a2e]">{val}</p>
+                </div>
+              );
+            }} />
+            <Area type="monotone" dataKey="revenue" stroke="#635bff" strokeWidth={2} fill="url(#revGrad)" dot={false} activeDot={{ r: 3, fill: "#635bff", strokeWidth: 0 }} isAnimationActive={false} />
           </AreaChart>
         </ResponsiveContainer>
       )}
@@ -806,93 +543,71 @@ function RevenueOverTimeChart({
   );
 }
 
-// ── Integration icons ─────────────────────────────────────────────────────
-// Sourced from the shared catalog — LIVE_INTEGRATIONS contains stripe, ga4, meta
-
 // ── Onboarding Wizard ─────────────────────────────────────────────────────
 
-const SETUP_STEPS = LIVE_INTEGRATIONS.map((i, idx) => ({
-  id: i.id,
-  num: idx + 1,
-  title: `Connect ${i.name}`,
-  description: i.description,
-  connectUrl: i.connectUrl!,
-  color: i.color,
-  icon: (
-    <img src={i.icon} alt={i.name} width={20} height={20} className="object-contain" />
-  ),
+const SETUP_STEPS = LIVE_INTEGRATIONS.map((i) => ({
+  id: i.id, title: i.name, description: i.description,
+  connectUrl: i.connectUrl!, color: i.color,
+  icon: <img src={i.icon} alt={i.name} width={16} height={16} className="object-contain" />,
 }));
 
-function OnboardingWizard({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
-  const completedCount = 0; // no platforms yet — this component only renders when count === 0
+function OnboardingWizard({ onNavigate, connectedPlatforms }: { onNavigate: (tab: Tab) => void; connectedPlatforms: string[] }) {
+  const done = connectedPlatforms.length;
+  const total = SETUP_STEPS.length;
+  const pct = Math.round((done / total) * 100);
 
   return (
-    <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 overflow-hidden">
-      {/* Header */}
-      <div className="px-6 pt-6 pb-5 border-b border-[#363650]">
-        <div className="flex items-center gap-3 mb-1">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#00d4aa]/10 text-[#00d4aa]">
-            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+    <div className="rounded-2xl border border-black/8 bg-[#ffffff] overflow-hidden">
+      {/* Header strip */}
+      <div className="flex items-center justify-between gap-4 px-5 py-4 border-b border-black/8">
+        <div className="flex items-center gap-3">
+          <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-[#00d4aa]/10 text-[#00d4aa]">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
             </svg>
           </div>
           <div>
-            <p className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#00d4aa]">
-              Get started — {completedCount}/3 complete
-            </p>
-            <h2 className="font-mono text-base font-bold text-[#f8f8fc]">Connect your data sources</h2>
+            <p className="font-mono text-sm font-bold text-[#1a1a2e]">Connect your data sources</p>
+            <p className="font-mono text-[10px] text-[#3a3a5a]">{done}/{total} connected · takes ~30 seconds each</p>
           </div>
         </div>
-        <p className="font-mono text-[11px] text-[#8585aa] mt-1">
-          Your dashboard populates automatically once connected. Each integration takes about 30 seconds.
-        </p>
-        {/* Progress bar */}
-        <div className="mt-4 h-1.5 w-full rounded-full bg-[#363650]">
-          <div
-            className="h-full rounded-full bg-[#00d4aa] transition-all duration-700"
-            style={{ width: `${(completedCount / 3) * 100}%` }}
-          />
+        {/* Progress ring */}
+        <div className="relative h-10 w-10 shrink-0">
+          <svg className="-rotate-90" viewBox="0 0 40 40" width={40} height={40}>
+            <circle cx="20" cy="20" r="16" fill="none" stroke="#e4e4f4" strokeWidth="4" />
+            <circle cx="20" cy="20" r="16" fill="none" stroke="#00d4aa" strokeWidth="4"
+              strokeLinecap="round" strokeDasharray={`${2 * Math.PI * 16}`}
+              strokeDashoffset={`${2 * Math.PI * 16 * (1 - pct / 100)}`} />
+          </svg>
+          <span className="absolute inset-0 flex items-center justify-center font-mono text-[9px] font-bold text-[#00d4aa]">{done}/{total}</span>
         </div>
       </div>
 
-      {/* Steps */}
-      <div className="divide-y divide-[#363650]">
-        {SETUP_STEPS.map((step) => (
-          <div key={step.id} className="flex items-center gap-4 px-6 py-4 hover:bg-[#343447]/40 transition-colors">
-            {/* Step number / check */}
-            <div
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
-              style={{ backgroundColor: `${step.color}18`, color: step.color }}
-            >
-              {step.icon}
+      <div className="divide-y divide-black/8">
+        {SETUP_STEPS.map((step) => {
+          const isConnected = connectedPlatforms.includes(step.id);
+          return (
+            <div key={step.id} className={`flex items-center gap-4 px-5 py-3.5 ${isConnected ? "opacity-50" : ""}`}>
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `${step.color}12` }}>
+                {step.icon}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-mono text-[12px] font-semibold text-[#1a1a2e] leading-tight">{step.title}</p>
+                <p className="font-mono text-[9px] text-[#3a3a5a] truncate">{step.description}</p>
+              </div>
+              {isConnected ? (
+                <span className="shrink-0 font-mono text-[9px] font-semibold text-[#00d4aa]">✓ Connected</span>
+              ) : (
+                <a href={step.connectUrl}
+                  className="shrink-0 inline-flex items-center gap-1 rounded-xl px-3 py-1.5 font-mono text-[10px] font-semibold transition-all"
+                  style={{ color: step.color, backgroundColor: `${step.color}12`, border: `1px solid ${step.color}25` }}
+                >
+                  Connect →
+                </a>
+              )}
             </div>
-
-            {/* Text */}
-            <div className="flex-1 min-w-0">
-              <p className="font-mono text-sm font-semibold text-[#f8f8fc]">{step.title}</p>
-              <p className="font-mono text-[10px] text-[#8585aa] mt-0.5">{step.description}</p>
-            </div>
-
-            {/* CTA */}
-            <a
-              href={step.connectUrl}
-              className="shrink-0 inline-flex items-center gap-1.5 rounded-xl border px-4 py-2 font-mono text-[11px] font-semibold transition-all hover:opacity-80"
-              style={{ borderColor: `${step.color}40`, color: step.color, backgroundColor: `${step.color}10` }}
-            >
-              Connect
-              <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12h15m0 0l-6.75-6.75M19.5 12l-6.75 6.75" />
-              </svg>
-            </a>
-          </div>
-        ))}
-      </div>
-
-      {/* Footer tip */}
-      <div className="px-6 py-3 bg-[#252531]/40 border-t border-[#363650]">
-        <p className="font-mono text-[10px] text-[#7575a0]">
-          💡 Tip: Start with Stripe for the fastest time-to-value. Revenue data backfills automatically up to 18 months.
-        </p>
+          );
+        })}
       </div>
     </div>
   );
@@ -901,276 +616,119 @@ function OnboardingWizard({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
 // ── Main Component ────────────────────────────────────────────────────────
 
 export default function OverviewTab({
-  email,
-  isPremium,
-  connectedPlatforms,
-  snapshots,
-  currencies = {},
-  onNavigate,
-}: OverviewTabProps) {
+  email, isPremium, connectedPlatforms, snapshots, currencies = {}, onNavigate,
+}: {
+  email: string; isPremium: boolean; connectedPlatforms: string[];
+  snapshots: Snapshot[]; currencies: Record<string, string>; onNavigate: (tab: Tab) => void;
+}) {
   const router = useRouter();
   const [upgradeLoading, setUpgradeLoading] = useState(false);
   const [upgradeError, setUpgradeError] = useState("");
   const [alertRules, setAlertRules] = useState<AlertRules>(DEFAULT_ALERTS);
 
   useEffect(() => {
-    fetch("/api/user/settings")
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.alertRules) setAlertRules(d.alertRules);
-      })
-      .catch(() => {});
+    fetch("/api/user/settings").then((r) => r.json()).then((d) => { if (d.alertRules) setAlertRules(d.alertRules); }).catch(() => {});
   }, []);
 
   async function handleUpgrade() {
-    setUpgradeLoading(true);
-    setUpgradeError("");
+    setUpgradeLoading(true); setUpgradeError("");
     try {
       const res = await fetch("/api/stripe/checkout", { method: "POST" });
       const data = await res.json();
-      if (!res.ok) {
-        setUpgradeError(data.error ?? "Something went wrong.");
-        setUpgradeLoading(false);
-        return;
-      }
+      if (!res.ok) { setUpgradeError(data.error ?? "Something went wrong."); setUpgradeLoading(false); return; }
       router.push(data.url);
-    } catch {
-      setUpgradeError("Network error. Please try again.");
-      setUpgradeLoading(false);
-    }
+    } catch { setUpgradeError("Network error. Please try again."); setUpgradeLoading(false); }
   }
 
-  // ── Metrics: 7d vs previous 7d for trend ───────────────────────────────
-  // Demo mode: show sample data when no platforms are connected
   const isDemoMode = isPremium && connectedPlatforms.length === 0;
   const effectiveSnapshots = isDemoMode ? DEMO_SNAPSHOTS : snapshots;
   const effectivePlatforms = isDemoMode ? DEMO_CONNECTED_PLATFORMS : connectedPlatforms;
 
-  const { kpis, activity, narrative, crossInsights, metrics7, revenueMonth, sessionsMonth, primaryRevCurrency, glanceSignals } = useMemo(() => {
+  const { kpis, narrative, crossInsights, metrics7, revenueMonth, sessionsMonth, primaryRevCurrency, glanceSignals } = useMemo(() => {
     const snaps7 = filterDays(effectiveSnapshots, 7);
     const snaps14 = filterDays(effectiveSnapshots, 14);
     const snapsPrev7 = snaps14.filter((s) => !snaps7.find((x) => x.id === s.id));
 
-    // ── Multi-provider groups ───────────────────────────────────────────
-    const connRevenue  = connectedIn(effectivePlatforms, REVENUE_PROVIDERS);
+    const connRevenue   = connectedIn(effectivePlatforms, REVENUE_PROVIDERS);
     const connAnalytics = connectedIn(effectivePlatforms, ANALYTICS_PROVIDERS);
-    const connAds      = connectedIn(effectivePlatforms, ADS_PROVIDERS);
+    const connAds       = connectedIn(effectivePlatforms, ADS_PROVIDERS);
+    const primaryAdCurrency: string = connAds.length > 0 ? (currencies[connAds[0]] ?? "USD") : "USD";
+    const primaryRevCurrency: string = connRevenue.length > 0 ? (currencies[connRevenue[0]] ?? "USD") : "USD";
+    const primaryAnalytics = pickPrimaryAnalyticsProvider(snaps7, connAnalytics) ?? pickPrimaryAnalyticsProvider(effectiveSnapshots, connAnalytics);
 
-    // For CAC display, use the primary ad platform's currency
-    const primaryAdCurrency: string = connAds.length > 0
-      ? (currencies[connAds[0]] ?? "USD")
-      : "USD";
-
-    // For revenue display, use the primary revenue platform's currency
-    const primaryRevCurrency: string = connRevenue.length > 0
-      ? (currencies[connRevenue[0]] ?? "USD")
-      : "USD";
-
-    const primaryAnalytics = pickPrimaryAnalyticsProvider(snaps7, connAnalytics)
-      ?? pickPrimaryAnalyticsProvider(effectiveSnapshots, connAnalytics);
-
-    // Revenue — SUM across all connected revenue providers
     const revenue7     = sumProviders(snaps7, connRevenue, "revenue");
     const revenuePrev  = sumProviders(snapsPrev7, connRevenue, "revenue");
-
-    // New customers — SUM across revenue providers (each platform owns its own customer)
     const newCustomers7    = sumProviders(snaps7, connRevenue, "newCustomers");
     const newCustomersPrev = sumProviders(snapsPrev7, connRevenue, "newCustomers");
-
-    // Transactions from Stripe (for narrative detail)
-
     const sessions7    = primaryAnalytics ? sumField(snaps7, primaryAnalytics, "sessions") : 0;
     const sessionsPrev = primaryAnalytics ? sumField(snapsPrev7, primaryAnalytics, "sessions") : 0;
-
-    // Conversions from primary analytics
     const conversions7 = primaryAnalytics ? sumField(snaps7, primaryAnalytics, "conversions") : 0;
-
-    // Bounce rate from primary analytics
     const bounceRate7  = primaryAnalytics ? avgField(snaps7, primaryAnalytics, "bounceRate") : 0;
-
-    // Ad spend — SUM across all connected ad platforms
     const spend7    = sumProviders(snaps7, connAds, "spend");
     const spendPrev = sumProviders(snapsPrev7, connAds, "spend");
-
-    // Clicks from Meta specifically (for display in Meta-related cards)
     const metaClicks7 = sumField(snaps7, "meta", "clicks");
 
-    const hasRevenue  = connRevenue.length > 0;
+    const hasRevenue   = connRevenue.length > 0;
     const hasAnalytics = connAnalytics.length > 0;
-    const hasAds      = connAds.length > 0;
-    const metaConn    = effectivePlatforms.includes("meta");
-
-    // CAC: total ad spend ÷ total new customers
+    const hasAds       = connAds.length > 0;
     const cac7 = newCustomers7 > 0 && spend7 > 0 ? spend7 / newCustomers7 : null;
 
-    // Multi-source labels
-    const revSourceLabel = connRevenue.length > 1
-      ? `${connRevenue.length} platforms · ${newCustomers7} new customers`
-      : connRevenue.length === 1 ? `${newCustomers7} new customers` : null;
-
-    const analyticsSourceLabel = connAnalytics.length > 1 && primaryAnalytics
-      ? `${fmt(conversions7)} conv · via ${primaryAnalytics}`
-      : connAnalytics.length === 1 ? `${fmt(conversions7)} conversions` : null;
-
-    const adsSourceLabel = connAds.length > 1
-      ? `${connAds.length} platforms · ${fmt(metaClicks7)} Meta clicks`
-      : connAds.length === 1 ? `${fmt(metaClicks7)} clicks` : null;
-
-    // ── Yesterday's metrics for daily narrative ─────────────────────────
+    // Yesterday narrative
     const yesterdayStr = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-    const snapsYesterday = effectiveSnapshots.filter((s) => s.date === yesterdayStr);
-    const revenueYday    = sumProviders(snapsYesterday, connRevenue, "revenue");
-    const sessionsYday   = primaryAnalytics ? sumField(snapsYesterday, primaryAnalytics, "sessions") : 0;
-    const txYday         = sumField(snapsYesterday, "stripe", "transactions");
-    const newCxYday      = sumProviders(snapsYesterday, connRevenue, "newCustomers");
-    const spendYday      = sumProviders(snapsYesterday, connAds, "spend");
-    const bounceYday     = primaryAnalytics ? avgField(snapsYesterday, primaryAnalytics, "bounceRate") : 0;
-    const hasYesterdayData = snapsYesterday.length > 0;
+    const snapsYday = effectiveSnapshots.filter((s) => s.date === yesterdayStr);
+    const revenueYday  = sumProviders(snapsYday, connRevenue, "revenue");
+    const sessionsYday = primaryAnalytics ? sumField(snapsYday, primaryAnalytics, "sessions") : 0;
+    const txYday       = sumField(snapsYday, "stripe", "transactions");
+    const newCxYday    = sumProviders(snapsYday, connRevenue, "newCustomers");
+    const spendYday    = sumProviders(snapsYday, connAds, "spend");
+    const bounceYday   = primaryAnalytics ? avgField(snapsYday, primaryAnalytics, "bounceRate") : 0;
+    const parts: string[] = [];
+    if (hasRevenue && revenueYday > 0) parts.push(`${fmt(revenueYday, "currency", primaryRevCurrency)} revenue${txYday > 0 ? ` (${txYday} txns)` : ""}`);
+    if (hasAnalytics && sessionsYday > 0) parts.push(`${fmt(sessionsYday)} sessions`);
+    if (hasRevenue && newCxYday > 0) parts.push(`${newCxYday} new customer${newCxYday !== 1 ? "s" : ""}`);
+    if (hasAds && spendYday > 0) parts.push(`${fmtMetaSpend(spendYday, primaryAdCurrency)} ad spend`);
+    const narrative = { hasData: snapsYday.length > 0 && parts.length > 0, text: parts.join(" · "), bounceAlert: hasAnalytics && bounceYday > 65, bounceRate: bounceYday, date: yesterdayStr };
 
-    // Build narrative sentence
-    const narrativeParts: string[] = [];
-    if (hasRevenue && revenueYday > 0) narrativeParts.push(`${fmt(revenueYday, "currency", primaryRevCurrency)} revenue${txYday > 0 ? ` (${txYday} txns)` : ""}`);
-    if (hasAnalytics && sessionsYday > 0) narrativeParts.push(`${fmt(sessionsYday)} sessions`);
-    if (hasRevenue && newCxYday > 0) narrativeParts.push(`${newCxYday} new customer${newCxYday !== 1 ? "s" : ""}`);
-    if (hasAds && spendYday > 0) narrativeParts.push(`${fmtMetaSpend(spendYday, primaryAdCurrency)} ad spend`);
-
-    const narrative = {
-      hasData: hasYesterdayData && narrativeParts.length > 0,
-      text: narrativeParts.join(" · "),
-      bounceAlert: hasAnalytics && bounceYday > 65,
-      bounceRate: bounceYday,
-      date: yesterdayStr,
-    };
-
-    // ── Cross-insight: high bounce rate ────────────────────────────────
     const crossInsights: { icon: string; color: string; message: string; action: string }[] = [];
-    if (hasAnalytics && bounceRate7 > 65) {
-      crossInsights.push({
-        icon: "↑",
-        color: "#f87171",
-        message: `Bounce rate is elevated at ${fmt(bounceRate7, "percent")}. Consider reviewing your landing page copy and load speed.`,
-        action: "View analytics →",
-      });
-    }
+    if (hasAnalytics && bounceRate7 > 65) crossInsights.push({ icon: "↑", color: "#f87171", message: `Bounce rate is elevated at ${fmt(bounceRate7, "percent")}. Review landing page copy and load speed.`, action: "View analytics →" });
 
-    // ── Sparklines — last 7 daily values per metric ────────────────────────
-    function sparkForProviders(allSnaps: Snapshot[], providers: string[], field: string): number[] {
+    // 7-day sparklines
+    function spark(providers: string[], field: string): number[] {
       return Array.from({ length: 7 }, (_, i) => {
-        const d = new Date();
-        d.setUTCDate(d.getUTCDate() - (6 - i));
+        const d = new Date(); d.setUTCDate(d.getUTCDate() - (6 - i));
         const key = d.toISOString().slice(0, 10);
-        return allSnaps
-          .filter((s) => providers.includes(s.provider) && s.date === key)
-          .reduce((acc, s) => acc + ((s.data as Record<string, number>)[field] ?? 0), 0);
+        return effectiveSnapshots.filter((s) => providers.includes(s.provider) && s.date === key)
+          .reduce((a, s) => a + ((s.data as Record<string, number>)[field] ?? 0), 0);
       });
     }
-    const revSpark  = hasRevenue   ? sparkForProviders(effectiveSnapshots, connRevenue,                        "revenue")      : [];
-    const sessSpark = hasAnalytics && primaryAnalytics ? sparkForProviders(effectiveSnapshots, [primaryAnalytics], "sessions")     : [];
-    const spndSpark = hasAds       ? sparkForProviders(effectiveSnapshots, connAds,                            "spend")        : [];
-    const custSpark = hasRevenue   ? sparkForProviders(effectiveSnapshots, connRevenue,                        "newCustomers") : [];
 
-    // ── Glance signals for header ────────────────────────────────────────
     const glanceSignals: { label: string; color: string }[] = [];
     if (hasRevenue && revenue7 > 0) {
-      const pct = revenuePrev > 0 ? ((revenue7 - revenuePrev) / revenuePrev) * 100 : null;
-      if (pct === null)     glanceSignals.push({ color: "#00d4aa", label: `↑ Revenue active` });
-      else if (pct >= 0)   glanceSignals.push({ color: "#00d4aa", label: `↑ Revenue +${pct.toFixed(0)}%` });
-      else if (pct >= -10) glanceSignals.push({ color: "#f59e0b", label: `↘ Revenue ${pct.toFixed(0)}%` });
-      else                  glanceSignals.push({ color: "#f87171", label: `↓ Revenue ${pct.toFixed(0)}%` });
+      const p = revenuePrev > 0 ? ((revenue7 - revenuePrev) / revenuePrev) * 100 : null;
+      if (p === null) glanceSignals.push({ color: "#00d4aa", label: "↑ Revenue active" });
+      else if (p >= 0) glanceSignals.push({ color: "#00d4aa", label: `↑ Rev +${p.toFixed(0)}%` });
+      else if (p >= -10) glanceSignals.push({ color: "#f59e0b", label: `↘ Rev ${p.toFixed(0)}%` });
+      else glanceSignals.push({ color: "#f87171", label: `↓ Rev ${p.toFixed(0)}%` });
     }
     if (hasAnalytics && sessions7 > 0 && sessionsPrev > 0) {
-      const pct = ((sessions7 - sessionsPrev) / sessionsPrev) * 100;
-      if (pct <= -10) glanceSignals.push({ color: "#f59e0b", label: `⚠ Sessions ${pct.toFixed(0)}%` });
-      else if (pct >= 10) glanceSignals.push({ color: "#00d4aa", label: `↑ Sessions +${pct.toFixed(0)}%` });
+      const p = ((sessions7 - sessionsPrev) / sessionsPrev) * 100;
+      if (p >= 10) glanceSignals.push({ color: "#00d4aa", label: `↑ Sessions +${p.toFixed(0)}%` });
+      else if (p <= -10) glanceSignals.push({ color: "#f59e0b", label: `⚠ Sessions ${p.toFixed(0)}%` });
     }
-    if (hasRevenue) {
-      glanceSignals.push({ color: conversions7 > 0 ? "#00d4aa" : "#7575a0", label: `${fmt(conversions7)} conversions` });
-    }
-
-    const kpis = [
-      {
-        label: "Revenue (7d)",
-        value: hasRevenue ? fmt(revenue7, "currency", primaryRevCurrency) : null,
-        sub: hasRevenue ? revSourceLabel : null,
-        trend: hasRevenue ? { current: revenue7, prev: revenuePrev } : null,
-        icon: "revenue",
-        sparkData: revSpark,
-        connectLabel: !hasRevenue ? "Connect Stripe" : undefined,
-        connectHref: !hasRevenue ? "/dashboard?tab=settings" : undefined,
-      },
-      {
-        label: "Sessions (7d)",
-        value: hasAnalytics ? fmt(sessions7) : null,
-        sub: hasAnalytics ? analyticsSourceLabel : null,
-        trend: hasAnalytics ? { current: sessions7, prev: sessionsPrev } : null,
-        icon: "sessions",
-        sparkData: sessSpark,
-        connectLabel: !hasAnalytics ? "Connect GA4" : undefined,
-        connectHref: !hasAnalytics ? "/dashboard?tab=settings" : undefined,
-      },
-      {
-        label: "Ad Spend (7d)",
-        value: hasAds ? fmtMetaSpend(spend7, primaryAdCurrency) : null,
-        sub: hasAds ? adsSourceLabel : null,
-        trend: hasAds ? { current: spend7, prev: spendPrev } : null,
-        icon: "adspend",
-        sparkData: spndSpark,
-        connectLabel: !hasAds ? "Connect Meta Ads" : undefined,
-        connectHref: !hasAds ? "/dashboard?tab=settings" : undefined,
-      },
-      {
-        label: "New Customers (7d)",
-        value: hasRevenue ? fmt(newCustomers7) : null,
-        sub: hasRevenue
-          ? bounceRate7 > 0 && hasAnalytics
-            ? `Bounce rate ${fmt(bounceRate7, "percent")}`
-            : connRevenue.length > 1 ? `across ${connRevenue.length} platforms` : "from revenue"
-          : null,
-        trend: hasRevenue ? { current: newCustomers7, prev: newCustomersPrev } : null,
-        icon: "customers",
-        sparkData: custSpark,
-        connectLabel: !hasRevenue ? "Connect Stripe" : undefined,
-        connectHref: !hasRevenue ? "/dashboard?tab=settings" : undefined,
-      },
-      {
-        label: "CAC",
-        value: hasAds && hasRevenue && cac7 !== null ? fmtMetaSpend(cac7, primaryAdCurrency) : null,
-        sub: hasAds && hasRevenue && cac7 !== null
-          ? primaryAdCurrency !== (currencies[connRevenue[0]] ?? "USD")
-            ? `${primaryAdCurrency} spend ÷ new customers`
-            : "ad spend ÷ new customers"
-          : null,
-        trend: null,
-        icon: "cac",
-        sparkData: undefined,
-        connectLabel: !hasAds ? "Connect Ads" : (!hasRevenue ? "Connect Stripe" : undefined),
-        connectHref: (!hasAds || !hasRevenue) ? "/dashboard?tab=settings" : undefined,
-      },
-      {
-        label: "Bounce Rate (7d)",
-        value: hasAnalytics ? fmt(bounceRate7, "percent") : null,
-        sub: hasAnalytics
-          ? connAnalytics.length > 1 && primaryAnalytics
-            ? `via ${primaryAnalytics} (primary)`
-            : "avg across 7 days"
-          : null,
-        trend: null,
-        icon: "bounce",
-        sparkData: undefined,
-        connectLabel: !hasAnalytics ? "Connect GA4" : undefined,
-        connectHref: !hasAnalytics ? "/dashboard?tab=settings" : undefined,
-      },
-    ];
-
-    // Activity feed
-    const activityItems: { type: string; label: string; time: string; color: string }[] = [];
 
     const today = new Date();
     const snapsThisMonth = filterDays(effectiveSnapshots, today.getDate());
 
     return {
-      kpis,
-      activity: activityItems.slice(0, 5),
+      kpis: {
+        revenue: { value: hasRevenue ? fmt(revenue7, "currency", primaryRevCurrency) : null, trend: hasRevenue ? { current: revenue7, prev: revenuePrev } : null, spark: hasRevenue ? spark(connRevenue, "revenue") : [], connect: "Connect Stripe", connectHref: "/dashboard?tab=settings" },
+        sessions: { value: hasAnalytics ? fmt(sessions7) : null, trend: hasAnalytics ? { current: sessions7, prev: sessionsPrev } : null, spark: hasAnalytics && primaryAnalytics ? spark([primaryAnalytics], "sessions") : [], connect: "Connect GA4", connectHref: "/dashboard?tab=settings" },
+        adSpend: { value: hasAds ? fmtMetaSpend(spend7, primaryAdCurrency) : null, trend: hasAds ? { current: spend7, prev: spendPrev } : null, spark: hasAds ? spark(connAds, "spend") : [], connect: "Connect Meta Ads", connectHref: "/dashboard?tab=settings" },
+        customers: { value: hasRevenue ? fmt(newCustomers7) : null, trend: hasRevenue ? { current: newCustomers7, prev: newCustomersPrev } : null, spark: hasRevenue ? spark(connRevenue, "newCustomers") : [], connect: "Connect Stripe", connectHref: "/dashboard?tab=settings" },
+        cac: { value: (hasAds && hasRevenue && cac7 !== null) ? fmtMetaSpend(cac7, primaryAdCurrency) : null, connect: "Needs Ads + Stripe", connectHref: "/dashboard?tab=settings" },
+        bounce: { value: hasAnalytics ? fmt(bounceRate7, "percent") : null, connect: "Connect GA4", connectHref: "/dashboard?tab=settings" },
+        conversions: conversions7,
+      },
       narrative,
       crossInsights,
       metrics7: { revenue7, sessions7, bounceRate7, spend7, revenuePrev },
@@ -1178,620 +736,482 @@ export default function OverviewTab({
       sessionsMonth: primaryAnalytics ? sumField(snapsThisMonth, primaryAnalytics, "sessions") : 0,
       primaryRevCurrency,
       glanceSignals,
+      hasRevenue, hasAnalytics, hasAds,
+      connRevenue, connAnalytics, connAds,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveSnapshots, effectivePlatforms, currencies]);
 
+  const { hasRevenue, hasAnalytics, hasAds, connRevenue, connAnalytics, connAds } = kpis as unknown as {
+    hasRevenue: boolean; hasAnalytics: boolean; hasAds: boolean;
+    connRevenue: string[]; connAnalytics: string[]; connAds: string[];
+  };
+
   const hasAllIntegrations = LIVE_INTEGRATIONS.every((i) => connectedPlatforms.includes(i.id));
   const missingIntegrations = LIVE_INTEGRATIONS.filter((i) => !connectedPlatforms.includes(i.id));
 
-  // ── Active alerts based on user-configured thresholds ─────────────────
   const activeAlerts: { color: string; message: string }[] = [];
   if (alertRules.revenueDropPct > 0 && metrics7.revenuePrev > 0) {
     const dropPct = ((metrics7.revenuePrev - metrics7.revenue7) / metrics7.revenuePrev) * 100;
-    if (dropPct >= alertRules.revenueDropPct) {
-      activeAlerts.push({ color: "#f87171", message: `🚨 Revenue is down ${dropPct.toFixed(1)}% vs last week (threshold: ${alertRules.revenueDropPct}%)` });
-    }
+    if (dropPct >= alertRules.revenueDropPct) activeAlerts.push({ color: "#f87171", message: `🚨 Revenue is down ${dropPct.toFixed(1)}% vs last week (threshold: ${alertRules.revenueDropPct}%)` });
   }
-  if (alertRules.bounceSpikeThreshold > 0 && metrics7.bounceRate7 > alertRules.bounceSpikeThreshold) {
+  if (alertRules.bounceSpikeThreshold > 0 && metrics7.bounceRate7 > alertRules.bounceSpikeThreshold)
     activeAlerts.push({ color: "#f59e0b", message: `⚠ Bounce rate ${fmt(metrics7.bounceRate7, "percent")} exceeds your ${alertRules.bounceSpikeThreshold}% threshold` });
-  }
   if (alertRules.spendSpikeThreshold > 0 && metrics7.spend7 > 0) {
-    const avgDailySpend = metrics7.spend7 / 7;
-    if (avgDailySpend > alertRules.spendSpikeThreshold) {
-      activeAlerts.push({ color: "#1877f2", message: `💸 Average daily ad spend (${fmt(avgDailySpend, "currency")}) exceeds your $${alertRules.spendSpikeThreshold} cap` });
-    }
+    const avg = metrics7.spend7 / 7;
+    if (avg > alertRules.spendSpikeThreshold) activeAlerts.push({ color: "#1877f2", message: `💸 Avg daily ad spend (${fmt(avg, "currency")}) exceeds your $${alertRules.spendSpikeThreshold} cap` });
   }
 
-  // ── Statistical anomaly detection (auto, no threshold required) ────────
   const anomalies = useMemo(() => {
     const results: { color: string; message: string }[] = [];
     if (!isPremium || effectiveSnapshots.length < 14) return results;
-
     const yesterdayStr = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
     const dayOfWeek = new Date().toLocaleDateString("en-US", { weekday: "long" });
-
-    /** Compute mean + stddev for a daily series */
-    function stats(values: number[]): { mean: number; std: number } {
-      if (values.length === 0) return { mean: 0, std: 0 };
+    function stats(values: number[]) {
+      if (!values.length) return { mean: 0, std: 0 };
       const mean = values.reduce((a, b) => a + b, 0) / values.length;
-      const variance = values.reduce((a, b) => a + (b - mean) ** 2, 0) / values.length;
-      return { mean, std: Math.sqrt(variance) };
+      return { mean, std: Math.sqrt(values.reduce((a, b) => a + (b - mean) ** 2, 0) / values.length) };
     }
-
-    /** Get daily values for a metric over the last N days (excluding today/yesterday) */
-    function dailyValues(provider: string, field: string, excludeDays = 2): number[] {
-      return effectiveSnapshots
-        .filter((s) => s.provider === provider && s.date < yesterdayStr)
-        .sort((a, b) => a.date.localeCompare(b.date))
-        .slice(-30)
-        .slice(0, -excludeDays + (excludeDays > 0 ? 0 : undefined as unknown as number))
-        .map((s) => (s.data as Record<string, number>)[field] ?? 0)
-        .filter((v) => v > 0); // exclude zero days (no data)
+    function dailyValues(provider: string, field: string) {
+      return effectiveSnapshots.filter((s) => s.provider === provider && s.date < yesterdayStr)
+        .sort((a, b) => a.date.localeCompare(b.date)).slice(-28)
+        .map((s) => (s.data as Record<string, number>)[field] ?? 0).filter((v) => v > 0);
     }
-
-    /** Get yesterday's value */
-    function yesterday(provider: string, field: string): number {
+    function yday(provider: string, field: string) {
       const snap = effectiveSnapshots.find((s) => s.provider === provider && s.date === yesterdayStr);
       return snap ? ((snap.data as Record<string, number>)[field] ?? 0) : 0;
     }
-
-    const connRevAnom   = connectedIn(effectivePlatforms, REVENUE_PROVIDERS);
-    const connAnAnom    = connectedIn(effectivePlatforms, ANALYTICS_PROVIDERS);
-    const connAdsAnom   = connectedIn(effectivePlatforms, ADS_PROVIDERS);
-    const primaryAnAnom = pickPrimaryAnalyticsProvider(effectiveSnapshots, connAnAnom);
-
-    // Revenue anomaly — sum all revenue providers
-    if (connRevAnom.length > 0) {
-      // Build daily revenue series by summing across all revenue providers per day
-      const dayRevMap: Record<string, number> = {};
-      for (const s of effectiveSnapshots) {
-        if (!connRevAnom.includes(s.provider) || s.date >= yesterdayStr) continue;
-        const v = (s.data as Record<string, number>).revenue ?? 0;
-        dayRevMap[s.date] = (dayRevMap[s.date] ?? 0) + v;
-      }
-      const revValues = Object.values(dayRevMap).filter((v) => v > 0).slice(-30);
-      const revYday = connRevAnom.reduce((sum, p) => {
-        const snap = effectiveSnapshots.find((s) => s.provider === p && s.date === yesterdayStr);
-        return sum + ((snap?.data as Record<string, number>)?.revenue ?? 0);
-      }, 0);
-      const { mean, std } = stats(revValues);
-      if (mean > 0 && std > 0 && revYday > 0) {
-        const zScore = (revYday - mean) / std;
-        if (zScore < -2) {
-          const dropPct = Math.round(((mean - revYday) / mean) * 100);
-          results.push({
-            color: "#f87171",
-            message: `📉 Revenue yesterday was ${fmt(revYday, "currency")} — ${dropPct}% below your 30-day average${std > 0 ? ` (unusual for a ${dayOfWeek})` : ""}`,
-          });
-        } else if (zScore > 2.5) {
-          const gainPct = Math.round(((revYday - mean) / mean) * 100);
-          results.push({
-            color: "#00d4aa",
-            message: `🚀 Revenue yesterday was ${fmt(revYday, "currency")} — ${gainPct}% above your 30-day average! Best ${dayOfWeek} in a month.`,
-          });
-        }
+    const cRA = connectedIn(effectivePlatforms, REVENUE_PROVIDERS);
+    const cAA = connectedIn(effectivePlatforms, ANALYTICS_PROVIDERS);
+    const cAdA = connectedIn(effectivePlatforms, ADS_PROVIDERS);
+    const pA = pickPrimaryAnalyticsProvider(effectiveSnapshots, cAA);
+    if (cRA.length > 0) {
+      const dayMap: Record<string, number> = {};
+      for (const s of effectiveSnapshots) { if (!cRA.includes(s.provider) || s.date >= yesterdayStr) continue; const v = (s.data as Record<string, number>).revenue ?? 0; dayMap[s.date] = (dayMap[s.date] ?? 0) + v; }
+      const vals = Object.values(dayMap).filter((v) => v > 0).slice(-30);
+      const revY = cRA.reduce((sum, p) => { const s = effectiveSnapshots.find((x) => x.provider === p && x.date === yesterdayStr); return sum + ((s?.data as Record<string, number>)?.revenue ?? 0); }, 0);
+      const { mean, std } = stats(vals);
+      if (mean > 0 && std > 0 && revY > 0) {
+        const z = (revY - mean) / std;
+        if (z < -2) results.push({ color: "#f87171", message: `📉 Revenue yesterday was ${fmt(revY, "currency")} — ${Math.round(((mean - revY) / mean) * 100)}% below 30-day avg (unusual for a ${dayOfWeek})` });
+        else if (z > 2.5) results.push({ color: "#00d4aa", message: `🚀 Revenue yesterday was ${fmt(revY, "currency")} — ${Math.round(((revY - mean) / mean) * 100)}% above 30-day avg! Best ${dayOfWeek} in a month.` });
       }
     }
-
-    // Sessions anomaly — primary analytics provider only
-    if (primaryAnAnom) {
-      const sessValues = dailyValues(primaryAnAnom, "sessions");
-      const sessYday   = yesterday(primaryAnAnom, "sessions");
-      const { mean, std } = stats(sessValues);
-      if (mean > 0 && std > 0 && sessYday > 0) {
-        const zScore = (sessYday - mean) / std;
-        if (zScore < -2) {
-          const dropPct = Math.round(((mean - sessYday) / mean) * 100);
-          results.push({
-            color: "#f59e0b",
-            message: `👻 Traffic dropped ${dropPct}% yesterday (${fmt(sessYday)} sessions vs ${fmt(Math.round(mean))} avg). Check for indexing or ad issues.`,
-          });
-        }
+    if (pA) {
+      const { mean, std } = stats(dailyValues(pA, "sessions")); const sY = yday(pA, "sessions");
+      if (mean > 0 && std > 0 && sY > 0 && (sY - mean) / std < -2) results.push({ color: "#f59e0b", message: `👻 Traffic dropped ${Math.round(((mean - sY) / mean) * 100)}% yesterday. Check indexing or ads.` });
+      const { mean: bm, std: bs } = stats(dailyValues(pA, "bounceRate")); const bY = yday(pA, "bounceRate");
+      if (bm > 0 && bs > 0 && bY > 0 && (bY - bm) / bs > 2) results.push({ color: "#f59e0b", message: `⚠ Bounce rate spiked to ${fmt(bY, "percent")} yesterday — ${Math.round(bY - bm)}pp above 30-day avg.` });
+    }
+    if (cAdA.length > 0) {
+      const dayMap: Record<string, number> = {};
+      for (const s of effectiveSnapshots) { if (!cAdA.includes(s.provider) || s.date >= yesterdayStr) continue; const v = (s.data as Record<string, number>).spend ?? 0; dayMap[s.date] = (dayMap[s.date] ?? 0) + v; }
+      const vals = Object.values(dayMap).filter((v) => v > 0).slice(-30);
+      const spY = cAdA.reduce((sum, p) => { const s = effectiveSnapshots.find((x) => x.provider === p && x.date === yesterdayStr); return sum + ((s?.data as Record<string, number>)?.spend ?? 0); }, 0);
+      const { mean, std } = stats(vals);
+      if (mean > 0 && std > 0 && spY > 0 && (spY - mean) / std > 2) {
+        const note = cAdA.length > 1 ? `across ${cAdA.join(" + ")}` : `on ${cAdA[0]}`;
+        results.push({ color: "#1877f2", message: `💸 Ad spend was ${Math.round(((spY - mean) / mean) * 100)}% above avg yesterday (${note}).` });
       }
     }
-
-    // Bounce rate spike — primary analytics provider only
-    if (primaryAnAnom) {
-      const bounceValues = dailyValues(primaryAnAnom, "bounceRate");
-      const bounceYday   = yesterday(primaryAnAnom, "bounceRate");
-      const { mean, std } = stats(bounceValues);
-      if (mean > 0 && std > 0 && bounceYday > 0) {
-        const zScore = (bounceYday - mean) / std;
-        if (zScore > 2) {
-          results.push({
-            color: "#f59e0b",
-            message: `⚠ Bounce rate spiked to ${fmt(bounceYday, "percent")} yesterday — ${Math.round(bounceYday - mean)}pp above your 30-day average. Something may have broken.`,
-          });
-        }
-      }
-    }
-
-    // Ad spend anomaly — sum across all ad platforms
-    if (connAdsAnom.length > 0) {
-      const daySpendMap: Record<string, number> = {};
-      for (const s of effectiveSnapshots) {
-        if (!connAdsAnom.includes(s.provider) || s.date >= yesterdayStr) continue;
-        const v = (s.data as Record<string, number>).spend ?? 0;
-        daySpendMap[s.date] = (daySpendMap[s.date] ?? 0) + v;
-      }
-      const spendValues = Object.values(daySpendMap).filter((v) => v > 0).slice(-30);
-      const spendYday = connAdsAnom.reduce((sum, p) => {
-        const snap = effectiveSnapshots.find((s) => s.provider === p && s.date === yesterdayStr);
-        return sum + ((snap?.data as Record<string, number>)?.spend ?? 0);
-      }, 0);
-      const { mean, std } = stats(spendValues);
-      if (mean > 0 && std > 0 && spendYday > 0) {
-        const zScore = (spendYday - mean) / std;
-        if (zScore > 2) {
-          const pct = Math.round(((spendYday - mean) / mean) * 100);
-          const platformNote = connAdsAnom.length > 1 ? `across ${connAdsAnom.join(" + ")}` : `on ${connAdsAnom[0]}`;
-          results.push({
-            color: "#1877f2",
-            message: `💸 Ad spend was ${pct}% above average yesterday (${platformNote}). Check your campaigns for runaway spend.`,
-          });
-        }
-      }
-    }
-
     return results;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveSnapshots, effectivePlatforms, isPremium]);
 
-  // Push triggered alerts + anomalies to the in-app notification bell (once per session)
   const pushedAlertsRef = useRef<Set<string>>(new Set());
   useEffect(() => {
-    for (const alert of [...activeAlerts, ...anomalies]) {
-      if (!pushedAlertsRef.current.has(alert.message)) {
-        pushedAlertsRef.current.add(alert.message);
-        pushNotification(alert.message, alert.color);
-      }
+    for (const a of [...activeAlerts, ...anomalies]) {
+      if (!pushedAlertsRef.current.has(a.message)) { pushedAlertsRef.current.add(a.message); pushNotification(a.message, a.color); }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeAlerts.map((a) => a.message).join("|"), anomalies.map((a) => a.message).join("|")]);
 
   const firstName = email.split("@")[0].split(/[._-]/)[0];
   const capitalFirst = firstName.charAt(0).toUpperCase() + firstName.slice(1);
+  const allAlerts = [...activeAlerts.map((a) => ({ ...a, auto: false })), ...anomalies.map((a) => ({ ...a, auto: true }))];
+
+  // ── RENDER ────────────────────────────────────────────────────────────
 
   return (
-    <div className="w-full space-y-5 sm:space-y-8">
+    <div className="w-full space-y-0">
 
-      {/* ── Greeting / contextual banner ─────────────────────── */}
-      <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/50 px-4 py-3 sm:px-5 sm:py-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <h1 className="font-mono text-lg sm:text-xl font-bold text-[#f8f8fc]">
-              {greetingTime()}, {capitalFirst}
-            </h1>
-            <p className="mt-0.5 font-mono text-[11px] text-[#8585aa]">{formatDate()}</p>
-          </div>
-
-          {/* Today at a glance — pill row */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            {glanceSignals.length > 0 ? (
-              <>
-                <span className="font-mono text-[9px] uppercase tracking-widest text-[#7575a0] mr-0.5 hidden sm:inline">Today</span>
-                {glanceSignals.map((s, i) => (
-                  <span
-                    key={i}
-                    className="inline-flex items-center rounded-full border px-2.5 py-1 font-mono text-[10px] font-semibold"
-                    style={{ borderColor: s.color + "35", color: s.color, backgroundColor: s.color + "10" }}
-                  >
-                    {s.label}
-                  </span>
-                ))}
-              </>
-            ) : isPremium ? (
-              <div className="inline-flex items-center gap-2 rounded-full border border-[#00d4aa]/30 bg-[#00d4aa]/8 px-3 py-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#00d4aa] animate-pulse" />
-                <span className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#00d4aa]">
-                  Premium Active
-                </span>
-              </div>
-            ) : (
-              <button
-                onClick={handleUpgrade}
-                disabled={upgradeLoading}
-                className="inline-flex items-center gap-2 rounded-full border border-[#00d4aa]/25 bg-[#00d4aa]/5 px-4 py-1.5 font-mono text-[10px] font-semibold text-[#00d4aa] hover:bg-[#00d4aa]/10 transition disabled:opacity-50"
-              >
-                Upgrade to Premium
-              </button>
-            )}
-          </div>
+      {/* ═══════════════════════════════════════════════════════
+          PULSE BAR — slim inline status line, no card
+      ═══════════════════════════════════════════════════════ */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pb-5">
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-[11px] text-[#3a3a5a]">{formatDate()}</span>
+          <span className="text-[#2a2a3e]">·</span>
+          <span className="font-mono text-[11px] font-semibold text-[#7070a0]">{greetingTime()}, {capitalFirst}</span>
+        </div>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {glanceSignals.map((s, i) => (
+            <span key={i} className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 font-mono text-[9px] font-bold border"
+              style={{ color: s.color, borderColor: s.color + "30", backgroundColor: s.color + "0c" }}>
+              <span className="h-1 w-1 rounded-full" style={{ backgroundColor: s.color }} />
+              {s.label}
+            </span>
+          ))}
+          {!isPremium && (
+            <button onClick={handleUpgrade} disabled={upgradeLoading}
+              className="inline-flex items-center gap-1 rounded-full border border-[#00d4aa]/25 bg-[#00d4aa]/8 px-2.5 py-0.5 font-mono text-[9px] font-bold text-[#00d4aa] hover:bg-[#00d4aa]/15 transition disabled:opacity-50">
+              {upgradeLoading ? "…" : "↑ Upgrade"}
+            </button>
+          )}
         </div>
       </div>
 
-      {upgradeError && <p className="font-mono text-xs text-red-400">{upgradeError}</p>}
+      {upgradeError && <p className="font-mono text-xs text-red-400 pb-4">{upgradeError}</p>}
 
-      {/* ── Demo mode banner ──────────────────────────────────── */}
-      {isDemoMode && (
-        <div className="flex items-start gap-3 rounded-2xl border border-[#a78bfa]/25 bg-[#a78bfa]/8 px-5 py-4">
-          <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#a78bfa]/15 text-[#a78bfa]">
-            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-            </svg>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#a78bfa] mb-0.5">Demo Mode</p>
-            <p className="font-mono text-[11px] text-[#e0e0f0]">
-              You&apos;re viewing sample data for a fictional SaaS business. Connect Stripe, GA4, or Meta Ads in Settings to see your real metrics.
-            </p>
-          </div>
-          <button
-            onClick={() => onNavigate("settings")}
-            className="shrink-0 font-mono text-[10px] font-semibold text-[#a78bfa] hover:underline"
-          >
-            Connect →
-          </button>
-        </div>
-      )}
-
-      {/* ── Onboarding wizard — shown when no platforms connected ── */}
+      {/* ═══════════════════════════════════════════════════════
+          ONBOARDING — show only when no platforms connected
+      ═══════════════════════════════════════════════════════ */}
       {!isDemoMode && connectedPlatforms.length === 0 && (
-        <OnboardingWizard onNavigate={onNavigate} />
-      )}
-
-      {/* ── Yesterday at a glance ─────────────────────────────── */}
-      {isPremium && narrative.hasData && (
-        <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 px-5 py-4">
-          <div className="flex items-start gap-3">
-            <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#00d4aa]/10 text-[#00d4aa]">
-              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
-              </svg>
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <p className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#00d4aa]">Yesterday</p>
-                <span className="font-mono text-[9px] text-[#7575a0]">
-                  {new Date(narrative.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
-                </span>
-              </div>
-              <p className="font-mono text-sm text-[#e0e0f0] leading-relaxed">{narrative.text}</p>
-              {narrative.bounceAlert && (
-                <div className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-amber-500/20 bg-amber-500/8 px-2.5 py-1">
-                  <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="#f59e0b" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                  </svg>
-                  <span className="font-mono text-[10px] font-semibold text-amber-400">
-                    Bounce rate {fmt(narrative.bounceRate, "percent")} — high, consider checking landing pages
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
+        <div className="mb-6">
+          <OnboardingWizard onNavigate={onNavigate} connectedPlatforms={connectedPlatforms} />
         </div>
       )}
 
-      {/* ── Free-plan: data-sync awareness banner ────────────── */}
+      {/* ═══════════════════════════════════════════════════════
+          DEMO / FREE PLAN BANNERS
+      ═══════════════════════════════════════════════════════ */}
+      {isDemoMode && (
+        <div className="mb-5 flex items-center gap-3 rounded-2xl border border-[#a78bfa]/15 bg-[#a78bfa]/4 px-4 py-3">
+          <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#a78bfa]">Demo</span>
+          <span className="text-[#d0d0e8]">·</span>
+          <p className="flex-1 font-mono text-[11px] text-[#6070a0]">Viewing sample data. Connect real integrations to see live metrics.</p>
+          <button onClick={() => onNavigate("settings")} className="font-mono text-[10px] font-bold text-[#a78bfa] hover:underline shrink-0">Connect →</button>
+        </div>
+      )}
       {!isPremium && (
-        <div className="flex items-start gap-4 rounded-2xl border border-[#a78bfa]/25 bg-[#a78bfa]/8 px-5 py-4">
-          <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#a78bfa]/15 text-[#a78bfa]">
-            <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-            </svg>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#a78bfa] mb-1">Data syncing in progress</p>
-            <p className="font-mono text-[11px] text-[#e0e0f0] leading-relaxed">
-              Your dashboard will populate automatically as each integration syncs. First-time data collection can take up to <span className="text-[#f8f8fc] font-semibold">24 hours</span> — check back soon and your KPIs, trends, and insights will appear here.
-            </p>
-            <p className="mt-2 font-mono text-[10px] text-[#8585aa]">
-              No action needed · syncing happens in the background
-            </p>
-          </div>
-          <button
-            onClick={handleUpgrade}
-            disabled={upgradeLoading}
-            className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-[#a78bfa] px-3 py-1.5 font-mono text-[10px] font-bold text-[#252531] hover:bg-[#9168f0] transition disabled:opacity-50"
-          >
-            {upgradeLoading ? "…" : "Upgrade →"}
-          </button>
+        <div className="mb-5 flex items-center gap-3 rounded-2xl border border-[#635bff]/15 bg-[#635bff]/4 px-4 py-3">
+          <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#635bff]">Syncing</span>
+          <span className="text-[#d0d0e8]">·</span>
+          <p className="flex-1 font-mono text-[11px] text-[#6070a0]">First sync takes up to 24 hours. No action needed.</p>
+          <button onClick={handleUpgrade} disabled={upgradeLoading} className="font-mono text-[10px] font-bold text-[#635bff] hover:underline shrink-0 disabled:opacity-50">{upgradeLoading ? "…" : "Upgrade →"}</button>
         </div>
       )}
 
-      {/* ── Insights & alerts (premium only) ─────────────────── */}
-
-      {/* ── Active alert banners ──────────────────────────── */}
-      {isPremium && activeAlerts.length > 0 && (
-        <div className="space-y-2">
-          {activeAlerts.map((alert, i) => (
-            <div key={i} className="flex items-center gap-3 rounded-xl border px-4 py-3" style={{ borderColor: alert.color + "35", backgroundColor: alert.color + "0d" }}>
-              <p className="flex-1 font-mono text-[11px]" style={{ color: alert.color }}>{alert.message}</p>
-              <button
-                onClick={() => onNavigate("settings")}
-                className="shrink-0 font-mono text-[10px] hover:underline"
-                style={{ color: alert.color }}
-              >
-                Adjust →
-              </button>
+      {/* ═══════════════════════════════════════════════════════
+          ALERTS RAIL — compact top-of-page alert strip
+      ═══════════════════════════════════════════════════════ */}
+      {isPremium && allAlerts.length > 0 && (
+        <div className="mb-5 space-y-1.5">
+          {allAlerts.map((a, i) => (
+            <div key={i} className="flex items-center gap-3 rounded-xl border px-4 py-2.5"
+              style={{ borderColor: a.color + "20", backgroundColor: a.color + "06" }}>
+              <span className="font-mono text-[10px]" style={{ color: a.color }}>●</span>
+              <p className="flex-1 font-mono text-[11px] leading-relaxed" style={{ color: a.color }}>{a.message}</p>
+              {a.auto && <span className="font-mono text-[8px] text-[#eaeaf5] shrink-0">AI</span>}
+              <button onClick={() => onNavigate("settings")} className="font-mono text-[9px] font-bold hover:underline shrink-0" style={{ color: a.color }}>Fix →</button>
             </div>
           ))}
         </div>
       )}
 
-      {/* ── Statistical anomaly banners (auto-detected) ───── */}
-      {isPremium && anomalies.length > 0 && (
-        <div className="space-y-2">
-          {anomalies.map((a, i) => (
-            <div key={i} className="flex items-start gap-3 rounded-xl border px-4 py-3" style={{ borderColor: a.color + "35", backgroundColor: a.color + "0d" }}>
-              <div className="mt-0.5 shrink-0 flex h-5 w-5 items-center justify-center rounded-full" style={{ backgroundColor: a.color + "20", color: a.color }}>
-                <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M13 10V3L4 14h7v7l9-11h-7z" />
+      {/* ═══════════════════════════════════════════════════════
+          MAIN METRICS LAYOUT
+          Left (55%): Featured revenue panel
+          Right (45%): 2×2 compact stat grid
+      ═══════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-1 lg:grid-cols-11 gap-3 mb-3">
+
+        {/* ── Featured Revenue Panel ── */}
+        <div className="lg:col-span-5 relative overflow-hidden rounded-2xl bg-[#ffffff] border border-black/8 p-6 flex flex-col justify-between min-h-50">
+          {/* Background sparkline overlay */}
+          {kpis.revenue.spark.length > 1 && (
+            <div className="absolute inset-0 opacity-100 pointer-events-none">
+              <BgSparkline data={kpis.revenue.spark} color="#635bff" />
+            </div>
+          )}
+          {/* Purple glow top-right */}
+          <div className="pointer-events-none absolute -top-12 -right-12 h-40 w-40 rounded-full bg-[#635bff]/12 blur-3xl" />
+
+          <div className="relative">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-[#635bff]/15">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#635bff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
                 </svg>
               </div>
-              <p className="flex-1 font-mono text-[11px] leading-relaxed" style={{ color: a.color }}>{a.message}</p>
-              <span className="shrink-0 font-mono text-[9px] text-[#7575a0] whitespace-nowrap">Auto-detected</span>
+              <span className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#4a4a6a]">Revenue · 7 days</span>
             </div>
-          ))}
-        </div>
-      )}
 
-      {/* ── Cross-insights (website + analytics) ──────────────── */}
-      {isPremium && crossInsights.length > 0 && (
-        <div className="space-y-2">
-          {crossInsights.slice(0, 1).map((ci, i) => (
-            <div key={i} className="flex items-start gap-3 rounded-2xl border px-5 py-3.5" style={{ borderColor: ci.color + "30", backgroundColor: ci.color + "08" }}>
-              <span className="mt-0.5 font-mono text-sm shrink-0" style={{ color: ci.color }}>{ci.icon}</span>
-              <p className="flex-1 font-mono text-[11px] text-[#e0e0f0] leading-relaxed">{ci.message}</p>
-              <button
-                onClick={() => onNavigate("analytics")}
-                className="shrink-0 font-mono text-[10px] font-semibold hover:underline"
-                style={{ color: ci.color }}
-              >
-                {ci.action}
-              </button>
+            {kpis.revenue.value ? (
+              <>
+                <p className="font-mono text-[44px] sm:text-[52px] font-bold text-[#1a1a2e] leading-none tabular-nums mb-3">
+                  {kpis.revenue.value}
+                </p>
+                <div className="flex items-center gap-3 flex-wrap">
+                  {kpis.revenue.trend && <TrendBadge current={kpis.revenue.trend.current} prev={kpis.revenue.trend.prev} />}
+                  <span className="font-mono text-[10px] text-[#3a3a5a]">vs prev 7 days</span>
+                </div>
+              </>
+            ) : (
+              <div>
+                <p className="font-mono text-[52px] font-bold text-[#1a1a2e] leading-none mb-3">—</p>
+                <a href="/dashboard?tab=settings" className="inline-flex items-center gap-2 rounded-xl border border-[#635bff]/20 bg-[#635bff]/8 px-4 py-2 font-mono text-[11px] font-semibold text-[#635bff] hover:bg-[#635bff]/14 transition">
+                  Connect Stripe →
+                </a>
+              </div>
+            )}
+          </div>
+
+          {/* Month-to-date footnote */}
+          {revenueMonth > 0 && (
+            <div className="relative mt-4 pt-4 border-t border-black/6">
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-[9px] text-[#3a3a5a] uppercase tracking-widest">Month to date</span>
+                <span className="font-mono text-[12px] font-bold text-[#7070a0] tabular-nums">
+                  {fmt(revenueMonth, "currency", primaryRevCurrency)}
+                </span>
+              </div>
             </div>
-          ))}
+          )}
         </div>
-      )}
 
-      {/* ── KPI Grid ─────────────────────────────────────────── */}
-      <section>
-        <div className="flex items-center gap-2 mb-3 sm:mb-4">
-          <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Last 7 days</p>
-          <span className="font-mono text-[8px] text-[#7575a0] border border-[#363650] rounded px-1.5 py-0.5 hidden sm:inline">▲▼ vs prev 7 days</span>
-          <div className="flex-1 border-t border-[#363650]" />
-          <button
-            onClick={() => onNavigate("analytics")}
-            className="font-mono text-[9px] text-[#8585aa] hover:text-[#00d4aa] transition"
-          >
-            Full analytics →
-          </button>
-        </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {kpis.map((k) => (
-            <KpiCard
-              key={k.label}
-              label={k.label}
-              value={k.value}
-              sub={k.sub}
-              trend={k.trend}
-              icon={k.icon}
-              sparkData={k.sparkData}
-              connectLabel={k.connectLabel}
-              connectHref={k.connectHref}
-            />
-          ))}
-        </div>
-      </section>
+        {/* ── Right: 2×2 compact stat panels ── */}
+        <div className="lg:col-span-6 grid grid-cols-2 gap-3">
 
-      {/* ── Revenue Over Time Chart ───────────────────────────── */}
-      {connectedIn(effectivePlatforms, REVENUE_PROVIDERS).length > 0 && (
-        <RevenueOverTimeChart
-          snapshots={effectiveSnapshots}
-          connectedRevenueProviders={connectedIn(effectivePlatforms, REVENUE_PROVIDERS)}
-          currency={primaryRevCurrency}
-          onNavigate={onNavigate}
-        />
-      )}
+          {/* Sessions */}
+          <div className="rounded-2xl bg-[#ffffff] border border-black/8 p-4 flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-3">
+              <span className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#4a4a6a]">Sessions</span>
+              <div className="flex h-5 w-5 items-center justify-center rounded-lg bg-[#f59e0b]/10">
+                <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="#f59e0b" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" />
+                  <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
+                </svg>
+              </div>
+            </div>
+            {kpis.sessions.value ? (
+              <>
+                <p className="font-mono text-3xl font-bold text-[#1a1a2e] tabular-nums leading-none mb-2">{kpis.sessions.value}</p>
+                <div className="flex items-center justify-between">
+                  {kpis.sessions.trend && <TrendBadge current={kpis.sessions.trend.current} prev={kpis.sessions.trend.prev} size="sm" />}
+                  {kpis.sessions.spark.length > 1 && <Sparkline data={kpis.sessions.spark} color="#f59e0b" width={64} height={22} />}
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="font-mono text-3xl font-bold text-[#1a1a2e] leading-none mb-2">—</p>
+                <a href="/dashboard?tab=settings" className="font-mono text-[9px] text-[#4a4a6a] hover:text-[#f59e0b] transition">+ Connect GA4</a>
+              </>
+            )}
+          </div>
 
-      {/* ── Bottom grid: Quick Actions + Activity ─ */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {/* Ad Spend */}
+          <div className="rounded-2xl bg-[#ffffff] border border-black/8 p-4 flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-3">
+              <span className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#4a4a6a]">Ad Spend</span>
+              <div className="flex h-5 w-5 items-center justify-center rounded-lg bg-[#1877f2]/10">
+                <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="#1877f2" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                </svg>
+              </div>
+            </div>
+            {kpis.adSpend.value ? (
+              <>
+                <p className="font-mono text-3xl font-bold text-[#1a1a2e] tabular-nums leading-none mb-2">{kpis.adSpend.value}</p>
+                <div className="flex items-center justify-between">
+                  {kpis.adSpend.trend && <TrendBadge current={kpis.adSpend.trend.current} prev={kpis.adSpend.trend.prev} size="sm" />}
+                  {kpis.adSpend.spark.length > 1 && <Sparkline data={kpis.adSpend.spark} color="#1877f2" width={64} height={22} />}
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="font-mono text-3xl font-bold text-[#1a1a2e] leading-none mb-2">—</p>
+                <a href="/dashboard?tab=settings" className="font-mono text-[9px] text-[#4a4a6a] hover:text-[#1877f2] transition">+ Connect Meta Ads</a>
+              </>
+            )}
+          </div>
 
-        {/* Quick Actions */}
-        <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/70 p-4 sm:p-5">
-          <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa] mb-3">Quick Actions</p>
-          <div className="space-y-2">
-              <GoalsWidget
-                revenueMonth={revenueMonth}
-                sessionsMonth={sessionsMonth}
-                stripeConn={connectedIn(effectivePlatforms, REVENUE_PROVIDERS).length > 0}
-                ga4Conn={connectedIn(effectivePlatforms, ANALYTICS_PROVIDERS).length > 0}
-                currency={primaryRevCurrency}
-              />
-              <button
-                onClick={() => onNavigate("analytics")}
-                className="w-full flex items-center gap-3 rounded-xl border border-[#363650] bg-[#343447] px-3 py-2.5 text-left transition hover:border-[#00d4aa]/25 hover:bg-[#0f1420] group"
-              >
-                <span className="text-[#8585aa] group-hover:text-[#00d4aa] transition">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="18" y1="20" x2="18" y2="10" />
-                    <line x1="12" y1="20" x2="12" y2="4" />
-                    <line x1="6" y1="20" x2="6" y2="14" />
-                  </svg>
-                </span>
-                <span className="font-mono text-[11px] font-semibold text-[#e0e0f0] group-hover:text-[#f8f8fc]">
-                  View analytics
-                </span>
-              </button>
-              <button
-                onClick={() => onNavigate("settings")}
-                className="w-full flex items-center gap-3 rounded-xl border border-[#363650] bg-[#343447] px-3 py-2.5 text-left transition hover:border-[#00d4aa]/25 hover:bg-[#0f1420] group"
-              >
-                <span className="text-[#8585aa] group-hover:text-[#00d4aa] transition">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
-                    <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
-                  </svg>
-                </span>
-                <span className="font-mono text-[11px] font-semibold text-[#e0e0f0] group-hover:text-[#f8f8fc]">
-                  Manage integrations
-                </span>
-              </button>
-              {!isPremium && (
-                <button
-                  onClick={handleUpgrade}
-                  disabled={upgradeLoading}
-                  className="w-full flex items-center gap-3 rounded-xl border border-[#00d4aa]/20 bg-[#00d4aa]/5 px-3 py-2.5 text-left transition hover:bg-[#00d4aa]/10 group disabled:opacity-50"
-                >
-                  <span className="text-[#00d4aa]">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
-                      <polyline points="17 6 23 6 23 12" />
-                    </svg>
-                  </span>
-                  <span className="font-mono text-[11px] font-semibold text-[#00d4aa]">
-                    Upgrade to Premium
-                  </span>
-                </button>
+          {/* New Customers */}
+          <div className="rounded-2xl bg-[#ffffff] border border-black/8 p-4 flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-3">
+              <span className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#4a4a6a]">New Customers</span>
+              <div className="flex h-5 w-5 items-center justify-center rounded-lg bg-[#00d4aa]/10">
+                <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="#00d4aa" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" />
+                  <line x1="19" y1="8" x2="19" y2="14" /><line x1="22" y1="11" x2="16" y2="11" />
+                </svg>
+              </div>
+            </div>
+            {kpis.customers.value ? (
+              <>
+                <p className="font-mono text-3xl font-bold text-[#1a1a2e] tabular-nums leading-none mb-2">{kpis.customers.value}</p>
+                <div className="flex items-center justify-between">
+                  {kpis.customers.trend && <TrendBadge current={kpis.customers.trend.current} prev={kpis.customers.trend.prev} size="sm" />}
+                  {kpis.customers.spark.length > 1 && <Sparkline data={kpis.customers.spark} color="#00d4aa" width={64} height={22} />}
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="font-mono text-3xl font-bold text-[#1a1a2e] leading-none mb-2">—</p>
+                <a href="/dashboard?tab=settings" className="font-mono text-[9px] text-[#4a4a6a] hover:text-[#00d4aa] transition">+ Connect Stripe</a>
+              </>
+            )}
+          </div>
+
+          {/* CAC + Bounce stacked */}
+          <div className="rounded-2xl bg-[#ffffff] border border-black/8 p-4 flex flex-col gap-0 justify-between">
+            {/* CAC */}
+            <div className="pb-3 border-b border-black/8">
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#4a4a6a]">CAC</span>
+              </div>
+              {kpis.cac.value ? (
+                <p className="font-mono text-xl font-bold text-[#1a1a2e] tabular-nums">{kpis.cac.value}</p>
+              ) : (
+                <p className="font-mono text-xl font-bold text-[#1a1a2e]">—</p>
+              )}
+            </div>
+            {/* Bounce Rate */}
+            <div className="pt-3">
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#4a4a6a]">Bounce</span>
+              </div>
+              {kpis.bounce.value ? (
+                <p className={`font-mono text-xl font-bold tabular-nums ${parseFloat(kpis.bounce.value) > 65 ? "text-amber-400" : "text-[#1a1a2e]"}`}>
+                  {kpis.bounce.value}
+                </p>
+              ) : (
+                <p className="font-mono text-xl font-bold text-[#1a1a2e]">—</p>
               )}
             </div>
           </div>
 
-          {/* Recent Activity / Onboarding Stepper */}
-          <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/70 p-4 sm:p-5">
-            <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa] mb-4">Setup Progress</p>
-            {activity.length > 0 ? (
-              <div className="space-y-3">
-                {activity.map((a, i) => (
-                  <div key={i} className="flex items-start gap-2.5">
-                    <div
-                      className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-lg"
-                      style={{ backgroundColor: a.color + "18", color: a.color }}
-                    >
-                      {a.type === "task" ? (
-                        <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                        </svg>
-                      ) : (
-                        <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-mono text-[11px] text-[#e0e0f0] leading-snug">{a.label}</p>
-                      <p className="font-mono text-[9px] text-[#8585aa] mt-0.5">{a.time}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              /* Vertical stepper — shows integration setup progress */
-              <div className="space-y-1">
-                {LIVE_INTEGRATIONS.slice(0, 4).map((intg, i, arr) => {
-                  const done = connectedPlatforms.includes(intg.id);
-                  return (
-                    <div key={intg.id} className="flex items-start gap-3">
-                      {/* Step track */}
-                      <div className="flex flex-col items-center gap-0 shrink-0" style={{ width: 24 }}>
-                        <div
-                          className={`flex h-6 w-6 items-center justify-center rounded-full border-2 transition-colors ${
-                            done
-                              ? "border-[#00d4aa] bg-[#00d4aa]/15"
-                              : "border-[#363650] bg-[#252531]"
-                          }`}
-                        >
-                          {done ? (
-                            <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="#00d4aa" strokeWidth={3}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                            </svg>
-                          ) : (
-                            <span className="font-mono text-[9px] font-bold text-[#7575a0]">{i + 1}</span>
-                          )}
-                        </div>
-                        {i < arr.length - 1 && (
-                          <div className={`w-0.5 flex-1 mt-0.5 rounded-full ${done ? "bg-[#00d4aa]/30" : "bg-[#363650]"}`} style={{ minHeight: 14 }} />
-                        )}
-                      </div>
-                      {/* Step content */}
-                      <div className="pb-3 flex-1 flex items-center justify-between gap-2 min-w-0">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div
-                            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md"
-                            style={{ backgroundColor: `${intg.color}18` }}
-                          >
-                            <img src={intg.icon} alt={intg.name} width={14} height={14} className="object-contain" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className={`font-mono text-[11px] font-semibold leading-tight ${done ? "text-[#bcbcd8]" : "text-[#e0e0f0]"}`}>
-                              {intg.name}
-                            </p>
-                            <p className="font-mono text-[9px] text-[#7575a0] truncate">{intg.description}</p>
-                          </div>
-                        </div>
-                        {done ? (
-                          <span className="shrink-0 font-mono text-[9px] font-semibold text-[#00d4aa]">Connected ✓</span>
-                        ) : (
-                          <a
-                            href={intg.connectUrl!}
-                            className="shrink-0 inline-flex items-center gap-1 rounded-lg border border-[#363650] bg-[#343447] px-2 py-1 font-mono text-[9px] font-semibold text-[#8585aa] hover:border-[#00d4aa]/30 hover:text-[#00d4aa] transition-all"
-                          >
-                            Connect →
-                          </a>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-                <div className="pt-1">
-                  <button
-                    onClick={() => onNavigate("settings")}
-                    className="font-mono text-[10px] text-[#8585aa] hover:text-[#00d4aa] transition"
-                  >
-                    View all integrations →
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+        </div>
       </div>
 
-      {/* ── Integrations (only if not all connected) ──────────── */}
+      {/* ═══════════════════════════════════════════════════════
+          YESTERDAY NARRATIVE — slim inline callout
+      ═══════════════════════════════════════════════════════ */}
+      {isPremium && narrative.hasData && (
+        <div className="mb-3 flex items-start gap-3 rounded-xl border border-black/6 bg-white px-4 py-3">
+          <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#00d4aa] shrink-0 mt-0.5">Yesterday</span>
+          <p className="flex-1 font-mono text-[11px] text-[#7070a0] leading-relaxed">{narrative.text}</p>
+          {narrative.bounceAlert && (
+            <span className="shrink-0 font-mono text-[9px] font-semibold text-amber-400">⚠ High bounce</span>
+          )}
+        </div>
+      )}
+
+      {/* Cross-insight */}
+      {isPremium && crossInsights.length > 0 && (
+        <div className="mb-3 flex items-center gap-3 rounded-xl border border-[#f87171]/12 bg-[#f87171]/4 px-4 py-2.5">
+          <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#f87171]">Insight</span>
+          <p className="flex-1 font-mono text-[11px] text-[#f87171]/80 leading-relaxed">{crossInsights[0].message}</p>
+          <button onClick={() => onNavigate("analytics")} className="font-mono text-[9px] font-bold text-[#f87171] hover:underline shrink-0">View →</button>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════
+          REVENUE CHART — full bleed, no outer card
+      ═══════════════════════════════════════════════════════ */}
+      {connectedIn(effectivePlatforms, REVENUE_PROVIDERS).length > 0 && (
+        <div className="mb-3 rounded-2xl border border-black/8 bg-[#ffffff] p-5">
+          <RevenueOverTimeChart
+            snapshots={effectiveSnapshots}
+            connectedRevenueProviders={connectedIn(effectivePlatforms, REVENUE_PROVIDERS)}
+            currency={primaryRevCurrency}
+            onNavigate={onNavigate}
+          />
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════
+          BOTTOM TRIPTYCH — 3 equal columns
+          [Goals & Forecast] [Health Signals] [Quick Access]
+      ═══════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+
+        {/* Goals & Forecast */}
+        <div className="rounded-2xl border border-black/8 bg-[#ffffff] p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#4a4a6a]">Goals</span>
+            <button onClick={() => onNavigate("analytics")} className="font-mono text-[9px] text-[#eaeaf5] hover:text-[#00d4aa] transition">Details →</button>
+          </div>
+          <GoalsWidget
+            revenueMonth={revenueMonth} sessionsMonth={sessionsMonth}
+            stripeConn={connectedIn(effectivePlatforms, REVENUE_PROVIDERS).length > 0}
+            ga4Conn={connectedIn(effectivePlatforms, ANALYTICS_PROVIDERS).length > 0}
+            currency={primaryRevCurrency}
+          />
+        </div>
+
+        {/* Health Signals */}
+        <div className="rounded-2xl border border-black/8 bg-[#ffffff] p-4 space-y-1">
+          <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#4a4a6a] block mb-3">Health · 7d</span>
+          <CompactStat label="Sessions" value={kpis.sessions.value} trend={kpis.sessions.trend} spark={kpis.sessions.spark} accent="#f59e0b" connect="Connect GA4" connectHref="/dashboard?tab=settings" />
+          <CompactStat label="Bounce Rate" value={kpis.bounce.value} accent={kpis.bounce.value && parseFloat(kpis.bounce.value) > 65 ? "#f59e0b" : "#00d4aa"} connect="Connect GA4" connectHref="/dashboard?tab=settings" border />
+          <CompactStat label="Ad Spend" value={kpis.adSpend.value} trend={kpis.adSpend.trend} spark={kpis.adSpend.spark} accent="#1877f2" connect="Connect Meta Ads" connectHref="/dashboard?tab=settings" border />
+          <CompactStat label="CAC" value={kpis.cac.value} accent="#f87171" connect="Needs Ads + Revenue" connectHref="/dashboard?tab=settings" border={false} />
+        </div>
+
+        {/* Quick Access */}
+        <div className="rounded-2xl border border-black/8 bg-[#ffffff] p-4 flex flex-col gap-2">
+          <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#4a4a6a] block mb-1">Quick Access</span>
+          {[
+            { label: "Analytics", desc: "Sessions, conversions, funnel", icon: "M3 17l5-5 4 4 9-9", tab: "analytics" as Tab, color: "#f59e0b" },
+            { label: "Integrations", desc: `${connectedPlatforms.length}/${LIVE_INTEGRATIONS.length} connected`, icon: "M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71", tab: "settings" as Tab, color: "#635bff" },
+            { label: "Alerts", desc: allAlerts.length > 0 ? `${allAlerts.length} active alert${allAlerts.length !== 1 ? "s" : ""}` : "No active alerts", icon: "M13 10V3L4 14h7v7l9-11h-7z", tab: "settings" as Tab, color: allAlerts.length > 0 ? "#f87171" : "#3a3a5a" },
+          ].map((item) => (
+            <button key={item.label} onClick={() => onNavigate(item.tab)}
+              className="group flex items-center gap-3 rounded-xl border border-black/6 bg-black/3 px-3 py-2.5 text-left hover:border-black/12 hover:bg-black/6 transition-all">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: item.color + "12" }}>
+                <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke={item.color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d={item.icon} />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-mono text-[11px] font-semibold text-[#5a5a7a] group-hover:text-[#1a1a2e] transition leading-tight">{item.label}</p>
+                <p className="font-mono text-[9px] text-[#eaeaf5] truncate">{item.desc}</p>
+              </div>
+              <svg width="9" height="9" fill="none" viewBox="0 0 24 24" stroke="#eaeaf5" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="shrink-0 group-hover:stroke-[#5050a0] transition">
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
+            </button>
+          ))}
+
+          {!isPremium && (
+            <button onClick={handleUpgrade} disabled={upgradeLoading}
+              className="mt-1 flex items-center justify-center gap-2 rounded-xl border border-[#635bff]/20 bg-[#635bff]/7 px-3 py-2.5 font-mono text-[11px] font-semibold text-[#635bff] hover:bg-[#635bff]/12 transition disabled:opacity-50">
+              {upgradeLoading ? "…" : "↑ Upgrade to Premium"}
+            </button>
+          )}
+        </div>
+
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════
+          INTEGRATION RAIL — thin row at bottom
+      ═══════════════════════════════════════════════════════ */}
       {!hasAllIntegrations && (
-        <section className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/70 p-4 sm:p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Integrations</p>
-              <p className="mt-1 text-sm text-[#bcbcd8]">Connect your tools to unlock real data.</p>
-            </div>
-            <span className="font-mono text-[10px] text-[#8585aa]">
-              {connectedPlatforms.length}/3 connected
+        <div className="rounded-2xl border border-black/6 bg-white px-4 py-3">
+          <div className="flex items-center gap-4 flex-wrap">
+            <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#eaeaf5] shrink-0">
+              {connectedPlatforms.length}/{LIVE_INTEGRATIONS.length} Connected
             </span>
-          </div>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-            {missingIntegrations.map((intg) => (
-              <a
-                key={intg.id}
-                href={intg.connectUrl}
-                className="flex items-center gap-3 rounded-xl border border-[#363650] bg-[#343447] px-4 py-3 transition hover:border-[#00d4aa]/25 hover:bg-[#0f1420] group"
-              >
-                <div
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
-                  style={{ backgroundColor: `${intg.color}18`, color: intg.color }}
-                >
-                  <img
-                    src={intg.icon}
-                    alt={intg.name}
-                    width={16}
-                    height={16}
-                    className="object-contain"
-                  />
-                </div>
-                <div className="min-w-0">
-                  <p className="font-mono text-[11px] font-semibold text-[#e0e0f0] group-hover:text-[#f8f8fc]">
+            <div className="flex items-center gap-2 flex-wrap flex-1">
+              {LIVE_INTEGRATIONS.map((intg) => {
+                const connected = connectedPlatforms.includes(intg.id);
+                return connected ? (
+                  <span key={intg.id} className="inline-flex items-center gap-1.5 rounded-full border border-[#00d4aa]/15 bg-[#00d4aa]/5 px-2.5 py-1 font-mono text-[9px] font-semibold text-[#00d4aa]">
+                    <img src={intg.icon} alt={intg.name} width={10} height={10} className="object-contain" />
                     {intg.name}
-                  </p>
-                  <p className="font-mono text-[9px] text-[#8585aa]">{intg.description}</p>
-                </div>
-                <span className="ml-auto font-mono text-[9px] text-[#8585aa] group-hover:text-[#00d4aa] shrink-0">
-                  Connect →
-                </span>
-              </a>
-            ))}
+                  </span>
+                ) : (
+                  <a key={intg.id} href={intg.connectUrl}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-black/8 bg-black/3 px-2.5 py-1 font-mono text-[9px] font-semibold text-[#3a3a5a] hover:border-black/15 hover:text-[#5a5a7a] transition-all">
+                    <img src={intg.icon} alt={intg.name} width={10} height={10} className="object-contain opacity-40" />
+                    {intg.name} +
+                  </a>
+                );
+              })}
+            </div>
           </div>
-        </section>
+        </div>
       )}
 
     </div>

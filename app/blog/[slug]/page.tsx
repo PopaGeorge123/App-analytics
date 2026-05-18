@@ -310,7 +310,7 @@ function PostBody({ slug }: { slug: string }) {
           <StatRow stats={[
             { value: "5%", label: "Monthly churn", color: "#ef4444" },
             { value: "20mo", label: "Replace full base", color: "#f59e0b" },
-            { value: "30%", label: "From failed payments", color: "#8585aa" },
+            { value: "30%", label: "From failed payments", color: "#6a6a90" },
             { value: "<2%", label: "Top quartile target", color: "#10b981" },
           ]} />
 
@@ -471,10 +471,10 @@ function PostBody({ slug }: { slug: string }) {
           <P>If you have engineering resources, Stripe's webhook system lets you receive real-time events (payment succeeded, subscription cancelled, invoice failed) and store them in your own database for custom analysis.</P>
           <H3>Key webhooks to listen for:</H3>
           <UL>
-            <LI><code className="rounded bg-[#2e2e3c] px-1 text-[#00d4aa]">customer.subscription.created</code> — new subscriber</LI>
-            <LI><code className="rounded bg-[#2e2e3c] px-1 text-[#00d4aa]">customer.subscription.deleted</code> — churn event</LI>
-            <LI><code className="rounded bg-[#2e2e3c] px-1 text-[#00d4aa]">invoice.payment_failed</code> — involuntary churn risk</LI>
-            <LI><code className="rounded bg-[#2e2e3c] px-1 text-[#00d4aa]">customer.subscription.updated</code> — upgrade or downgrade</LI>
+            <LI><code className="rounded bg-[#f0f0f8] px-1 text-[#00d4aa]">customer.subscription.created</code> — new subscriber</LI>
+            <LI><code className="rounded bg-[#f0f0f8] px-1 text-[#00d4aa]">customer.subscription.deleted</code> — churn event</LI>
+            <LI><code className="rounded bg-[#f0f0f8] px-1 text-[#00d4aa]">invoice.payment_failed</code> — involuntary churn risk</LI>
+            <LI><code className="rounded bg-[#f0f0f8] px-1 text-[#00d4aa]">customer.subscription.updated</code> — upgrade or downgrade</LI>
           </UL>
           <P>This approach gives maximum flexibility but requires ongoing maintenance. Not recommended for founders without a dedicated engineering team.</P>
 
@@ -651,11 +651,11 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
   return (
     <main>
       {/* Hero section */}
-      <div className={`bg-linear-to-b ${heroGradient[post.category] ?? heroGradient.guide} border-b border-[#363650]`}>
+      <div className={`bg-linear-to-b ${heroGradient[post.category] ?? heroGradient.guide} border-b border-[#d4d4e8]`}>
         <div className="mx-auto max-w-3xl px-5 py-14">
           {/* Breadcrumb */}
           <div className="mb-6 flex items-center gap-2 font-mono text-[10px] text-[#58588a]">
-            <Link href="/blog" className="hover:text-[#8585aa] transition-colors">← Blog</Link>
+            <Link href="/blog" className="hover:text-[#5a5a7a] transition-colors">← Blog</Link>
             <span>/</span>
             <span
               className="rounded-full px-2 py-0.5"
@@ -666,10 +666,10 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
           </div>
 
           {/* Title */}
-          <h1 className="mb-5 font-mono text-3xl font-bold leading-tight text-[#f8f8fc] sm:text-4xl">
+          <h1 className="mb-5 font-mono text-3xl font-bold leading-tight text-[#1a1a2e] sm:text-4xl">
             {post.title}
           </h1>
-          <p className="mb-8 max-w-2xl font-sans text-[16px] leading-relaxed text-[#8585aa]">
+          <p className="mb-8 max-w-2xl font-sans text-[16px] leading-relaxed text-[#6a6a90]">
             {post.description}
           </p>
 
@@ -682,7 +682,7 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
               style={{ borderColor: color + "60" }}
             />
             <div>
-              <p className="font-mono text-[12px] font-semibold text-[#f8f8fc]">George Popa</p>
+              <p className="font-mono text-[12px] font-semibold text-[#1a1a2e]">George Popa</p>
               <div className="flex items-center gap-3 font-mono text-[10px] text-[#58588a]">
                 <span>
                   {new Date(post.publishedAt).toLocaleDateString("en-US", {
@@ -704,16 +704,16 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
         </article>
 
         {/* Author bio */}
-        <div className="mt-14 flex items-start gap-5 rounded-2xl border border-[#363650] bg-[#2e2e3c] p-6">
+        <div className="mt-14 flex items-start gap-5 rounded-2xl border border-[#d4d4e8] bg-[#f0f0f8] p-6">
           <img
             src="/founder-george-popa.jpg"
             alt="George Popa"
-            className="h-14 w-14 shrink-0 rounded-full border-2 border-[#363650] object-cover"
+            className="h-14 w-14 shrink-0 rounded-full border-2 border-[#d4d4e8] object-cover"
           />
           <div>
-            <p className="mb-1 font-mono text-[13px] font-bold text-[#f8f8fc]">George Popa</p>
+            <p className="mb-1 font-mono text-[13px] font-bold text-[#1a1a2e]">George Popa</p>
             <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-[#00d4aa]">Founder, Fold Analytics</p>
-            <p className="font-sans text-[13px] leading-6 text-[#8585aa]">
+            <p className="font-sans text-[13px] leading-6 text-[#6a6a90]">
               I built Fold after spending hours every week stitching together Stripe, Google Ads, and GA4 in spreadsheets.
               Now I write about analytics, metrics, and what actually moves the needle for bootstrapped founders.
             </p>
@@ -722,8 +722,8 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
 
         {/* Related posts */}
         {related.length > 0 && (
-          <section className="mt-14 border-t border-[#363650] pt-10">
-            <h2 className="mb-6 font-mono text-lg font-bold text-[#f8f8fc]">Continue reading</h2>
+          <section className="mt-14 border-t border-[#d4d4e8] pt-10">
+            <h2 className="mb-6 font-mono text-lg font-bold text-[#1a1a2e]">Continue reading</h2>
             <div className="grid gap-4 sm:grid-cols-3">
               {related.map((r) => {
                 const rc = categoryColor[r.category];
@@ -731,7 +731,7 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
                   <Link
                     key={r.slug}
                     href={`/blog/${r.slug}`}
-                    className="group rounded-xl border border-[#363650] bg-[#2e2e3c] p-5 transition hover:border-[#00d4aa]/30 hover:bg-[#2e2e3c]"
+                    className="group rounded-xl border border-[#d4d4e8] bg-[#f0f0f8] p-5 transition hover:border-[#00d4aa]/30 hover:bg-[#f0f0f8]"
                   >
                     <span
                       className="mb-3 inline-block rounded-full px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-widest"

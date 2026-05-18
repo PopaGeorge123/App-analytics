@@ -54,7 +54,7 @@ function Toggle({
       onClick={() => !disabled && onChange(!checked)}
       disabled={disabled}
       className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 disabled:opacity-50"
-      style={{ backgroundColor: checked ? color : "#2a2a3a" }}
+      style={{ backgroundColor: checked ? color : "#d0d0e8" }}
     >
       <span
         className="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition duration-200"
@@ -100,12 +100,12 @@ function ComingSoonSection() {
   return (
     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
       {SOON_INTEGRATIONS.map((intg) => (
-        <div key={intg.id} className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.02] px-3 py-2.5">
+        <div key={intg.id} className="flex items-center gap-3 rounded-xl border border-black/8 bg-white/[0.02] px-3 py-2.5">
           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: intg.color + "18" }}>
             <img src={intg.icon} alt={intg.name} width={14} height={14} className="object-contain opacity-50" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-[#bcbcd8] truncate">{intg.name}</p>
+            <p className="text-xs font-semibold text-[#4a4a6a] truncate">{intg.name}</p>
             <p className="font-mono text-[9px] text-[#58588a] truncate">{intg.category}</p>
           </div>
           <button
@@ -114,7 +114,7 @@ function ComingSoonSection() {
             className={`shrink-0 font-mono text-[10px] font-semibold px-2.5 py-1 rounded-lg border transition-all ${
               notified[intg.id]
                 ? "border-[#10b981]/30 bg-[#10b981]/10 text-[#10b981] cursor-default"
-                : "border-white/10 text-[#8585aa] hover:border-[#6366f1]/40 hover:text-[#6366f1] hover:bg-[#6366f1]/5"
+                : "border-black/15 text-[#6a6a90] hover:border-[#6366f1]/40 hover:text-[#6366f1] hover:bg-[#6366f1]/5"
             } disabled:opacity-60`}
           >
             {loading === intg.id ? "…" : notified[intg.id] ? (
@@ -198,20 +198,20 @@ function IntegrationRow({
   }
 
   return (
-    <div className="rounded-xl border border-white/[0.06] bg-[#25252c] p-4 transition-all hover:border-white/10">
+    <div className="rounded-xl bg-white ring-1 ring-black/[0.06] p-4 transition-all hover:ring-black/15 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
       <div className="flex items-start justify-between gap-3">
         {/* Left: icon + info */}
         <div className="flex items-start gap-3 min-w-0">
           <div
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg mt-0.5"
-            style={{ backgroundColor: connected ? `${integration.color}18` : "#1e1e28", color: connected ? integration.color : "#58588a" }}
+            style={{ backgroundColor: connected ? `${integration.color}18` : "#f4f4fc", color: connected ? integration.color : "#58588a" }}
           >
             {integration.icon}
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <p
-                className="text-sm font-semibold text-[#f8f8fc] cursor-default"
+                className="text-sm font-semibold text-[#1a1a2e] cursor-default"
                 onMouseEnter={() => !connected && setShowTooltip(true)}
                 onMouseLeave={() => setShowTooltip(false)}
               >
@@ -229,7 +229,7 @@ function IntegrationRow({
                 </span>
               )}
             </div>
-            <p className="text-xs text-[#8585aa] mt-0.5">{integration.description}</p>
+            <p className="text-xs text-[#6a6a90] mt-0.5">{integration.description}</p>
             {/* Tooltip */}
             {showTooltip && !connected && (
               <div className="mt-1.5 rounded-lg border border-[#14b8a6]/20 bg-[#14b8a6]/5 px-2.5 py-1.5">
@@ -248,7 +248,7 @@ function IntegrationRow({
               onClick={handleSync}
               disabled={loading === "sync"}
               title="Sync now"
-              className="flex items-center justify-center h-8 w-8 rounded-lg border border-white/[0.06] text-[#58588a] hover:text-[#14b8a6] hover:border-[#14b8a6]/30 transition-all disabled:opacity-50"
+              className="flex items-center justify-center h-8 w-8 rounded-lg border border-[#eeeef4] text-[#58588a] hover:text-[#14b8a6] hover:border-[#14b8a6]/30 transition-all disabled:opacity-50"
             >
               {loading === "sync" ? (
                 <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
@@ -264,22 +264,22 @@ function IntegrationRow({
             <a
               href={integration.connectUrl}
               onClick={handleConnectClick}
-              className="rounded-lg border border-white/[0.06] bg-[#1f1f21] px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#bcbcd8] transition-all hover:border-[#6366f1]/30 hover:text-[#6366f1]"
+              className="rounded-lg border border-[#eeeef4] bg-[#f5f5f7] px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#4a4a6a] transition-all hover:border-[#6366f1]/30 hover:text-[#6366f1]"
             >
               Switch
             </a>
             {confirmDisconnect ? (
               <div className="flex items-center gap-1">
-                <span className="font-mono text-[10px] text-[#bcbcd8]">Sure?</span>
+                <span className="font-mono text-[10px] text-[#4a4a6a]">Sure?</span>
                 <button onClick={handleDisconnect} disabled={loading === "disconnect"} className="rounded-lg bg-red-500/15 border border-red-500/30 px-2.5 py-1.5 font-mono text-[10px] font-semibold text-red-400 hover:bg-red-500/25 disabled:opacity-50 transition-all">
                   {loading === "disconnect" ? "…" : "Yes"}
                 </button>
-                <button onClick={() => setConfirmDisconnect(false)} className="rounded-lg border border-white/[0.06] px-2.5 py-1.5 font-mono text-[10px] text-[#8585aa] hover:text-[#bcbcd8] transition-all">
+                <button onClick={() => setConfirmDisconnect(false)} className="rounded-lg border border-[#eeeef4] px-2.5 py-1.5 font-mono text-[10px] text-[#6a6a90] hover:text-[#4a4a6a] transition-all">
                   No
                 </button>
               </div>
             ) : (
-              <button onClick={handleDisconnect} className="rounded-lg border border-white/[0.06] bg-[#1f1f21] px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#8585aa] transition-all hover:border-red-500/30 hover:text-red-400">
+              <button onClick={handleDisconnect} className="rounded-lg border border-[#eeeef4] bg-[#f5f5f7] px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#6a6a90] transition-all hover:border-red-500/30 hover:text-red-400">
                 Disconnect
               </button>
             )}
@@ -288,7 +288,7 @@ function IntegrationRow({
           <a
             href={integration.connectUrl}
             onClick={handleConnectClick}
-            className="shrink-0 rounded-xl border border-white/[0.06] bg-[#1f1f21] px-4 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#bcbcd8] transition-all hover:border-[#6366f1]/30 hover:text-[#6366f1]"
+            className="shrink-0 rounded-xl border border-[#eeeef4] bg-[#f5f5f7] px-4 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#4a4a6a] transition-all hover:border-[#6366f1]/30 hover:text-[#6366f1]"
           >
             Connect
           </a>
@@ -302,10 +302,10 @@ function IntegrationRow({
             autoFocus type="text" value={paramValue}
             onChange={(e) => { setParamValue(e.target.value); setError(""); }}
             placeholder={paramConfig.placeholder}
-            className="flex-1 rounded-lg border border-white/[0.06] bg-[#1f1f21] px-3 py-2 font-mono text-xs text-[#f8f8fc] placeholder-[#58588a] outline-none focus:border-[#6366f1]/50 focus:ring-1 focus:ring-[#6366f1]/20"
+            className="flex-1 rounded-lg border border-[#eeeef4] bg-[#f5f5f7] px-3 py-2 font-mono text-xs text-[#1a1a2e] placeholder-[#58588a] outline-none focus:border-[#6366f1]/50 focus:ring-1 focus:ring-[#6366f1]/20"
           />
           <button type="submit" className="rounded-lg border border-[#6366f1]/30 bg-[#6366f1]/10 px-3 py-2 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#6366f1] hover:bg-[#6366f1]/20 transition-all">Go</button>
-          <button type="button" onClick={() => { setShowParamInput(false); setParamValue(""); setError(""); }} className="rounded-lg border border-white/[0.06] px-3 py-2 font-mono text-[10px] font-semibold text-[#8585aa] hover:text-[#bcbcd8] transition-all">Cancel</button>
+          <button type="button" onClick={() => { setShowParamInput(false); setParamValue(""); setError(""); }} className="rounded-lg border border-[#eeeef4] px-3 py-2 font-mono text-[10px] font-semibold text-[#6a6a90] hover:text-[#4a4a6a] transition-all">Cancel</button>
         </form>
       )}
       {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
@@ -442,14 +442,14 @@ function AlertsSection({ email, currencies }: { email: string; currencies: Recor
           const val = rules[row.key] as number;
           const isZero = val === 0;
           return (
-            <div key={row.key} className="rounded-xl border border-white/[0.06] bg-[#25252c] overflow-hidden">
+            <div key={row.key} className="rounded-xl bg-white ring-1 ring-black/[0.06] overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
               <div className="flex items-center gap-3 px-4 py-3">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: `${row.iconColor}15`, color: row.iconColor }}>
                   {row.icon}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-[#e0e0f0]">{row.label}</p>
-                  <p className="font-mono text-[9px] text-[#8585aa]">{row.desc}</p>
+                  <p className="text-xs font-semibold text-[#3a3a58]">{row.label}</p>
+                  <p className="font-mono text-[9px] text-[#6a6a90]">{row.desc}</p>
                 </div>
                 {/* Toggle */}
                 <Toggle
@@ -459,17 +459,17 @@ function AlertsSection({ email, currencies }: { email: string; currencies: Recor
                 />
               </div>
               {isOn && (
-                <div className="border-t border-white/[0.04] px-4 py-3 bg-[#1f1f21]/40 space-y-2">
+                <div className="border-t border-[#eeeef4] px-4 py-3 bg-[#f5f5f7]/40 space-y-2">
                   <div className="flex items-center gap-2">
-                    {row.unitPos === "left" && <span className="font-mono text-[10px] text-[#8585aa] w-8">{row.unit}</span>}
+                    {row.unitPos === "left" && <span className="font-mono text-[10px] text-[#6a6a90] w-8">{row.unit}</span>}
                     <input
                       type="number" min={0} max={row.unit === "%" ? 100 : undefined}
                       placeholder="0"
                       value={val || ""}
                       onChange={(e) => setRules((r) => ({ ...r, [row.key]: parseInt(e.target.value) || 0 }))}
-                      className="w-24 rounded-lg border border-white/[0.06] bg-[#25252c] px-3 py-1.5 font-mono text-xs text-[#f8f8fc] text-right placeholder:text-[#58588a] focus:outline-none focus:border-[#6366f1]/40 focus:ring-1 focus:ring-[#6366f1]/20 transition-colors"
+                      className="w-24 rounded-lg border border-[#e0e0f0] bg-white px-3 py-1.5 font-mono text-xs text-[#1a1a2e] text-right placeholder:text-[#a0a0c0] focus:outline-none focus:border-[#6366f1]/40 focus:ring-1 focus:ring-[#6366f1]/20 transition-colors"
                     />
-                    {row.unitPos === "right" && <span className="font-mono text-[10px] text-[#8585aa]">{row.unit}</span>}
+                    {row.unitPos === "right" && <span className="font-mono text-[10px] text-[#6a6a90]">{row.unit}</span>}
                   </div>
                   {isOn && isZero && (
                     <p className="font-mono text-[10px] text-[#f59e0b] flex items-center gap-1">
@@ -485,7 +485,7 @@ function AlertsSection({ email, currencies }: { email: string; currencies: Recor
         })}
 
         {/* New customer alert */}
-        <div className="rounded-xl border border-white/[0.06] bg-[#25252c] px-4 py-3">
+        <div className="rounded-xl bg-white ring-1 ring-black/[0.06] px-4 py-3">
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#10b981]/10 text-[#10b981]">
               <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -494,8 +494,8 @@ function AlertsSection({ email, currencies }: { email: string; currencies: Recor
               </svg>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-[#e0e0f0]">New customer alert</p>
-              <p className="font-mono text-[9px] text-[#8585aa]">Notify me every time I get a new paying customer</p>
+              <p className="text-xs font-semibold text-[#3a3a58]">New customer alert</p>
+              <p className="font-mono text-[9px] text-[#6a6a90]">Notify me every time I get a new paying customer</p>
             </div>
             <Toggle
               checked={rules.newCustomerAlert}
@@ -510,7 +510,7 @@ function AlertsSection({ email, currencies }: { email: string; currencies: Recor
       <div className="flex items-center gap-3 flex-wrap">
         <button
           onClick={saveRules} disabled={saving}
-          className="rounded-xl bg-[#10b981] px-5 py-2 font-mono text-xs font-bold text-white hover:bg-[#059669] transition disabled:opacity-60"
+          className="rounded-xl bg-[#10b981] px-5 py-2 font-mono text-xs font-bold text-[#1a1a2e] hover:bg-[#059669] transition disabled:opacity-60"
         >
           {saving ? "Saving…" : "Save alerts"}
         </button>
@@ -520,7 +520,7 @@ function AlertsSection({ email, currencies }: { email: string; currencies: Recor
             Saved
           </span>
         )}
-        <button onClick={clearRules} className="font-mono text-[10px] text-[#8585aa] hover:text-red-400 transition ml-auto">
+        <button onClick={clearRules} className="font-mono text-[10px] text-[#6a6a90] hover:text-red-400 transition ml-auto">
           Clear all
         </button>
       </div>
@@ -604,14 +604,14 @@ function ShareSection() {
 
   return (
     <div className="space-y-4">
-      <p className="font-mono text-[10px] text-[#8585aa] leading-relaxed">
+      <p className="font-mono text-[10px] text-[#6a6a90] leading-relaxed">
         Generate a read-only link to share your dashboard snapshot with investors, teammates, or clients. Links expire in 7 days.
       </p>
 
       <button
         onClick={generate}
         disabled={generating || links.length >= 5}
-        className="flex items-center gap-2 rounded-xl bg-[#6366f1] px-4 py-2 font-mono text-xs font-bold text-white hover:bg-[#4f46e5] disabled:opacity-60 transition"
+        className="flex items-center gap-2 rounded-xl bg-[#6366f1] px-4 py-2 font-mono text-xs font-bold text-[#1a1a2e] hover:bg-[#4f46e5] disabled:opacity-60 transition"
       >
         {generating ? (
           <svg className="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>
@@ -634,16 +634,16 @@ function ShareSection() {
       ) : (
         <div className="space-y-2">
           {links.map((link) => (
-            <div key={link.token} className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-[#1f1f21] px-4 py-3">
+            <div key={link.token} className="flex items-center gap-3 rounded-xl border border-[#eeeef4] bg-[#f5f5f7] px-4 py-3">
               <div className="flex-1 min-w-0">
-                <p className="font-mono text-[10px] text-[#e0e0f0] truncate">/share/{link.token}</p>
+                <p className="font-mono text-[10px] text-[#3a3a58] truncate">/share/{link.token}</p>
                 <p className="font-mono text-[9px] text-[#58588a] mt-0.5">
                   {daysLeft(link.expires_at)} · {link.view_count} view{link.view_count !== 1 ? "s" : ""}
                 </p>
               </div>
               <button
                 onClick={() => copy(link.token)}
-                className="flex items-center gap-1 rounded-lg border border-white/[0.08] px-2.5 py-1.5 font-mono text-[9px] text-[#8585aa] hover:text-[#f8f8fc] transition"
+                className="flex items-center gap-1 rounded-lg border border-[#eeeef4] px-2.5 py-1.5 font-mono text-[9px] text-[#6a6a90] hover:text-[#1a1a2e] transition"
               >
                 {copied === link.token ? (
                   <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="#10b981" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
@@ -717,7 +717,7 @@ function DigestSectionInline({ email }: { email: string }) {
     } finally { setSending(false); }
   }
 
-  if (loading) return <div className="h-32 animate-pulse rounded-xl bg-[#25252c]" />;
+  if (loading) return <div className="h-32 animate-pulse rounded-xl bg-[#f0f0f8]" />;
 
   return (
     <div className="space-y-4">
@@ -730,7 +730,7 @@ function DigestSectionInline({ email }: { email: string }) {
           <p className="font-mono text-[10px] font-semibold text-[#93c5fd]">Sample digest preview</p>
         </div>
         <div className="border-t border-[#3b82f6]/10 pt-3 space-y-1">
-          <p className="font-mono text-[10px] text-[#8585aa]">Week of May 5–11, 2026</p>
+          <p className="font-mono text-[10px] text-[#6a6a90]">Week of May 5–11, 2026</p>
           <p className="font-mono text-[11px] text-[#bfdbfe]">Revenue: $20 · Sessions: 52 · Top insight: Fix GA4 tracking</p>
         </div>
         <button className="mt-3 font-mono text-[10px] text-[#3b82f6] hover:text-[#60a5fa] transition-colors">
@@ -739,10 +739,10 @@ function DigestSectionInline({ email }: { email: string }) {
       </div> */}
 
       {/* Toggle */}
-      <div className="flex items-center justify-between rounded-xl border border-white/[0.06] bg-[#25252c] px-4 py-3">
+      <div className="flex items-center justify-between rounded-xl bg-white ring-1 ring-black/[0.06] px-4 py-3">
         <div>
-          <p className="text-xs font-semibold text-[#f8f8fc]">Email digest</p>
-          <p className="mt-0.5 font-mono text-[10px] text-[#8585aa]">
+          <p className="text-xs font-semibold text-[#1a1a2e]">Email digest</p>
+          <p className="mt-0.5 font-mono text-[10px] text-[#6a6a90]">
             {subscribed
               ? digestFrequency === "daily"
                 ? `Delivered every day to ${email}`
@@ -758,8 +758,8 @@ function DigestSectionInline({ email }: { email: string }) {
       {subscribed && (
         <>
           {/* Frequency selector */}
-          <div className="rounded-xl border border-white/[0.06] bg-[#25252c] px-4 py-3 space-y-3">
-            <p className="font-mono text-[10px] uppercase tracking-widest text-[#8585aa]">Frequency</p>
+          <div className="rounded-xl bg-white ring-1 ring-black/[0.06] px-4 py-3 space-y-3">
+            <p className="font-mono text-[10px] uppercase tracking-widest text-[#6a6a90]">Frequency</p>
             <div className="flex gap-2">
               {(["daily", "weekly", "monthly"] as const).map((f) => (
                 <button
@@ -774,7 +774,7 @@ function DigestSectionInline({ email }: { email: string }) {
                   className={`flex-1 rounded-lg px-3 py-2 font-mono text-[11px] font-semibold border transition-all ${
                     digestFrequency === f
                       ? "border-[#3b82f6]/40 bg-[#3b82f6]/10 text-[#3b82f6]"
-                      : "border-white/[0.06] text-[#8585aa] hover:text-[#bcbcd8] hover:border-white/10"
+                      : "border-[#eeeef4] text-[#6a6a90] hover:text-[#4a4a6a] hover:border-black/15"
                   }`}
                 >
                   {f.charAt(0).toUpperCase() + f.slice(1)}
@@ -790,7 +790,7 @@ function DigestSectionInline({ email }: { email: string }) {
                     className={`rounded-lg px-3 py-1.5 font-mono text-[11px] font-semibold transition-all ${
                       digestDay === i
                         ? "bg-[#3b82f6]/15 border border-[#3b82f6]/40 text-[#3b82f6]"
-                        : "border border-white/[0.06] text-[#8585aa] hover:text-[#bcbcd8]"
+                        : "border border-[#eeeef4] text-[#6a6a90] hover:text-[#4a4a6a]"
                     }`}
                   >
                     {label}
@@ -800,7 +800,7 @@ function DigestSectionInline({ email }: { email: string }) {
             )}
             {digestFrequency === "monthly" && (
               <div className="space-y-1.5">
-                <p className="font-mono text-[10px] text-[#8585aa]">Day of month</p>
+                <p className="font-mono text-[10px] text-[#6a6a90]">Day of month</p>
                 <div className="flex gap-1.5 flex-wrap">
                   {Array.from({ length: 28 }, (_, i) => i + 1).map((d) => (
                     <button
@@ -809,7 +809,7 @@ function DigestSectionInline({ email }: { email: string }) {
                       className={`rounded-lg w-8 h-8 font-mono text-[11px] font-semibold transition-all ${
                         digestDay === d
                           ? "bg-[#3b82f6]/15 border border-[#3b82f6]/40 text-[#3b82f6]"
-                          : "border border-white/[0.06] text-[#8585aa] hover:text-[#bcbcd8]"
+                          : "border border-[#eeeef4] text-[#6a6a90] hover:text-[#4a4a6a]"
                       }`}
                     >
                       {d}
@@ -821,13 +821,13 @@ function DigestSectionInline({ email }: { email: string }) {
           </div>
 
           {/* Includes */}
-          <div className="rounded-xl border border-white/[0.06] bg-[#25252c] px-4 py-3">
-            <p className="font-mono text-[10px] uppercase tracking-widest text-[#8585aa] mb-3">Includes</p>
+          <div className="rounded-xl bg-white ring-1 ring-black/[0.06] px-4 py-3">
+            <p className="font-mono text-[10px] uppercase tracking-widest text-[#6a6a90] mb-3">Includes</p>
             <div className="grid grid-cols-2 gap-y-1.5 gap-x-4">
               {["Revenue highlights", "Anomaly alerts", "Cross-platform insights", "Top action for the week"].map((item) => (
                 <div key={item} className="flex items-center gap-1.5">
                   <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="#10b981" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                  <p className="font-mono text-[10px] text-[#bcbcd8]">{item}</p>
+                  <p className="font-mono text-[10px] text-[#4a4a6a]">{item}</p>
                 </div>
               ))}
             </div>
@@ -839,7 +839,7 @@ function DigestSectionInline({ email }: { email: string }) {
       <div className="flex flex-wrap items-center gap-3">
         <button
           onClick={sendDigest} disabled={sending}
-          className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-[#25252c] px-4 py-2 font-mono text-xs text-[#8585aa] hover:text-[#bcbcd8] hover:border-white/10 disabled:opacity-50 transition-all"
+          className="flex items-center gap-2 rounded-xl border border-[#e8e8f4] bg-[#fafafa] px-4 py-2 font-mono text-xs text-[#6a6a90] hover:text-[#4a4a6a] hover:border-black/15 disabled:opacity-50 transition-all"
         >
           {sending ? (
             <><svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" /></svg>Generating &amp; Sending…</>
@@ -851,7 +851,7 @@ function DigestSectionInline({ email }: { email: string }) {
         {sendStatus === "error" && <span className="font-mono text-[11px] text-red-400">{sendError}</span>}
       </div>
       <p className="font-mono text-[9px] text-[#58588a]">
-        Last sent: <span className={lastSent ? "text-[#bcbcd8]" : "text-[#f59e0b]"}>{lastSent ?? "Never"}</span>
+        Last sent: <span className={lastSent ? "text-[#4a4a6a]" : "text-[#f59e0b]"}>{lastSent ?? "Never"}</span>
       </p>
     </div>
   );
@@ -890,8 +890,8 @@ function NewsletterToggle() {
   return (
     <div className={`flex items-start justify-between gap-4 transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}>
       <div className="min-w-0">
-        <p className="text-sm font-semibold text-[#f8f8fc]">Newsletter &amp; product updates</p>
-        <p className="mt-1 text-xs text-[#8585aa]">
+        <p className="text-sm font-semibold text-[#1a1a2e]">Newsletter &amp; product updates</p>
+        <p className="mt-1 text-xs text-[#6a6a90]">
           Tips, new integrations, and product updates. Transactional emails (digest, alerts) are always delivered regardless.
         </p>
         {saving && <p className="mt-1 font-mono text-[10px] text-[#58588a]">Saving…</p>}
@@ -1042,7 +1042,7 @@ function GoalsSection({ currencies }: { currencies: Record<string, string> }) {
   if (!loaded) {
     return (
       <div className="space-y-3">
-        {[1, 2, 3, 4].map((i) => <div key={i} className="h-20 animate-pulse rounded-xl bg-[#25252c]" />)}
+        {[1, 2, 3, 4].map((i) => <div key={i} className="h-20 animate-pulse rounded-xl bg-[#f0f0f8]" />)}
       </div>
     );
   }
@@ -1058,27 +1058,27 @@ function GoalsSection({ currencies }: { currencies: Record<string, string> }) {
           const pace = paceInsights[row.key];
 
           return (
-            <div key={row.key} className="rounded-xl border border-white/[0.06] bg-[#25252c] overflow-hidden">
+            <div key={row.key} className="rounded-xl bg-white ring-1 ring-black/[0.06] overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
               <div className="p-4">
                 <div className="flex items-start gap-3">
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg mt-0.5" style={{ backgroundColor: `${row.color}15`, color: row.color }}>
                     {row.icon}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-[#e0e0f0]">{row.label}</p>
-                    <p className="font-mono text-[9px] text-[#8585aa] mt-0.5">{row.sublabel}</p>
+                    <p className="text-xs font-semibold text-[#3a3a58]">{row.label}</p>
+                    <p className="font-mono text-[9px] text-[#6a6a90] mt-0.5">{row.sublabel}</p>
                   </div>
                   {/* Input */}
                   <div className="flex items-center gap-1.5 shrink-0">
-                    {row.unitPos === "left" && <span className="font-mono text-[10px] text-[#8585aa]">{row.unit}</span>}
+                    {row.unitPos === "left" && <span className="font-mono text-[10px] text-[#6a6a90]">{row.unit}</span>}
                     <input
                       type="number" min={0}
                       placeholder={row.placeholder}
                       value={displayVal}
                       onChange={(e) => setGoals((g) => ({ ...g, [row.key]: row.toStorage(e.target.value) }))}
-                      className="w-24 rounded-lg border border-white/[0.06] bg-[#1f1f21] px-2 py-1.5 font-mono text-xs text-[#f8f8fc] text-right placeholder:text-[#58588a] focus:outline-none focus:border-[#6366f1]/40 focus:ring-1 focus:ring-[#6366f1]/20 transition-colors"
+                      className="w-24 rounded-lg border border-[#eeeef4] bg-[#f5f5f7] px-2 py-1.5 font-mono text-xs text-[#1a1a2e] text-right placeholder:text-[#58588a] focus:outline-none focus:border-[#6366f1]/40 focus:ring-1 focus:ring-[#6366f1]/20 transition-colors"
                     />
-                    {row.unitPos === "right" && <span className="font-mono text-[10px] text-[#8585aa]">{row.unit}</span>}
+                    {row.unitPos === "right" && <span className="font-mono text-[10px] text-[#6a6a90]">{row.unit}</span>}
                   </div>
                 </div>
 
@@ -1086,7 +1086,7 @@ function GoalsSection({ currencies }: { currencies: Record<string, string> }) {
                 {numericGoal > 0 && !row.noDataMsg && (
                   <div className="mt-3 ml-11">
                     <div className="flex items-center justify-between mb-1">
-                      <p className="font-mono text-[9px] text-[#8585aa]">
+                      <p className="font-mono text-[9px] text-[#6a6a90]">
                         Current: {row.unitPos === "left" ? row.unit : ""}{row.toDisplay(numericCurrent * 100)}{row.unitPos === "right" ? ` ${row.unit}` : ""} / {displayVal} goal
                       </p>
                       <p className="font-mono text-[9px]" style={{ color: pct < 20 ? "#f59e0b" : row.color }}>{pct}%</p>
@@ -1099,12 +1099,12 @@ function GoalsSection({ currencies }: { currencies: Record<string, string> }) {
 
                 {/* Pace insight */}
                 {pace && (
-                  <p className="mt-2 ml-11 font-mono text-[9px] italic" style={{ color: pct < 20 ? "#f59e0b" : "#8585aa" }}>
+                  <p className="mt-2 ml-11 font-mono text-[9px] italic" style={{ color: pct < 20 ? "#f59e0b" : "#6a6a90" }}>
                     💡 {pace}
                   </p>
                 )}
                 {row.noDataMsg && (
-                  <p className="mt-2 ml-11 font-mono text-[9px] text-[#8585aa] italic">💡 {row.noDataMsg}</p>
+                  <p className="mt-2 ml-11 font-mono text-[9px] text-[#6a6a90] italic">💡 {row.noDataMsg}</p>
                 )}
               </div>
             </div>
@@ -1113,11 +1113,11 @@ function GoalsSection({ currencies }: { currencies: Record<string, string> }) {
       </div>
 
       <div className="flex items-center gap-3 flex-wrap">
-        <button onClick={saveGoals} disabled={saving} className="rounded-xl bg-[#eab308] px-5 py-2 font-mono text-xs font-bold text-[#1f1f21] hover:bg-[#ca8a04] transition disabled:opacity-60">
+        <button onClick={saveGoals} disabled={saving} className="rounded-xl bg-[#eab308] px-5 py-2 font-mono text-xs font-bold text-[#f0f0f8] hover:bg-[#ca8a04] transition disabled:opacity-60">
           {saving ? "Saving…" : "Save goals"}
         </button>
         {saved && <span className="flex items-center gap-1 font-mono text-[10px] text-[#10b981]"><svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>Saved</span>}
-        <button onClick={clearGoals} className="font-mono text-[10px] text-[#8585aa] hover:text-red-400 transition ml-auto">
+        <button onClick={clearGoals} className="font-mono text-[10px] text-[#6a6a90] hover:text-red-400 transition ml-auto">
           Clear all
         </button>
       </div>
@@ -1175,14 +1175,14 @@ const DYNAMIC_MODALS: Record<string, { label: string; name: string; optional?: b
 
 function ConnectModalShell({ title, description, onClose, children }: { title: string; description: string; onClose: () => void; children: React.ReactNode }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#090911]/80 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-lg rounded-2xl border border-white/[0.06] bg-[#25252c] p-6 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#f8f8fc]/80 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-lg rounded-2xl bg-white ring-1 ring-black/[0.06] p-6 shadow-xl">
         <div className="mb-5 flex items-start justify-between gap-3">
           <div>
-            <h3 className="text-sm font-semibold text-[#f8f8fc]">{title}</h3>
-            <p className="mt-1 text-xs text-[#8585aa]">{description}</p>
+            <h3 className="text-sm font-semibold text-[#1a1a2e]">{title}</h3>
+            <p className="mt-1 text-xs text-[#6a6a90]">{description}</p>
           </div>
-          <button onClick={onClose} className="rounded-lg border border-white/[0.06] px-2.5 py-1 font-mono text-[10px] text-[#8585aa] hover:text-[#e0e0f0] transition-colors">Close</button>
+          <button onClick={onClose} className="rounded-lg border border-[#eeeef4] px-2.5 py-1 font-mono text-[10px] text-[#6a6a90] hover:text-[#3a3a58] transition-colors">Close</button>
         </div>
         {children}
       </div>
@@ -1464,17 +1464,17 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
   }
 
   return (
-    <div className="flex flex-col lg:flex-row w-full" style={{ background: "#1f1f21" }}>
+    <div className="flex flex-col lg:flex-row w-full" style={{ background: "#f5f5f7" }}>
 
       {/* ── Left sidebar — desktop only ─────────────────────────────────── */}
-      <aside className="hidden lg:flex flex-col w-[180px] shrink-0 sticky top-0 h-screen pt-8 pb-6 border-r border-white/[0.05]">
+      <aside className="hidden lg:flex flex-col w-[180px] shrink-0 sticky top-0 h-screen pt-8 pb-6 border-r border-[#eeeef4]">
         {/* Header */}
         <div className="px-5 mb-5">
           <div className="flex items-center gap-2">
-            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="#8585aa" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="#6a6a90" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
               <path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z" /><circle cx="12" cy="12" r="3" />
             </svg>
-            <span className="font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-[#8585aa]">Settings</span>
+            <span className="font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-[#6a6a90]">Settings</span>
           </div>
         </div>
         {/* Nav items */}
@@ -1493,7 +1493,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
                 )}
                 <span
                   className="font-mono text-[13px] font-medium transition-colors"
-                  style={{ color: isActive ? item.color : "#8585aa" }}
+                  style={{ color: isActive ? item.color : "#6a6a90" }}
                 >
                   {item.label}
                 </span>
@@ -1513,7 +1513,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
       </aside>
 
       {/* ── Mobile nav — horizontal pill strip ─────────────────────────── */}
-      <div className="lg:hidden sticky top-0 z-10 flex gap-1 overflow-x-auto scrollbar-none border-b border-white/[0.05] px-4 py-2" style={{ background: "#1f1f21" }}>
+      <div className="lg:hidden sticky top-0 z-10 flex gap-1 overflow-x-auto scrollbar-none border-b border-[#eeeef4] px-4 py-2" style={{ background: "#f5f5f7" }}>
         {NAV_ITEMS.map((item) => {
           const isActive = activeSection === item.id;
           return (
@@ -1523,8 +1523,8 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
               className="shrink-0 rounded-full px-3 py-1.5 font-mono text-[11px] font-semibold border transition-all whitespace-nowrap"
               style={{
                 backgroundColor: isActive ? `${item.color}15` : "transparent",
-                borderColor: isActive ? `${item.color}40` : "rgba(255,255,255,0.11)",
-                color: isActive ? item.color : "#8585aa",
+                borderColor: isActive ? `${item.color}40` : "rgba(0,0,0,0.07)",
+                color: isActive ? item.color : "#6a6a90",
               }}
             >
               {item.label}
@@ -1539,7 +1539,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
 
           {/* Page header — desktop only (mobile uses the pill strip above) */}
           <div className="hidden lg:flex items-center justify-between gap-4">
-            <h1 className="font-mono text-lg font-bold text-[#f8f8fc]">
+            <h1 className="font-mono text-lg font-bold text-[#1a1a2e]">
               {NAV_ITEMS.find((i) => i.id === activeSection)?.label ?? "Settings"}
             </h1>
           </div>
@@ -1548,15 +1548,15 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
 
           {/* ── ACCOUNT ──────────────────────────────────────────────── */}
           <section id="account" ref={(el) => { sectionRefs.current.account = el; }}>
-            <div className="rounded-2xl border border-white/[0.06] bg-[#25252c] p-6 space-y-5">
+            <div className="rounded-2xl bg-white ring-1 ring-black/[0.06] p-6 space-y-5 shadow-[0_1px_4px_rgba(0,0,0,0.05)]">
               {/* Avatar + email */}
               <div className="flex items-center gap-4">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-mono text-sm font-bold uppercase select-none" style={{ backgroundColor: "#6366f118", color: "#6366f1", border: "1px solid #6366f130" }}>
                   {email.charAt(0)}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-[#f8f8fc] truncate">{email}</p>
-                  <p className="font-mono text-[10px] text-[#8585aa] mt-0.5">Signed in via {authProvider.charAt(0).toUpperCase() + authProvider.slice(1)}</p>
+                  <p className="text-sm font-semibold text-[#1a1a2e] truncate">{email}</p>
+                  <p className="font-mono text-[10px] text-[#6a6a90] mt-0.5">Signed in via {authProvider.charAt(0).toUpperCase() + authProvider.slice(1)}</p>
                 </div>
               </div>
 
@@ -1565,7 +1565,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
                 <div className="flex items-center gap-2 flex-wrap">
                   {/* <button
                     onClick={() => { setShowEmailForm((v) => !v); setEmailMsg(null); }}
-                    className="rounded-lg border border-white/[0.06] bg-[#1f1f21] px-3.5 py-2 font-mono text-xs text-[#bcbcd8] hover:border-[#6366f1]/30 hover:text-[#6366f1] transition-all"
+                    className="rounded-lg border border-[#eeeef4] bg-[#f5f5f7] px-3.5 py-2 font-mono text-xs text-[#4a4a6a] hover:border-[#6366f1]/30 hover:text-[#6366f1] transition-all"
                   >
                     Change email
                   </button> */}
@@ -1573,12 +1573,12 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
                     onClick={() => { if (!isDemo) { setShowPasswordForm((v) => !v); setPwMsg(null); } }}
                     disabled={isDemo}
                     title={isDemo ? "Not available in demo" : undefined}
-                    className="rounded-lg border border-white/[0.06] bg-[#1f1f21] px-3.5 py-2 font-mono text-xs text-[#bcbcd8] hover:border-[#6366f1]/30 hover:text-[#6366f1] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="rounded-lg border border-[#eeeef4] bg-[#f5f5f7] px-3.5 py-2 font-mono text-xs text-[#4a4a6a] hover:border-[#6366f1]/30 hover:text-[#6366f1] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     Change password
                   </button>
                   {isDemo && (
-                    <span className="font-mono text-[11px] text-[#8585aa]">Not available in demo</span>
+                    <span className="font-mono text-[11px] text-[#6a6a90]">Not available in demo</span>
                   )}
                 </div>
                 {showEmailForm && (
@@ -1588,37 +1588,37 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
                       value={newEmail}
                       onChange={(e) => setNewEmail(e.target.value)}
                       placeholder="New email address"
-                      className="rounded-lg border border-white/[0.06] bg-[#1f1f21] px-3 py-1.5 font-mono text-xs text-[#f8f8fc] placeholder-[#58588a] focus:outline-none focus:border-[#6366f1]/40 transition-all w-56"
+                      className="rounded-lg border border-[#eeeef4] bg-[#f5f5f7] px-3 py-1.5 font-mono text-xs text-[#1a1a2e] placeholder-[#58588a] focus:outline-none focus:border-[#6366f1]/40 transition-all w-56"
                     />
                     <button
                       onClick={handleChangeEmail}
                       disabled={emailLoading || !newEmail.trim()}
-                      className="rounded-lg bg-[#6366f1] px-3.5 py-1.5 font-mono text-xs font-semibold text-white hover:bg-[#5254cc] disabled:opacity-50 transition-all"
+                      className="rounded-lg bg-[#6366f1] px-3.5 py-1.5 font-mono text-xs font-semibold text-[#1a1a2e] hover:bg-[#5254cc] disabled:opacity-50 transition-all"
                     >
                       {emailLoading ? "Saving…" : "Update"}
                     </button>
-                    <button onClick={() => setShowEmailForm(false)} className="font-mono text-[11px] text-[#8585aa] hover:text-[#bcbcd8] transition-colors">Cancel</button>
+                    <button onClick={() => setShowEmailForm(false)} className="font-mono text-[11px] text-[#6a6a90] hover:text-[#4a4a6a] transition-colors">Cancel</button>
                   </div>
                 )}
                 {emailMsg && <p className={`font-mono text-[11px] ${emailMsg.ok ? "text-[#10b981]" : "text-red-400"}`}>{emailMsg.text}</p>}
                 {showPasswordForm && (
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-mono text-[11px] text-[#bcbcd8]">A reset link will be sent to <span className="text-[#f8f8fc]">{email}</span>.</p>
+                    <p className="font-mono text-[11px] text-[#4a4a6a]">A reset link will be sent to <span className="text-[#1a1a2e]">{email}</span>.</p>
                     <button
                       onClick={handleChangePassword}
                       disabled={pwLoading}
-                      className="rounded-lg bg-[#6366f1] px-3.5 py-1.5 font-mono text-xs font-semibold text-white hover:bg-[#5254cc] disabled:opacity-50 transition-all"
+                      className="rounded-lg bg-[#6366f1] px-3.5 py-1.5 font-mono text-xs font-semibold text-[#1a1a2e] hover:bg-[#5254cc] disabled:opacity-50 transition-all"
                     >
                       {pwLoading ? "Sending…" : "Send reset link"}
                     </button>
-                    <button onClick={() => setShowPasswordForm(false)} className="font-mono text-[11px] text-[#8585aa] hover:text-[#bcbcd8] transition-colors">Cancel</button>
+                    <button onClick={() => setShowPasswordForm(false)} className="font-mono text-[11px] text-[#6a6a90] hover:text-[#4a4a6a] transition-colors">Cancel</button>
                   </div>
                 )}
                 {pwMsg && <p className={`font-mono text-[11px] ${pwMsg.ok ? "text-[#10b981]" : "text-red-400"}`}>{pwMsg.text}</p>}
               </div>
 
               {/* Danger zone */}
-              {/* <div className="border-t border-white/[0.04] pt-5">
+              {/* <div className="border-t border-[#eeeef4] pt-5">
                 <p className="font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-[#ef4444]/70 mb-3">Danger zone</p>
                 {!showDeleteConfirm ? (
                   <button
@@ -1629,15 +1629,15 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
                   </button>
                 ) : (
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-mono text-xs text-[#f8f8fc]">Are you sure? This is permanent.</p>
+                    <p className="font-mono text-xs text-[#1a1a2e]">Are you sure? This is permanent.</p>
                     <button
                       onClick={handleDeleteAccount}
                       disabled={deleteLoading}
-                      className="rounded-lg bg-red-500 px-3.5 py-2 font-mono text-xs font-bold text-white hover:bg-red-600 disabled:opacity-60 transition-all"
+                      className="rounded-lg bg-red-500 px-3.5 py-2 font-mono text-xs font-bold text-[#1a1a2e] hover:bg-red-600 disabled:opacity-60 transition-all"
                     >
                       {deleteLoading ? "Deleting…" : "Yes, delete"}
                     </button>
-                    <button onClick={() => setShowDeleteConfirm(false)} className="rounded-lg border border-white/[0.06] px-3.5 py-2 font-mono text-xs text-[#8585aa] hover:text-[#bcbcd8] transition-all">
+                    <button onClick={() => setShowDeleteConfirm(false)} className="rounded-lg border border-[#eeeef4] px-3.5 py-2 font-mono text-xs text-[#6a6a90] hover:text-[#4a4a6a] transition-all">
                       Cancel
                     </button>
                   </div>
@@ -1648,7 +1648,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
 
           {/* ── BUSINESS PROFILE ─────────────────────────────────────── */}
           <section id="business" ref={(el) => { sectionRefs.current.business = el; }}>
-            <div className="rounded-2xl border border-white/[0.06] bg-[#25252c] p-6 space-y-5">
+            <div className="rounded-2xl bg-white ring-1 ring-black/[0.06] p-6 space-y-5 shadow-[0_1px_4px_rgba(0,0,0,0.05)]">
               <div>
                 <SectionLabel color="#a78bfa">Business Profile</SectionLabel>
                 <p className="font-mono text-[10px] text-[#58588a] mt-1">
@@ -1658,14 +1658,14 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
 
               {/* Website URL */}
               <div className="space-y-1.5">
-                <label className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#8585aa]">Website URL</label>
+                <label className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#6a6a90]">Website URL</label>
                 <div className="flex gap-2">
                   <input
                     type="url"
                     value={bizWebsite}
                     onChange={(e) => setBizWebsite(e.target.value)}
                     placeholder="https://yourdomain.com"
-                    className="flex-1 min-w-0 rounded-lg border border-white/[0.06] bg-[#1f1f21] px-3 py-2 font-mono text-xs text-[#f8f8fc] placeholder-[#58588a] focus:outline-none focus:border-[#a78bfa]/40 transition-all"
+                    className="flex-1 min-w-0 rounded-lg border border-[#eeeef4] bg-[#f5f5f7] px-3 py-2 font-mono text-xs text-[#1a1a2e] placeholder-[#58588a] focus:outline-none focus:border-[#a78bfa]/40 transition-all"
                   />
                   <button
                     onClick={handleBizAnalyse}
@@ -1695,20 +1695,20 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
 
               {/* Description */}
               <div className="space-y-1.5">
-                <label className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#8585aa]">Business Description</label>
+                <label className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#6a6a90]">Business Description</label>
                 <textarea
                   value={bizDescription}
                   onChange={(e) => setBizDescription(e.target.value)}
                   placeholder="What does your business do? Who is it for? What problem does it solve?"
                   rows={4}
-                  className="w-full rounded-lg border border-white/[0.06] bg-[#1f1f21] px-3 py-2 font-mono text-xs text-[#f8f8fc] placeholder-[#58588a] focus:outline-none focus:border-[#a78bfa]/40 transition-all resize-y"
+                  className="w-full rounded-lg border border-[#eeeef4] bg-[#f5f5f7] px-3 py-2 font-mono text-xs text-[#1a1a2e] placeholder-[#58588a] focus:outline-none focus:border-[#a78bfa]/40 transition-all resize-y"
                 />
                 <p className="font-mono text-[9px] text-[#58588a]">{bizDescription.length}/500 chars</p>
               </div>
 
               {/* Industry */}
               <div className="space-y-1.5">
-                <label className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#8585aa]">Industry</label>
+                <label className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#6a6a90]">Industry</label>
                 <div className="flex flex-wrap gap-1.5">
                   {["SaaS", "E-commerce", "Agency", "Media & Content", "Marketplace", "Consumer App", "Fintech", "Healthcare", "Education", "Other"].map((opt) => (
                     <button
@@ -1717,8 +1717,8 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
                       onClick={() => setBizIndustry(opt === bizIndustry ? "" : opt)}
                       className="rounded-lg border px-3 py-1.5 font-mono text-[11px] font-medium transition-all"
                       style={{
-                        backgroundColor: bizIndustry === opt ? "rgba(167,139,250,0.12)" : "#1f1f21",
-                        borderColor:     bizIndustry === opt ? "rgba(167,139,250,0.35)" : "rgba(255,255,255,0.11)",
+                        backgroundColor: bizIndustry === opt ? "rgba(167,139,250,0.12)" : "#f5f5f7",
+                        borderColor:     bizIndustry === opt ? "rgba(167,139,250,0.35)" : "rgba(0,0,0,0.07)",
                         color:           bizIndustry === opt ? "#a78bfa" : "#58588a",
                       }}
                     >
@@ -1733,7 +1733,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
                 <button
                   onClick={handleBizSave}
                   disabled={bizSaving || !bizProfileLoaded}
-                  className="rounded-lg bg-[#a78bfa] px-4 py-2 font-mono text-xs font-semibold text-white hover:bg-[#9061f9] disabled:opacity-50 transition-all"
+                  className="rounded-lg bg-[#a78bfa] px-4 py-2 font-mono text-xs font-semibold text-[#1a1a2e] hover:bg-[#9061f9] disabled:opacity-50 transition-all"
                 >
                   {bizSaving ? "Saving…" : "Save profile"}
                 </button>
@@ -1748,7 +1748,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
 
           {/* ── SUBSCRIPTION ─────────────────────────────────────────── */}
           <section id="subscription" ref={(el) => { sectionRefs.current.subscription = el; }}>
-            <div className="rounded-2xl border border-white/[0.06] bg-[#25252c] p-6">
+            <div className="rounded-2xl bg-white ring-1 ring-black/[0.06] p-6 shadow-[0_1px_4px_rgba(0,0,0,0.05)]">
               {isPremium ? (
                 <div className="space-y-5">
                   {/* Status */}
@@ -1758,10 +1758,10 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold text-[#f8f8fc]">Premium — Active</p>
+                        <p className="text-sm font-semibold text-[#1a1a2e]">Premium — Active</p>
                         <span className="rounded-full border border-[#10b981]/30 bg-[#10b981]/10 px-2 py-0.5 font-mono text-[9px] font-semibold text-[#10b981]">✓ Active</span>
                       </div>
-                      <p className="font-mono text-[10px] text-[#8585aa] mt-0.5">
+                      <p className="font-mono text-[10px] text-[#6a6a90] mt-0.5">
                         {subDetails ? `${subDetails.price} · Renews ${subDetails.renewal}` : "$19 / month"}
                       </p>
                     </div>
@@ -1774,7 +1774,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
                       {["All integrations", "AI Advisor", "Daily insights", "Website analyzer", "Anomaly alerts", "Priority support"].map((item) => (
                         <div key={item} className="flex items-center gap-1.5">
                           <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="#10b981" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                          <p className="font-mono text-[11px] text-[#bcbcd8]">{item}</p>
+                          <p className="font-mono text-[11px] text-[#4a4a6a]">{item}</p>
                         </div>
                       ))}
                     </div>
@@ -1784,7 +1784,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
                   {portalError && <p className="text-xs text-red-400">{portalError}</p>}
                   <button
                     onClick={handlePortal} disabled={portalLoading}
-                    className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-[#1f1f21] px-4 py-2 font-mono text-xs text-[#bcbcd8] hover:border-[#10b981]/30 hover:text-[#10b981] disabled:opacity-60 transition-all"
+                    className="flex items-center gap-2 rounded-xl border border-[#eeeef4] bg-[#f5f5f7] px-4 py-2 font-mono text-xs text-[#4a4a6a] hover:border-[#10b981]/30 hover:text-[#10b981] disabled:opacity-60 transition-all"
                   >
                     {portalLoading ? (
                       <><svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" /></svg>Opening…</>
@@ -1802,13 +1802,13 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
                         <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" /></svg>
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-[#f8f8fc]">Upgrade to Premium</p>
-                        <p className="mt-0.5 text-xs text-[#bcbcd8]">Analytics, AI advisor, website optimizer & all integrations.</p>
-                        <p className="mt-1.5 font-mono text-xs font-bold text-[#f8f8fc]">$19<span className="font-normal text-[#8585aa]">/month</span> <span className="ml-1.5 rounded-full bg-[#10b981]/10 px-2 py-0.5 font-mono text-[9px] font-semibold text-[#10b981]">7-day free trial</span></p>
+                        <p className="text-sm font-semibold text-[#1a1a2e]">Upgrade to Premium</p>
+                        <p className="mt-0.5 text-xs text-[#4a4a6a]">Analytics, AI advisor, website optimizer & all integrations.</p>
+                        <p className="mt-1.5 font-mono text-xs font-bold text-[#1a1a2e]">$19<span className="font-normal text-[#6a6a90]">/month</span> <span className="ml-1.5 rounded-full bg-[#10b981]/10 px-2 py-0.5 font-mono text-[9px] font-semibold text-[#10b981]">7-day free trial</span></p>
                       </div>
                     </div>
                   </div>
-                  <button onClick={handleCheckout} disabled={checkoutLoading} className="inline-flex items-center gap-2 rounded-xl bg-[#10b981] px-5 py-2 font-mono text-sm font-bold text-white hover:bg-[#059669] transition disabled:opacity-60">
+                  <button onClick={handleCheckout} disabled={checkoutLoading} className="inline-flex items-center gap-2 rounded-xl bg-[#10b981] px-5 py-2 font-mono text-sm font-bold text-[#1a1a2e] hover:bg-[#059669] transition disabled:opacity-60">
                     {checkoutLoading ? "Redirecting…" : "Start free trial →"}
                   </button>
                   <p className="font-mono text-[9px] text-[#58588a]">Card required · $19/mo after 7 days · cancel anytime</p>
@@ -1819,17 +1819,17 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
 
           {/* ── INTEGRATIONS ─────────────────────────────────────────── */}
           <section id="integrations" ref={(el) => { sectionRefs.current.integrations = el; }}>
-            <div className="rounded-2xl border border-white/[0.06] bg-[#25252c] p-6">
+            <div className="rounded-2xl bg-white ring-1 ring-black/[0.06] p-6 shadow-[0_1px_4px_rgba(0,0,0,0.05)]">
               {/* Header */}
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-5">
                 <div>
-                  <p className="text-sm text-[#bcbcd8]">Connect your data sources. Syncs every 24 hours.</p>
+                  <p className="text-sm text-[#4a4a6a]">Connect your data sources. Syncs every 24 hours.</p>
                   {/* Progress */}
                   <div className="flex items-center gap-2 mt-2">
                     <div className="h-1.5 w-24 rounded-full bg-white/[0.04] overflow-hidden">
                       <div className="h-full rounded-full bg-[#14b8a6] transition-all" style={{ width: `${(connectedCount / totalIntegrations) * 100}%` }} />
                     </div>
-                    <span className="font-mono text-[10px] text-[#8585aa]">{connectedCount} of {totalIntegrations} connected</span>
+                    <span className="font-mono text-[10px] text-[#6a6a90]">{connectedCount} of {totalIntegrations} connected</span>
                   </div>
                 </div>
                 <div className="relative shrink-0 sm:w-52">
@@ -1838,7 +1838,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
                     type="text" placeholder="Search platforms..."
                     value={searchQuery}
                     onChange={(e) => { setSearchQuery(e.target.value); if (e.target.value) setActiveCategory("All"); }}
-                    className="w-full rounded-xl border border-white/[0.06] bg-[#1f1f21] py-2 pl-9 pr-3 font-mono text-xs text-[#f8f8fc] placeholder:text-[#58588a] focus:border-[#14b8a6]/40 focus:outline-none focus:ring-1 focus:ring-[#14b8a6]/20 transition-all"
+                    className="w-full rounded-xl border border-[#eeeef4] bg-[#f5f5f7] py-2 pl-9 pr-3 font-mono text-xs text-[#1a1a2e] placeholder:text-[#58588a] focus:border-[#14b8a6]/40 focus:outline-none focus:ring-1 focus:ring-[#14b8a6]/20 transition-all"
                   />
                 </div>
               </div>
@@ -1856,8 +1856,8 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
                         className="shrink-0 whitespace-nowrap rounded-full px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider border transition-all"
                         style={{
                           backgroundColor: activeCategory === cat ? "#14b8a6" : "transparent",
-                          borderColor: activeCategory === cat ? "#14b8a6" : "rgba(255,255,255,0.11)",
-                          color: activeCategory === cat ? "#1f1f21" : "#8585aa",
+                          borderColor: activeCategory === cat ? "#14b8a6" : "rgba(0,0,0,0.07)",
+                          color: activeCategory === cat ? "#f5f5f7" : "#6a6a90",
                         }}
                       >
                         {cat}{catCount !== null ? ` (${catConnected}/${catCount})` : ""}
@@ -1892,7 +1892,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
                 )}
                 {UI_INTEGRATIONS.filter((i) => i.name.toLowerCase().includes(searchQuery.toLowerCase()) || i.description.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && searchQuery && (
                   <div className="py-10 text-center">
-                    <p className="text-sm text-[#8585aa]">No integrations match <span className="text-[#f8f8fc]">&ldquo;{searchQuery}&rdquo;</span></p>
+                    <p className="text-sm text-[#6a6a90]">No integrations match <span className="text-[#1a1a2e]">&ldquo;{searchQuery}&rdquo;</span></p>
                   </div>
                 )}
               </div>
@@ -1901,8 +1901,8 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
 
           {/* ── GOALS & KPIs ─────────────────────────────────────────── */}
           <section id="goals" ref={(el) => { sectionRefs.current.goals = el; }}>
-            <p className="mb-3 font-mono text-[10px] text-[#8585aa]">Monthly targets that power your forecast bars, AI analysis, and email digest.</p>
-            <div className="rounded-2xl border border-white/[0.06] bg-[#25252c] p-6">
+            <p className="mb-3 font-mono text-[10px] text-[#6a6a90]">Monthly targets that power your forecast bars, AI analysis, and email digest.</p>
+            <div className="rounded-2xl bg-white ring-1 ring-black/[0.06] p-6 shadow-[0_1px_4px_rgba(0,0,0,0.05)]">
               <GoalsSection currencies={currencies} />
             </div>
           </section>
@@ -1910,8 +1910,8 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
           {/* ── ALERT RULES (premium only) ────────────────────────────── */}
           {isPremium && (
             <section id="alerts" ref={(el) => { sectionRefs.current.alerts = el; }}>
-              <p className="mb-3 font-mono text-[10px] text-[#8585aa]">Get notified when your key metrics cross these thresholds.</p>
-              <div className="rounded-2xl border border-white/[0.06] bg-[#25252c] p-6">
+              <p className="mb-3 font-mono text-[10px] text-[#6a6a90]">Get notified when your key metrics cross these thresholds.</p>
+              <div className="rounded-2xl bg-white ring-1 ring-black/[0.06] p-6 shadow-[0_1px_4px_rgba(0,0,0,0.05)]">
                 <AlertsSection email={email} currencies={currencies} />
               </div>
             </section>
@@ -1920,8 +1920,8 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
           {/* ── EMAIL DIGEST (premium only) ──────────────────────────── */}
           {isPremium && (
             <section id="email" ref={(el) => { sectionRefs.current.email = el; }}>
-              <p className="mb-3 font-mono text-[10px] text-[#8585aa]">AI summary delivered to your inbox on your chosen schedule.</p>
-              <div className="rounded-2xl border border-white/[0.06] bg-[#25252c] p-6">
+              <p className="mb-3 font-mono text-[10px] text-[#6a6a90]">AI summary delivered to your inbox on your chosen schedule.</p>
+              <div className="rounded-2xl bg-white ring-1 ring-black/[0.06] p-6 shadow-[0_1px_4px_rgba(0,0,0,0.05)]">
                 <DigestSectionInline email={email} />
               </div>
             </section>
@@ -1930,15 +1930,15 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
           {/* ── SHARE DASHBOARD ──────────────────────────────────────── */}
           {/* <section id="share" ref={(el) => { sectionRefs.current.share = el; }}>
             <SectionLabel color="#6366f1">Share Dashboard</SectionLabel>
-            <p className="mt-1 font-mono text-[10px] text-[#8585aa]">Share a read-only snapshot with anyone — no login required.</p>
-            <div className="mt-3 rounded-2xl border border-white/[0.06] bg-[#25252c] p-6">
+            <p className="mt-1 font-mono text-[10px] text-[#6a6a90]">Share a read-only snapshot with anyone — no login required.</p>
+            <div className="mt-3 rounded-2xl bg-white ring-1 ring-black/[0.06] p-6 shadow-[0_1px_4px_rgba(0,0,0,0.05)]">
               <ShareSection />
             </div>
           </section> */}
 
           {/* ── PREFERENCES ──────────────────────────────────────────── */}
           <section id="preferences" ref={(el) => { sectionRefs.current.preferences = el; }}>
-            <div className="rounded-2xl border border-white/[0.06] bg-[#25252c] p-6 space-y-5">
+            <div className="rounded-2xl bg-white ring-1 ring-black/[0.06] p-6 space-y-5 shadow-[0_1px_4px_rgba(0,0,0,0.05)]">
               <NewsletterToggle />
             </div>
           </section>
@@ -1971,7 +1971,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
                   name={field.name}
                   required={!field.optional}
                   placeholder={field.optional ? `${field.label} (optional)` : field.label}
-                  className="w-full rounded-xl border border-white/[0.06] bg-[#1f1f21] px-3 py-2.5 text-sm text-[#f8f8fc] placeholder:text-[#58588a] focus:border-[#6366f1]/40 focus:outline-none focus:ring-1 focus:ring-[#6366f1]/20 transition-all"
+                  className="w-full rounded-xl border border-[#eeeef4] bg-[#f5f5f7] px-3 py-2.5 text-sm text-[#1a1a2e] placeholder:text-[#58588a] focus:border-[#6366f1]/40 focus:outline-none focus:ring-1 focus:ring-[#6366f1]/20 transition-all"
                 />
                 {field.optional && <p className="mt-1 font-mono text-[9px] text-[#58588a]">Optional</p>}
               </div>
@@ -1980,7 +1980,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
             {connectSuccess && <p className="text-xs text-[#10b981]">{connectSuccess}</p>}
             <button
               disabled={connectLoading}
-              className="rounded-xl bg-[#6366f1] px-4 py-2 font-mono text-xs font-bold text-white hover:bg-[#4f46e5] disabled:opacity-60 transition-all"
+              className="rounded-xl bg-[#6366f1] px-4 py-2 font-mono text-xs font-bold text-[#1a1a2e] hover:bg-[#4f46e5] disabled:opacity-60 transition-all"
             >
               {connectLoading ? "Connecting…" : "Connect"}
             </button>

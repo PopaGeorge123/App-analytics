@@ -17,7 +17,7 @@ export default function HowItWorksStep({ step, title, description }: HowItWorksS
 
       {/* Content */}
       <div>
-        <h3 className="mb-2 font-mono text-sm font-semibold uppercase tracking-wider text-[#f0f0f5]">
+        <h3 className="mb-2 font-mono text-sm font-semibold uppercase tracking-wider text-[#2a2a3e]">
           {title}
         </h3>
         <p className="text-sm leading-relaxed text-[#8888aa]">{description}</p>

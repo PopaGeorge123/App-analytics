@@ -11,18 +11,18 @@ const CONTACT_EMAIL = "info@usefold.io";
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-[#252531] text-[#f8f8fc]">
+    <div className="min-h-screen bg-[#f5f5f8] text-[#1a1a2e]">
       {/* Nav */}
-      <header className="border-b border-[#363650] bg-[#2e2e3c]/80 backdrop-blur-md sticky top-0 z-50">
+      <header className="border-b border-[#d4d4e8] bg-[#f2f2f8]/80 backdrop-blur-md sticky top-0 z-50">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-4">
           <Link href="/">
-            <span className="font-mono text-lg font-bold tracking-tight text-[#f8f8fc]">
+            <span className="font-mono text-lg font-bold tracking-tight text-[#1a1a2e]">
               FOLD
             </span>
           </Link>
           <Link
             href="/"
-            className="font-mono text-[10px] uppercase tracking-widest text-[#8585aa] hover:text-[#bcbcd8] transition-colors"
+            className="font-mono text-[10px] uppercase tracking-widest text-[#6a6a90] hover:text-[#4a4a6a] transition-colors"
           >
             ← Back to home
           </Link>
@@ -35,10 +35,10 @@ export default function TermsPage() {
           <p className="mb-3 font-mono text-xs font-semibold uppercase tracking-widest text-[#00d4aa]">
             Legal
           </p>
-          <h1 className="mb-4 font-mono text-4xl font-bold text-[#f8f8fc]">
+          <h1 className="mb-4 font-mono text-4xl font-bold text-[#1a1a2e]">
             Terms of Service
           </h1>
-          <p className="text-sm text-[#8585aa]">Last updated: {LAST_UPDATED}</p>
+          <p className="text-sm text-[#6a6a90]">Last updated: {LAST_UPDATED}</p>
         </div>
 
         <div className="space-y-10">
@@ -257,15 +257,15 @@ export default function TermsPage() {
             <p>
               If you have any questions about these Terms, please contact us:
             </p>
-            <div className="rounded-xl border border-[#363650] bg-[#2e2e3c]/60 p-5 mt-4">
-              <p className="font-mono text-sm text-[#f8f8fc]">POPA V.-I. GEORGE PERSOANĂ FIZICĂ AUTORIZATĂ</p>
-              <p className="text-sm text-[#bcbcd8] mt-1">Trading as: <span className="text-[#c8c8e0]">Fold Analytics</span></p>
-              <p className="text-sm text-[#bcbcd8]">Country: <span className="text-[#c8c8e0]">Romania</span></p>
-              <p className="text-sm text-[#bcbcd8] mt-1">
+            <div className="rounded-xl border border-[#d4d4e8] bg-[#f2f2f8]/60 p-5 mt-4">
+              <p className="font-mono text-sm text-[#1a1a2e]">POPA V.-I. GEORGE PERSOANĂ FIZICĂ AUTORIZATĂ</p>
+              <p className="text-sm text-[#4a4a6a] mt-1">Trading as: <span className="text-[#c8c8e0]">Fold Analytics</span></p>
+              <p className="text-sm text-[#4a4a6a]">Country: <span className="text-[#c8c8e0]">Romania</span></p>
+              <p className="text-sm text-[#4a4a6a] mt-1">
                 Email:{" "}
                 <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
               </p>
-              <p className="text-sm text-[#bcbcd8]">
+              <p className="text-sm text-[#4a4a6a]">
                 Website:{" "}
                 <a href="https://usefold.io">usefold.io</a>
               </p>
@@ -276,13 +276,13 @@ export default function TermsPage() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-[#363650] px-6 py-8 mt-16">
+      <footer className="border-t border-[#d4d4e8] px-6 py-8 mt-16">
         <div className="mx-auto max-w-4xl flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="font-mono text-[11px] text-[#8585aa]">
+          <p className="font-mono text-[11px] text-[#6a6a90]">
             © 2026 POPA V.-I. GEORGE PFA — Fold Analytics. All rights reserved.
           </p>
           <nav className="flex items-center gap-6">
-            <Link href="/privacy" className="text-xs text-[#8585aa] hover:text-[#bcbcd8] transition-colors">
+            <Link href="/privacy" className="text-xs text-[#6a6a90] hover:text-[#4a4a6a] transition-colors">
               Privacy Policy
             </Link>
             <Link href="/terms" className="text-xs text-[#00d4aa]">
@@ -306,10 +306,10 @@ function Section({
 }) {
   return (
     <section>
-      <h2 className="mb-4 font-mono text-xl font-bold text-[#f8f8fc] border-b border-[#363650] pb-3">
+      <h2 className="mb-4 font-mono text-xl font-bold text-[#1a1a2e] border-b border-[#d4d4e8] pb-3">
         {title}
       </h2>
-      <div className="space-y-3 text-[15px] leading-relaxed text-[#bcbcd8] [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:space-y-2 [&_strong]:text-[#c8c8e0] [&_a]:text-[#00d4aa] [&_a:hover]:underline">
+      <div className="space-y-3 text-[15px] leading-relaxed text-[#4a4a6a] [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:space-y-2 [&_strong]:text-[#c8c8e0] [&_a]:text-[#00d4aa] [&_a:hover]:underline">
         {children}
       </div>
     </section>

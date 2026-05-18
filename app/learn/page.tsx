@@ -25,7 +25,7 @@ function SectionLabel({ children }: { children: ReactNode }) {
 
 function SectionHeading({ children }: { children: ReactNode }) {
   return (
-    <h2 className="font-mono text-3xl font-bold text-[#f8f8fc] sm:text-4xl">
+    <h2 className="font-mono text-3xl font-bold text-[#1a1a2e] sm:text-4xl">
       {children}
     </h2>
   );
@@ -33,19 +33,19 @@ function SectionHeading({ children }: { children: ReactNode }) {
 
 function SectionSub({ children }: { children: ReactNode }) {
   return (
-    <p className="mx-auto mt-4 max-w-2xl text-[#bcbcd8] leading-relaxed">
+    <p className="mx-auto mt-4 max-w-2xl text-[#4a4a6a] leading-relaxed">
       {children}
     </p>
   );
 }
 
 function Divider() {
-  return <div className="my-20 border-t border-[#363650]" />;
+  return <div className="my-20 border-t border-[#d4d4e8]" />;
 }
 
 function Check({ children }: { children: ReactNode }) {
   return (
-    <li className="flex items-start gap-3 text-sm text-[#e0e0f0]">
+    <li className="flex items-start gap-3 text-sm text-[#3a3a58]">
       <svg
         className="mt-0.5 h-4 w-4 shrink-0 text-[#00d4aa]"
         fill="none"
@@ -87,7 +87,7 @@ function ModuleCard({
   bullets: string[];
 }) {
   return (
-    <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 p-7 md:p-9">
+    <div className="rounded-2xl border border-[#d4d4e8] bg-[#f2f2f8]/60 p-7 md:p-9">
       <div className="flex items-start gap-5 mb-6">
         <div
           className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border"
@@ -99,10 +99,10 @@ function ModuleCard({
           <p className="font-mono text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color }}>
             {label}
           </p>
-          <h3 className="font-mono text-xl font-bold text-[#f8f8fc]">{title}</h3>
+          <h3 className="font-mono text-xl font-bold text-[#1a1a2e]">{title}</h3>
         </div>
       </div>
-      <p className="text-sm leading-relaxed text-[#bcbcd8] mb-5">{description}</p>
+      <p className="text-sm leading-relaxed text-[#4a4a6a] mb-5">{description}</p>
       <ul className="space-y-2.5">
         {bullets.map((b) => (
           <Check key={b}>{b}</Check>
@@ -248,7 +248,7 @@ export default function LearnPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#252531] text-[#f8f8fc]">
+    <div className="min-h-screen bg-[#f5f5f8] text-[#1a1a2e]">
       <Nav />
 
       {/* ── HERO ──────────────────────────────────────────────────────────── */}
@@ -261,18 +261,18 @@ export default function LearnPage() {
               Complete product guide
             </span>
           </div>
-          <h1 className="font-mono text-4xl font-bold tracking-tight text-[#f8f8fc] sm:text-5xl lg:text-6xl mb-6">
+          <h1 className="font-mono text-4xl font-bold tracking-tight text-[#1a1a2e] sm:text-5xl lg:text-6xl mb-6">
             Everything Fold does{" "}
             <span className="text-[#00d4aa]">explained</span>
           </h1>
-          <p className="text-lg text-[#bcbcd8] max-w-2xl mx-auto leading-relaxed">
+          <p className="text-lg text-[#4a4a6a] max-w-2xl mx-auto leading-relaxed">
             This page covers every feature, every integration, every data point, and every AI
             capability that Fold offers. If you&apos;re on the fence, read this first.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <a
               href="/signup"
-              className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-6 py-3 font-mono text-sm font-semibold uppercase tracking-wider text-[#252531] transition-all hover:bg-[#00bfa0] hover:shadow-[0_0_30px_rgba(0,212,170,0.3)]"
+              className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-6 py-3 font-mono text-sm font-semibold uppercase tracking-wider text-[#fafafa] transition-all hover:bg-[#00bfa0] hover:shadow-[0_0_30px_rgba(0,212,170,0.3)]"
             >
               Start free — 7 day trial
               <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -290,9 +290,9 @@ export default function LearnPage() {
       </section>
 
       {/* ── TABLE OF CONTENTS ─────────────────────────────────────────────── */}
-      <section className="border-y border-[#363650] bg-[#2e2e3c]/40 px-6 py-8">
+      <section className="border-y border-[#d4d4e8] bg-[#f2f2f8]/40 px-6 py-8">
         <div className="mx-auto max-w-4xl">
-          <p className="font-mono text-[10px] uppercase tracking-widest text-[#8585aa] mb-4 text-center">
+          <p className="font-mono text-[10px] uppercase tracking-widest text-[#6a6a90] mb-4 text-center">
             On this page
           </p>
           <div className="flex flex-wrap justify-center gap-x-8 gap-y-2">
@@ -309,7 +309,7 @@ export default function LearnPage() {
               <a
                 key={item.href}
                 href={item.href}
-                className="font-mono text-xs text-[#8585aa] hover:text-[#00d4aa] transition-colors"
+                className="font-mono text-xs text-[#6a6a90] hover:text-[#00d4aa] transition-colors"
               >
                 {item.label}
               </a>
@@ -377,7 +377,7 @@ export default function LearnPage() {
                 </p>
                 <ul className="space-y-2.5">
                   {col.items.map((item) => (
-                    <li key={item} className="flex items-start gap-2.5 text-sm text-[#e0e0f0]">
+                    <li key={item} className="flex items-start gap-2.5 text-sm text-[#3a3a58]">
                       <span
                         className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full font-bold text-[9px] ${
                           col.bad
@@ -395,9 +395,9 @@ export default function LearnPage() {
             ))}
           </div>
 
-          <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 p-6">
-            <p className="text-sm text-[#bcbcd8] leading-relaxed">
-              <strong className="text-[#f8f8fc]">The core insight behind Fold:</strong> The problem
+          <div className="rounded-2xl border border-[#d4d4e8] bg-[#f2f2f8]/60 p-6">
+            <p className="text-sm text-[#4a4a6a] leading-relaxed">
+              <strong className="text-[#1a1a2e]">The core insight behind Fold:</strong> The problem
               isn&apos;t that founders don&apos;t care about their data. The problem is that gathering
               and interpreting data takes so long that most founders skip it. Fold eliminates the
               gathering and the interpreting — so you can act on your data instead of drowning in it.
@@ -460,10 +460,10 @@ export default function LearnPage() {
             ].map((card) => (
               <div
                 key={card.title}
-                className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 p-5"
+                className="rounded-2xl border border-[#d4d4e8] bg-[#f2f2f8]/60 p-5"
               >
-                <h3 className="font-mono text-sm font-bold text-[#f8f8fc] mb-2">{card.title}</h3>
-                <p className="text-sm text-[#bcbcd8] leading-relaxed mb-3">{card.description}</p>
+                <h3 className="font-mono text-sm font-bold text-[#1a1a2e] mb-2">{card.title}</h3>
+                <p className="text-sm text-[#4a4a6a] leading-relaxed mb-3">{card.description}</p>
                 <div className="flex flex-wrap gap-1.5">
                   {card.tags.map((t) => (
                     <Tag key={t}>{t}</Tag>
@@ -473,18 +473,18 @@ export default function LearnPage() {
             ))}
           </div>
 
-          <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 p-6">
-            <p className="font-mono text-xs font-semibold uppercase tracking-widest text-[#8585aa] mb-3">
+          <div className="rounded-2xl border border-[#d4d4e8] bg-[#f2f2f8]/60 p-6">
+            <p className="font-mono text-xs font-semibold uppercase tracking-widest text-[#6a6a90] mb-3">
               Fold is probably NOT right for you if…
             </p>
             <ul className="space-y-2">
               {[
-                "You need a custom BI tool with SQL queries and raw data access — consider Metabase or Redash instead.",
-                "You're a data analyst building reports for a large team — consider Looker or Tableau.",
+                "You need a custom BI tool with SQL queries and raw data access",
+                "You're a data analyst building reports for a large team",
                 "You haven't launched yet and have zero metrics — come back once you have real data to look at.",
               ].map((item) => (
-                <li key={item} className="flex items-start gap-2.5 text-sm text-[#8585aa]">
-                  <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#8585aa]/10 text-[#8585aa] font-bold text-[9px]">
+                <li key={item} className="flex items-start gap-2.5 text-sm text-[#6a6a90]">
+                  <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#6a6a90]/10 text-[#6a6a90] font-bold text-[9px]">
                     →
                   </span>
                   {item}
@@ -606,9 +606,9 @@ export default function LearnPage() {
             <SectionHeading>Every tool. Every data point. Explained.</SectionHeading>
             <SectionSub>
               Fold currently has{" "}
-              <strong className="text-[#f8f8fc]">{liveIntegrations.length} live integrations</strong>{" "}
+              <strong className="text-[#1a1a2e]">{liveIntegrations.length} live integrations</strong>{" "}
               and{" "}
-              <strong className="text-[#f8f8fc]">{soonIntegrations.length} more in development</strong>.
+              <strong className="text-[#1a1a2e]">{soonIntegrations.length} more in development</strong>.
               Here&apos;s exactly what each one pulls and how it connects.
             </SectionSub>
           </div>
@@ -627,7 +627,7 @@ export default function LearnPage() {
                 return (
                   <div
                     key={integration.id}
-                    className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 p-6"
+                    className="rounded-2xl border border-[#d4d4e8] bg-[#f2f2f8]/60 p-6"
                   >
                     <div className="flex items-start gap-4 mb-4">
                       <div
@@ -647,19 +647,19 @@ export default function LearnPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2 mb-1">
-                          <h3 className="font-mono text-base font-bold text-[#f8f8fc]">
+                          <h3 className="font-mono text-base font-bold text-[#1a1a2e]">
                             {integration.name}
                           </h3>
                           <Tag color={integration.color}>{integration.category}</Tag>
                           <Tag color="#00d4aa">Live</Tag>
                         </div>
-                        <p className="text-sm text-[#bcbcd8]">{integration.description}</p>
+                        <p className="text-sm text-[#4a4a6a]">{integration.description}</p>
                       </div>
                     </div>
                     {detail ? (
                       <>
-                        <p className="text-sm text-[#bcbcd8] mb-3 leading-relaxed">{detail.what}</p>
-                        <p className="font-mono text-[10px] uppercase tracking-widest text-[#8585aa] mb-2">
+                        <p className="text-sm text-[#4a4a6a] mb-3 leading-relaxed">{detail.what}</p>
+                        <p className="font-mono text-[10px] uppercase tracking-widest text-[#6a6a90] mb-2">
                           Metrics pulled:
                         </p>
                         <ul className="space-y-1.5">
@@ -668,7 +668,7 @@ export default function LearnPage() {
                           ))}
                         </ul>
                         {PLATFORM_DETAILS[integration.id] && (
-                          <div className="mt-5 pt-4 border-t border-[#363650]">
+                          <div className="mt-5 pt-4 border-t border-[#d4d4e8]">
                             <Link
                               href={`/learn/${integration.id}`}
                               className="inline-flex items-center gap-2 font-mono text-[11px] font-semibold uppercase tracking-wider text-[#00d4aa] hover:underline underline-offset-2"
@@ -682,7 +682,7 @@ export default function LearnPage() {
                         )}
                       </>
                     ) : (
-                      <p className="text-sm text-[#8585aa]">{integration.description}</p>
+                      <p className="text-sm text-[#6a6a90]">{integration.description}</p>
                     )}
                   </div>
                 );
@@ -698,8 +698,8 @@ export default function LearnPage() {
                 Coming soon — {soonIntegrations.length} more
               </p>
             </div>
-            <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/40 p-6">
-              <p className="text-sm text-[#bcbcd8] mb-5 leading-relaxed">
+            <div className="rounded-2xl border border-[#d4d4e8] bg-[#f2f2f8]/40 p-6">
+              <p className="text-sm text-[#4a4a6a] mb-5 leading-relaxed">
                 These integrations are in development. They appear as cards in your dashboard so you
                 can see what&apos;s coming, but they don&apos;t connect yet. We ship new integrations
                 every 2-4 weeks based on founder demand.
@@ -708,7 +708,7 @@ export default function LearnPage() {
                 {soonIntegrations.map((i) => (
                   <div
                     key={i.id}
-                    className="flex items-center gap-2 rounded-lg border border-[#363650] bg-[#343447] px-3 py-2"
+                    className="flex items-center gap-2 rounded-lg border border-[#d4d4e8] bg-[#e8e8f4] px-3 py-2"
                   >
                     <div
                       className="h-6 w-6 flex items-center justify-center rounded overflow-hidden"
@@ -722,11 +722,11 @@ export default function LearnPage() {
                         className="object-contain"
                       />
                     </div>
-                    <span className="font-mono text-xs text-[#bcbcd8]">{i.name}</span>
+                    <span className="font-mono text-xs text-[#4a4a6a]">{i.name}</span>
                   </div>
                 ))}
               </div>
-              <p className="mt-4 font-mono text-[10px] text-[#8585aa]">
+              <p className="mt-4 font-mono text-[10px] text-[#6a6a90]">
                 Missing an integration you need?{" "}
                 <a
                   href="mailto:info@usefold.io"
@@ -740,8 +740,8 @@ export default function LearnPage() {
           </div>
 
           {/* Categories summary */}
-          <div className="mt-10 rounded-2xl border border-[#363650] bg-[#2e2e3c]/40 p-6">
-            <p className="font-mono text-[10px] uppercase tracking-widest text-[#8585aa] mb-4 text-center">
+          <div className="mt-10 rounded-2xl border border-[#d4d4e8] bg-[#f2f2f8]/40 p-6">
+            <p className="font-mono text-[10px] uppercase tracking-widest text-[#6a6a90] mb-4 text-center">
               Integration categories
             </p>
             <div className="flex flex-wrap justify-center gap-2">
@@ -753,10 +753,10 @@ export default function LearnPage() {
                 return (
                   <div
                     key={cat}
-                    className="rounded-lg border border-[#363650] bg-[#343447] px-3 py-2 text-center"
+                    className="rounded-lg border border-[#d4d4e8] bg-[#e8e8f4] px-3 py-2 text-center"
                   >
-                    <p className="font-mono text-xs font-semibold text-[#f8f8fc]">{cat}</p>
-                    <p className="font-mono text-[9px] text-[#8585aa]">
+                    <p className="font-mono text-xs font-semibold text-[#1a1a2e]">{cat}</p>
+                    <p className="font-mono text-[9px] text-[#6a6a90]">
                       {liveCount} live · {count - liveCount} soon
                     </p>
                   </div>
@@ -814,14 +814,14 @@ export default function LearnPage() {
             ].map((step) => (
               <div
                 key={step.n}
-                className="flex gap-5 rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 p-6"
+                className="flex gap-5 rounded-2xl border border-[#d4d4e8] bg-[#f2f2f8]/60 p-6"
               >
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#a78bfa]/30 bg-[#a78bfa]/8 font-mono text-sm font-bold text-[#a78bfa]">
                   {step.n}
                 </div>
                 <div>
-                  <h3 className="font-mono text-sm font-bold text-[#f8f8fc] mb-2">{step.title}</h3>
-                  <p className="text-sm text-[#bcbcd8] leading-relaxed">{step.description}</p>
+                  <h3 className="font-mono text-sm font-bold text-[#1a1a2e] mb-2">{step.title}</h3>
+                  <p className="text-sm text-[#4a4a6a] leading-relaxed">{step.description}</p>
                 </div>
               </div>
             ))}
@@ -844,7 +844,7 @@ export default function LearnPage() {
               ].map((item) => (
                 <div
                   key={item}
-                  className="flex items-center gap-2.5 text-sm text-[#e0e0f0]"
+                  className="flex items-center gap-2.5 text-sm text-[#3a3a58]"
                 >
                   <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#a78bfa]/15 text-[#a78bfa] font-mono text-[9px]">
                     AI
@@ -946,7 +946,7 @@ export default function LearnPage() {
             ].map((item) => (
               <div
                 key={item.title}
-                className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 p-5"
+                className="rounded-2xl border border-[#d4d4e8] bg-[#f2f2f8]/60 p-5"
               >
                 <div className="flex items-start gap-3 mb-3">
                   <div
@@ -959,15 +959,15 @@ export default function LearnPage() {
                   >
                     {item.icon}
                   </div>
-                  <h3 className="font-mono text-sm font-bold text-[#f8f8fc] mt-1.5">{item.title}</h3>
+                  <h3 className="font-mono text-sm font-bold text-[#1a1a2e] mt-1.5">{item.title}</h3>
                 </div>
-                <p className="text-sm text-[#bcbcd8] leading-relaxed">{item.description}</p>
+                <p className="text-sm text-[#4a4a6a] leading-relaxed">{item.description}</p>
               </div>
             ))}
           </div>
 
-          <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 p-6">
-            <p className="font-mono text-xs font-semibold uppercase tracking-widest text-[#8585aa] mb-3">
+          <div className="rounded-2xl border border-[#d4d4e8] bg-[#f2f2f8]/60 p-6">
+            <p className="font-mono text-xs font-semibold uppercase tracking-widest text-[#6a6a90] mb-3">
               Infrastructure
             </p>
             <ul className="space-y-2">
@@ -999,15 +999,15 @@ export default function LearnPage() {
 
           <div className="grid md:grid-cols-2 gap-6">
             {/* Free plan */}
-            <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 p-8 flex flex-col">
-              <p className="font-mono text-xs font-semibold uppercase tracking-widest text-[#8585aa] mb-3">
+            <div className="rounded-2xl border border-[#d4d4e8] bg-[#f2f2f8]/60 p-8 flex flex-col">
+              <p className="font-mono text-xs font-semibold uppercase tracking-widest text-[#6a6a90] mb-3">
                 Free trial
               </p>
               <div className="flex items-end gap-1.5 mb-4">
-                <span className="font-mono text-5xl font-bold text-[#f8f8fc]">$0</span>
-                <span className="font-mono text-sm text-[#8585aa] mb-1.5">/ 7 days</span>
+                <span className="font-mono text-5xl font-bold text-[#1a1a2e]">$0</span>
+                <span className="font-mono text-sm text-[#6a6a90] mb-1.5">/ 7 days</span>
               </div>
-              <p className="text-sm text-[#bcbcd8] mb-6">
+              <p className="text-sm text-[#4a4a6a] mb-6">
                 Full access to everything — all integrations, AI insights, web analytics. No credit
                 card required to start.
               </p>
@@ -1024,7 +1024,7 @@ export default function LearnPage() {
               </ul>
               <a
                 href="/signup"
-                className="block w-full rounded-xl border border-[#363650] py-3 text-center font-mono text-sm font-semibold uppercase tracking-wider text-[#bcbcd8] transition-all hover:border-[#00d4aa]/40 hover:text-[#00d4aa]"
+                className="block w-full rounded-xl border border-[#d4d4e8] py-3 text-center font-mono text-sm font-semibold uppercase tracking-wider text-[#4a4a6a] transition-all hover:border-[#00d4aa]/40 hover:text-[#00d4aa]"
               >
                 Start free trial
               </a>
@@ -1032,10 +1032,10 @@ export default function LearnPage() {
 
             {/* Pro plan */}
             <div className="relative rounded-2xl border border-[#00d4aa]/40 bg-[#00d4aa]/5 shadow-[0_0_60px_rgba(0,212,170,0.08)] p-8 flex flex-col">
-              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full border border-[#00d4aa]/40 bg-[#252531] px-4 py-1 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#00d4aa]">
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full border border-[#00d4aa]/40 bg-[#fafafa] px-4 py-1 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#00d4aa]">
                 Pro — Full access
               </div>
-              <p className="font-mono text-xs font-semibold uppercase tracking-widest text-[#8585aa] mb-3">
+              <p className="font-mono text-xs font-semibold uppercase tracking-widest text-[#6a6a90] mb-3">
                 Pro
               </p>
               <div className="mb-4">
@@ -1043,9 +1043,9 @@ export default function LearnPage() {
                   <span className="font-mono text-5xl font-bold text-[#00d4aa]">$19</span>
                   <span className="font-mono text-sm text-[#00d4aa]/70">/ month</span>
                 </div>
-                <p className="font-mono text-xs text-[#8585aa]">Cancel anytime. No contracts.</p>
+                <p className="font-mono text-xs text-[#6a6a90]">Cancel anytime. No contracts.</p>
               </div>
-              <p className="text-sm text-[#bcbcd8] mb-6">
+              <p className="text-sm text-[#4a4a6a] mb-6">
                 Everything in the trial, forever. Unlimited AI queries, all integrations unlocked,
                 daily auto-refresh.
               </p>
@@ -1063,15 +1063,15 @@ export default function LearnPage() {
                   <Check key={f}>{f}</Check>
                 ))}
               </ul>
-              <CheckoutButton className="block w-full rounded-xl bg-[#00d4aa] py-3 text-center font-mono text-sm font-semibold uppercase tracking-wider text-[#252531] transition-all hover:bg-[#00bfa0]">
+              <CheckoutButton className="block w-full rounded-xl bg-[#00d4aa] py-3 text-center font-mono text-sm font-semibold uppercase tracking-wider text-[#fafafa] transition-all hover:bg-[#00bfa0]">
                 Upgrade to Pro
               </CheckoutButton>
             </div>
           </div>
 
-          <div className="mt-6 rounded-2xl border border-[#363650] bg-[#2e2e3c]/40 p-5">
-            <p className="text-sm text-[#bcbcd8] text-center leading-relaxed">
-              <strong className="text-[#f8f8fc]">$19/month context:</strong> If Fold saves you just
+          <div className="mt-6 rounded-2xl border border-[#d4d4e8] bg-[#f2f2f8]/40 p-5">
+            <p className="text-sm text-[#4a4a6a] text-center leading-relaxed">
+              <strong className="text-[#1a1a2e]">$19/month context:</strong> If Fold saves you just
               1 hour per week of manual reporting, that&apos;s 4 hours/month. At $50/hr consulting
               rate, that&apos;s $200 in saved time — for $19. Most founders report saving 3-4
               hours/week.
@@ -1133,10 +1133,10 @@ export default function LearnPage() {
             ].map((item) => (
               <div
                 key={item.q}
-                className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 p-6"
+                className="rounded-2xl border border-[#d4d4e8] bg-[#f2f2f8]/60 p-6"
               >
-                <h3 className="font-mono text-sm font-bold text-[#f8f8fc] mb-2">{item.q}</h3>
-                <p className="text-sm text-[#bcbcd8] leading-relaxed">{item.a}</p>
+                <h3 className="font-mono text-sm font-bold text-[#1a1a2e] mb-2">{item.q}</h3>
+                <p className="text-sm text-[#4a4a6a] leading-relaxed">{item.a}</p>
               </div>
             ))}
           </div>
@@ -1154,17 +1154,17 @@ export default function LearnPage() {
               <p className="font-mono text-xs font-semibold uppercase tracking-widest text-[#00d4aa] mb-4">
                 Ready to try it?
               </p>
-              <h2 className="font-mono text-3xl font-bold text-[#f8f8fc] mb-4 sm:text-4xl">
+              <h2 className="font-mono text-3xl font-bold text-[#1a1a2e] mb-4 sm:text-4xl">
                 Start your free trial today
               </h2>
-              <p className="text-[#bcbcd8] mb-8 max-w-lg mx-auto">
+              <p className="text-[#4a4a6a] mb-8 max-w-lg mx-auto">
                 7 days free. Full access. No credit card required. Connect your first integration in
                 under 2 minutes and see your data in a new light.
               </p>
               <div className="flex flex-wrap justify-center gap-4">
                 <a
                   href="/signup"
-                  className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-7 py-3.5 font-mono text-sm font-semibold uppercase tracking-wider text-[#252531] transition-all hover:bg-[#00bfa0] hover:shadow-[0_0_30px_rgba(0,212,170,0.3)]"
+                  className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-7 py-3.5 font-mono text-sm font-semibold uppercase tracking-wider text-[#fafafa] transition-all hover:bg-[#00bfa0] hover:shadow-[0_0_30px_rgba(0,212,170,0.3)]"
                 >
                   Get started — it&apos;s free
                   <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -1173,12 +1173,12 @@ export default function LearnPage() {
                 </a>
                 <a
                   href="/demo"
-                  className="inline-flex items-center gap-2 rounded-xl border border-[#f8f8fc]/20 bg-[#f8f8fc]/5 px-7 py-3.5 font-mono text-sm font-semibold uppercase tracking-wider text-[#f8f8fc] transition-all hover:border-[#f8f8fc]/40"
+                  className="inline-flex items-center gap-2 rounded-xl border border-[#1a1a2e]/20 bg-[#1a1a2e]/5 px-7 py-3.5 font-mono text-sm font-semibold uppercase tracking-wider text-[#1a1a2e] transition-all hover:border-[#1a1a2e]/40"
                 >
                   See live demo first
                 </a>
               </div>
-              <p className="mt-6 font-mono text-[10px] text-[#8585aa]">
+              <p className="mt-6 font-mono text-[10px] text-[#6a6a90]">
                 Questions? Email{" "}
                 <a
                   href="mailto:info@usefold.io"
@@ -1194,7 +1194,7 @@ export default function LearnPage() {
       </div>
 
       {/* ── FOOTER ────────────────────────────────────────────────────────── */}
-      <footer className="border-t border-[#363650] mt-10 px-6 py-10">
+      <footer className="border-t border-[#d4d4e8] mt-10 px-6 py-10">
         <div className="mx-auto max-w-5xl flex flex-col sm:flex-row items-center justify-between gap-4">
           <img src="/fold-primary-dark.svg" alt="Fold" className="h-7 w-auto" />
           <div className="flex flex-wrap justify-center gap-6">
@@ -1208,13 +1208,13 @@ export default function LearnPage() {
               <a
                 key={l.href}
                 href={l.href}
-                className="font-mono text-[10px] uppercase tracking-widest text-[#8585aa] hover:text-[#f8f8fc] transition-colors"
+                className="font-mono text-[10px] uppercase tracking-widest text-[#6a6a90] hover:text-[#1a1a2e] transition-colors"
               >
                 {l.label}
               </a>
             ))}
           </div>
-          <p className="font-mono text-[10px] text-[#8585aa]">© 2026 Fold Analytics</p>
+          <p className="font-mono text-[10px] text-[#6a6a90]">© 2026 Fold Analytics</p>
         </div>
       </footer>
     </div>

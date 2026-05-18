@@ -29,7 +29,7 @@ export async function generateMetadata({
 // ─────────────────────────────────────────────────────────────────────────────
 
 function SectionHeading({ children }: { children: ReactNode }) {
-  return <h2 className="font-mono text-xl font-bold text-[#f8f8fc] mb-1">{children}</h2>;
+  return <h2 className="font-mono text-xl font-bold text-[#1a1a2e] mb-1">{children}</h2>;
 }
 
 function SectionLabel({ children, color = "#00d4aa" }: { children: ReactNode; color?: string }) {
@@ -42,7 +42,7 @@ function SectionLabel({ children, color = "#00d4aa" }: { children: ReactNode; co
 
 function Check({ children }: { children: ReactNode }) {
   return (
-    <li className="flex items-start gap-3 text-sm text-[#e0e0f0]">
+    <li className="flex items-start gap-3 text-sm text-[#3a3a58]">
       <svg className="mt-0.5 h-4 w-4 shrink-0 text-[#00d4aa]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
       </svg>
@@ -53,7 +53,7 @@ function Check({ children }: { children: ReactNode }) {
 
 function Cross({ children }: { children: ReactNode }) {
   return (
-    <li className="flex items-start gap-3 text-sm text-[#e0e0f0]">
+    <li className="flex items-start gap-3 text-sm text-[#3a3a58]">
       <svg className="mt-0.5 h-4 w-4 shrink-0 text-[#f87171]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
       </svg>
@@ -64,14 +64,14 @@ function Cross({ children }: { children: ReactNode }) {
 
 function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <div className={`rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 p-6 ${className}`}>
+    <div className={`rounded-2xl border border-[#d4d4e8] bg-[#f2f2f8]/60 p-6 ${className}`}>
       {children}
     </div>
   );
 }
 
 function Divider() {
-  return <div className="my-10 border-t border-[#363650]" />;
+  return <div className="my-10 border-t border-[#d4d4e8]" />;
 }
 
 function MethodBadge({ method }: { method: string }) {
@@ -115,17 +115,17 @@ export default async function PlatformDetailPage({
   const liveIntegrations = INTEGRATIONS_CATALOG.filter((i) => i.status === "live" && i.id !== platform);
 
   return (
-    <div className="min-h-screen bg-[#252531] text-[#f8f8fc]">
+    <div className="min-h-screen bg-[#f5f5f8] text-[#1a1a2e]">
       <Nav />
 
       {/* ── BREADCRUMB ───────────────────────────────────────────────────── */}
-      <div className="border-b border-[#363650] bg-[#2e2e3c]/40 px-6 py-4">
-        <div className="mx-auto max-w-4xl flex items-center gap-2 font-mono text-[11px] text-[#8585aa]">
+      <div className="border-b border-[#d4d4e8] bg-[#f2f2f8]/40 px-6 py-4">
+        <div className="mx-auto max-w-4xl flex items-center gap-2 font-mono text-[11px] text-[#6a6a90]">
           <Link href="/learn" className="hover:text-[#00d4aa] transition-colors">How Fold works</Link>
           <span>/</span>
           <Link href="/learn#integrations" className="hover:text-[#00d4aa] transition-colors">Integrations</Link>
           <span>/</span>
-          <span className="text-[#f8f8fc]">{detail.name}</span>
+          <span className="text-[#1a1a2e]">{detail.name}</span>
         </div>
       </div>
 
@@ -159,21 +159,21 @@ export default async function PlatformDetailPage({
                   </span>
                 )}
               </div>
-              <h1 className="font-mono text-3xl sm:text-4xl font-bold text-[#f8f8fc]">{detail.name}</h1>
-              <p className="mt-1.5 text-[#bcbcd8] leading-relaxed">{detail.tagline}</p>
+              <h1 className="font-mono text-3xl sm:text-4xl font-bold text-[#1a1a2e]">{detail.name}</h1>
+              <p className="mt-1.5 text-[#4a4a6a] leading-relaxed">{detail.tagline}</p>
             </div>
           </div>
 
           {/* Auth method + read-only badges */}
           <div className="flex flex-wrap gap-3 mb-8">
             <MethodBadge method={detail.connectMethod} />
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#363650] bg-[#343447] px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#8585aa]">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#d4d4e8] bg-[#e8e8f4] px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#6a6a90]">
               <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
               </svg>
               Read-only — we never write to your account
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#363650] bg-[#343447] px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#8585aa]">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#d4d4e8] bg-[#e8e8f4] px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#6a6a90]">
               <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <polyline points="20 6 9 17 4 12" />
               </svg>
@@ -212,9 +212,9 @@ export default async function PlatformDetailPage({
                 label: "Disconnect = data deleted instantly",
               },
             ].map((item) => (
-              <div key={item.label} className="flex items-center gap-2.5 rounded-xl border border-[#363650] bg-[#2e2e3c]/60 px-4 py-3">
+              <div key={item.label} className="flex items-center gap-2.5 rounded-xl border border-[#d4d4e8] bg-[#f2f2f8]/60 px-4 py-3">
                 <span className="text-[#00d4aa] shrink-0">{item.icon}</span>
-                <span className="font-mono text-[11px] text-[#bcbcd8]">{item.label}</span>
+                <span className="font-mono text-[11px] text-[#4a4a6a]">{item.label}</span>
               </div>
             ))}
           </div>
@@ -232,21 +232,21 @@ export default async function PlatformDetailPage({
           <p className="font-mono text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: detail.color }}>
             Why founders connect {detail.name}
           </p>
-          <p className="text-[#e0e0f0] leading-relaxed text-[15px]">{detail.whyFoundersConnect}</p>
+          <p className="text-[#3a3a58] leading-relaxed text-[15px]">{detail.whyFoundersConnect}</p>
         </div>
 
         {/* ── DATA PIPELINE VISUAL ─────────────────────────────────────── */}
         <Card>
           <SectionLabel color="#60a5fa">How your data flows</SectionLabel>
           <SectionHeading>From {detail.name} to your Fold dashboard</SectionHeading>
-          <p className="text-sm text-[#bcbcd8] mt-2 mb-8 leading-relaxed">
+          <p className="text-sm text-[#4a4a6a] mt-2 mb-8 leading-relaxed">
             This is the exact sequence every time Fold runs its daily sync. Nothing runs outside this pipeline.
           </p>
 
           {/* Pipeline nodes */}
           <div className="relative">
             {/* Vertical connector line (desktop) */}
-            <div className="hidden sm:block absolute left-6.75 top-10 bottom-10 w-px bg-linear-to-b from-[#363650] via-[#3c3c52] to-[#363650]" />
+            <div className="hidden sm:block absolute left-6.75 top-10 bottom-10 w-px bg-linear-to-b from-[#d4d4e8] via-[#3c3c52] to-[#d4d4e8]" />
 
             <div className="space-y-3">
               {[
@@ -323,23 +323,23 @@ export default async function PlatformDetailPage({
                     </div>
                     {i < arr.length - 1 && (
                       <div className="flex-1 flex flex-col items-center py-1 gap-1">
-                        <span className="h-1 w-1 rounded-full bg-[#363650]" />
-                        <span className="h-1 w-1 rounded-full bg-[#363650]" />
-                        <span className="h-1 w-1 rounded-full bg-[#363650]" />
+                        <span className="h-1 w-1 rounded-full bg-[#d4d4e8]" />
+                        <span className="h-1 w-1 rounded-full bg-[#d4d4e8]" />
+                        <span className="h-1 w-1 rounded-full bg-[#d4d4e8]" />
                       </div>
                     )}
                   </div>
 
                   {/* Text column */}
-                  <div className={`flex-1 pb-4 ${i < arr.length - 1 ? "border-b border-[#303040]" : ""}`}>
+                  <div className={`flex-1 pb-4 ${i < arr.length - 1 ? "border-b border-[#d0d0e8]" : ""}`}>
                     <div className="flex items-baseline gap-2 mb-0.5 mt-3">
                       <span className="font-mono text-[10px] font-bold uppercase tracking-widest" style={{ color: node.color }}>
                         {String(i + 1).padStart(2, "0")}
                       </span>
-                      <h3 className="font-mono text-sm font-bold text-[#f8f8fc]">{node.title}</h3>
+                      <h3 className="font-mono text-sm font-bold text-[#1a1a2e]">{node.title}</h3>
                     </div>
-                    <p className="font-mono text-[10px] uppercase tracking-widest text-[#8585aa] mb-2">{node.subtitle}</p>
-                    <p className="text-sm text-[#bcbcd8] leading-relaxed">{node.desc}</p>
+                    <p className="font-mono text-[10px] uppercase tracking-widest text-[#6a6a90] mb-2">{node.subtitle}</p>
+                    <p className="text-sm text-[#4a4a6a] leading-relaxed">{node.desc}</p>
                   </div>
                 </div>
               ))}
@@ -351,12 +351,12 @@ export default async function PlatformDetailPage({
         <Card>
           <SectionLabel>Step 1 — How you connect</SectionLabel>
           <SectionHeading>The exact connection flow</SectionHeading>
-          <p className="text-sm text-[#bcbcd8] mt-2 mb-5 leading-relaxed">
+          <p className="text-sm text-[#4a4a6a] mt-2 mb-5 leading-relaxed">
             Here is precisely what happens when you connect {detail.name} to Fold, step by step.
           </p>
           <ol className="space-y-3">
             {detail.connectSteps.map((step, i) => (
-              <li key={i} className="flex items-start gap-4 text-sm text-[#e0e0f0]">
+              <li key={i} className="flex items-start gap-4 text-sm text-[#3a3a58]">
                 <span
                   className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full font-mono text-[11px] font-bold"
                   style={{ color: detail.color, backgroundColor: `${detail.color}18`, border: `1px solid ${detail.color}30` }}
@@ -373,7 +373,7 @@ export default async function PlatformDetailPage({
         <Card>
           <SectionLabel color="#a78bfa">Step 2 — Permissions we request</SectionLabel>
           <SectionHeading>Exactly what access Fold asks for</SectionHeading>
-          <p className="text-sm text-[#bcbcd8] mt-2 mb-5 leading-relaxed">
+          <p className="text-sm text-[#4a4a6a] mt-2 mb-5 leading-relaxed">
             We request the minimum permissions needed. No more.
           </p>
           <ul className="space-y-2.5">
@@ -387,14 +387,14 @@ export default async function PlatformDetailPage({
         <Card>
           <SectionLabel color="#60a5fa">Step 3 — API calls Fold makes</SectionLabel>
           <SectionHeading>Every request we send to {detail.name}</SectionHeading>
-          <p className="text-sm text-[#bcbcd8] mt-2 mb-5 leading-relaxed">
+          <p className="text-sm text-[#4a4a6a] mt-2 mb-5 leading-relaxed">
             These are the exact API endpoints Fold calls during each sync, and why.
           </p>
           <div className="space-y-3">
             {detail.apiEndpoints.map((ep, i) => (
-              <div key={i} className="rounded-xl border border-[#363650] bg-[#252531]/60 p-4">
+              <div key={i} className="rounded-xl border border-[#d4d4e8] bg-[#fafafa]/60 p-4">
                 <p className="font-mono text-xs font-semibold text-[#60a5fa] mb-1 break-all">{ep.label}</p>
-                <p className="text-sm text-[#bcbcd8]">{ep.purpose}</p>
+                <p className="text-sm text-[#4a4a6a]">{ep.purpose}</p>
               </div>
             ))}
           </div>
@@ -402,7 +402,7 @@ export default async function PlatformDetailPage({
             <svg className="h-4 w-4 shrink-0 text-[#fbbf24] mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
             </svg>
-            <p className="text-[12px] text-[#bcbcd8]"><span className="text-[#fbbf24] font-semibold">API impact:</span> {detail.apiImpact}</p>
+            <p className="text-[12px] text-[#4a4a6a]"><span className="text-[#fbbf24] font-semibold">API impact:</span> {detail.apiImpact}</p>
           </div>
         </Card>
 
@@ -410,24 +410,24 @@ export default async function PlatformDetailPage({
         <Card>
           <SectionLabel color="#00d4aa">What we store</SectionLabel>
           <SectionHeading>Exactly what lands in our database</SectionHeading>
-          <p className="text-sm text-[#bcbcd8] mt-2 mb-5 leading-relaxed">
+          <p className="text-sm text-[#4a4a6a] mt-2 mb-5 leading-relaxed">
             Every field we persist — with a real example and the reason it exists. Nothing more is stored.
           </p>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[#363650]">
-                  <th className="text-left font-mono text-[10px] uppercase tracking-widest text-[#8585aa] pb-3 pr-6">Field</th>
-                  <th className="text-left font-mono text-[10px] uppercase tracking-widest text-[#8585aa] pb-3 pr-6">Example value</th>
-                  <th className="text-left font-mono text-[10px] uppercase tracking-widest text-[#8585aa] pb-3">Why we store it</th>
+                <tr className="border-b border-[#d4d4e8]">
+                  <th className="text-left font-mono text-[10px] uppercase tracking-widest text-[#6a6a90] pb-3 pr-6">Field</th>
+                  <th className="text-left font-mono text-[10px] uppercase tracking-widest text-[#6a6a90] pb-3 pr-6">Example value</th>
+                  <th className="text-left font-mono text-[10px] uppercase tracking-widest text-[#6a6a90] pb-3">Why we store it</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#363650]/60">
+              <tbody className="divide-y divide-[#d4d4e8]/60">
                 {detail.storedFields.map((f) => (
                   <tr key={f.field}>
-                    <td className="py-3 pr-6 text-[#f8f8fc] font-medium align-top">{f.field}</td>
+                    <td className="py-3 pr-6 text-[#1a1a2e] font-medium align-top">{f.field}</td>
                     <td className="py-3 pr-6 text-[#00d4aa] font-mono text-[12px] align-top whitespace-nowrap">{f.example}</td>
-                    <td className="py-3 text-[#bcbcd8] align-top">{f.purpose}</td>
+                    <td className="py-3 text-[#4a4a6a] align-top">{f.purpose}</td>
                   </tr>
                 ))}
               </tbody>
@@ -439,11 +439,11 @@ export default async function PlatformDetailPage({
         <Card>
           <SectionLabel color="#a78bfa">What a daily sync actually stores</SectionLabel>
           <SectionHeading>One day's record — verbatim</SectionHeading>
-          <p className="text-sm text-[#bcbcd8] mt-2 mb-5 leading-relaxed">
+          <p className="text-sm text-[#4a4a6a] mt-2 mb-5 leading-relaxed">
             This is a real-looking example of the row Fold writes to your account after a single sync. Every field, every value — nothing hidden.
           </p>
-          <div className="rounded-xl border border-[#3c3c50] bg-[#1f1f2a] font-mono text-sm overflow-hidden">
-            <div className="flex items-center gap-2 px-4 py-2 border-b border-[#303042] bg-[#252531]">
+          <div className="rounded-xl border border-[#ccccec] bg-[#f4f4fc] font-mono text-sm overflow-hidden">
+            <div className="flex items-center gap-2 px-4 py-2 border-b border-[#d4d4e8] bg-[#fafafa]">
               <span className="h-2.5 w-2.5 rounded-full bg-[#f87171]" />
               <span className="h-2.5 w-2.5 rounded-full bg-[#fbbf24]" />
               <span className="h-2.5 w-2.5 rounded-full bg-[#4ade80]" />
@@ -452,16 +452,16 @@ export default async function PlatformDetailPage({
               </span>
             </div>
             <div className="p-5 space-y-1">
-              <p className="text-[#363660]">{"{"}</p>
+              <p className="text-[#e5e5f5]">{"{"}</p>
               {detail.sampleSnapshot.map((row) => (
                 <p key={row.label} className="pl-5">
                   <span className="text-[#a78bfa]">&quot;{row.label}&quot;</span>
-                  <span className="text-[#8585aa]">: </span>
+                  <span className="text-[#6a6a90]">: </span>
                   <span className="text-[#00d4aa]">&quot;{row.value}&quot;</span>
-                  <span className="text-[#8585aa]">,</span>
+                  <span className="text-[#6a6a90]">,</span>
                 </p>
               ))}
-              <p className="text-[#363660]">{"}"}</p>
+              <p className="text-[#e5e5f5]">{"}"}</p>
             </div>
           </div>
           <p className="mt-3 text-[12px] text-[#4a4a6a] italic">
@@ -473,7 +473,7 @@ export default async function PlatformDetailPage({
         <Card>
           <SectionLabel color="#f87171">What we never store</SectionLabel>
           <SectionHeading>Data Fold never touches</SectionHeading>
-          <p className="text-sm text-[#bcbcd8] mt-2 mb-5 leading-relaxed">
+          <p className="text-sm text-[#4a4a6a] mt-2 mb-5 leading-relaxed">
             These fields are explicitly excluded. Even if the {detail.name} API returns them,
             Fold ignores and discards them before any storage step.
           </p>
@@ -488,7 +488,7 @@ export default async function PlatformDetailPage({
         <Card>
           <SectionLabel color="#f87171">What Fold never does</SectionLabel>
           <SectionHeading>Hard limits — enforced at the API level</SectionHeading>
-          <p className="text-sm text-[#bcbcd8] mt-2 mb-5 leading-relaxed">
+          <p className="text-sm text-[#4a4a6a] mt-2 mb-5 leading-relaxed">
             These aren&apos;t just policies — they&apos;re technically impossible given the permissions we
             request. {detail.name}&apos;s own API enforces them.
           </p>
@@ -512,7 +512,7 @@ export default async function PlatformDetailPage({
               <p className="font-mono text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: detail.color }}>
                 Privacy note — {detail.name} specific
               </p>
-              <p className="text-sm text-[#e0e0f0] leading-relaxed">{detail.privacyNote}</p>
+              <p className="text-sm text-[#3a3a58] leading-relaxed">{detail.privacyNote}</p>
             </div>
           </div>
         </div>
@@ -522,12 +522,12 @@ export default async function PlatformDetailPage({
           <Card>
             <SectionLabel>Data retention</SectionLabel>
             <SectionHeading>How long we keep it</SectionHeading>
-            <p className="text-sm text-[#bcbcd8] mt-3 leading-relaxed">{detail.dataRetention}</p>
+            <p className="text-sm text-[#4a4a6a] mt-3 leading-relaxed">{detail.dataRetention}</p>
           </Card>
           <Card>
             <SectionLabel>Refresh frequency</SectionLabel>
             <SectionHeading>How often we sync</SectionHeading>
-            <p className="text-sm text-[#bcbcd8] mt-3 leading-relaxed">{detail.refreshFrequency}</p>
+            <p className="text-sm text-[#4a4a6a] mt-3 leading-relaxed">{detail.refreshFrequency}</p>
           </Card>
         </div>
 
@@ -535,20 +535,20 @@ export default async function PlatformDetailPage({
         <Card>
           <SectionLabel color="#f59e0b">How to revoke access</SectionLabel>
           <SectionHeading>You are always in control</SectionHeading>
-          <p className="text-sm text-[#bcbcd8] mt-2 mb-6 leading-relaxed">
+          <p className="text-sm text-[#4a4a6a] mt-2 mb-6 leading-relaxed">
             You can disconnect {detail.name} from Fold at any time — from either side.
             Both options immediately stop all data access.
           </p>
           <div className="grid sm:grid-cols-2 gap-4">
-            <div className="rounded-xl border border-[#363650] bg-[#252531]/60 p-4">
+            <div className="rounded-xl border border-[#d4d4e8] bg-[#fafafa]/60 p-4">
               <p className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#00d4aa] mb-2">From Fold</p>
-              <p className="text-sm text-[#e0e0f0] leading-relaxed">{detail.howToRevoke.fromFold}</p>
+              <p className="text-sm text-[#3a3a58] leading-relaxed">{detail.howToRevoke.fromFold}</p>
             </div>
-            <div className="rounded-xl border border-[#363650] bg-[#252531]/60 p-4">
+            <div className="rounded-xl border border-[#d4d4e8] bg-[#fafafa]/60 p-4">
               <p className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#a78bfa] mb-2">
                 From {detail.name} directly
               </p>
-              <p className="text-sm text-[#e0e0f0] leading-relaxed mb-3">{detail.howToRevoke.fromPlatform}</p>
+              <p className="text-sm text-[#3a3a58] leading-relaxed mb-3">{detail.howToRevoke.fromPlatform}</p>
               <a
                 href={detail.howToRevoke.platformRevokeUrl}
                 target="_blank"
@@ -593,11 +593,11 @@ export default async function PlatformDetailPage({
                 desc: "Your synced data is isolated in our database with row-level security. No other Fold user can query your data.",
               },
             ].map((item) => (
-              <div key={item.title} className="rounded-xl border border-[#363650] bg-[#252531]/60 p-4">
+              <div key={item.title} className="rounded-xl border border-[#d4d4e8] bg-[#fafafa]/60 p-4">
                 <p className="font-mono text-[10px] font-semibold uppercase tracking-widest mb-1.5" style={{ color: item.color }}>
                   {item.title}
                 </p>
-                <p className="text-sm text-[#bcbcd8] leading-relaxed">{item.desc}</p>
+                <p className="text-sm text-[#4a4a6a] leading-relaxed">{item.desc}</p>
               </div>
             ))}
           </div>
@@ -613,8 +613,8 @@ export default async function PlatformDetailPage({
             <div className="space-y-3">
               {detail.faq.map((item) => (
                 <Card key={item.q}>
-                  <h3 className="font-mono text-sm font-bold text-[#f8f8fc] mb-2">{item.q}</h3>
-                  <p className="text-sm text-[#bcbcd8] leading-relaxed">{item.a}</p>
+                  <h3 className="font-mono text-sm font-bold text-[#1a1a2e] mb-2">{item.q}</h3>
+                  <p className="text-sm text-[#4a4a6a] leading-relaxed">{item.a}</p>
                 </Card>
               ))}
             </div>
@@ -634,7 +634,7 @@ export default async function PlatformDetailPage({
               <Link
                 key={integration.id}
                 href={`/learn/${integration.id}`}
-                className="group flex items-center gap-3 rounded-xl border border-[#363650] bg-[#2e2e3c]/60 p-4 transition-all hover:border-[#363660] hover:bg-[#2e2e3c]"
+                className="group flex items-center gap-3 rounded-xl border border-[#d4d4e8] bg-[#f2f2f8]/60 p-4 transition-all hover:border-[#c4c4ec] hover:bg-[#f2f2f8]"
               >
                 <div
                   className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border overflow-hidden"
@@ -643,10 +643,10 @@ export default async function PlatformDetailPage({
                   <img src={integration.icon} alt={integration.name} width={20} height={20} className="object-contain" />
                 </div>
                 <div className="min-w-0">
-                  <p className="font-mono text-sm font-semibold text-[#f8f8fc] group-hover:text-[#00d4aa] transition-colors truncate">{integration.name}</p>
-                  <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">{integration.category}</p>
+                  <p className="font-mono text-sm font-semibold text-[#1a1a2e] group-hover:text-[#00d4aa] transition-colors truncate">{integration.name}</p>
+                  <p className="font-mono text-[9px] uppercase tracking-widest text-[#6a6a90]">{integration.category}</p>
                 </div>
-                <svg className="ml-auto h-4 w-4 shrink-0 text-[#8585aa] group-hover:text-[#00d4aa] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className="ml-auto h-4 w-4 shrink-0 text-[#6a6a90] group-hover:text-[#00d4aa] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                 </svg>
               </Link>
@@ -663,17 +663,17 @@ export default async function PlatformDetailPage({
             <p className="font-mono text-xs font-semibold uppercase tracking-widest text-[#00d4aa] mb-3">
               Ready to connect {detail.name}?
             </p>
-            <h2 className="font-mono text-2xl font-bold text-[#f8f8fc] mb-3">
+            <h2 className="font-mono text-2xl font-bold text-[#1a1a2e] mb-3">
               Start your free trial — no credit card
             </h2>
-            <p className="text-sm text-[#bcbcd8] mb-6 max-w-md mx-auto">
+            <p className="text-sm text-[#4a4a6a] mb-6 max-w-md mx-auto">
               7 days full access. Connect {detail.name} and every other live integration.
               Cancel anytime. Your data deleted on request, immediately.
             </p>
             <div className="flex flex-wrap justify-center gap-3">
               <a
                 href="/signup"
-                className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-6 py-3 font-mono text-sm font-semibold uppercase tracking-wider text-[#252531] transition-all hover:bg-[#00bfa0]"
+                className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-6 py-3 font-mono text-sm font-semibold uppercase tracking-wider text-[#fafafa] transition-all hover:bg-[#00bfa0]"
               >
                 Get started free
                 <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -682,7 +682,7 @@ export default async function PlatformDetailPage({
               </a>
               <Link
                 href="/learn"
-                className="inline-flex items-center gap-2 rounded-xl border border-[#363650] bg-[#2e2e3c] px-6 py-3 font-mono text-sm font-semibold uppercase tracking-wider text-[#bcbcd8] transition-all hover:border-[#00d4aa]/30 hover:text-[#f8f8fc]"
+                className="inline-flex items-center gap-2 rounded-xl border border-[#d4d4e8] bg-[#f2f2f8] px-6 py-3 font-mono text-sm font-semibold uppercase tracking-wider text-[#4a4a6a] transition-all hover:border-[#00d4aa]/30 hover:text-[#1a1a2e]"
               >
                 Back to full guide
               </Link>
@@ -692,7 +692,7 @@ export default async function PlatformDetailPage({
       </div>
 
       {/* ── FOOTER ───────────────────────────────────────────────────────── */}
-      <footer className="border-t border-[#363650] px-6 py-10">
+      <footer className="border-t border-[#d4d4e8] px-6 py-10">
         <div className="mx-auto max-w-4xl flex flex-col sm:flex-row items-center justify-between gap-4">
           <img src="/fold-primary-dark.svg" alt="Fold" className="h-7 w-auto" />
           <div className="flex flex-wrap justify-center gap-6">
@@ -703,12 +703,12 @@ export default async function PlatformDetailPage({
               { label: "Terms", href: "/terms" },
               { label: "Contact", href: "mailto:info@usefold.io" },
             ].map((l) => (
-              <a key={l.href} href={l.href} className="font-mono text-[10px] uppercase tracking-widest text-[#8585aa] hover:text-[#f8f8fc] transition-colors">
+              <a key={l.href} href={l.href} className="font-mono text-[10px] uppercase tracking-widest text-[#6a6a90] hover:text-[#1a1a2e] transition-colors">
                 {l.label}
               </a>
             ))}
           </div>
-          <p className="font-mono text-[10px] text-[#8585aa]">© 2026 Fold Analytics</p>
+          <p className="font-mono text-[10px] text-[#6a6a90]">© 2026 Fold Analytics</p>
         </div>
       </footer>
     </div>

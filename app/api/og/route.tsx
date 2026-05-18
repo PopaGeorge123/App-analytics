@@ -9,7 +9,7 @@ export function GET() {
         style={{
           width: "1200px",
           height: "630px",
-          background: "#252531",
+          background: "#f5f5f8",
           display: "flex",
           flexDirection: "column",
           alignItems: "flex-start",
@@ -83,7 +83,7 @@ export function GET() {
           style={{
             fontSize: "62px",
             fontWeight: 800,
-            color: "#f8f8fc",
+            color: "#1a1a2e",
             lineHeight: 1.1,
             marginBottom: "28px",
             maxWidth: "820px",
@@ -98,7 +98,7 @@ export function GET() {
         <div
           style={{
             fontSize: "22px",
-            color: "#8585aa",
+            color: "#6a6a90",
             maxWidth: "680px",
             lineHeight: 1.5,
             marginBottom: "56px",
@@ -121,13 +121,13 @@ export function GET() {
               style={{
                 display: "flex",
                 flexDirection: "column",
-                background: "#2e2e3c",
-                border: "1px solid #363650",
+                background: "#f0f0f8",
+                border: "1px solid #e5e5f5",
                 borderRadius: "12px",
                 padding: "14px 22px",
               }}
             >
-              <span style={{ fontSize: "11px", color: "#8585aa", letterSpacing: "1.5px", marginBottom: "6px" }}>
+              <span style={{ fontSize: "11px", color: "#6a6a90", letterSpacing: "1.5px", marginBottom: "6px" }}>
                 {pill.label.toUpperCase()}
               </span>
               <span style={{ fontSize: "24px", fontWeight: 700, color: pill.color }}>

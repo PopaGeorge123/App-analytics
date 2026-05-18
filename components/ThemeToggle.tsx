@@ -22,7 +22,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
       aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
       className={`flex h-8 w-8 items-center justify-center rounded-lg border transition-all ${
         isDark
-          ? "border-[#363650] bg-[#222235] text-[#8585aa] hover:border-[#454560] hover:text-[#bcbcd8]"
+          ? "border-[#d4d4e8] bg-[#e8e8f4] text-[#6a6a90] hover:border-[#c8c8e8] hover:text-[#4a4a6a]"
           : "border-(--c-border) bg-(--c-card) text-(--c-muted) hover:border-(--c-borderhi) hover:text-(--c-text)"
       } ${className}`}
     >

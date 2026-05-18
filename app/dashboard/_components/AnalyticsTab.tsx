@@ -129,10 +129,10 @@ function HeroStrip({
 
   return (
     <div
-      className="rounded-xl border border-[rgba(255,255,255,0.11)] bg-[#25252c] overflow-hidden"
+      className="rounded-xl bg-white ring-1 ring-black/[0.06] overflow-hidden"
       style={{ borderLeftColor: accentColor, borderLeftWidth: 4 }}
     >
-      <div className="flex flex-wrap divide-x divide-[rgba(255,255,255,0.09)]">
+      <div className="flex flex-wrap divide-x divide-[#f0f0f8]">
         {metrics.map((m, i) => (
           <div key={i} className="flex-1 min-w-[6.875rem] px-4 py-3">
             <p className="font-mono text-[9px] uppercase tracking-widest text-[#64748b] mb-1.5 flex items-center gap-1">
@@ -144,7 +144,7 @@ function HeroStrip({
                 color:
                   m.status === "critical" ? "#f87171" :
                   m.status === "positive" ? "#00d4aa" :
-                  "#f8f8fc",
+                  "#1a1a2e",
               }}
             >
               {m.value}
@@ -164,7 +164,7 @@ function HeroStrip({
         ))}
       </div>
       {summary && (
-        <div className="border-t border-[rgba(255,255,255,0.09)] px-4 py-2.5">
+        <div className="border-t border-[#eeeef4] px-4 py-2.5">
           <p className="text-[11px] italic text-[#64748b] leading-relaxed">{summary}</p>
         </div>
       )}
@@ -204,7 +204,7 @@ function PlatformAreaChart({
     s.formatter ? s.formatter(v) : fmt(v);
 
   return (
-    <div className="rounded-xl border border-[rgba(255,255,255,0.11)] bg-[#13131a] p-4 space-y-3">
+    <div className="rounded-xl bg-white ring-1 ring-black/[0.06] p-4 space-y-3 shadow-[0_1px_4px_rgba(0,0,0,0.05)]">
       <div className="flex flex-wrap gap-2">
         {series.map((s) => (
           <button
@@ -214,7 +214,7 @@ function PlatformAreaChart({
             style={
               enabled[s.key]
                 ? { backgroundColor: `${s.color}15`, color: s.color, borderColor: `${s.color}30` }
-                : { backgroundColor: "transparent", color: "#64748b", borderColor: "rgba(255,255,255,0.11)" }
+                : { backgroundColor: "transparent", color: "#64748b", borderColor: "rgba(0,0,0,0.07)" }
             }
           >
             <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: enabled[s.key] ? s.color : "#64748b" }} />
@@ -232,7 +232,7 @@ function PlatformAreaChart({
               </linearGradient>
             ))}
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.13)" vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.08)" vertical={false} />
           <XAxis
             dataKey="period"
             tick={{ fill: "#64748b", fontSize: 10, fontFamily: "monospace" }}
@@ -260,7 +260,7 @@ function PlatformAreaChart({
             content={({ active, payload, label }) => {
               if (!active || !payload?.length) return null;
               return (
-                <div className="rounded-xl border border-[rgba(255,255,255,0.10)] bg-[#0f0f16] px-3 py-2.5 shadow-2xl">
+                <div className="rounded-xl border border-[#eeeef4] bg-white px-3 py-2.5 shadow-2xl">
                   <p className="font-mono text-[10px] text-[#64748b] mb-1.5">{label}</p>
                   {payload.map((p) => {
                     const ser = series.find((s) => s.key === p.dataKey);
@@ -269,7 +269,7 @@ function PlatformAreaChart({
                       <div key={p.dataKey as string} className="flex items-center gap-2 font-mono text-[11px]">
                         <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: p.color }} />
                         <span className="text-[#94a3b8]">{p.name}:</span>
-                        <span className="font-bold text-white">{fmtd}</span>
+                        <span className="font-bold text-[#1a1a2e]">{fmtd}</span>
                       </div>
                     );
                   })}
@@ -453,8 +453,8 @@ function SparkTooltip({ active, payload, formatter }: SparkTooltipProps) {
   if (!active || !payload?.length) return null;
   const val = payload[0].value;
   return (
-    <div className="rounded-lg border border-[#363650] bg-[#0f0f16] px-2.5 py-1.5 shadow-2xl">
-      <p className="font-mono text-[11px] font-bold text-[#f8f8fc]">
+    <div className="rounded-lg border border-[#d4d4e8] bg-white px-2.5 py-1.5 shadow-2xl">
+      <p className="font-mono text-[11px] font-bold text-[#1a1a2e]">
         {formatter ? formatter(val) : val.toLocaleString("en-US", { maximumFractionDigits: 0 })}
       </p>
     </div>
@@ -610,12 +610,12 @@ function StatCard({
     <div
       onClick={() => canExpand && setActive(isExpanded ? null : label)}
       className={[
-        "relative overflow-hidden rounded-xl border bg-[#343447] flex flex-col transition-all duration-300 ease-in-out",
+        "relative overflow-hidden rounded-xl border bg-[#e8e8f4] flex flex-col transition-all duration-300 ease-in-out",
         isExpanded
-          ? "col-span-full border-[#454560] bg-[#2c2c40] p-5 gap-4"
-          : "p-5 gap-3 border-[#363650]",
+          ? "col-span-full border-[#c8c8e8] bg-[#ebebf8] p-5 gap-4"
+          : "p-5 gap-3 border-[#d4d4e8]",
         !isExpanded && !isOtherExpanded
-          ? "hover:border-[#454560] hover:bg-[#2e2e3c]"
+          ? "hover:border-[#c8c8e8] hover:bg-[#f2f2f8]"
           : "",
         isOtherExpanded
           ? "opacity-40 scale-[0.97] pointer-events-none"
@@ -628,7 +628,7 @@ function StatCard({
 
       {/* header row */}
       <div className="flex items-start justify-between">
-        <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">{label}</p>
+        <p className="font-mono text-[9px] uppercase tracking-widest text-[#6a6a90]">{label}</p>
         <div className="flex items-center gap-1.5">
           {t && (
             <span className={`inline-flex items-center gap-0.5 font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-md ${t.up ? "text-[#00d4aa] bg-[#00d4aa]/10" : "text-red-400 bg-red-400/10"}`}>
@@ -645,7 +645,7 @@ function StatCard({
           {isExpanded && (
             <button
               onClick={(e) => { e.stopPropagation(); setActive(null); }}
-              className="rounded-lg p-1 text-[#5a5a7a] hover:text-[#bcbcd8] hover:bg-[#343447] transition-colors"
+              className="rounded-lg p-1 text-[#5a5a7a] hover:text-[#4a4a6a] hover:bg-[#e8e8f4] transition-colors"
               title="Collapse"
             >
               <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
@@ -658,8 +658,8 @@ function StatCard({
 
       {/* value */}
       <div>
-        <p className="font-mono text-2xl font-bold text-[#f8f8fc]">{value}</p>
-        {sub && <p className="mt-0.5 font-mono text-[10px] text-[#8585aa]">{sub}</p>}
+        <p className="font-mono text-2xl font-bold text-[#1a1a2e]">{value}</p>
+        {sub && <p className="mt-0.5 font-mono text-[10px] text-[#6a6a90]">{sub}</p>}
       </div>
 
       {/* sparkline OR expanded chart */}
@@ -669,7 +669,7 @@ function StatCard({
           style={{ maxHeight: isExpanded ? 380 : 0, opacity: isExpanded ? 1 : 0 }}
         >
           {/* stats strip */}
-          <div className="grid grid-cols-3 sm:grid-cols-4 mb-4 rounded-lg border border-[#303040] divide-x divide-[#303040] overflow-hidden">
+          <div className="grid grid-cols-3 sm:grid-cols-4 mb-4 rounded-lg border border-[#d0d0e8] divide-x divide-[#ebebf5] overflow-hidden">
             {[
               { lbl: isGauge ? "Current" : "Total",   val: fmtVal(isGauge ? current : total) },
               { lbl: isGauge ? "Peak" : "Average",    val: fmtVal(isGauge ? peak : avg) },
@@ -680,7 +680,7 @@ function StatCard({
             ].map((s) => (
               <div key={s.lbl} className="px-4 py-2.5 hidden sm:block last:block first:block nth-3:block">
                 <p className="font-mono text-[9px] uppercase tracking-widest text-[#5a5a7a]">{s.lbl}</p>
-                <p className="font-mono text-sm font-bold text-[#f8f8fc] mt-0.5">{s.val}</p>
+                <p className="font-mono text-sm font-bold text-[#1a1a2e] mt-0.5">{s.val}</p>
               </div>
             ))}
           </div>
@@ -694,7 +694,7 @@ function StatCard({
                   <stop offset="100%" stopColor={accent} stopOpacity={0.03} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#303040" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#ebebf5" vertical={false} />
               <XAxis
                 dataKey="lbl"
                 tick={{ fill: "#5a5a7a", fontSize: 10, fontFamily: "monospace" }}
@@ -710,8 +710,8 @@ function StatCard({
                 content={({ active: a, payload, label: lbl }) => {
                   if (!a || !payload?.length) return null;
                   return (
-                    <div className="rounded-lg border border-[#363650] bg-[#0f0f16] px-3 py-2 shadow-2xl">
-                      <p className="font-mono text-[10px] text-[#8585aa] mb-0.5">{lbl}</p>
+                    <div className="rounded-lg border border-[#d4d4e8] bg-white px-3 py-2 shadow-2xl">
+                      <p className="font-mono text-[10px] text-[#6a6a90] mb-0.5">{lbl}</p>
                       <p className="font-mono text-sm font-bold" style={{ color: accent }}>
                         {fmtVal(payload[0].value as number)}
                       </p>
@@ -731,7 +731,7 @@ function StatCard({
             </AreaChart>
           </ResponsiveContainer>
           <p className="mt-2 font-mono text-[10px] text-[#3a3a5a] text-right">
-            click card or press <kbd className="rounded px-1 py-0.5 bg-[#303040] text-[#5a5a7a]">Esc</kbd> to collapse
+            click card or press <kbd className="rounded px-1 py-0.5 bg-[#ebebf5] text-[#5a5a7a]">Esc</kbd> to collapse
           </p>
         </div>
       ) : (
@@ -772,7 +772,7 @@ function StatCard({
       <div className="space-y-5">
         <div className="flex items-center gap-3 rounded-xl border border-[#FF0000]/15 bg-[#FF0000]/5 px-4 py-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FF0000]/15 font-mono text-[10px] font-bold text-[#FF0000]">YT</div>
-          <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">YouTube</h3>
+          <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">YouTube</h3>
         </div>
         <HeroStrip metrics={ytHeroMetrics} summary={ytHeroSummary} accentColor="#FF0000" />
         {periods.length >= 2 && <PlatformAreaChart periods={periods} series={ytChartSeries} />}
@@ -820,7 +820,7 @@ function StatCard({
       <div className="space-y-5">
         <div className="flex items-center gap-3 rounded-xl border border-[#1d9bf0]/15 bg-[#1d9bf0]/5 px-4 py-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1d9bf0]/15 font-mono text-[10px] font-bold text-[#1d9bf0]">XA</div>
-          <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">X (Twitter)</h3>
+          <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">X (Twitter)</h3>
         </div>
         <HeroStrip metrics={xHeroMetrics} summary={xHeroSummary} accentColor="#1d9bf0" />
         {periods.length >= 2 && <PlatformAreaChart periods={periods} series={xChartSeries} />}
@@ -886,7 +886,7 @@ function DateRangePicker({
         className={`flex items-center gap-2 rounded-xl border px-3 py-1.5 font-mono text-[11px] font-semibold transition-all ${
           customRange
             ? "border-[#00d4aa]/40 bg-[#00d4aa]/10 text-[#00d4aa]"
-            : "border-[#363650] bg-[#2e2e3c] text-[#8585aa] hover:text-[#bcbcd8]"
+            : "border-[#d4d4e8] bg-[#f2f2f8] text-[#6a6a90] hover:text-[#4a4a6a]"
         }`}
       >
         {/* calendar icon */}
@@ -898,35 +898,35 @@ function DateRangePicker({
         {customRange && (
           <span
             onClick={(e) => { e.stopPropagation(); clear(); }}
-            className="ml-1 text-[#8585aa] hover:text-red-400 transition-colors cursor-pointer"
+            className="ml-1 text-[#6a6a90] hover:text-red-400 transition-colors cursor-pointer"
           >✕</span>
         )}
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-2 z-50 w-72 rounded-2xl border border-[#363650] bg-[#2e2e3c] p-5 shadow-2xl">
-          <p className="mb-4 font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Custom Date Range</p>
+        <div className="absolute left-0 top-full mt-2 z-50 w-72 rounded-2xl border border-[#d4d4e8] bg-[#f2f2f8] p-5 shadow-2xl">
+          <p className="mb-4 font-mono text-[9px] uppercase tracking-widest text-[#6a6a90]">Custom Date Range</p>
 
           <div className="space-y-3">
             <div>
-              <label className="mb-1 block font-mono text-[10px] text-[#8585aa]">From</label>
+              <label className="mb-1 block font-mono text-[10px] text-[#6a6a90]">From</label>
               <input
                 type="date"
                 value={from}
                 max={to || new Date().toISOString().slice(0, 10)}
                 onChange={(e) => setFrom(e.target.value)}
-                className="w-full rounded-lg border border-[#363650] bg-[#343447] px-3 py-2 font-mono text-[12px] text-[#f8f8fc] outline-none focus:border-[#00d4aa]/40 transition-colors scheme-dark"
+                className="w-full rounded-lg border border-[#d4d4e8] bg-[#e8e8f4] px-3 py-2 font-mono text-[12px] text-[#1a1a2e] outline-none focus:border-[#00d4aa]/40 transition-colors scheme-dark"
               />
             </div>
             <div>
-              <label className="mb-1 block font-mono text-[10px] text-[#8585aa]">To</label>
+              <label className="mb-1 block font-mono text-[10px] text-[#6a6a90]">To</label>
               <input
                 type="date"
                 value={to}
                 min={from}
                 max={new Date().toISOString().slice(0, 10)}
                 onChange={(e) => setTo(e.target.value)}
-                className="w-full rounded-lg border border-[#363650] bg-[#343447] px-3 py-2 font-mono text-[12px] text-[#f8f8fc] outline-none focus:border-[#00d4aa]/40 transition-colors scheme-dark"
+                className="w-full rounded-lg border border-[#d4d4e8] bg-[#e8e8f4] px-3 py-2 font-mono text-[12px] text-[#1a1a2e] outline-none focus:border-[#00d4aa]/40 transition-colors scheme-dark"
               />
             </div>
           </div>
@@ -935,13 +935,13 @@ function DateRangePicker({
             <button
               onClick={apply}
               disabled={!from || !to || from > to}
-              className="flex-1 rounded-lg bg-[#00d4aa] px-3 py-2 font-mono text-[11px] font-bold text-[#252531] transition hover:bg-[#00bfa0] disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex-1 rounded-lg bg-[#00d4aa] px-3 py-2 font-mono text-[11px] font-bold text-[#fafafa] transition hover:bg-[#00bfa0] disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Apply
             </button>
             <button
               onClick={clear}
-              className="rounded-lg border border-[#363650] px-3 py-2 font-mono text-[11px] text-[#8585aa] hover:text-[#bcbcd8] transition"
+              className="rounded-lg border border-[#d4d4e8] px-3 py-2 font-mono text-[11px] text-[#6a6a90] hover:text-[#4a4a6a] transition"
             >
               Clear
             </button>
@@ -1011,7 +1011,7 @@ function AnalyticsControls({
   return (
     <div className="flex flex-wrap items-center gap-2 mb-4 sm:mb-6">
       {/* Time range pills */}
-      <div className="flex items-center gap-1 rounded-xl border border-[#363650] bg-[#2e2e3c] p-1">
+      <div className="flex items-center gap-1 rounded-xl border border-[#d4d4e8] bg-[#f2f2f8] p-1">
         {TIME_RANGES.map((tr) => (
           <button
             key={tr.id}
@@ -1024,8 +1024,8 @@ function AnalyticsControls({
             }}
             className={`rounded-lg px-2.5 py-1.5 font-mono text-[11px] font-semibold transition-all ${
               !customRange && timeRange === tr.id
-                ? "bg-[#363650] text-[#f8f8fc]"
-                : "text-[#8585aa] hover:text-[#bcbcd8]"
+                ? "bg-[#d4d4e8] text-[#1a1a2e]"
+                : "text-[#6a6a90] hover:text-[#4a4a6a]"
             }`}
           >
             {tr.label}
@@ -1034,12 +1034,12 @@ function AnalyticsControls({
       </div>
 
       {/* Divider — hidden on mobile wrap */}
-      <div className="hidden sm:block h-5 w-px bg-[#363650]" />
+      <div className="hidden sm:block h-5 w-px bg-[#d4d4e8]" />
 
       {/* View by pills */}
       <div className="flex items-center gap-2">
-        <span className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">View by</span>
-        <div className="flex items-center gap-1 rounded-xl border border-[#363650] bg-[#2e2e3c] p-1">
+        <span className="font-mono text-[9px] uppercase tracking-widest text-[#6a6a90]">View by</span>
+        <div className="flex items-center gap-1 rounded-xl border border-[#d4d4e8] bg-[#f2f2f8] p-1">
           {availableGrans.map((g) => (
             <button
               key={g}
@@ -1047,7 +1047,7 @@ function AnalyticsControls({
               className={`rounded-lg px-2.5 py-1.5 font-mono text-[11px] font-semibold transition-all ${
                 granularity === g
                   ? "bg-[#00d4aa]/15 text-[#00d4aa]"
-                  : "text-[#8585aa] hover:text-[#bcbcd8]"
+                  : "text-[#6a6a90] hover:text-[#4a4a6a]"
               }`}
             >
               {GRANULARITY_LABELS[g]}
@@ -1057,7 +1057,7 @@ function AnalyticsControls({
       </div>
 
       {/* Divider — hidden on mobile wrap */}
-      <div className="hidden sm:block h-5 w-px bg-[#363650]" />
+      <div className="hidden sm:block h-5 w-px bg-[#d4d4e8]" />
 
       {/* Custom date range picker */}
       <DateRangePicker
@@ -1069,7 +1069,7 @@ function AnalyticsControls({
       {/* Export CSV */}
       <button
         onClick={() => exportCSV(snapshots, activeSection, customRange ? `${customRange.from}_${customRange.to}` : timeRange)}
-        className="sm:ml-auto flex items-center gap-1.5 rounded-xl border border-[#363650] px-3 py-1.5 font-mono text-[11px] text-[#8585aa] hover:text-[#00d4aa] hover:border-[#00d4aa]/40 transition-all"
+        className="sm:ml-auto flex items-center gap-1.5 rounded-xl border border-[#d4d4e8] px-3 py-1.5 font-mono text-[11px] text-[#6a6a90] hover:text-[#00d4aa] hover:border-[#00d4aa]/40 transition-all"
         title="Export visible data as CSV"
       >
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1117,11 +1117,11 @@ function SmartTable({ rows, title = "Period breakdown" }: { rows: SmartRow[]; ti
   const displayed = [...sorted].reverse(); // newest first
 
   return (
-    <div className="rounded-xl border border-[#303040] overflow-hidden">
+    <div className="rounded-xl border border-[#d0d0e8] overflow-hidden">
       {/* Toggle header */}
       <button
         onClick={() => setOpen((s) => !s)}
-        className="w-full flex items-center justify-between px-4 py-3 bg-[#212126] hover:bg-[#23232a] transition-colors"
+        className="w-full flex items-center justify-between px-4 py-3 bg-[#f3f3f8] hover:bg-[#f3f3fb] transition-colors"
       >
         <span className="font-mono text-[9px] uppercase tracking-widest text-[#5a5a7a]">{title}</span>
         <div className="flex items-center gap-2">
@@ -1137,7 +1137,7 @@ function SmartTable({ rows, title = "Period breakdown" }: { rows: SmartRow[]; ti
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-[#303040] bg-[#0c0c12]">
+              <tr className="border-b border-[#d0d0e8] bg-white">
                 <th className="px-4 py-2.5 font-mono text-[9px] uppercase tracking-widest text-[#3a3a5a]">Period</th>
                 {rows[0].cells.map((c) => (
                   <th key={c.label} colSpan={2} className="px-3 py-2.5 font-mono text-[9px] uppercase tracking-widest text-[#3a3a5a]">{c.label}</th>
@@ -1156,10 +1156,10 @@ function SmartTable({ rows, title = "Period breakdown" }: { rows: SmartRow[]; ti
                 return (
                   <tr
                     key={row.period}
-                    className={`border-b border-[#303040]/60 ${
+                    className={`border-b border-[#d0d0e8]/60 ${
                       isBest  ? "bg-[#00d4aa]/4" :
                       isWorst ? "bg-[#f87171]/3" :
-                      di % 2 === 0 ? "bg-[#212126]/60" : ""
+                      di % 2 === 0 ? "bg-[#f3f3f8]/60" : ""
                     }`}
                   >
                     <td className="px-4 py-2 font-mono text-[11px] text-[#6a6a8a] whitespace-nowrap">
@@ -1194,7 +1194,7 @@ function SmartTable({ rows, title = "Period breakdown" }: { rows: SmartRow[]; ti
             </tbody>
           </table>
           {/* Legend */}
-          <div className="flex items-center gap-4 px-4 py-2 bg-[#0c0c12] border-t border-[#303040]">
+          <div className="flex items-center gap-4 px-4 py-2 bg-white border-t border-[#d0d0e8]">
             <span className="flex items-center gap-1.5 font-mono text-[9px] text-[#3a3a5a]">
               <span className="w-1.5 h-1.5 rounded-full bg-[#00d4aa]" /> Best period
             </span>
@@ -1239,7 +1239,7 @@ function InsightBadge({ severity }: { severity: InsightSeverity }) {
       icon: <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
     },
     neutral: {
-      color: "#8585aa",
+      color: "#6a6a90",
       icon: <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>,
     },
   };
@@ -1254,14 +1254,14 @@ function InsightBadge({ severity }: { severity: InsightSeverity }) {
 function PlatformInsights({ insights }: { insights: PlatformInsight[] }) {
   if (!insights.length) return null;
   return (
-    <div className="rounded-xl border border-[#303040] bg-[#0c0c12] overflow-hidden">
-      <div className="px-4 py-2.5 border-b border-[#303040] flex items-center gap-2">
+    <div className="rounded-xl border border-[#d0d0e8] bg-white overflow-hidden">
+      <div className="px-4 py-2.5 border-b border-[#d0d0e8] flex items-center gap-2">
         <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="#5a5a7a" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
           <path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 017 7c0 2.38-1.19 4.47-3 5.74V17a1 1 0 01-1 1H9a1 1 0 01-1-1v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 017-7z"/>
         </svg>
         <span className="font-mono text-[9px] uppercase tracking-widest text-[#3a3a5a]">Insights</span>
       </div>
-      <div className="divide-y divide-[#2c2c3a]">
+      <div className="divide-y divide-[#f0f0f8]">
         {insights.map((ins, i) => (
           <div key={i} className="flex items-start gap-3 px-4 py-3">
             <InsightBadge severity={ins.severity} />
@@ -1323,24 +1323,24 @@ function RunRateStrip({
         <span className="font-mono text-[9px] uppercase tracking-widest text-[#00d4aa]">Run Rate</span>
       </div>
       <div className="flex items-baseline gap-1.5">
-        <span className="font-mono text-[10px] text-[#8585aa]">Monthly</span>
-        <span className="font-mono text-sm font-bold text-[#f8f8fc]">{fmt(monthly, "currency", currency)}</span>
+        <span className="font-mono text-[10px] text-[#6a6a90]">Monthly</span>
+        <span className="font-mono text-sm font-bold text-[#1a1a2e]">{fmt(monthly, "currency", currency)}</span>
       </div>
       <div className="flex items-baseline gap-1.5">
-        <span className="font-mono text-[10px] text-[#8585aa]">Annual</span>
+        <span className="font-mono text-[10px] text-[#6a6a90]">Annual</span>
         <span className="font-mono text-sm font-bold text-[#00d4aa]">{fmt(annual, "currency", currency)}</span>
       </div>
       <div className="flex items-baseline gap-1.5">
-        <span className="font-mono text-[10px] text-[#8585aa]">Avg/day</span>
-        <span className="font-mono text-xs font-semibold text-[#bcbcd8]">{fmt(dailyRate, "currency", currency)}</span>
+        <span className="font-mono text-[10px] text-[#6a6a90]">Avg/day</span>
+        <span className="font-mono text-xs font-semibold text-[#4a4a6a]">{fmt(dailyRate, "currency", currency)}</span>
       </div>
       <div className="ml-auto flex items-center gap-1.5 shrink-0">
         <span className={`font-mono text-xs font-bold ${up ? "text-[#00d4aa]" : "text-red-400"}`}>
           {up ? "▲" : "▼"} {Math.abs(trendPct).toFixed(1)}%
         </span>
-        <span className="font-mono text-[9px] text-[#8585aa]">period trend</span>
+        <span className="font-mono text-[9px] text-[#6a6a90]">period trend</span>
       </div>
-      <p className="w-full font-mono text-[9px] text-[#8585aa]">
+      <p className="w-full font-mono text-[9px] text-[#6a6a90]">
         Based on {fmt(total, "currency", currency)} {label.toLowerCase()} over {Math.round(periodDays)} {Math.round(periodDays) === 1 ? "day" : "days"} · extrapolated at current daily pace
       </p>
     </div>
@@ -1384,20 +1384,20 @@ function PeriodCompare({
         <span className={`font-mono text-xl font-bold ${positive ? "text-[#00d4aa]" : "text-red-400"}`}>
           {delta >= 0 ? "+" : ""}{deltaPct.toFixed(1)}%
         </span>
-        <span className="font-mono text-xs text-[#8585aa]">{label}</span>
+        <span className="font-mono text-xs text-[#6a6a90]">{label}</span>
       </div>
       <div className="flex items-center gap-4 ml-auto shrink-0">
         <div className="text-right">
           <p className="font-mono text-[9px] text-[#7575a0] uppercase tracking-widest">First half</p>
-          <p className="font-mono text-xs font-semibold text-[#bcbcd8]">{fmtVal(prev)}</p>
+          <p className="font-mono text-xs font-semibold text-[#4a4a6a]">{fmtVal(prev)}</p>
         </div>
-        <div className="font-mono text-[#363650]">→</div>
+        <div className="font-mono text-[#d4d4e8]">→</div>
         <div className="text-right">
           <p className="font-mono text-[9px] text-[#7575a0] uppercase tracking-widest">Second half</p>
-          <p className="font-mono text-xs font-semibold text-[#f8f8fc]">{fmtVal(curr)}</p>
+          <p className="font-mono text-xs font-semibold text-[#1a1a2e]">{fmtVal(curr)}</p>
         </div>
       </div>
-      <p className="w-full font-mono text-[9px] text-[#8585aa]">
+      <p className="w-full font-mono text-[9px] text-[#6a6a90]">
         Comparing first {half} vs last {half} {values.length <= 31 ? "day" : "period"}s in the selected range
         {Math.abs(deltaPct) > 20 ? (positive ? " · Significant improvement" : " · Significant decline — review contributing factors") : ""}
       </p>
@@ -1654,31 +1654,31 @@ export function FunnelSection({ snapshots, connectedPlatforms, currencies = {} }
   const showROAS   = hasAds && hasRevenue && adSpend > 0 && revenue > 0 && allCurrenciesMatch;
 
   return (
-    <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 p-5 space-y-4">
+    <div className="rounded-2xl border border-[#d4d4e8] bg-[#f2f2f8]/60 p-5 space-y-4">
       <div className="flex items-center gap-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#a78bfa]/10 text-[#a78bfa]">
           <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
             <path d="M3 4h18M6 8h12M10 12h4M12 16v0M11 20h2" />
           </svg>
         </div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Full Funnel</h3>
+        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">Full Funnel</h3>
         {/* Multi-source badge */}
         {(connRevenue.length > 1 || connAds.length > 1 || connAnalytics.length > 1) && (
           <span className="font-mono text-[8px] rounded-full border border-[#00d4aa]/30 bg-[#00d4aa]/8 px-2 py-0.5 text-[#00d4aa]">
             multi-source
           </span>
         )}
-        <span className="ml-auto font-mono text-[9px] text-[#8585aa]">Spend → Revenue</span>
+        <span className="ml-auto font-mono text-[9px] text-[#6a6a90]">Spend → Revenue</span>
       </div>
 
       {/* Analytics primary source note (when multiple analytics connected) */}
       {connAnalytics.length > 1 && primaryAnalytics && (
-        <div className="flex items-center gap-2 rounded-lg border border-[#363650] bg-[#2e2e3c] px-3 py-2">
-          <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="#8585aa" strokeWidth={2}>
+        <div className="flex items-center gap-2 rounded-lg border border-[#d4d4e8] bg-[#f2f2f8] px-3 py-2">
+          <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="#6a6a90" strokeWidth={2}>
             <circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/>
           </svg>
-          <p className="font-mono text-[10px] text-[#8585aa]">
-            Sessions & conversions from <strong className="text-[#bcbcd8]">{primaryAnalytics}</strong> (most data) · summing multiple analytics tools would double-count visitors
+          <p className="font-mono text-[10px] text-[#6a6a90]">
+            Sessions & conversions from <strong className="text-[#4a4a6a]">{primaryAnalytics}</strong> (most data) · summing multiple analytics tools would double-count visitors
           </p>
         </div>
       )}
@@ -1698,13 +1698,13 @@ export function FunnelSection({ snapshots, connectedPlatforms, currencies = {} }
             <div key={stage.label}>
               {dropoffPct !== null && dropoffPct > 0 && (
                 <div className="flex items-center gap-2 py-0.5 pl-4">
-                  <div className="w-px h-3 bg-[#363650]" />
+                  <div className="w-px h-3 bg-[#d4d4e8]" />
                   <span className="font-mono text-[9px] text-[#f87171]">▼ {dropoffPct}% drop-off</span>
                 </div>
               )}
               <div className="flex items-center gap-3">
-                <span className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa] w-24 shrink-0">{stage.label}</span>
-                <div className="flex-1 relative h-7 rounded-lg overflow-hidden bg-[#363650]/60">
+                <span className="font-mono text-[9px] uppercase tracking-widest text-[#6a6a90] w-24 shrink-0">{stage.label}</span>
+                <div className="flex-1 relative h-7 rounded-lg overflow-hidden bg-[#d4d4e8]/60">
                   <div
                     className="h-full rounded-lg transition-all duration-700 flex items-center"
                     style={{ width: `${Math.max(barPct, 1)}%`, backgroundColor: stage.color + "30", borderLeft: `3px solid ${stage.color}` }}
@@ -1725,27 +1725,27 @@ export function FunnelSection({ snapshots, connectedPlatforms, currencies = {} }
 
       {/* ROAS / efficiency summary */}
       {showROAS && (
-        <div className="flex items-center gap-6 rounded-xl border border-[#363650] bg-[#343447] px-4 py-3">
+        <div className="flex items-center gap-6 rounded-xl border border-[#d4d4e8] bg-[#e8e8f4] px-4 py-3">
           <div>
-            <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">ROAS</p>
-            <p className="font-mono text-base font-bold text-[#f8f8fc]">{((revenue / 100) / adSpend).toFixed(2)}×</p>
+            <p className="font-mono text-[9px] uppercase tracking-widest text-[#6a6a90]">ROAS</p>
+            <p className="font-mono text-base font-bold text-[#1a1a2e]">{((revenue / 100) / adSpend).toFixed(2)}×</p>
           </div>
           {adClicks > 0 && (
             <div>
-              <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">CPC</p>
-              <p className="font-mono text-base font-bold text-[#f8f8fc]">{fmtSpend(adSpend / adClicks)}</p>
+              <p className="font-mono text-[9px] uppercase tracking-widest text-[#6a6a90]">CPC</p>
+              <p className="font-mono text-base font-bold text-[#1a1a2e]">{fmtSpend(adSpend / adClicks)}</p>
             </div>
           )}
           {conversions > 0 && (
             <div>
-              <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Cost / Conv</p>
-              <p className="font-mono text-base font-bold text-[#f8f8fc]">{fmtSpend(adSpend / conversions)}</p>
+              <p className="font-mono text-[9px] uppercase tracking-widest text-[#6a6a90]">Cost / Conv</p>
+              <p className="font-mono text-base font-bold text-[#1a1a2e]">{fmtSpend(adSpend / conversions)}</p>
             </div>
           )}
           {sessions > 0 && conversions > 0 && (
             <div>
-              <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Conv Rate</p>
-              <p className="font-mono text-base font-bold text-[#f8f8fc]">{((conversions / sessions) * 100).toFixed(2)}%</p>
+              <p className="font-mono text-[9px] uppercase tracking-widest text-[#6a6a90]">Conv Rate</p>
+              <p className="font-mono text-base font-bold text-[#1a1a2e]">{((conversions / sessions) * 100).toFixed(2)}%</p>
             </div>
           )}
         </div>
@@ -1850,7 +1850,7 @@ function MRRBenchmarks({ currentMRR, mrrSeries, churnRate, arpu, currency }: {
     s === "above" ? "#00d4aa" : s === "on" ? "#f59e0b" : "#f87171";
 
   return (
-    <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 p-5 space-y-4">
+    <div className="rounded-2xl border border-[#d4d4e8] bg-[#f2f2f8]/60 p-5 space-y-4">
       <div className="flex items-center gap-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#a78bfa]/10 text-[#a78bfa]">
           <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -1858,29 +1858,29 @@ function MRRBenchmarks({ currentMRR, mrrSeries, churnRate, arpu, currency }: {
           </svg>
         </div>
         <div>
-          <h4 className="font-mono text-sm font-semibold text-[#f8f8fc]">SaaS Benchmarks</h4>
-          <p className="font-mono text-[10px] text-[#8585aa]">How your metrics compare to industry medians</p>
+          <h4 className="font-mono text-sm font-semibold text-[#1a1a2e]">SaaS Benchmarks</h4>
+          <p className="font-mono text-[10px] text-[#6a6a90]">How your metrics compare to industry medians</p>
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-[#363650]">
+      <div className="overflow-x-auto rounded-xl border border-[#d4d4e8]">
         <table className="w-full text-left">
           <thead>
-            <tr className="border-b border-[#363650] bg-[#343447]">
+            <tr className="border-b border-[#d4d4e8] bg-[#e8e8f4]">
               {["Metric", "You", "SaaS Median", "Top 25%", "Status"].map((h) => (
-                <th key={h} className="px-4 py-2.5 font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">{h}</th>
+                <th key={h} className="px-4 py-2.5 font-mono text-[9px] uppercase tracking-widest text-[#6a6a90]">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {items.map((item) => (
-              <tr key={item.label} className="border-b border-[#363650]/50">
-                <td className="px-4 py-2.5 font-mono text-[11px] text-[#bcbcd8]">{item.label}</td>
+              <tr key={item.label} className="border-b border-[#d4d4e8]/50">
+                <td className="px-4 py-2.5 font-mono text-[11px] text-[#4a4a6a]">{item.label}</td>
                 <td className="px-4 py-2.5 font-mono text-[12px] font-bold" style={{ color: statusColor(item.status) }}>
                   {item.yourValue}
                 </td>
-                <td className="px-4 py-2.5 font-mono text-[11px] text-[#8585aa]">{item.median}</td>
-                <td className="px-4 py-2.5 font-mono text-[11px] text-[#8585aa]">{item.top25}</td>
+                <td className="px-4 py-2.5 font-mono text-[11px] text-[#6a6a90]">{item.median}</td>
+                <td className="px-4 py-2.5 font-mono text-[11px] text-[#6a6a90]">{item.top25}</td>
                 <td className="px-4 py-2.5">
                   <span
                     className="inline-block rounded-md px-2 py-0.5 font-mono text-[9px] font-semibold"
@@ -1984,7 +1984,7 @@ function StripeSection({ snapshots, granularity, currency = "USD" }: { snapshots
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#635bff]/15 text-[#635bff]">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.591-7.305z" /></svg>
         </div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">
+        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">
           Stripe Revenue{hasSubscriptions ? " & Subscriptions" : ""}
         </h3>
       </div>
@@ -2007,9 +2007,9 @@ function StripeSection({ snapshots, granularity, currency = "USD" }: { snapshots
       {hasSubscriptions && (
         <>
           <div className="flex items-center gap-2 pt-1">
-            <div className="h-px flex-1 bg-[#363650]" />
-            <span className="font-mono text-[10px] text-[#8585aa] uppercase tracking-widest">Subscription Health</span>
-            <div className="h-px flex-1 bg-[#363650]" />
+            <div className="h-px flex-1 bg-[#d4d4e8]" />
+            <span className="font-mono text-[10px] text-[#6a6a90] uppercase tracking-widest">Subscription Health</span>
+            <div className="h-px flex-1 bg-[#d4d4e8]" />
           </div>
           <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <StatCard
@@ -2106,7 +2106,7 @@ function ProductBreakdownSection({ snapshots, currency = "USD" }: { snapshots: S
   const palette = ["#635bff", "#00d4aa", "#f59e0b", "#f87171", "#a78bfa", "#1877f2", "#34d399", "#fb923c"];
 
   return (
-    <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 p-5 space-y-4">
+    <div className="rounded-2xl border border-[#d4d4e8] bg-[#f2f2f8]/60 p-5 space-y-4">
       <div className="flex items-center gap-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#635bff]/10 text-[#635bff]">
           <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -2114,8 +2114,8 @@ function ProductBreakdownSection({ snapshots, currency = "USD" }: { snapshots: S
             <path d="M8 21h8M12 17v4" />
           </svg>
         </div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Revenue by Product</h3>
-        <span className="ml-auto font-mono text-[10px] text-[#8585aa]">{fmt(totalRevenue, "currency", currency)} total</span>
+        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">Revenue by Product</h3>
+        <span className="ml-auto font-mono text-[10px] text-[#6a6a90]">{fmt(totalRevenue, "currency", currency)} total</span>
       </div>
 
       <div className="space-y-3">
@@ -2127,15 +2127,15 @@ function ProductBreakdownSection({ snapshots, currency = "USD" }: { snapshots: S
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
-                  <span className="font-mono text-[10px] text-[#bcbcd8] truncate max-w-48">{p.name}</span>
+                  <span className="font-mono text-[10px] text-[#4a4a6a] truncate max-w-48">{p.name}</span>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
-                  <span className="font-mono text-[9px] text-[#8585aa]">{p.count} sales</span>
-                  <span className="font-mono text-[10px] font-bold text-[#f8f8fc]">{fmt(p.revenue, "currency", currency)}</span>
-                  <span className="font-mono text-[9px] text-[#8585aa] w-8 text-right">{pct}%</span>
+                  <span className="font-mono text-[9px] text-[#6a6a90]">{p.count} sales</span>
+                  <span className="font-mono text-[10px] font-bold text-[#1a1a2e]">{fmt(p.revenue, "currency", currency)}</span>
+                  <span className="font-mono text-[9px] text-[#6a6a90] w-8 text-right">{pct}%</span>
                 </div>
               </div>
-              <div className="h-1.5 w-full rounded-full bg-[#363650]">
+              <div className="h-1.5 w-full rounded-full bg-[#d4d4e8]">
                 <div
                   className="h-full rounded-full transition-all duration-700"
                   style={{ width: `${(p.revenue / maxRevenue) * 100}%`, backgroundColor: color }}
@@ -2221,7 +2221,7 @@ function CohortSection({ snapshots }: { snapshots: Snapshot[] }) {
   }
 
   return (
-    <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 p-5 space-y-4">
+    <div className="rounded-2xl border border-[#d4d4e8] bg-[#f2f2f8]/60 p-5 space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#00d4aa]/10 text-[#00d4aa]">
@@ -2230,7 +2230,7 @@ function CohortSection({ snapshots }: { snapshots: Snapshot[] }) {
               <path d="M23 21v-2a4 4 0 00-3-3.87" /><path d="M16 3.13a4 4 0 010 7.75" />
             </svg>
           </div>
-          <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Retention Cohorts</h3>
+          <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">Retention Cohorts</h3>
         </div>
         <div className="flex items-center gap-2 text-[9px] font-mono text-[#7575a0]">
           <span className="w-2 h-2 rounded-sm" style={{ backgroundColor: "#00d4aa" }} />≥80%
@@ -2243,18 +2243,18 @@ function CohortSection({ snapshots }: { snapshots: Snapshot[] }) {
         <table className="w-full text-left">
           <thead>
             <tr>
-              <th className="pb-2 pr-4 font-mono text-[9px] uppercase tracking-widest text-[#8585aa] whitespace-nowrap">Cohort week</th>
-              <th className="pb-2 pr-4 font-mono text-[9px] uppercase tracking-widest text-[#8585aa] text-right">Size</th>
+              <th className="pb-2 pr-4 font-mono text-[9px] uppercase tracking-widest text-[#6a6a90] whitespace-nowrap">Cohort week</th>
+              <th className="pb-2 pr-4 font-mono text-[9px] uppercase tracking-widest text-[#6a6a90] text-right">Size</th>
               {["W0", "W1", "W2", "W3", "W4"].map((w) => (
-                <th key={w} className="pb-2 px-2 font-mono text-[9px] uppercase tracking-widest text-[#8585aa] text-center">{w}</th>
+                <th key={w} className="pb-2 px-2 font-mono text-[9px] uppercase tracking-widest text-[#6a6a90] text-center">{w}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {cohortData.rows.map((row) => (
-              <tr key={row.week} className="border-t border-[#363650]/40">
-                <td className="py-1.5 pr-4 font-mono text-[10px] text-[#bcbcd8] whitespace-nowrap">{row.week}</td>
-                <td className="py-1.5 pr-4 font-mono text-[10px] text-[#8585aa] text-right">{row.cohortSize}</td>
+              <tr key={row.week} className="border-t border-[#d4d4e8]/40">
+                <td className="py-1.5 pr-4 font-mono text-[10px] text-[#4a4a6a] whitespace-nowrap">{row.week}</td>
+                <td className="py-1.5 pr-4 font-mono text-[10px] text-[#6a6a90] text-right">{row.cohortSize}</td>
                 {row.retention.map((pct, i) => (
                   <td key={i} className="py-1.5 px-2 text-center">
                     {pct !== null ? (
@@ -2265,15 +2265,15 @@ function CohortSection({ snapshots }: { snapshots: Snapshot[] }) {
                         {pct}%
                       </span>
                     ) : (
-                      <span className="font-mono text-[10px] text-[#363650]">–</span>
+                      <span className="font-mono text-[10px] text-[#d4d4e8]">–</span>
                     )}
                   </td>
                 ))}
               </tr>
             ))}
             {/* Average row */}
-            <tr className="border-t-2 border-[#363650]">
-              <td className="pt-2 pr-4 font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Avg</td>
+            <tr className="border-t-2 border-[#d4d4e8]">
+              <td className="pt-2 pr-4 font-mono text-[9px] uppercase tracking-widest text-[#6a6a90]">Avg</td>
               <td />
               {cohortData.avgRetention.map((pct, i) => (
                 <td key={i} className="pt-2 px-2 text-center">
@@ -2285,7 +2285,7 @@ function CohortSection({ snapshots }: { snapshots: Snapshot[] }) {
                       {pct}%
                     </span>
                   ) : (
-                    <span className="font-mono text-[10px] text-[#363650]">–</span>
+                    <span className="font-mono text-[10px] text-[#d4d4e8]">–</span>
                   )}
                 </td>
               ))}
@@ -2356,7 +2356,7 @@ function GA4Section({ snapshots, granularity }: { snapshots: Snapshot[]; granula
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f59e0b]/15 text-[#f59e0b]">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12.545 10.239v3.821h5.445c-.712 2.315-2.647 3.972-5.445 3.972a6.033 6.033 0 110-12.064c1.498 0 2.866.549 3.921 1.453l2.814-2.814A9.969 9.969 0 0012.545 2C7.021 2 2.543 6.477 2.543 12s4.478 10 10.002 10c8.396 0 10.249-7.85 9.426-11.748l-9.426-.013z" /></svg>
         </div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Google Analytics 4</h3>
+        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">Google Analytics 4</h3>
       </div>
       <HeroStrip metrics={ga4HeroMetrics} summary={ga4HeroSummary} accentColor="#f59e0b" />
       {periods.length >= 2 && <PlatformAreaChart periods={periods} series={ga4ChartSeries} />}
@@ -2453,9 +2453,9 @@ function MetaSection({ snapshots, granularity }: { snapshots: Snapshot[]; granul
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1877f2]/15 text-[#1877f2]">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
         </div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Meta Ads</h3>
+        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">Meta Ads</h3>
         {currency !== "USD" && (
-          <span className="ml-auto font-mono text-[10px] text-[#8585aa] bg-[#363650] px-2 py-0.5 rounded-full">
+          <span className="ml-auto font-mono text-[10px] text-[#6a6a90] bg-[#d4d4e8] px-2 py-0.5 rounded-full">
             {currency}
           </span>
         )}
@@ -2525,14 +2525,14 @@ function PayPalSection({ snapshots, granularity, currency = "USD" }: { snapshots
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
-      <div className="flex items-center gap-3 rounded-xl border border-[#003087]/20 bg-[#003087]/5 px-4 py-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#003087]/15 text-[#009cde]">
+      <div className="flex items-center gap-3 rounded-xl border border-[#0060c7]/20 bg-[#0060c7]/5 px-4 py-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0060c7]/15 text-[#009cde]">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
             <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 2.79A.859.859 0 0 1 5.79 2h7.518c2.58 0 4.383.596 5.36 1.77.948 1.14 1.178 2.622.683 4.395-.038.14-.08.283-.124.428C18.05 11.1 15.98 12.5 13.1 12.5H9.77l-1.067 6.31a.641.641 0 0 1-.627.527z" />
             <path d="M19.873 7.93c-.04.155-.083.313-.13.474C18.65 12.14 16.2 13.8 12.49 13.8H9.62l-1.2 7.09a.501.501 0 0 0 .494.587h3.47a.75.75 0 0 0 .74-.632l.031-.158.588-3.726.038-.204a.75.75 0 0 1 .74-.633h.465c3.02 0 5.386-1.228 6.077-4.78.29-1.486.14-2.727-.623-3.6a3.3 3.3 0 0 0-.567-.413z" />
           </svg>
         </div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">PayPal</h3>
+        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">PayPal</h3>
       </div>
       <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#009cde" />
       {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
@@ -2605,7 +2605,7 @@ function PaddleSection({ snapshots, granularity, currency = "USD" }: { snapshots
             <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-1.97 9.133c-.144.668-.52.835-.996.52l-2.75-2.026-1.328 1.277c-.147.147-.27.27-.552.27l.196-2.797 5.086-4.593c.221-.196-.048-.306-.342-.11L6.78 14.748l-2.716-.848c-.59-.184-.6-.59.123-.872l10.605-4.087c.49-.18.92.112.77.307z"/>
           </svg>
         </div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Paddle</h3>
+        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">Paddle</h3>
       </div>
       <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#3ddc97" />
       {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
@@ -2678,7 +2678,7 @@ function LemonSqueezySection({ snapshots, granularity, currency = "USD" }: { sna
             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
           </svg>
         </div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Lemon Squeezy</h3>
+        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">Lemon Squeezy</h3>
       </div>
       <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#FFC233" />
       {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
@@ -2741,7 +2741,7 @@ function GumroadSection({ snapshots, granularity, currency = "USD" }: { snapshot
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#ff90e8]/15 bg-[#ff90e8]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#ff90e8]/15 font-mono text-sm font-bold text-[#ff90e8]">G</div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Gumroad</h3>
+        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">Gumroad</h3>
       </div>
       <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#ff90e8" />
       {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
@@ -2805,7 +2805,7 @@ function PlausibleSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#5850ec]/15 bg-[#5850ec]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#5850ec]/15 font-mono text-sm font-bold text-[#5850ec]">P</div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Plausible</h3>
+        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">Plausible</h3>
       </div>
       <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#5850ec" />
       {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
@@ -2856,7 +2856,7 @@ function MixpanelSection({ snapshots, granularity }: { snapshots: Snapshot[]; gr
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#7856ff]/15 bg-[#7856ff]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#7856ff]/15 font-mono text-[10px] font-bold text-[#7856ff]">MX</div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Mixpanel</h3>
+        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">Mixpanel</h3>
       </div>
       <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#7856ff" />
       {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
@@ -2910,7 +2910,7 @@ function AmplitudeSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#1e73be]/15 bg-[#1e73be]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1e73be]/15 font-mono text-sm font-bold text-[#1e73be]">A</div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Amplitude</h3>
+        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">Amplitude</h3>
       </div>
       <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#1e73be" />
       {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
@@ -2965,7 +2965,7 @@ function PostHogSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#f76300]/15 bg-[#f76300]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f76300]/15 font-mono text-[10px] font-bold text-[#f76300]">PH</div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">PostHog</h3>
+        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">PostHog</h3>
       </div>
       <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#f76300" />
       {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
@@ -3025,7 +3025,7 @@ function FathomSection({ snapshots, granularity }: { snapshots: Snapshot[]; gran
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#9333ea]/15 bg-[#9333ea]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#9333ea]/15 font-mono text-[10px] font-bold text-[#9333ea]">FA</div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Fathom</h3>
+        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">Fathom</h3>
       </div>
       <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#9333ea" />
       {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
@@ -3089,7 +3089,7 @@ function GoogleAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#4285F4]/15 bg-[#4285F4]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#4285F4]/15 font-mono text-[10px] font-bold text-[#4285F4]">GA</div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Google Ads</h3>
+        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">Google Ads</h3>
       </div>
       <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#4285F4" />
       {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
@@ -3151,7 +3151,7 @@ function TikTokAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#69C9D0]/15 bg-[#69C9D0]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#69C9D0]/15 font-mono text-[10px] font-bold text-[#69C9D0]">TT</div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">TikTok Ads</h3>
+        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">TikTok Ads</h3>
       </div>
       <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#69C9D0" />
       {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
@@ -3213,7 +3213,7 @@ function TwitterAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]; 
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#1d9bf0]/15 bg-[#1d9bf0]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1d9bf0]/15 font-mono text-[10px] font-bold text-[#1d9bf0]">XA</div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">X (Twitter) Ads</h3>
+        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">X (Twitter) Ads</h3>
       </div>
       <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#1d9bf0" />
       {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
@@ -3275,7 +3275,7 @@ function LinkedInAdsSection({ snapshots, granularity }: { snapshots: Snapshot[];
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#0a66c2]/15 bg-[#0a66c2]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0a66c2]/15 font-mono text-[10px] font-bold text-[#0a66c2]">LI</div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">LinkedIn Ads</h3>
+        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">LinkedIn Ads</h3>
       </div>
       <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#0a66c2" />
       {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
@@ -3336,7 +3336,7 @@ function SnapchatAdsSection({ snapshots, granularity }: { snapshots: Snapshot[];
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#f5c518]/15 bg-[#f5c518]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f5c518]/15 font-mono text-[10px] font-bold text-[#f5c518]">SC</div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Snapchat Ads</h3>
+        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">Snapchat Ads</h3>
       </div>
       <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#f5c518" />
       {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
@@ -3398,7 +3398,7 @@ function PinterestAdsSection({ snapshots, granularity }: { snapshots: Snapshot[]
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#E60023]/15 bg-[#E60023]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#E60023]/15 font-mono text-[10px] font-bold text-[#E60023]">PT</div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Pinterest Ads</h3>
+        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">Pinterest Ads</h3>
       </div>
       <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#E60023" />
       {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
@@ -3464,7 +3464,7 @@ function MailchimpSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#f59e0b]/15 bg-[#f59e0b]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f59e0b]/15 font-mono text-[10px] font-bold text-[#f59e0b]">MC</div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Mailchimp</h3>
+        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">Mailchimp</h3>
       </div>
       <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#f59e0b" />
       {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
@@ -3529,7 +3529,7 @@ function KlaviyoSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#6366f1]/15 bg-[#6366f1]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#6366f1]/15 font-mono text-[10px] font-bold text-[#6366f1]">KL</div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Klaviyo</h3>
+        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">Klaviyo</h3>
       </div>
       <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#6366f1" />
       {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
@@ -3585,7 +3585,7 @@ function ConvertKitSection({ snapshots, granularity }: { snapshots: Snapshot[]; 
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#FB6970]/15 bg-[#FB6970]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FB6970]/15 font-mono text-[10px] font-bold text-[#FB6970]">CK</div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">ConvertKit</h3>
+        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">ConvertKit</h3>
       </div>
       <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#FB6970" />
       {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
@@ -3647,7 +3647,7 @@ function ActiveCampaignSection({ snapshots, granularity }: { snapshots: Snapshot
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#356AE6]/15 bg-[#356AE6]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#356AE6]/15 font-mono text-[10px] font-bold text-[#356AE6]">AC</div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">ActiveCampaign</h3>
+        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">ActiveCampaign</h3>
       </div>
       <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#356AE6" />
       {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
@@ -3710,7 +3710,7 @@ function BrevoSection({ snapshots, granularity }: { snapshots: Snapshot[]; granu
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#0092FF]/15 bg-[#0092FF]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0092FF]/15 font-mono text-[10px] font-bold text-[#0092FF]">BR</div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Brevo</h3>
+        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">Brevo</h3>
       </div>
       <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#0092FF" />
       {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
@@ -3768,7 +3768,7 @@ function BeehiivSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#FF6B35]/15 bg-[#FF6B35]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FF6B35]/15 font-mono text-[10px] font-bold text-[#FF6B35]">BH</div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Beehiiv</h3>
+        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">Beehiiv</h3>
       </div>
       <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#FF6B35" />
       {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
@@ -3833,7 +3833,7 @@ function ShopifySection({ snapshots, granularity, currency = "USD" }: { snapshot
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#96bf48]/15 bg-[#96bf48]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#96bf48]/15 font-mono text-[10px] font-bold text-[#96bf48]">SH</div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Shopify</h3>
+        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">Shopify</h3>
       </div>
       <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#96bf48" />
       {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
@@ -3897,7 +3897,7 @@ function WooCommerceSection({ snapshots, granularity, currency = "USD" }: { snap
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#7f54b3]/15 bg-[#7f54b3]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#7f54b3]/15 font-mono text-[10px] font-bold text-[#7f54b3]">WC</div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">WooCommerce</h3>
+        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">WooCommerce</h3>
       </div>
       <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#7f54b3" />
       {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
@@ -3944,7 +3944,7 @@ function BigCommerceSection({ snapshots, granularity, currency = "USD" }: { snap
   ];
   const heroSummary = `${bcTrend ? `Revenue is ${bcTrend.up ? "up" : "down"} ${bcTrend.pct.toFixed(1)}% vs the prior half.` : ""} ${bcTotalOrd > 0 ? `${bcTotalOrd} orders averaging ${fmt(bcAvgOrder, "currency", currency)}.` : ""}`.trim();
   const chartSeries: ChartSeries[] = [
-    { key: "revenue",   label: "Revenue",   values: revenue,   color: "#bcbcd8", chartType: "area", yAxis: "left",  formatter: (v) => fmt(v, "currency", currency) },
+    { key: "revenue",   label: "Revenue",   values: revenue,   color: "#4a4a6a", chartType: "area", yAxis: "left",  formatter: (v) => fmt(v, "currency", currency) },
     { key: "orders",    label: "Orders",    values: orders,    color: "#a78bfa", chartType: "area", yAxis: "left" },
     { key: "customers", label: "Customers", values: customers, color: "#00d4aa", chartType: "bar",  yAxis: "right" },
   ];
@@ -3955,16 +3955,16 @@ function BigCommerceSection({ snapshots, granularity, currency = "USD" }: { snap
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
-      <div className="flex items-center gap-3 rounded-xl border border-[#34313F]/40 bg-[#34313F]/10 px-4 py-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#34313F]/30 font-mono text-[10px] font-bold text-[#bcbcd8]">BC</div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">BigCommerce</h3>
+      <div className="flex items-center gap-3 rounded-xl border border-[#efeff5]/40 bg-[#efeff5]/10 px-4 py-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#efeff5]/30 font-mono text-[10px] font-bold text-[#4a4a6a]">BC</div>
+        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">BigCommerce</h3>
       </div>
-      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#bcbcd8" />
+      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#4a4a6a" />
       {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
       <RunRateStrip snapshots={snapshots} field="revenue" currency={currency} label="Revenue" />
       <PeriodCompare values={revenue} label="Revenue" isCurrency currency={currency} />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard label="Revenue"       value={fmt(revenue.reduce((a,b)=>a+b,0), "currency", currency)}   values={revenue}   color="#bcbcd8" />
+        <StatCard label="Revenue"       value={fmt(revenue.reduce((a,b)=>a+b,0), "currency", currency)}   values={revenue}   color="#4a4a6a" />
         <StatCard label="Orders"        value={fmt(orders.reduce((a,b)=>a+b,0))}          values={orders}    color="#a78bfa" />
         <StatCard label="Refunds"       value={fmt(refunds.reduce((a,b)=>a+b,0))}         values={refunds}   color="#f87171" />
         <StatCard label="New Customers" value={fmt(customers.reduce((a,b)=>a+b,0))}       values={customers} color="#00d4aa" />
@@ -4019,7 +4019,7 @@ function AmazonSellerSection({ snapshots, granularity, currency = "USD" }: { sna
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#FF9900]/15 bg-[#FF9900]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FF9900]/15 font-mono text-[10px] font-bold text-[#FF9900]">AMZ</div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Amazon Seller</h3>
+        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">Amazon Seller</h3>
       </div>
       <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#FF9900" />
       {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
@@ -4081,7 +4081,7 @@ function EtsySection({ snapshots, granularity, currency = "USD" }: { snapshots: 
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#F56400]/15 bg-[#F56400]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F56400]/15 font-mono text-[10px] font-bold text-[#F56400]">ET</div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Etsy</h3>
+        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">Etsy</h3>
       </div>
       <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#F56400" />
       {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
@@ -4143,7 +4143,7 @@ function HubSpotSection({ snapshots, granularity, currency = "USD" }: { snapshot
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#ff7a59]/15 bg-[#ff7a59]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#ff7a59]/15 font-mono text-[10px] font-bold text-[#ff7a59]">HS</div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">HubSpot</h3>
+        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">HubSpot</h3>
       </div>
       <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#ff7a59" />
       {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
@@ -4205,7 +4205,7 @@ function SalesforceSection({ snapshots, granularity, currency = "USD" }: { snaps
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#00A1E0]/15 bg-[#00A1E0]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#00A1E0]/15 font-mono text-[10px] font-bold text-[#00A1E0]">SF</div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Salesforce</h3>
+        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">Salesforce</h3>
       </div>
       <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#00A1E0" />
       {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
@@ -4266,7 +4266,7 @@ function PipedriveSection({ snapshots, granularity, currency = "USD" }: { snapsh
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#30a04c]/15 bg-[#30a04c]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#30a04c]/15 font-mono text-[10px] font-bold text-[#30a04c]">PD</div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Pipedrive</h3>
+        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">Pipedrive</h3>
       </div>
       <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#30a04c" />
       {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
@@ -4310,21 +4310,21 @@ function NotionSection({ snapshots, granularity }: { snapshots: Snapshot[]; gran
   ];
   const heroSummary = `${notionTrend ? `New rows are ${notionTrend.up ? "up" : "down"} ${notionTrend.pct.toFixed(1)}% vs the prior half.` : ""} ${notionTotalNew > 0 ? `${notionTotalNew} rows added, ${notionTotalUpd} updated.` : ""}`.trim() || "Notion database activity for this period.";
   const chartSeries: ChartSeries[] = [
-    { key: "newRows",  label: "New Rows", values: newRows,  color: "#e5e5e5", chartType: "area", yAxis: "left" },
+    { key: "newRows",  label: "New Rows", values: newRows,  color: "#2a2a3e", chartType: "area", yAxis: "left" },
     { key: "updated",  label: "Updated",  values: updated,  color: "#a3a3a3", chartType: "bar",  yAxis: "right" },
   ];
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
-      <div className="flex items-center gap-3 rounded-xl border border-[#555]/20 bg-[#1a1a1a]/60 px-4 py-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 font-mono text-[10px] font-bold text-white">NO</div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Notion</h3>
+      <div className="flex items-center gap-3 rounded-xl border border-[#555]/20 bg-[#f5f5f5]/60 px-4 py-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-black/15 font-mono text-[10px] font-bold text-[#1a1a2e]">NO</div>
+        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">Notion</h3>
       </div>
-      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#e5e5e5" />
+      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#2a2a3e" />
       {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
       <PeriodCompare values={newRows} label="New Rows" />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <StatCard label="New Rows"     value={fmt(newRows.reduce((a,b)=>a+b,0))}   values={newRows}   color="#e5e5e5" />
+        <StatCard label="New Rows"     value={fmt(newRows.reduce((a,b)=>a+b,0))}   values={newRows}   color="#2a2a3e" />
         <StatCard label="Updated Rows" value={fmt(updated.reduce((a,b)=>a+b,0))}   values={updated}   color="#a3a3a3" />
         <StatCard label="Total Rows"   value={fmt(lastTotal)}                       values={totalRows} color="#737373" />
       </StatCardGroup>
@@ -4373,7 +4373,7 @@ function IntercomSection({ snapshots, granularity }: { snapshots: Snapshot[]; gr
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#1f8ded]/15 bg-[#1f8ded]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1f8ded]/15 font-mono text-[10px] font-bold text-[#1f8ded]">IC</div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Intercom</h3>
+        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">Intercom</h3>
       </div>
       <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#1f8ded" />
       {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
@@ -4427,7 +4427,7 @@ function ZendeskSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#03363D]/40 bg-[#03363D]/10 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#03363D]/40 font-mono text-[10px] font-bold text-[#2ECC71]">ZD</div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Zendesk</h3>
+        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">Zendesk</h3>
       </div>
       <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#2ECC71" />
       {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
@@ -4483,7 +4483,7 @@ function FreshdeskSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#25C16F]/15 bg-[#25C16F]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#25C16F]/15 font-mono text-[10px] font-bold text-[#25C16F]">FD</div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Freshdesk</h3>
+        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">Freshdesk</h3>
       </div>
       <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#25C16F" />
       {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
@@ -4535,7 +4535,7 @@ function SegmentSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#52BD94]/15 bg-[#52BD94]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#52BD94]/15 font-mono text-[10px] font-bold text-[#52BD94]">SG</div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Segment</h3>
+        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">Segment</h3>
       </div>
       <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#52BD94" />
       {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
@@ -4590,7 +4590,7 @@ function HeapSection({ snapshots, granularity }: { snapshots: Snapshot[]; granul
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#FF5B5B]/15 bg-[#FF5B5B]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FF5B5B]/15 font-mono text-[10px] font-bold text-[#FF5B5B]">HP</div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Heap</h3>
+        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">Heap</h3>
       </div>
       <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#FF5B5B" />
       {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
@@ -4646,7 +4646,7 @@ function FullStorySection({ snapshots, granularity }: { snapshots: Snapshot[]; g
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#3B1D8E]/30 bg-[#3B1D8E]/10 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#3B1D8E]/30 font-mono text-[10px] font-bold text-[#a78bfa]">FS</div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">FullStory</h3>
+        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">FullStory</h3>
       </div>
       <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#7c3aed" />
       {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
@@ -4702,7 +4702,7 @@ function HotjarSection({ snapshots, granularity }: { snapshots: Snapshot[]; gran
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#FD3A5C]/15 bg-[#FD3A5C]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FD3A5C]/15 font-mono text-[10px] font-bold text-[#FD3A5C]">HJ</div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Hotjar</h3>
+        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">Hotjar</h3>
       </div>
       <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#FD3A5C" />
       {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
@@ -4759,7 +4759,7 @@ function InstagramSection({ snapshots, granularity }: { snapshots: Snapshot[]; g
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#E1306C]/15 bg-[#E1306C]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#E1306C]/15 font-mono text-[10px] font-bold text-[#E1306C]">IG</div>
-        <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Instagram</h3>
+        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">Instagram</h3>
       </div>
       <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#E1306C" />
       {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
@@ -4790,17 +4790,17 @@ function LockScreen() {
     } catch { setLoading(false); }
   }
   return (
-    <div className="flex flex-col items-center justify-center rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 py-20 px-6 text-center">
+    <div className="flex flex-col items-center justify-center rounded-2xl border border-[#d4d4e8] bg-[#f2f2f8]/60 py-20 px-6 text-center">
       <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-[#a78bfa]/20 bg-[#a78bfa]/10 text-[#a78bfa]">
         <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>
       </div>
       <p className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#a78bfa] mb-2">Premium Feature</p>
-      <h2 className="font-mono text-xl font-bold text-[#f8f8fc] mb-3">Analytics requires Premium</h2>
-      <p className="text-sm text-[#bcbcd8] max-w-sm mb-6">Upgrade to access full analytics, revenue trends, and AI-generated insights.</p>
-      <button onClick={handleCheckout} disabled={loading} className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-6 py-2.5 font-mono text-sm font-bold text-[#252531] hover:bg-[#00bfa0] transition disabled:opacity-60">
+      <h2 className="font-mono text-xl font-bold text-[#1a1a2e] mb-3">Analytics requires Premium</h2>
+      <p className="text-sm text-[#4a4a6a] max-w-sm mb-6">Upgrade to access full analytics, revenue trends, and AI-generated insights.</p>
+      <button onClick={handleCheckout} disabled={loading} className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-6 py-2.5 font-mono text-sm font-bold text-[#fafafa] hover:bg-[#00bfa0] transition disabled:opacity-60">
         {loading ? "Redirecting…" : "Start 7-day free trial →"}
       </button>
-      <p className="mt-3 font-mono text-[10px] text-[#8585aa]">$19/mo after trial · Cancel anytime</p>
+      <p className="mt-3 font-mono text-[10px] text-[#6a6a90]">$19/mo after trial · Cancel anytime</p>
     </div>
   );
 }
@@ -4808,25 +4808,25 @@ function LockScreen() {
 function EmptySection({ platform, hasDataOutsideRange = false }: { platform: string; hasDataOutsideRange?: boolean }) {
   if (hasDataOutsideRange) {
     return (
-      <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 p-10 text-center">
+      <div className="rounded-2xl border border-[#d4d4e8] bg-[#f2f2f8]/60 p-10 text-center">
         <div className="mx-auto mb-4 inline-flex items-center gap-2 rounded-full border border-[#f59e0b]/20 bg-[#f59e0b]/8 px-4 py-2">
           <span className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#f59e0b]">No data in range</span>
         </div>
-        <p className="text-sm text-[#bcbcd8]">
-          <span className="text-[#f8f8fc]">{platform}</span> has synced data, but none falls within the selected time range.
+        <p className="text-sm text-[#4a4a6a]">
+          <span className="text-[#1a1a2e]">{platform}</span> has synced data, but none falls within the selected time range.
         </p>
         <p className="mt-2 text-xs text-[#6b6b88]">Try extending the time range to see historical data.</p>
       </div>
     );
   }
   return (
-    <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 p-10 text-center">
+    <div className="rounded-2xl border border-[#d4d4e8] bg-[#f2f2f8]/60 p-10 text-center">
       <div className="mx-auto mb-4 inline-flex items-center gap-2 rounded-full border border-[#00d4aa]/20 bg-[#00d4aa]/8 px-4 py-2">
         <span className="h-1.5 w-1.5 rounded-full bg-[#00d4aa] animate-pulse" />
         <span className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#00d4aa]">Syncing data</span>
       </div>
-      <p className="text-sm text-[#bcbcd8]">
-        <span className="text-[#f8f8fc]">{platform}</span> is connected. Waiting for data to sync…
+      <p className="text-sm text-[#4a4a6a]">
+        <span className="text-[#1a1a2e]">{platform}</span> is connected. Waiting for data to sync…
       </p>
       <p className="mt-2 text-xs text-[#6b6b88]">First sync can take a few minutes to complete.</p>
     </div>
@@ -4993,8 +4993,8 @@ export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots,
     return (
       <div className="w-full">
         <div className="mb-5 sm:mb-8">
-          <h1 className="font-mono text-xl sm:text-2xl font-bold text-[#f8f8fc]">Analytics</h1>
-          <p className="mt-1 text-sm text-[#bcbcd8]">Deep-dive into your business metrics.</p>
+          <h1 className="font-mono text-xl sm:text-2xl font-bold text-[#1a1a2e]">Analytics</h1>
+          <p className="mt-1 text-sm text-[#4a4a6a]">Deep-dive into your business metrics.</p>
         </div>
         <LockScreen />
       </div>
@@ -5005,16 +5005,16 @@ export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots,
     <div className="w-full">
       <div className="mb-5 sm:mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="font-mono text-xl sm:text-2xl font-bold text-[#f8f8fc]">Analytics</h1>
-          <p className="mt-1 text-sm text-[#bcbcd8]">Daily breakdown per integration.</p>
+          <h1 className="font-mono text-xl sm:text-2xl font-bold text-[#1a1a2e]">Analytics</h1>
+          <p className="mt-1 text-sm text-[#4a4a6a]">Daily breakdown per integration.</p>
         </div>
         {availablePlatforms.length > 0 && (
           <button
             onClick={handleShare}
             disabled={shareState === "loading"}
-            className="flex shrink-0 items-center gap-2 rounded-xl border border-[#363650] bg-[#2e2e3c] px-4 py-2.5 font-mono text-xs font-semibold transition-all hover:border-[#00d4aa]/40 hover:text-[#00d4aa] disabled:opacity-50"
+            className="flex shrink-0 items-center gap-2 rounded-xl border border-[#d4d4e8] bg-[#f2f2f8] px-4 py-2.5 font-mono text-xs font-semibold transition-all hover:border-[#00d4aa]/40 hover:text-[#00d4aa] disabled:opacity-50"
             style={{
-              color: shareState === "copied" ? "#00d4aa" : shareState === "error" ? "#f87171" : "#bcbcd8",
+              color: shareState === "copied" ? "#00d4aa" : shareState === "error" ? "#f87171" : "#4a4a6a",
               borderColor: shareState === "copied" ? "#00d4aa40" : shareState === "error" ? "#f8717140" : undefined,
             }}
           >
@@ -5044,12 +5044,12 @@ export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots,
       </div>
 
       {availablePlatforms.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-[#363650] p-12 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl border border-[#363650] bg-[#343447] text-[#8585aa]">
+        <div className="rounded-2xl border border-dashed border-[#d4d4e8] p-12 text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl border border-[#d4d4e8] bg-[#e8e8f4] text-[#6a6a90]">
             <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" /></svg>
           </div>
-          <p className="font-mono text-xs font-semibold uppercase tracking-widest text-[#8585aa] mb-2">No data yet</p>
-          <p className="text-sm text-[#bcbcd8]">Connect at least one integration from the Overview tab to see analytics.</p>
+          <p className="font-mono text-xs font-semibold uppercase tracking-widest text-[#6a6a90] mb-2">No data yet</p>
+          <p className="text-sm text-[#4a4a6a]">Connect at least one integration from the Overview tab to see analytics.</p>
         </div>
       ) : (
         <>
@@ -5057,8 +5057,8 @@ export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots,
           {/* Full-bleed: negative margin cancels the parent p-3/p-6/p-8, then we re-add px so tabs stay inset */}
           <div className="relative mb-4 -mx-3 sm:-mx-6 lg:-mx-8">
             {/* Scroll fade — right edge hint */}
-            <div className="pointer-events-none absolute right-0 top-0 z-10 h-full w-16 bg-linear-to-l from-[#252531] to-transparent" />
-            <div className="flex gap-2 border-b border-[#363650] overflow-x-auto scrollbar-none px-3 sm:px-6 lg:px-8">
+            <div className="pointer-events-none absolute right-0 top-0 z-10 h-full w-16 bg-linear-to-l from-[#fafafa] to-transparent" />
+            <div className="flex gap-2 border-b border-[#d4d4e8] overflow-x-auto scrollbar-none px-3 sm:px-6 lg:px-8">
               {(["overview", ...availablePlatforms] as PlatformTab[]).map((p) => (
                 <button
                   key={p}
@@ -5066,7 +5066,7 @@ export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots,
                   className={`shrink-0 whitespace-nowrap pb-3 px-1 font-mono text-xs font-semibold uppercase tracking-widest transition-colors border-b-2 -mb-px ${
                     activeSection === p
                       ? "border-[#00d4aa] text-[#00d4aa]"
-                      : "border-transparent text-[#8585aa] hover:text-[#bcbcd8]"
+                      : "border-transparent text-[#6a6a90] hover:text-[#4a4a6a]"
                   }`}
                 >
                   {PLATFORM_LABELS[p]}

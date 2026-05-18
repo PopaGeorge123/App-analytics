@@ -576,10 +576,10 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
   }
 
   return (
-    <div className="min-h-screen bg-[#090911] text-[#f8f8fc]">
+    <div className="min-h-screen bg-[#f8f8fc] text-[#1a1a2e]">
       {/* ── Top bar ───────────────────────────────────────────────────────── */}
       {!hideHeader && (
-      <header className="border-b border-[#303042] bg-[#1f1f2c]/90 backdrop-blur-sm px-6 py-3.5 sticky top-0 z-30">
+      <header className="border-b border-[#d4d4e8] bg-[#f4f4fc]/90 backdrop-blur-sm px-6 py-3.5 sticky top-0 z-30">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
           <div className="flex items-center gap-3">
             <img src="/fold-primary-dark.svg" alt="Fold" className="h-7 w-auto" />
@@ -587,12 +587,12 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
             {/* Step indicator */}
             <div className="hidden sm:flex items-center gap-1.5">
               <span className="flex items-center gap-1.5 font-mono text-[11px] text-[#00d4aa]">
-                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#00d4aa] text-[8px] font-bold text-[#090911]">1</span>
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#00d4aa] text-[8px] font-bold text-[#1a1a2e]">1</span>
                 Choose integration
               </span>
               <span className="font-mono text-[11px] text-[#6868a0]">→</span>
-              <span className={`flex items-center gap-1.5 font-mono text-[11px] transition-colors ${selected ? "text-[#8585aa]" : "text-[#7878a8]"}`}>
-                <span className={`flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-bold transition-colors ${selected ? "bg-[#363650] text-[#8585aa]" : "border border-[#2d2d44] text-[#7878a8]"}`}>2</span>
+              <span className={`flex items-center gap-1.5 font-mono text-[11px] transition-colors ${selected ? "text-[#6a6a90]" : "text-[#7878a8]"}`}>
+                <span className={`flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-bold transition-colors ${selected ? "bg-[#d4d4e8] text-[#6a6a90]" : "border border-[#d0d0ec] text-[#7878a8]"}`}>2</span>
                 Connect
               </span>
             </div>
@@ -601,7 +601,7 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
             <span className="hidden font-mono text-[11px] text-[#7878a8] sm:block truncate max-w-45">{userEmail}</span>
             <button
               onClick={skipToDashboard}
-              className="font-mono text-[11px] font-semibold text-white hover:text-white border border-[#525268] hover:border-[#8080b0] rounded-lg px-3 py-1.5 transition"
+              className="font-mono text-[11px] font-semibold text-[#1a1a2e] hover:text-[#1a1a2e] border border-[#b8b8d8] hover:border-[#8080b0] rounded-lg px-3 py-1.5 transition"
             >
               Skip
             </button>
@@ -629,10 +629,10 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
             <span className="h-1.5 w-1.5 rounded-full bg-[#00d4aa] animate-pulse" />
             <span className="font-mono text-[10px] text-[#00d4aa]/80">142 founders connected Stripe this week</span>
           </div>
-          <h1 className="mb-2 font-mono text-2xl font-bold text-[#f8f8fc] sm:text-3xl">
+          <h1 className="mb-2 font-mono text-2xl font-bold text-[#1a1a2e] sm:text-3xl">
             See your business in 30 seconds
           </h1>
-          <p className="mx-auto max-w-lg text-sm text-[#8080b0] leading-relaxed">
+          <p className="mx-auto max-w-lg text-sm text-[#6070a0] leading-relaxed">
             Connect one integration and your dashboard fills up instantly — add the rest later from Settings.
           </p>
         </div>
@@ -652,7 +652,7 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
                   className={`flex items-center gap-2 rounded-xl border px-3 py-2 font-mono text-[11px] font-semibold transition-all duration-150 ${
                     isSelected
                       ? "border-[#00d4aa]/50 bg-[#00d4aa]/10 text-[#00d4aa]"
-                      : "border-[#343445] bg-[#252540] text-[#8585aa] hover:border-[#363650] hover:text-[#c0c0d8]"
+                      : "border-[#ccccec] bg-[#f0f0fc] text-[#6a6a90] hover:border-[#d4d4e8] hover:text-[#c0c0d8]"
                   }`}
                 >
                   <img src={integration.icon} alt={integration.name} width={14} height={14} className="object-contain" />
@@ -677,12 +677,12 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
             {grouped.map(({ category, integrations }) => (
               <div key={category}>
                 <div className="mb-3 flex items-center gap-2">
-                  <span className="text-[#8080b0]">{CATEGORY_ICONS[category] ?? (
+                  <span className="text-[#6070a0]">{CATEGORY_ICONS[category] ?? (
                     <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
                     </svg>
                   )}</span>
-                  <h2 className="font-mono text-[11px] font-semibold uppercase tracking-widest text-[#8080b0]">
+                  <h2 className="font-mono text-[11px] font-semibold uppercase tracking-widest text-[#6070a0]">
                     {category}
                   </h2>
                   <span className="font-mono text-[10px] text-[#6868a0]">({integrations.length})</span>
@@ -698,19 +698,19 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
                         className={`group relative flex flex-col items-start gap-2.5 rounded-xl border p-3.5 text-left transition-all duration-150 ${
                           isSelected
                             ? "border-[#00d4aa]/50 bg-[#00d4aa]/8 shadow-[0_0_0_1px_rgba(0,212,170,0.15),0_4px_20px_rgba(0,212,170,0.06)]"
-                            : "border-[#343445] bg-[#252540] hover:border-[#363650] hover:bg-[#252531]"
+                            : "border-[#ccccec] bg-[#f0f0fc] hover:border-[#d4d4e8] hover:bg-[#fafafa]"
                         }`}
                       >
                         {/* Popular badge */}
                         {isPopular && !isSelected && (
-                          <span className="absolute right-2.5 top-2.5 rounded-full bg-[#2c2c40] border border-[#2d2d44] px-1.5 py-0.5 font-mono text-[8px] font-semibold text-[#8080b0] uppercase tracking-wider">
+                          <span className="absolute right-2.5 top-2.5 rounded-full bg-[#ebebf8] border border-[#d0d0ec] px-1.5 py-0.5 font-mono text-[8px] font-semibold text-[#6070a0] uppercase tracking-wider">
                             Popular
                           </span>
                         )}
                         {/* Selected check */}
                         {isSelected && (
                           <span className="absolute right-2.5 top-2.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#00d4aa]">
-                            <svg width="8" height="8" fill="none" viewBox="0 0 24 24" stroke="#090911" strokeWidth={3}>
+                            <svg width="8" height="8" fill="none" viewBox="0 0 24 24" stroke="#1a1a2e" strokeWidth={3}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                             </svg>
                           </span>
@@ -733,7 +733,7 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
                           <p className="font-mono text-[12px] font-semibold leading-snug text-[#e8e8f8]">
                             {integration.name}
                           </p>
-                          <p className="mt-0.5 text-[10px] leading-snug text-[#8080b0]">
+                          <p className="mt-0.5 text-[10px] leading-snug text-[#6070a0]">
                             {integration.description}
                           </p>
                         </div>
@@ -749,13 +749,13 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
           <div className="hidden lg:block lg:sticky lg:top-20 lg:self-start">
             {!selected ? (
               /* Empty state */
-              <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#303042] bg-[#1f1f32] p-8 text-center min-h-110">
-                <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-[#303042] bg-[#252531]">
+              <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#d4d4e8] bg-[#f3f3fc] p-8 text-center min-h-110">
+                <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-[#d4d4e8] bg-[#fafafa]">
                   <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="#3a3a55" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
                   </svg>
                 </div>
-                <p className="font-mono text-sm font-semibold text-[#9090b8] mb-1">
+                <p className="font-mono text-sm font-semibold text-[#5a5a7a] mb-1">
                   Pick an integration
                 </p>
                 <p className="text-xs text-[#6868a0] mb-6">
@@ -767,9 +767,9 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
                     { icon: "⚡", text: "Daily snapshots synced automatically" },
                     { icon: "🔌", text: "Revoke access any time from the provider" },
                   ].map(({ icon, text }) => (
-                    <div key={text} className="flex items-center gap-2.5 rounded-lg border border-[#363658] bg-[#111120] px-3 py-2">
+                    <div key={text} className="flex items-center gap-2.5 rounded-lg border border-[#c8c8ec] bg-[#f5f5fb] px-3 py-2">
                       <span className="text-sm">{icon}</span>
-                      <span className="text-[11px] text-[#9090b8]">{text}</span>
+                      <span className="text-[11px] text-[#5a5a7a]">{text}</span>
                     </div>
                   ))}
                 </div>
@@ -800,7 +800,7 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
           Fold is SOC 2-aligned · All data encrypted at rest and in transit · We never sell or share your data
           <button
             onClick={skipToDashboard}
-            className="ml-2 text-[#8080b0] underline underline-offset-2 hover:text-[#c0c0e0] transition"
+            className="ml-2 text-[#6070a0] underline underline-offset-2 hover:text-[#c0c0e0] transition"
           >
             Skip setup
           </button>
@@ -816,9 +816,9 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
             onClick={() => setSheetOpen(false)}
           />
           {/* Sheet */}
-          <div className="relative z-10 max-h-[90dvh] overflow-y-auto rounded-t-3xl border-t border-[#303042] bg-[#1f1f32]">
+          <div className="relative z-10 max-h-[90dvh] overflow-y-auto rounded-t-3xl border-t border-[#d4d4e8] bg-[#f3f3fc]">
             {/* Handle */}
-            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[#363658] bg-[#1f1f32]/95 backdrop-blur-sm px-5 py-3.5">
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[#c8c8ec] bg-[#f3f3fc]/95 backdrop-blur-sm px-5 py-3.5">
               <div className="flex items-center gap-2.5">
                 <div
                   className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
@@ -830,7 +830,7 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
               </div>
               <button
                 onClick={() => setSheetOpen(false)}
-                className="rounded-lg p-1.5 text-[#8080b0] hover:bg-[#303042] hover:text-[#8585aa] transition"
+                className="rounded-lg p-1.5 text-[#6070a0] hover:bg-[#ebebf5] hover:text-[#6a6a90] transition"
               >
                 <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -899,11 +899,11 @@ function DetailPanel({
   isMobile?: boolean;
 }) {
   return (
-    <div className={`rounded-2xl border border-[#303042] bg-[#1f1f32] overflow-hidden`}>
+    <div className={`rounded-2xl border border-[#d4d4e8] bg-[#f3f3fc] overflow-hidden`}>
       {/* Header */}
       {!isMobile && (
         <div
-          className="flex items-center gap-3 px-5 py-4 border-b border-[#363658]"
+          className="flex items-center gap-3 px-5 py-4 border-b border-[#c8c8ec]"
           style={{ background: `linear-gradient(135deg, ${selected.color}10 0%, transparent 70%)` }}
         >
           <div
@@ -914,11 +914,11 @@ function DetailPanel({
           </div>
           <div className="flex-1 min-w-0">
             <h2 className="font-mono text-sm font-bold text-[#e8e8f8]">{selected.name}</h2>
-            <p className="text-[11px] text-[#9090b8] truncate">{selected.description}</p>
+            <p className="text-[11px] text-[#5a5a7a] truncate">{selected.description}</p>
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-1 text-[#7878a8] hover:bg-[#2c2c3a] hover:text-[#8080b0] transition shrink-0"
+            className="rounded-lg p-1 text-[#7878a8] hover:bg-[#f0f0f8] hover:text-[#6070a0] transition shrink-0"
           >
             <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -934,14 +934,14 @@ function DetailPanel({
             <p className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#7878a8]">
               What you&apos;ll see after connecting
             </p>
-            <span className="rounded-full border border-[#363658] bg-[#1e1e30] px-2 py-0.5 font-mono text-[8px] text-[#7878a8]">
+            <span className="rounded-full border border-[#c8c8ec] bg-[#f4f4fc] px-2 py-0.5 font-mono text-[8px] text-[#7878a8]">
               sample data
             </span>
           </div>
-          <div className="rounded-xl border border-[#303050] bg-[#1e1e30] p-3">
+          <div className="rounded-xl border border-[#ccccec] bg-[#f4f4fc] p-3">
             <div className="grid grid-cols-2 gap-1.5 mb-2">
               {(PREVIEW_METRICS[selected.id] ?? DEFAULT_PREVIEW_METRICS).map(({ label, value, trend }) => (
-                <div key={label} className="rounded-lg border border-[#363658] bg-[#252540] px-2.5 py-2">
+                <div key={label} className="rounded-lg border border-[#c8c8ec] bg-[#f0f0fc] px-2.5 py-2">
                   <p className="font-mono text-[9px] text-[#7878a8] truncate">{label}</p>
                   <p className="font-mono text-sm font-bold text-[#e8e8f8] mt-0.5">{value}</p>
                   {trend && (
@@ -953,7 +953,7 @@ function DetailPanel({
               ))}
             </div>
             {/* Mini sparkline placeholder */}
-            <div className="rounded-lg border border-[#303050] bg-[#1f1f32] px-3 py-2">
+            <div className="rounded-lg border border-[#ccccec] bg-[#f3f3fc] px-3 py-2">
               <div className="flex items-end gap-1 h-8">
                 {[30, 45, 35, 60, 52, 70, 65, 80, 72, 90, 84, 100].map((h, i) => (
                   <div
@@ -991,7 +991,7 @@ function DetailPanel({
           </div>
         </div>
 
-        <div className="border-t border-[#303050]" />
+        <div className="border-t border-[#ccccec]" />
 
         {/* Connect area */}
         {success ? (
@@ -1045,8 +1045,8 @@ function OAuthConnect({
 }) {
   return (
     <div className="space-y-3">
-      <p className="text-[11px] text-[#9090b8] leading-relaxed">
-        You&apos;ll be redirected to <strong className="text-[#8585aa]">{integration.name}</strong> to
+      <p className="text-[11px] text-[#5a5a7a] leading-relaxed">
+        You&apos;ll be redirected to <strong className="text-[#6a6a90]">{integration.name}</strong> to
         authorize read-only access. You can revoke it from {integration.name}&apos;s dashboard at any time.
       </p>
       {error && (
@@ -1103,13 +1103,13 @@ function ApiKeyForm({
 }) {
   return (
     <form onSubmit={onSubmit} className="space-y-3">
-      <p className="text-[11px] text-[#9090b8] leading-relaxed">
-        Enter your <strong className="text-[#8585aa]">{integration.name + " "}</strong> credentials below.
+      <p className="text-[11px] text-[#5a5a7a] leading-relaxed">
+        Enter your <strong className="text-[#6a6a90]">{integration.name + " "}</strong> credentials below.
         They&apos;re stored encrypted and never logged or shared.
       </p>
       {fields.map((field) => (
         <div key={field.name}>
-          <label className="mb-1.5 flex items-center gap-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#8080b0]">
+          <label className="mb-1.5 flex items-center gap-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#6070a0]">
             {field.label}
             {field.optional && (
               <span className="normal-case tracking-normal font-normal text-[#6868a0]">(optional)</span>
@@ -1121,7 +1121,7 @@ function ApiKeyForm({
             onChange={(e) => onChange(field.name, e.target.value)}
             placeholder={field.placeholder}
             autoComplete="off"
-            className="w-full rounded-lg border border-[#303042] bg-[#1e1e30] px-3 py-2.5 font-mono text-[12px] text-[#e8e8f8] placeholder-[#636363] outline-none transition focus:border-[#00d4aa]/35 focus:ring-1 focus:ring-[#00d4aa]/15"
+            className="w-full rounded-lg border border-[#d4d4e8] bg-[#f4f4fc] px-3 py-2.5 font-mono text-[12px] text-[#e8e8f8] placeholder-[#636363] outline-none transition focus:border-[#00d4aa]/35 focus:ring-1 focus:ring-[#00d4aa]/15"
           />
         </div>
       ))}
@@ -1184,12 +1184,12 @@ function ShopifyForm({
 }) {
   return (
     <div className="space-y-3">
-      <p className="text-[11px] text-[#9090b8] leading-relaxed">
+      <p className="text-[11px] text-[#5a5a7a] leading-relaxed">
         Enter your Shopify store domain to start the connection. You&apos;ll be redirected to
         Shopify to authorize read-only access.
       </p>
       <div>
-        <label className="mb-1.5 block font-mono text-[10px] font-semibold uppercase tracking-wider text-[#8080b0]">
+        <label className="mb-1.5 block font-mono text-[10px] font-semibold uppercase tracking-wider text-[#6070a0]">
           Store domain
         </label>
         <input
@@ -1197,7 +1197,7 @@ function ShopifyForm({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="yourstore.myshopify.com"
-          className="w-full rounded-lg border border-[#303042] bg-[#1e1e30] px-3 py-2.5 font-mono text-[12px] text-[#e8e8f8] placeholder-[#636363] outline-none transition focus:border-[#96bf48]/35 focus:ring-1 focus:ring-[#96bf48]/15"
+          className="w-full rounded-lg border border-[#d4d4e8] bg-[#f4f4fc] px-3 py-2.5 font-mono text-[12px] text-[#e8e8f8] placeholder-[#636363] outline-none transition focus:border-[#96bf48]/35 focus:ring-1 focus:ring-[#96bf48]/15"
           onKeyDown={(e) => e.key === "Enter" && onSubmit()}
         />
       </div>

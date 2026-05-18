@@ -58,13 +58,13 @@ function LoginForm() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-[#252531] px-6 py-24">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-[#fafafa] px-6 py-24">
       {/* Background glow */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
         <div className="h-125 w-125 rounded-full bg-[#00d4aa]/4 blur-3xl" />
       </div>
       {/* Subtle dot grid */}
-      <div className="pointer-events-none absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(#363650 1px, transparent 1px)", backgroundSize: "24px 24px" }} />
+      <div className="pointer-events-none absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(#d4d4e8 1px, transparent 1px)", backgroundSize: "24px 24px" }} />
 
       <div className="relative w-full max-w-md mx-auto">
         {/* Logo */}
@@ -75,12 +75,12 @@ function LoginForm() {
         </div>
 
         {/* Card */}
-        <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/90 p-8 shadow-2xl backdrop-blur-md">
+        <div className="rounded-2xl border border-[#d4d4e8] bg-[#f2f2f8]/90 p-8 shadow-2xl backdrop-blur-md">
           <div className="mb-7">
-            <h1 className="font-mono text-xl font-bold text-[#f8f8fc]">
+            <h1 className="font-mono text-xl font-bold text-[#1a1a2e]">
               Welcome back
             </h1>
-            <p className="mt-1 text-sm text-[#bcbcd8]">
+            <p className="mt-1 text-sm text-[#4a4a6a]">
               Sign in to your Fold account
             </p>
           </div>
@@ -90,7 +90,7 @@ function LoginForm() {
             type="button"
             onClick={handleGoogleSignIn}
             disabled={oauthLoading || loading}
-            className="mb-5 flex w-full items-center justify-center gap-3 rounded-xl border border-[#363650] bg-[#343447] py-3 font-mono text-sm font-semibold text-[#f8f8fc] transition-all hover:border-[#8585aa] hover:bg-[#3c3c52] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+            className="mb-5 flex w-full items-center justify-center gap-3 rounded-xl border border-[#d4d4e8] bg-[#e8e8f4] py-3 font-mono text-sm font-semibold text-[#1a1a2e] transition-all hover:border-[#6a6a90] hover:bg-[#e0e0f0] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {oauthLoading ? (
               <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
@@ -110,9 +110,9 @@ function LoginForm() {
 
           {/* Divider */}
           <div className="relative mb-5 flex items-center">
-            <div className="flex-1 border-t border-[#363650]" />
+            <div className="flex-1 border-t border-[#d4d4e8]" />
             <span className="mx-3 font-mono text-[10px] text-[#58588a]">OR</span>
-            <div className="flex-1 border-t border-[#363650]" />
+            <div className="flex-1 border-t border-[#d4d4e8]" />
           </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
@@ -120,7 +120,7 @@ function LoginForm() {
             <div>
               <label
                 htmlFor="email"
-                className="mb-1.5 block font-mono text-xs font-semibold uppercase tracking-wider text-[#8585aa]"
+                className="mb-1.5 block font-mono text-xs font-semibold uppercase tracking-wider text-[#6a6a90]"
               >
                 Email
               </label>
@@ -133,7 +133,7 @@ function LoginForm() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@email.com"
                 disabled={loading}
-                className="w-full rounded-xl border border-[#363650] bg-[#343447] px-4 py-3 text-sm text-[#f8f8fc] placeholder-[#8585aa] outline-none transition-all focus:border-[#00d4aa]/60 focus:ring-2 focus:ring-[#00d4aa]/20 disabled:opacity-60"
+                className="w-full rounded-xl border border-[#d4d4e8] bg-[#e8e8f4] px-4 py-3 text-sm text-[#1a1a2e] placeholder-[#6a6a90] outline-none transition-all focus:border-[#00d4aa]/60 focus:ring-2 focus:ring-[#00d4aa]/20 disabled:opacity-60"
               />
             </div>
 
@@ -142,7 +142,7 @@ function LoginForm() {
               <div className="mb-1.5 flex items-center justify-between">
                 <label
                   htmlFor="password"
-                  className="font-mono text-xs font-semibold uppercase tracking-wider text-[#8585aa]"
+                  className="font-mono text-xs font-semibold uppercase tracking-wider text-[#6a6a90]"
                 >
                   Password
                 </label>
@@ -162,7 +162,7 @@ function LoginForm() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 disabled={loading}
-                className="w-full rounded-xl border border-[#363650] bg-[#343447] px-4 py-3 text-sm text-[#f8f8fc] placeholder-[#8585aa] outline-none transition-all focus:border-[#00d4aa]/60 focus:ring-2 focus:ring-[#00d4aa]/20 disabled:opacity-60"
+                className="w-full rounded-xl border border-[#d4d4e8] bg-[#e8e8f4] px-4 py-3 text-sm text-[#1a1a2e] placeholder-[#6a6a90] outline-none transition-all focus:border-[#00d4aa]/60 focus:ring-2 focus:ring-[#00d4aa]/20 disabled:opacity-60"
               />
             </div>
 
@@ -177,7 +177,7 @@ function LoginForm() {
             <button
               type="submit"
               disabled={loading || !email || !password}
-              className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-[#00d4aa] py-3 font-semibold text-sm text-[#252531] transition-all hover:bg-[#00bfa0] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-[#00d4aa] py-3 font-semibold text-sm text-[#fafafa] transition-all hover:bg-[#00bfa0] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? (
                 <>
@@ -200,15 +200,15 @@ function LoginForm() {
             {/* Legal consent */}
             <p className="text-center font-mono text-[10px] leading-relaxed text-[#cecece]">
               By signing in you agree to our{" "}
-              <Link href="/terms" className="text-[#58588a] underline underline-offset-2 hover:text-[#8585aa]">Terms of Service</Link>
+              <Link href="/terms" className="text-[#58588a] underline underline-offset-2 hover:text-[#6a6a90]">Terms of Service</Link>
               {" "}and{" "}
-              <Link href="/privacy" className="text-[#58588a] underline underline-offset-2 hover:text-[#8585aa]">Privacy Policy</Link>.
+              <Link href="/privacy" className="text-[#58588a] underline underline-offset-2 hover:text-[#6a6a90]">Privacy Policy</Link>.
             </p>
           </form>
         </div>
 
         {/* Footer link */}
-        <p className="mt-6 text-center text-sm text-[#8585aa]">
+        <p className="mt-6 text-center text-sm text-[#6a6a90]">
           Don&apos;t have an account?{" "}
           <Link
             href="/signup"

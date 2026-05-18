@@ -89,13 +89,13 @@ export default function EmailForm({ size = "default" }: EmailFormProps) {
             }}
             placeholder="your@email.com"
             disabled={state === "loading"}
-            className={`flex-1 rounded-xl sm:rounded-r-none border border-[#1e1e2e] bg-[#12121a] text-[#f0f0f5] placeholder-[#4a4a6a] outline-none transition-all focus:border-[#00d4aa]/60 focus:ring-2 focus:ring-[#00d4aa]/20 disabled:opacity-60 ${isLarge ? "px-5 py-4 text-base" : "px-4 py-3 text-sm"}`}
+            className={`flex-1 rounded-xl sm:rounded-r-none border border-[#d8d8f0] bg-[#f8f8fc] text-[#2a2a3e] placeholder-[#4a4a6a] outline-none transition-all focus:border-[#00d4aa]/60 focus:ring-2 focus:ring-[#00d4aa]/20 disabled:opacity-60 ${isLarge ? "px-5 py-4 text-base" : "px-4 py-3 text-sm"}`}
             aria-describedby={`form-hint-${size}`}
           />
           <button
             type="submit"
             disabled={state === "loading" || !email.trim()}
-            className={`whitespace-nowrap rounded-xl sm:rounded-l-none bg-[#00d4aa] font-semibold text-[#0a0a0f] transition-all hover:bg-[#00bfa0] active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed ${isLarge ? "px-7 py-4 text-base" : "px-5 py-3 text-sm"}`}
+            className={`whitespace-nowrap rounded-xl sm:rounded-l-none bg-[#00d4aa] font-semibold text-[#1a1a2e] transition-all hover:bg-[#00bfa0] active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed ${isLarge ? "px-7 py-4 text-base" : "px-5 py-3 text-sm"}`}
           >
             {state === "loading" ? (
               <span className="flex items-center gap-2">

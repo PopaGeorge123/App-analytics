@@ -92,12 +92,12 @@ function GeneratingTipsModal({ onClose, onNeverShow }: { onClose: () => void; on
     >
       <div
         className="relative w-full max-w-md rounded-2xl border p-6 shadow-2xl"
-        style={{ background: "#21212c", borderColor: "#303252" }}
+        style={{ background: "#f3f3fb", borderColor: "#e8e8f5" }}
       >
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-lg p-1.5 text-slate-500 hover:text-slate-300 transition-colors"
+          className="absolute right-4 top-4 rounded-lg p-1.5 text-[#6a6a90] hover:text-[#4a4a6a] transition-colors"
           aria-label="Close"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
@@ -109,8 +109,8 @@ function GeneratingTipsModal({ onClose, onNeverShow }: { onClose: () => void; on
         <div className="flex items-center gap-3 mb-5">
           <div className="h-8 w-8 shrink-0 rounded-full border-2 border-emerald-500/20 border-t-emerald-400 animate-spin" />
           <div>
-            <p className="text-sm font-bold text-white">Claude is analysing your data…</p>
-            <p className="text-xs text-slate-500 mt-0.5">This usually takes 30–90 seconds</p>
+            <p className="text-sm font-bold text-[#1a1a2e]">Claude is analysing your data…</p>
+            <p className="text-xs text-[#6a6a90] mt-0.5">This usually takes 30–90 seconds</p>
           </div>
         </div>
 
@@ -121,7 +121,7 @@ function GeneratingTipsModal({ onClose, onNeverShow }: { onClose: () => void; on
               key={i}
               onClick={() => setTipIdx(i)}
               className="h-1 flex-1 rounded-full cursor-pointer transition-all duration-300"
-              style={{ background: i === tipIdx ? "#00d4aa" : "#303252" }}
+              style={{ background: i === tipIdx ? "#00d4aa" : "#e8e8f5" }}
             />
           ))}
         </div>
@@ -130,13 +130,13 @@ function GeneratingTipsModal({ onClose, onNeverShow }: { onClose: () => void; on
         <div
           key={tipIdx}
           className="rounded-xl border p-4 mb-5 transition-all"
-          style={{ borderColor: "#303252", background: "#13141f" }}
+          style={{ borderColor: "#e8e8f5", background: "#f4f4fc" }}
         >
           <div className="flex items-start gap-3">
             <span className="shrink-0 mt-0.5">{tip.icon}</span>
             <div>
-              <p className="text-sm font-semibold text-white mb-1">{tip.title}</p>
-              <p className="text-sm text-slate-400 leading-relaxed">{tip.body}</p>
+              <p className="text-sm font-semibold text-[#1a1a2e] mb-1">{tip.title}</p>
+              <p className="text-sm text-[#6a6a90] leading-relaxed">{tip.body}</p>
             </div>
           </div>
         </div>
@@ -145,14 +145,14 @@ function GeneratingTipsModal({ onClose, onNeverShow }: { onClose: () => void; on
         <div className="flex items-center justify-between mb-5">
           <button
             onClick={() => setTipIdx((i) => (i - 1 + TIPS.length) % TIPS.length)}
-            className="rounded-lg border border-white/8 px-3 py-1.5 text-xs text-slate-400 hover:text-white hover:border-white/20 transition-colors"
+            className="rounded-lg border border-[#e0e0ec] px-3 py-1.5 text-xs text-[#6a6a90] hover:text-[#1a1a2e] hover:border-[#c8c8e8] transition-colors"
           >
             ← Prev
           </button>
-          <span className="text-xs text-slate-600">{tipIdx + 1} / {TIPS.length}</span>
+          <span className="text-xs text-[#5a5a7a]">{tipIdx + 1} / {TIPS.length}</span>
           <button
             onClick={() => setTipIdx((i) => (i + 1) % TIPS.length)}
-            className="rounded-lg border border-white/8 px-3 py-1.5 text-xs text-slate-400 hover:text-white hover:border-white/20 transition-colors"
+            className="rounded-lg border border-[#e0e0ec] px-3 py-1.5 text-xs text-[#6a6a90] hover:text-[#1a1a2e] hover:border-[#c8c8e8] transition-colors"
           >
             Next →
           </button>
@@ -162,13 +162,13 @@ function GeneratingTipsModal({ onClose, onNeverShow }: { onClose: () => void; on
         <div className="flex items-center justify-between gap-3">
           <button
             onClick={onNeverShow}
-            className="text-xs text-slate-600 hover:text-slate-400 transition-colors underline underline-offset-2"
+            className="text-xs text-[#5a5a7a] hover:text-[#6a6a90] transition-colors underline underline-offset-2"
           >
             Don&apos;t show this again
           </button>
           <button
             onClick={onClose}
-            className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white hover:border-white/20 transition-colors"
+            className="rounded-xl border border-[#dcdcec] bg-[#f5f5fb] px-4 py-2 text-xs font-semibold text-[#4a4a6a] hover:text-[#1a1a2e] hover:border-[#c8c8e8] transition-colors"
           >
             Close for now
           </button>
@@ -198,7 +198,7 @@ function EligibilityBlockedModal({
     >
       <div
         className="relative w-full max-w-md rounded-2xl border p-7 shadow-2xl"
-        style={{ background: "#21212e", borderColor: "#3c3c50" }}
+        style={{ background: "#f3f3fb", borderColor: "#e0e0f0" }}
       >
         {/* Icon */}
         <div
@@ -211,16 +211,16 @@ function EligibilityBlockedModal({
         </div>
 
         {/* Text */}
-        <h3 className="mb-2 text-center text-base font-semibold text-white">{reason}</h3>
+        <h3 className="mb-2 text-center text-base font-semibold text-[#1a1a2e]">{reason}</h3>
         <p className="text-center text-sm leading-relaxed" style={{ color: "#8b8fa8" }}>{hint}</p>
 
         {/* Close */}
         <button
           onClick={onClose}
           className="mt-6 w-full rounded-xl py-2.5 text-sm font-medium transition-colors"
-          style={{ background: "#303042", color: "#c0c4d8" }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = "#3c3c50")}
-          onMouseLeave={(e) => (e.currentTarget.style.background = "#303042")}
+          style={{ background: "#ebebf5", color: "#c0c4d8" }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = "#e0e0f0")}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "#ebebf5")}
         >
           Got it
         </button>
@@ -248,12 +248,12 @@ function NoRevenuePlatformModal({ onClose, onGoToSettings }: { onClose: () => vo
     >
       <div
         className="relative w-full max-w-lg rounded-2xl border p-7 shadow-2xl"
-        style={{ background: "#21212e", borderColor: "#3c3c50" }}
+        style={{ background: "#f3f3fb", borderColor: "#e0e0f0" }}
       >
         {/* Close */}
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-lg p-1.5 text-slate-500 hover:text-slate-300 transition-colors"
+          className="absolute right-4 top-4 rounded-lg p-1.5 text-[#6a6a90] hover:text-[#4a4a6a] transition-colors"
           aria-label="Close"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
@@ -272,7 +272,7 @@ function NoRevenuePlatformModal({ onClose, onGoToSettings }: { onClose: () => vo
         </div>
 
         {/* Heading */}
-        <h3 className="mb-1.5 text-center text-base font-semibold text-white">No revenue platform connected</h3>
+        <h3 className="mb-1.5 text-center text-base font-semibold text-[#1a1a2e]">No revenue platform connected</h3>
         <p className="text-center text-sm leading-relaxed mb-5" style={{ color: "#8b8fa8" }}>
           Playbooks need revenue data to generate meaningful advice. Connect a payment platform to unlock MRR tracking, churn analysis, and growth playbooks.
         </p>
@@ -283,8 +283,8 @@ function NoRevenuePlatformModal({ onClose, onGoToSettings }: { onClose: () => vo
             <button
               key={p.id}
               onClick={onGoToSettings}
-              className="flex items-center gap-3 rounded-xl border px-3.5 py-3 text-left transition-colors hover:border-white/20 group"
-              style={{ borderColor: "#303252", background: "#13141f" }}
+              className="flex items-center gap-3 rounded-xl border px-3.5 py-3 text-left transition-colors hover:border-[#c8c8e8] group"
+              style={{ borderColor: "#e8e8f5", background: "#f4f4fc" }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -296,8 +296,8 @@ function NoRevenuePlatformModal({ onClose, onGoToSettings }: { onClose: () => vo
                 onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
               />
               <div className="min-w-0">
-                <p className="text-xs font-semibold text-white group-hover:text-white/90">{p.name}</p>
-                <p className="text-[10px] text-slate-500 truncate">{p.desc}</p>
+                <p className="text-xs font-semibold text-[#1a1a2e] group-hover:text-[#00d4aa]">{p.name}</p>
+                <p className="text-[10px] text-[#6a6a90] truncate">{p.desc}</p>
               </div>
             </button>
           ))}
@@ -317,7 +317,7 @@ function NoRevenuePlatformModal({ onClose, onGoToSettings }: { onClose: () => vo
         {/* Dismiss */}
         <button
           onClick={onClose}
-          className="mt-3 w-full rounded-xl py-2 text-xs text-slate-500 hover:text-slate-300 transition-colors"
+          className="mt-3 w-full rounded-xl py-2 text-xs text-[#6a6a90] hover:text-[#4a4a6a] transition-colors"
         >
           I&apos;ll connect one later
         </button>
@@ -386,7 +386,7 @@ function ProofChart({ chart, accentColor, uid }: { chart: AiPlaybookChart; accen
   const gradId = `proof-grad-${uid}`;
 
   return (
-    <div className="rounded-xl border border-white/5 bg-[#21212c] p-4 overflow-hidden">
+    <div className="rounded-xl border border-[#eaeaf5] bg-[#f3f3fb] p-4 overflow-hidden">
       <div className="flex items-center gap-2 mb-4">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={accentColor} strokeWidth={2.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v18h18M7 16l4-4 4 4 4-4" />
@@ -404,7 +404,7 @@ function ProofChart({ chart, accentColor, uid }: { chart: AiPlaybookChart; accen
               <stop offset="95%" stopColor={accentColor} stopOpacity={0.02} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="#303042" vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke="#ebebf5" vertical={false} />
           <XAxis
             dataKey="date"
             ticks={ticks}
@@ -422,11 +422,11 @@ function ProofChart({ chart, accentColor, uid }: { chart: AiPlaybookChart; accen
           />
           <Tooltip
             contentStyle={{
-              background: "#2c2c40",
-              border: "1px solid #3c3c50",
+              background: "#ffffff",
+              border: "1px solid #e0e0f0",
               borderRadius: "10px",
               fontSize: "12px",
-              color: "#f1f5f9",
+              color: "#1a1a2e",
             }}
             labelFormatter={(label) => fmtChartDate(String(label))}
             formatter={(v: unknown) => [fmtChartVal(v as number, chart.unit), chart.title]}
@@ -458,7 +458,7 @@ function ProofChart({ chart, accentColor, uid }: { chart: AiPlaybookChart; accen
       </ResponsiveContainer>
 
       {chart.benchmark != null && (
-        <p className="mt-2 text-xs text-slate-500 text-center">
+        <p className="mt-2 text-xs text-[#6a6a90] text-center">
           Dashed line = {chart.benchmarkLabel ?? `target ${fmtChartVal(chart.benchmark, chart.unit)}`}
         </p>
       )}
@@ -503,7 +503,7 @@ function PlaybookListItem({
       onClick={onSelect}
       className="group w-full text-left rounded-xl overflow-hidden transition-all duration-150 focus:outline-none"
       style={{
-        background:  isSelected ? "#303040" : "transparent",
+        background:  isSelected ? "#ebebf5" : "transparent",
         borderLeft:  `3px solid ${borderColor}`,
         border:      `1px solid ${isSelected ? "rgba(255,255,255,0.07)" : "transparent"}`,
         borderLeftWidth: "3px",
@@ -538,7 +538,7 @@ function PlaybookListItem({
         <p
           className="text-xs font-medium leading-snug line-clamp-2"
           style={{
-            color: isCompleted ? "#4a4a6a" : isSelected ? "#e2e8f0" : "#94a3b8",
+            color: isCompleted ? "#9090b0" : isSelected ? "#1a1a2e" : "#4a4a6a",
             textDecoration: isCompleted ? "line-through" : "none",
           }}
         >
@@ -633,7 +633,7 @@ function PlaybookDetail({
     <div
       key={playbook.id}
       className="h-full flex flex-col overflow-hidden rounded-2xl"
-      style={{ background: "#21212e", border: `1px solid ${sev.color}22` }}
+      style={{ background: "#f3f3fb", border: `1px solid ${sev.color}22` }}
     >
       {/* Top accent gradient bar */}
       <div
@@ -642,7 +642,7 @@ function PlaybookDetail({
       />
 
       {/* ── Header ── */}
-      <div className="shrink-0 px-4 sm:px-6 py-3 sm:py-4 border-b" style={{ borderColor: "#2c2c40" }}>
+      <div className="shrink-0 px-4 sm:px-6 py-3 sm:py-4 border-b" style={{ borderColor: "#ebebf8" }}>
         {/* Badges + action buttons row */}
         <div className="flex flex-wrap items-center gap-2 mb-3">
           <span
@@ -684,7 +684,7 @@ function PlaybookDetail({
               </button>
             )}
             <button
-              className="inline-flex items-center gap-1.5 rounded-xl border border-white/8 px-3 py-1.5 text-xs font-medium text-slate-400 hover:text-white hover:border-white/20 transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-[#e0e0ec] px-3 py-1.5 text-xs font-medium text-[#6a6a90] hover:text-[#1a1a2e] hover:border-[#c8c8e8] transition-colors disabled:opacity-50"
               disabled={shareLoading}
               onClick={async () => {
                 setShareLoading(true);
@@ -730,7 +730,7 @@ function PlaybookDetail({
         </div>
 
         {/* Title — 24px bold */}
-        <h3 className="text-xl sm:text-2xl font-bold text-white leading-snug">{playbook.title}</h3>
+        <h3 className="text-xl sm:text-2xl font-bold text-[#1a1a2e] leading-snug">{playbook.title}</h3>
       </div>
 
       {/* ── Scrollable body ── */}
@@ -751,21 +751,21 @@ function PlaybookDetail({
         {/* ── Expected Gain — 2-column card ── */}
         <div
           className="rounded-xl border p-4 grid grid-cols-2 gap-4"
-          style={{ borderColor: "#2a3a30", background: "rgba(16,185,129,0.05)" }}
+          style={{ borderColor: "#eef8f0", background: "rgba(16,185,129,0.05)" }}
         >
           <div>
             <div className="flex items-center gap-1.5 mb-2">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
               </svg>
-              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Expected Gain</p>
+              <p className="text-[9px] font-bold text-[#6a6a90] uppercase tracking-widest">Expected Gain</p>
             </div>
-            <p className="text-sm font-semibold text-slate-200 leading-snug">{playbook.expectedGain}</p>
+            <p className="text-sm font-semibold text-[#2a2a3e] leading-snug">{playbook.expectedGain}</p>
           </div>
-          <div className="border-l border-white/5 pl-4 flex flex-col gap-2 justify-center">
+          <div className="border-l border-[#eaeaf5] pl-4 flex flex-col gap-2 justify-center">
             <div className="flex items-center gap-1.5">
-              <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} className="text-slate-500"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z" /></svg>
-              <span className="text-xs text-slate-400 font-medium">{implTime} to implement</span>
+              <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} className="text-[#6a6a90]"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z" /></svg>
+              <span className="text-xs text-[#6a6a90] font-medium">{implTime} to implement</span>
             </div>
             <div>
               <span
@@ -776,18 +776,18 @@ function PlaybookDetail({
               </span>
             </div>
             <div className="flex items-center gap-1.5">
-              <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} className="text-slate-500"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
-              <span className="text-xs text-slate-400">{playbook.steps.length} action step{playbook.steps.length !== 1 ? "s" : ""}</span>
+              <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} className="text-[#6a6a90]"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+              <span className="text-xs text-[#6a6a90]">{playbook.steps.length} action step{playbook.steps.length !== 1 ? "s" : ""}</span>
             </div>
           </div>
         </div>
 
         {/* ── 01 Problem ── */}
         <div>
-          <p className="mb-2.5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+          <p className="mb-2.5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-[#6a6a90]">
             <span className="font-mono text-[#3c3c50]">{sn.problem}</span> Problem
           </p>
-          <p className="text-[15px] text-slate-200 leading-[1.7]">{playbook.problem}</p>
+          <p className="text-[15px] text-[#2a2a3e] leading-[1.7]">{playbook.problem}</p>
         </div>
 
         {/* ── 02 Why It Matters — amber left border ── */}
@@ -795,34 +795,34 @@ function PlaybookDetail({
           className="rounded-r-xl border-l-2 pl-4 py-1"
           style={{ borderLeftColor: "#f59e0b", background: "rgba(245,158,11,0.03)" }}
         >
-          <p className="mb-2.5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+          <p className="mb-2.5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-[#6a6a90]">
             <span className="font-mono text-[#3c3c50]">{sn.whyItMatters}</span> Why It Matters
           </p>
-          <p className="text-[15px] text-slate-300 leading-[1.7]">{playbook.impact}</p>
+          <p className="text-[15px] text-[#4a4a6a] leading-[1.7]">{playbook.impact}</p>
         </div>
 
         {/* ── 03 Proof chart ── */}
         {sn.proof && playbook.chart && (
           <div>
-            <p className="mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+            <p className="mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-[#6a6a90]">
               <span className="font-mono text-[#3c3c50]">{sn.proof}</span> Proof
             </p>
-            <div className="rounded-xl border border-white/5 bg-[#1c1c26] overflow-hidden">
+            <div className="rounded-xl border border-[#eaeaf5] bg-[#f3f3fa] overflow-hidden">
               <div className="px-4 pt-4 pb-2">
-                <p className="text-xs font-semibold text-slate-300">{playbook.chart.title}</p>
-                <p className="text-[10px] text-slate-500 mt-0.5">
+                <p className="text-xs font-semibold text-[#4a4a6a]">{playbook.chart.title}</p>
+                <p className="text-[10px] text-[#6a6a90] mt-0.5">
                   Your data{playbook.chart.benchmarkLabel ? ` · ${playbook.chart.benchmarkLabel}` : ""}
                 </p>
                 {/* Legend */}
                 <div className="mt-2 flex items-center gap-4">
                   <div className="flex items-center gap-1.5">
                     <div className="h-1.5 w-5 rounded-full" style={{ background: sev.color }} />
-                    <span className="text-[10px] text-slate-500">Your data</span>
+                    <span className="text-[10px] text-[#6a6a90]">Your data</span>
                   </div>
                   {playbook.chart.benchmark != null && (
                     <div className="flex items-center gap-1.5">
                       <div className="w-5 border-t-2 border-dashed" style={{ borderColor: sev.color + "70" }} />
-                      <span className="text-[10px] text-slate-500">{playbook.chart.benchmarkLabel ?? "Target"}</span>
+                      <span className="text-[10px] text-[#6a6a90]">{playbook.chart.benchmarkLabel ?? "Target"}</span>
                     </div>
                   )}
                 </div>
@@ -835,15 +835,15 @@ function PlaybookDetail({
         {/* ── 04 Detected metrics ── */}
         {sn.detected && hasTriggered && (
           <div>
-            <p className="mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+            <p className="mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-[#6a6a90]">
               <span className="font-mono text-[#3c3c50]">{sn.detected}</span> Detected in Your Data
             </p>
             <div className="grid grid-cols-2 gap-2">
               {playbook.triggeredBy!.map((t, i) => (
-                <div key={i} className="rounded-xl border border-white/5 bg-white/2 p-3">
-                  <p className="text-[10px] text-slate-500 mb-0.5">{t.label}</p>
+                <div key={i} className="rounded-xl border border-[#eaeaf5] bg-[#f8f8fc] p-3">
+                  <p className="text-[10px] text-[#6a6a90] mb-0.5">{t.label}</p>
                   <p className="font-mono text-base font-semibold" style={{ color: sev.color }}>{t.value}</p>
-                  <p className="text-[10px] text-slate-600 mt-0.5">Target: {t.benchmark}</p>
+                  <p className="text-[10px] text-[#5a5a7a] mt-0.5">Target: {t.benchmark}</p>
                 </div>
               ))}
             </div>
@@ -854,11 +854,11 @@ function PlaybookDetail({
         {playbook.steps.length > 0 && (
           <div>
             <div className="mb-3 flex items-center justify-between">
-              <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+              <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-[#6a6a90]">
                 <span className="font-mono text-[#3c3c50]">{sn.steps}</span> Action Steps
               </p>
               {!isDemo && (
-                <span className="font-mono text-[10px] text-slate-600">
+                <span className="font-mono text-[10px] text-[#5a5a7a]">
                   {doneCount} / {playbook.steps.length} complete
                 </span>
               )}
@@ -867,7 +867,7 @@ function PlaybookDetail({
             {/* Progress bar */}
             {!isDemo && (
               <div className="mb-5">
-                <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#2c2c40]">
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#ebebf8]">
                   <div
                     className="h-full rounded-full transition-all duration-500"
                     style={{
@@ -917,17 +917,17 @@ function PlaybookDetail({
                     <div className="flex-1 min-w-0">
                       <p
                         className="text-[14px] font-semibold leading-snug transition-colors"
-                        style={{ color: done ? "#4a4a6a" : "#ffffff", textDecoration: done ? "line-through" : "none" }}
+                        style={{ color: done ? "#aaaacc" : "#1a1a2e", textDecoration: done ? "line-through" : "none" }}
                       >
                         {step.action}
                       </p>
-                      <p className="mt-1 text-[13px] text-slate-400 leading-relaxed">{step.detail}</p>
+                      <p className="mt-1 text-[13px] text-[#6a6a90] leading-relaxed">{step.detail}</p>
                       {step.link && (
                         <a
                           href={step.link.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="mt-2 inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-white/5"
+                          className="mt-2 inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-[#f5f5fb]"
                           style={{ borderColor: catColor + "50", color: catColor }}
                         >
                           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
@@ -948,16 +948,16 @@ function PlaybookDetail({
         {!isDemo && (
           <div
             className="rounded-xl border px-4 py-3 flex flex-wrap items-center justify-between gap-3"
-            style={{ borderColor: "#303042", background: "#0b0b18" }}
+            style={{ borderColor: "#ebebf5", background: "#ffffff" }}
           >
-            <p className="text-xs text-slate-500">Was this playbook accurate and useful?</p>
+            <p className="text-xs text-[#6a6a90]">Was this playbook accurate and useful?</p>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => onRating(feedback.rating === 1 ? null : 1)}
                 title="Yes, helpful"
                 className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-all"
                 style={{
-                  borderColor: feedback.rating === 1 ? "#10b98180" : "#3c3c50",
+                  borderColor: feedback.rating === 1 ? "#10b98180" : "#e0e0f0",
                   background:  feedback.rating === 1 ? "rgba(16,185,129,0.12)" : "transparent",
                   color:       feedback.rating === 1 ? "#10b981" : "#6b7280",
                 }}
@@ -972,7 +972,7 @@ function PlaybookDetail({
                 title="Not accurate / not useful"
                 className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-all"
                 style={{
-                  borderColor: feedback.rating === -1 ? "#ef444480" : "#3c3c50",
+                  borderColor: feedback.rating === -1 ? "#ef444480" : "#e0e0f0",
                   background:  feedback.rating === -1 ? "rgba(239,68,68,0.12)" : "transparent",
                   color:       feedback.rating === -1 ? "#ef4444" : "#6b7280",
                 }}
@@ -989,7 +989,7 @@ function PlaybookDetail({
         {/* ── Related playbooks strip ── */}
         {related.length > 0 && (
           <div>
-            <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-slate-600">You might also need</p>
+            <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-[#5a5a7a]">You might also need</p>
             <div className="flex flex-col gap-2">
               {related.map((rp) => {
                 const rsev    = SEV_CONFIG[rp.severity] ?? SEV_CONFIG.opportunity;
@@ -998,10 +998,10 @@ function PlaybookDetail({
                   <div
                     key={rp.id}
                     onClick={() => { onSelect(rp.id); scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" }); }}
-                    className="flex items-center gap-3 rounded-xl border p-3 cursor-pointer hover:border-[#3c3c50] transition-colors"
+                    className="flex items-center gap-3 rounded-xl border p-3 cursor-pointer hover:border-[#ccccec] transition-colors"
                     style={{
-                      borderColor:     "#303040",
-                      background:      "#0b0b18",
+                      borderColor:     "#eeeef4",
+                      background:      "#fafafa",
                       borderLeft:      `3px solid ${rsev.color}`,
                       borderLeftWidth: "3px",
                       borderLeftColor: rsev.color,
@@ -1011,7 +1011,7 @@ function PlaybookDetail({
                       <p className="text-[9px] font-bold uppercase tracking-widest mb-0.5" style={{ color: rsev.color }}>
                         {rsev.label} · {rcatCfg?.label ?? rp.category}
                       </p>
-                      <p className="text-xs text-slate-300 truncate">{rp.title}</p>
+                      <p className="text-xs text-[#4a4a6a] truncate">{rp.title}</p>
                     </div>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3a3a5a" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
@@ -1105,22 +1105,22 @@ function PlaybookHistoryDrawer({
       {/* Drawer */}
       <div
         className="fixed right-0 top-0 z-50 h-full flex flex-col overflow-hidden shadow-2xl"
-        style={{ width: "min(480px, 100vw)", background: "#1f1f26", borderLeft: "1px solid rgba(255,255,255,0.13)" }}
+        style={{ width: "min(480px, 100vw)", background: "#f4f4fa", borderLeft: "1px solid rgba(0,0,0,0.08)" }}
       >
         {/* Header */}
         <div
           className="shrink-0 flex items-center justify-between px-5 py-4 border-b"
-          style={{ borderColor: "#303042" }}
+          style={{ borderColor: "#ebebf5" }}
         >
           <div>
-            <p className="text-sm font-bold text-white">Playbook History</p>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-sm font-bold text-[#1a1a2e]">Playbook History</p>
+            <p className="text-xs text-[#6a6a90] mt-0.5">
               Past generations · AI learns from your ratings
             </p>
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-500 hover:text-slate-300 transition-colors"
+            className="rounded-lg p-1.5 text-[#6a6a90] hover:text-[#4a4a6a] transition-colors"
           >
             <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -1146,16 +1146,16 @@ function PlaybookHistoryDrawer({
           {loading && (
             <div className="flex items-center gap-3 py-10 justify-center">
               <div className="h-5 w-5 rounded-full border-2 border-indigo-500/30 border-t-indigo-400 animate-spin" />
-              <span className="text-sm text-slate-500">Loading history…</span>
+              <span className="text-sm text-[#6a6a90]">Loading history…</span>
             </div>
           )}
 
           {!loading && history.length === 0 && (
             <div className="flex flex-col items-center justify-center py-16 text-center">
-              <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="#3c3c50" strokeWidth={1.5} className="mb-3">
+              <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="#e0e0f0" strokeWidth={1.5} className="mb-3">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <p className="text-sm text-slate-500">No history yet</p>
+              <p className="text-sm text-[#6a6a90]">No history yet</p>
               <p className="text-xs text-slate-700 mt-1">Previous generations will appear here after you regenerate playbooks.</p>
             </div>
           )}
@@ -1180,20 +1180,20 @@ function PlaybookHistoryDrawer({
               <div
                 key={entry.id}
                 className="rounded-xl border overflow-hidden"
-                style={{ borderColor: isExpanded ? "#3c3c60" : "#303042", background: "#21212e" }}
+                style={{ borderColor: isExpanded ? "#e0e0f0" : "#ebebf5", background: "#f3f3fb" }}
               >
                 {/* Entry header */}
                 <button
-                  className="w-full text-left px-4 py-3 flex items-start gap-3 hover:bg-white/2 transition-colors"
+                  className="w-full text-left px-4 py-3 flex items-start gap-3 hover:bg-[#f8f8fc] transition-colors"
                   onClick={() => setExpandedId(isExpanded ? null : entry.id)}
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2 mb-1">
-                      <span className="text-xs font-semibold text-slate-300">{fmtDate(entry.generated_at)}</span>
-                      <span className="text-[10px] text-slate-600">{fmtAgo(entry.generated_at)}</span>
+                      <span className="text-xs font-semibold text-[#4a4a6a]">{fmtDate(entry.generated_at)}</span>
+                      <span className="text-[10px] text-[#5a5a7a]">{fmtAgo(entry.generated_at)}</span>
                     </div>
                     <div className="flex items-center gap-3 mb-2">
-                      <span className="text-[10px] text-slate-500">{playbooks.length} playbooks</span>
+                      <span className="text-[10px] text-[#6a6a90]">{playbooks.length} playbooks</span>
                       {critCount > 0 && (
                         <span className="text-[10px] font-semibold" style={{ color: "#ef4444" }}>
                           {critCount} critical
@@ -1230,17 +1230,17 @@ function PlaybookHistoryDrawer({
 
                 {/* Summary snippet */}
                 {!isExpanded && entry.payload?.summary && (
-                  <p className="px-4 pb-3 text-[11px] text-slate-600 leading-relaxed line-clamp-2">
+                  <p className="px-4 pb-3 text-[11px] text-[#5a5a7a] leading-relaxed line-clamp-2">
                     {entry.payload.summary}
                   </p>
                 )}
 
                 {/* Expanded playbook list */}
                 {isExpanded && (
-                  <div className="border-t space-y-0" style={{ borderColor: "#2c2c40" }}>
+                  <div className="border-t space-y-0" style={{ borderColor: "#ebebf8" }}>
                     {/* Summary */}
                     {entry.payload?.summary && (
-                      <p className="px-4 py-3 text-[11px] text-slate-500 leading-relaxed border-b" style={{ borderColor: "#2c2c40" }}>
+                      <p className="px-4 py-3 text-[11px] text-[#6a6a90] leading-relaxed border-b" style={{ borderColor: "#ebebf8" }}>
                         {entry.payload.summary}
                       </p>
                     )}
@@ -1252,10 +1252,10 @@ function PlaybookHistoryDrawer({
                       const catCfg = CATEGORY_CONFIG[pb.category as Exclude<Category, "all">];
 
                       return (
-                        <div key={pb.id} style={{ borderBottom: "1px solid #2c2c40" }}>
+                        <div key={pb.id} style={{ borderBottom: "1px solid #ebebf8" }}>
                           {/* Playbook row */}
                           <button
-                            className="w-full text-left px-4 py-3 hover:bg-white/2 transition-colors flex items-start gap-3"
+                            className="w-full text-left px-4 py-3 hover:bg-[#f8f8fc] transition-colors flex items-start gap-3"
                             onClick={() => setExpandedPlaybookId(isOpen ? null : `${entry.id}-${pb.id}`)}
                           >
                             <div
@@ -1279,7 +1279,7 @@ function PlaybookHistoryDrawer({
                                   <span className="text-[9px] font-semibold" style={{ color: "#ef4444" }}>· Not useful</span>
                                 )}
                               </div>
-                              <p className="text-xs font-medium text-slate-300 leading-snug line-clamp-2">
+                              <p className="text-xs font-medium text-[#4a4a6a] leading-snug line-clamp-2">
                                 {pb.title}
                               </p>
                             </div>
@@ -1293,26 +1293,26 @@ function PlaybookHistoryDrawer({
 
                           {/* Expanded playbook detail (read-only) */}
                           {isOpen && (
-                            <div className="px-4 pb-4 space-y-3" style={{ background: "#09090e" }}>
+                            <div className="px-4 pb-4 space-y-3" style={{ background: "#ffffff" }}>
                               {/* Expected gain */}
                               <div
                                 className="rounded-lg border px-3 py-2"
-                                style={{ borderColor: "#2a3a30", background: "rgba(16,185,129,0.04)" }}
+                                style={{ borderColor: "#eef8f0", background: "rgba(16,185,129,0.04)" }}
                               >
-                                <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Expected Gain</p>
-                                <p className="text-xs text-slate-300">{pb.expectedGain}</p>
+                                <p className="text-[9px] font-bold uppercase tracking-widest text-[#6a6a90] mb-1">Expected Gain</p>
+                                <p className="text-xs text-[#4a4a6a]">{pb.expectedGain}</p>
                               </div>
 
                               {/* Problem */}
                               <div>
-                                <p className="text-[9px] font-bold uppercase tracking-widest text-slate-600 mb-1">Problem</p>
-                                <p className="text-[12px] text-slate-400 leading-relaxed">{pb.problem}</p>
+                                <p className="text-[9px] font-bold uppercase tracking-widest text-[#5a5a7a] mb-1">Problem</p>
+                                <p className="text-[12px] text-[#6a6a90] leading-relaxed">{pb.problem}</p>
                               </div>
 
                               {/* Steps */}
                               {pb.steps.length > 0 && (
                                 <div>
-                                  <p className="text-[9px] font-bold uppercase tracking-widest text-slate-600 mb-2">
+                                  <p className="text-[9px] font-bold uppercase tracking-widest text-[#5a5a7a] mb-2">
                                     {pb.steps.length} Action Steps
                                   </p>
                                   <ol className="space-y-2">
@@ -1325,8 +1325,8 @@ function PlaybookHistoryDrawer({
                                           {i + 1}
                                         </span>
                                         <div>
-                                          <p className="text-[11px] font-semibold text-slate-300">{step.action}</p>
-                                          <p className="text-[10px] text-slate-500 leading-relaxed mt-0.5 line-clamp-2">{step.detail}</p>
+                                          <p className="text-[11px] font-semibold text-[#4a4a6a]">{step.action}</p>
+                                          <p className="text-[10px] text-[#6a6a90] leading-relaxed mt-0.5 line-clamp-2">{step.detail}</p>
                                         </div>
                                       </li>
                                     ))}
@@ -1358,11 +1358,11 @@ function PlaybookHistoryDrawer({
 
 function PlaybookDetailEmpty() {
   return (
-    <div className="h-full flex flex-col items-center justify-center rounded-2xl border border-white/5 bg-[#21212e]">
-      <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="#3c3c50" strokeWidth={1.5} className="mb-3">
+    <div className="h-full flex flex-col items-center justify-center rounded-2xl border border-[#eaeaf5] bg-[#f3f3fb]">
+      <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="#e0e0f0" strokeWidth={1.5} className="mb-3">
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
       </svg>
-      <p className="text-xs text-slate-500 mb-1">Select a playbook to view details</p>
+      <p className="text-xs text-[#6a6a90] mb-1">Select a playbook to view details</p>
       <p className="text-[11px] text-slate-700">← Choose from the list on the left</p>
     </div>
   );
@@ -1376,35 +1376,35 @@ function PlaybookSkeleton() {
   return (
     <div className="flex gap-4 animate-pulse" style={{ height: 560 }}>
       {/* Left list skeleton — hidden on mobile */}
-      <div className="hidden sm:flex w-64 shrink-0 flex-col gap-1 overflow-hidden rounded-2xl border border-[#303042] bg-[#21212e] p-2">
+      <div className="hidden sm:flex w-64 shrink-0 flex-col gap-1 overflow-hidden rounded-2xl border border-[#d4d4e8] bg-[#f3f3fb] p-2">
         {[...Array(6)].map((_, i) => (
           <div key={i} className="rounded-xl p-3 space-y-2">
             <div className="flex gap-2">
-              <div className="h-4 w-14 rounded bg-[#3c3c50]" />
-              <div className="h-4 w-10 rounded bg-[#3c3c50] ml-auto" />
+              <div className="h-4 w-14 rounded bg-[#e0e0f0]" />
+              <div className="h-4 w-10 rounded bg-[#e0e0f0] ml-auto" />
             </div>
-            <div className="h-3 w-full rounded bg-[#222238]" />
-            <div className="h-3 w-3/4 rounded bg-[#222238]" />
-            <div className="h-3 w-20 rounded bg-[#1e2a20]" />
+            <div className="h-3 w-full rounded bg-[#f2f2f8]" />
+            <div className="h-3 w-3/4 rounded bg-[#f2f2f8]" />
+            <div className="h-3 w-20 rounded bg-[#f0f8f2]" />
           </div>
         ))}
       </div>
       {/* Right detail skeleton */}
-      <div className="flex-1 rounded-2xl border border-[#303042] bg-[#21212e] p-6 space-y-4">
+      <div className="flex-1 rounded-2xl border border-[#d4d4e8] bg-[#f3f3fb] p-6 space-y-4">
         <div className="flex gap-2 mb-2">
-          <div className="h-5 w-16 rounded-full bg-[#3c3c50]" />
-          <div className="h-5 w-20 rounded-full bg-[#3c3c50]" />
+          <div className="h-5 w-16 rounded-full bg-[#e0e0f0]" />
+          <div className="h-5 w-20 rounded-full bg-[#e0e0f0]" />
         </div>
-        <div className="h-6 w-2/3 rounded bg-[#3c3c50]" />
-        <div className="h-14 rounded-xl bg-[#1a2a1e]" />
+        <div className="h-6 w-2/3 rounded bg-[#e0e0f0]" />
+        <div className="h-14 rounded-xl bg-[#f0f8f2]" />
         <div className="space-y-2">
-          <div className="h-3 w-16 rounded bg-[#3c3c50]" />
-          <div className="h-3 w-full rounded bg-[#222238]" />
-          <div className="h-3 w-4/5 rounded bg-[#222238]" />
+          <div className="h-3 w-16 rounded bg-[#e0e0f0]" />
+          <div className="h-3 w-full rounded bg-[#f2f2f8]" />
+          <div className="h-3 w-4/5 rounded bg-[#f2f2f8]" />
         </div>
         <div className="space-y-2">
-          <div className="h-3 w-20 rounded bg-[#3c3c50]" />
-          <div className="h-32 rounded-xl bg-[#111128]" />
+          <div className="h-3 w-20 rounded bg-[#e0e0f0]" />
+          <div className="h-32 rounded-xl bg-[#f5f5fb]" />
         </div>
       </div>
     </div>
@@ -1417,21 +1417,21 @@ function PlaybookSkeleton() {
 
 function PremiumGate() {
   return (
-    <div className="rounded-2xl border border-white/8 bg-[#16162a] p-10 text-center">
+    <div className="rounded-2xl border border-[#e0e0ec] bg-[#f2f2fc] p-10 text-center">
       <div className="mb-5 flex justify-center">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[#dcdcec] bg-[#f5f5fb]">
           <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="#4a6a8a" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
           </svg>
         </div>
       </div>
-      <h3 className="text-base font-bold text-white mb-2">AI Fix-It Playbooks</h3>
-      <p className="text-sm text-slate-400 mb-6 max-w-sm mx-auto leading-relaxed">
+      <h3 className="text-base font-bold text-[#1a1a2e] mb-2">AI Fix-It Playbooks</h3>
+      <p className="text-sm text-[#6a6a90] mb-6 max-w-sm mx-auto leading-relaxed">
         Claude analyses your live data and generates personalised, step-by-step playbooks for every problem detected in your business.
       </p>
       <a
         href="/dashboard?tab=settings"
-        className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-medium text-slate-300 hover:bg-white/8 transition-colors"
+        className="inline-flex items-center gap-2 rounded-xl border border-[#dcdcec] bg-[#f5f5fb] px-5 py-2.5 text-sm font-medium text-[#4a4a6a] hover:bg-[#ebebf5] transition-colors"
       >
         Upgrade to Premium →
       </a>
@@ -1768,21 +1768,21 @@ export default function PlaybooksTab({
       {isPremium && data && !loading ? (
         <div
           className="rounded-2xl border overflow-hidden"
-          style={{ borderColor: "rgba(255,255,255,0.11)", background: "#25252c", minHeight: 180 }}
+          style={{ borderColor: "rgba(0,0,0,0.07)", background: "#ffffff", minHeight: 180 }}
         >
-          <div className="flex flex-col sm:flex-row gap-0 divide-y sm:divide-y-0 sm:divide-x divide-white/5">
+          <div className="flex flex-col sm:flex-row gap-0 divide-y sm:divide-y-0 sm:divide-x divide-black/10">
             {/* ── Left zone (60%) ── */}
             <div className="flex-1 p-5 flex items-start gap-5">
               <div className="flex-1 min-w-0">
-                <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-2">Business Summary</p>
-                <p className="text-[15px] text-[#cbd5e1] leading-[1.6]">{data.summary}</p>
+                <p className="text-[11px] font-bold uppercase tracking-widest text-[#6a6a90] mb-2">Business Summary</p>
+                <p className="text-[15px] text-[#4a4a6a] leading-[1.6]">{data.summary}</p>
                 <div className="mt-3 flex items-center gap-3">
                   {generatedAgo && (
-                    <p className="text-[11px] text-slate-600">Generated {generatedAgo} · auto-refreshes weekly</p>
+                    <p className="text-[11px] text-[#5a5a7a]">Generated {generatedAgo} · auto-refreshes weekly</p>
                   )}
                   <button
                     onClick={() => setShowHistory(true)}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-white/8 px-2.5 py-1 text-[11px] text-slate-400 hover:text-white hover:border-white/20 transition-colors"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-[#e0e0ec] px-2.5 py-1 text-[11px] text-[#6a6a90] hover:text-[#1a1a2e] hover:border-[#c8c8e8] transition-colors"
                   >
                     <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1792,7 +1792,7 @@ export default function PlaybooksTab({
                   <button
                     onClick={triggerGenerate}
                     disabled={loading || generating || checking}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-green-500 px-2.5 py-1 text-[11px] text-slate-400 hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-green-500 px-2.5 py-1 text-[11px] text-[#6a6a90] hover:text-[#1a1a2e] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <svg
                       className={(loading || generating || checking) ? "animate-spin" : ""}
@@ -1814,42 +1814,42 @@ export default function PlaybooksTab({
                 <div
                   className="rounded-xl border p-3 text-center"
                   style={{
-                    borderColor: criticalCount > 0 ? "#ef444430" : "rgba(255,255,255,0.11)",
-                    background:  criticalCount > 0 ? "rgba(239,68,68,0.07)" : "#212126",
+                    borderColor: criticalCount > 0 ? "#ef444430" : "rgba(0,0,0,0.07)",
+                    background:  criticalCount > 0 ? "rgba(239,68,68,0.07)" : "#f3f3f8",
                   }}
                 >
                   <p className="font-mono text-xl font-bold" style={{ color: criticalCount > 0 ? "#ef4444" : "#94a3b8" }}>
                     {criticalCount}
                   </p>
-                  <p className="text-[10px] text-slate-500 mt-0.5">Critical</p>
+                  <p className="text-[10px] text-[#6a6a90] mt-0.5">Critical</p>
                 </div>
                 {/* Playbooks */}
-                <div className="rounded-xl border p-3 text-center" style={{ borderColor: "rgba(255,255,255,0.11)", background: "#212126" }}>
-                  <p className="font-mono text-xl font-bold text-white">{playbooks.length}</p>
-                  <p className="text-[10px] text-slate-500 mt-0.5">Playbooks</p>
+                <div className="rounded-xl border p-3 text-center" style={{ borderColor: "rgba(0,0,0,0.07)", background: "#f3f3f8" }}>
+                  <p className="font-mono text-xl font-bold text-[#1a1a2e]">{playbooks.length}</p>
+                  <p className="text-[10px] text-[#6a6a90] mt-0.5">Playbooks</p>
                 </div>
                 {/* Completed */}
                 <div
                   className="rounded-xl border p-3 text-center"
                   style={{
-                    borderColor: completedCount > 0 ? "#10b98130" : "rgba(255,255,255,0.11)",
-                    background:  completedCount > 0 ? "rgba(16,185,129,0.07)" : "#212126",
+                    borderColor: completedCount > 0 ? "#10b98130" : "rgba(0,0,0,0.07)",
+                    background:  completedCount > 0 ? "rgba(16,185,129,0.07)" : "#f3f3f8",
                   }}
                 >
                   <p className="font-mono text-xl font-bold" style={{ color: completedCount > 0 ? "#10b981" : "#4a5568" }}>
                     {completedCount}
                   </p>
-                  <p className="text-[10px] text-slate-500 mt-0.5">Done</p>
+                  <p className="text-[10px] text-[#6a6a90] mt-0.5">Done</p>
                 </div>
               </div>
               {/* Progress bar */}
               {playbooks.length > 0 && (
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <p className="text-[10px] text-slate-600">Playbook completion</p>
-                    <p className="text-[10px] font-mono text-slate-500">{completedCount} of {playbooks.length}</p>
+                    <p className="text-[10px] text-[#5a5a7a]">Playbook completion</p>
+                    <p className="text-[10px] font-mono text-[#6a6a90]">{completedCount} of {playbooks.length}</p>
                   </div>
-                  <div className="h-1.5 w-full rounded-full overflow-hidden" style={{ background: "#2c2c40" }}>
+                  <div className="h-1.5 w-full rounded-full overflow-hidden" style={{ background: "#ebebf8" }}>
                     <div
                       className="h-full rounded-full transition-all duration-700"
                       style={{
@@ -1861,7 +1861,7 @@ export default function PlaybooksTab({
                     />
                   </div>
                   {criticalCount > 0 && completedCount < playbooks.length && (
-                    <p className="mt-1 text-[10px] text-slate-600">Start with Critical issues ↑</p>
+                    <p className="mt-1 text-[10px] text-[#5a5a7a]">Start with Critical issues ↑</p>
                   )}
                 </div>
               )}
@@ -1870,17 +1870,17 @@ export default function PlaybooksTab({
         </div>
       ) : isPremium ? (
         /* No data yet — show generate prompt */
-        <div className="rounded-2xl border border-white/6 bg-[#25252c] p-8 flex flex-col sm:flex-row items-center gap-6">
+        <div className="rounded-2xl border border-black/10 bg-white p-8 flex flex-col sm:flex-row items-center gap-6">
           <div className="flex-1">
-            <h2 className="text-lg font-bold text-white mb-1">AI Fix-It Playbooks</h2>
-            <p className="text-sm text-slate-400 leading-relaxed">
+            <h2 className="text-lg font-bold text-[#1a1a2e] mb-1">AI Fix-It Playbooks</h2>
+            <p className="text-sm text-[#6a6a90] leading-relaxed">
               Claude analyses your live data and generates personalised, step-by-step action plans for every problem detected in your business.
             </p>
           </div>
           <button
             onClick={triggerGenerate}
             disabled={loading || generating || checking}
-            className="shrink-0 inline-flex items-center gap-2 rounded-xl bg-[#6366f1] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#5558dd] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="shrink-0 inline-flex items-center gap-2 rounded-xl bg-[#6366f1] px-5 py-2.5 text-sm font-semibold text-[#1a1a2e] hover:bg-[#5558dd] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <svg className={(loading || generating || checking) ? "animate-spin" : ""} width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
@@ -1899,8 +1899,8 @@ export default function PlaybooksTab({
           <div className="rounded-2xl border border-emerald-500/15 bg-emerald-950/20 p-5 flex items-center gap-4">
             <div className="h-9 w-9 shrink-0 rounded-full border-2 border-emerald-500/20 border-t-emerald-400 animate-spin" />
             <div>
-              <p className="text-sm font-semibold text-white">Loading your playbooks…</p>
-              <p className="text-sm text-slate-400 mt-0.5">
+              <p className="text-sm font-semibold text-[#1a1a2e]">Loading your playbooks…</p>
+              <p className="text-sm text-[#6a6a90] mt-0.5">
                 Reading metrics from {connectedPlatforms.length} connected platform{connectedPlatforms.length !== 1 ? "s" : ""}.
               </p>
             </div>
@@ -1913,7 +1913,7 @@ export default function PlaybooksTab({
       {isPremium && !loading && error && (
         <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-6 text-center">
           <p className="text-sm font-semibold text-red-400 mb-1">Failed to load playbooks</p>
-          <p className="text-sm text-slate-400 mb-4">{error}</p>
+          <p className="text-sm text-[#6a6a90] mb-4">{error}</p>
           <button
             onClick={() => load()}
             className="inline-flex items-center gap-2 rounded-xl border border-red-500/30 px-4 py-2 text-sm font-semibold text-red-400 hover:bg-red-500/10 transition-colors"
@@ -1931,8 +1931,8 @@ export default function PlaybooksTab({
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 002.748 1.35m8.272-6.842V4.5c0 2.108-.966 3.99-2.48 5.228m2.48-5.492a46.32 46.32 0 012.916.52 6.003 6.003 0 01-5.395 4.972m0 0a6.726 6.726 0 01-2.749 1.35m0 0a6.772 6.772 0 01-3.044 0" />
             </svg>
           </div>
-          <h3 className="text-base font-bold text-white mb-1">All {playbooks.length} playbooks complete!</h3>
-          <p className="text-sm text-slate-400">Your next update generates tonight. Fold will re-check all issues.</p>
+          <h3 className="text-base font-bold text-[#1a1a2e] mb-1">All {playbooks.length} playbooks complete!</h3>
+          <p className="text-sm text-[#6a6a90]">Your next update generates tonight. Fold will re-check all issues.</p>
         </div>
       )}
 
@@ -1956,7 +1956,7 @@ export default function PlaybooksTab({
                 onClick={() => setActiveCategory(cat)}
                 className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-all"
                 style={{
-                  borderColor: active ? color + "50" : "#3c3c50",
+                  borderColor: active ? color + "50" : "#e0e0f0",
                   color:       active ? color : "#6b7280",
                   background:  active ? color + "12" : "transparent",
                 }}
@@ -1971,7 +1971,7 @@ export default function PlaybooksTab({
                 )}
                 <span
                   className="rounded-md px-1.5 py-0 text-[10px] font-semibold"
-                  style={{ background: active ? color + "22" : "#3c3c50", color: active ? color : "#6b7280" }}
+                  style={{ background: active ? color + "22" : "#e0e0f0", color: active ? color : "#6b7280" }}
                 >
                   {count}
                 </span>
@@ -1993,7 +1993,7 @@ export default function PlaybooksTab({
                 />
                 <div
                   className="h-5 w-9 rounded-full transition-colors"
-                  style={{ background: showOnlyTriggered ? "#ef444440" : "#3c3c50" }}
+                  style={{ background: showOnlyTriggered ? "#ef444440" : "#e0e0f0" }}
                 />
                 <div
                   className="absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform"
@@ -2003,14 +2003,14 @@ export default function PlaybooksTab({
                   }}
                 />
               </div>
-              <span className="text-xs text-slate-400">Live data only</span>
+              <span className="text-xs text-[#6a6a90]">Live data only</span>
             </label>
 
             {/* Sort dropdown */}
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as "priority" | "az" | "category")}
-              className="rounded-lg border border-[#3c3c50] bg-transparent px-2 py-1.5 text-xs text-slate-400 focus:outline-none focus:border-white/20"
+              className="rounded-lg border border-[#ccccec] bg-transparent px-2 py-1.5 text-xs text-[#6a6a90] focus:outline-none focus:border-black/20"
             >
               <option value="priority">Sort: Priority</option>
               <option value="az">Sort: A–Z</option>
@@ -2024,8 +2024,8 @@ export default function PlaybooksTab({
       {isPremium && data && !loading && !allComplete && (
         <div>
           {sorted.length === 0 ? (
-            <div className="rounded-2xl border border-white/5 bg-[#25252c] p-10 text-center">
-              <p className="text-sm text-slate-500">No playbooks match the current filter.</p>
+            <div className="rounded-2xl border border-[#eaeaf5] bg-white p-10 text-center">
+              <p className="text-sm text-[#6a6a90]">No playbooks match the current filter.</p>
             </div>
           ) : (
             isMobile ? (
@@ -2036,7 +2036,7 @@ export default function PlaybooksTab({
                   {/* Back button */}
                   <button
                     onClick={() => setOpenId(null)}
-                    className="mb-3 inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white hover:border-white/20 transition-colors"
+                    className="mb-3 inline-flex items-center gap-1.5 rounded-lg border border-[#dcdcec] bg-[#f5f5fb] px-3 py-1.5 text-xs font-semibold text-[#4a4a6a] hover:text-[#1a1a2e] hover:border-[#c8c8e8] transition-colors"
                   >
                     <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
@@ -2064,14 +2064,14 @@ export default function PlaybooksTab({
                 /* List view — full width */
                 <div
                   className="flex flex-col overflow-hidden rounded-2xl border"
-                  style={{ borderColor: "#303042", background: "#0b0b18" }}
+                  style={{ borderColor: "#ebebf5", background: "#ffffff" }}
                 >
                   {/* List header */}
                   <div
                     className="shrink-0 flex items-center justify-between gap-2 px-3 py-2.5 border-b"
-                    style={{ borderColor: "#303042", background: "#1f1f24" }}
+                    style={{ borderColor: "#ebebf5", background: "#f5f5f8" }}
                   >
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-[#6a6a90]">
                       {sorted.length} playbook{sorted.length !== 1 ? "s" : ""}
                       {criticalCount > 0 && (
                         <span style={{ color: "#ef4444" }}> · {criticalCount} critical</span>
@@ -2097,14 +2097,14 @@ export default function PlaybooksTab({
               {/* ── Left: 280px sidebar ─────────────────────────────────── */}
               <div
                 className="shrink-0 flex flex-col overflow-hidden rounded-2xl border"
-                style={{ width: 280, borderColor: "#303042", background: "#0b0b18" }}
+                style={{ width: 280, borderColor: "#ebebf5", background: "#ffffff" }}
               >
                 {/* Sticky sidebar header */}
                 <div
                   className="shrink-0 flex items-center justify-between gap-2 px-3 py-2.5 border-b"
-                  style={{ borderColor: "#303042", background: "#1f1f24" }}
+                  style={{ borderColor: "#ebebf5", background: "#f5f5f8" }}
                 >
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#6a6a90]">
                     {sorted.length} playbook{sorted.length !== 1 ? "s" : ""}
                     {criticalCount > 0 ? ` · ` : ""}
                     {criticalCount > 0 && (
@@ -2114,7 +2114,7 @@ export default function PlaybooksTab({
                   {sortBy !== "priority" && (
                     <button
                       onClick={() => setSortBy("priority")}
-                      className="text-[9px] text-slate-600 hover:text-slate-400 transition-colors"
+                      className="text-[9px] text-[#5a5a7a] hover:text-[#6a6a90] transition-colors"
                     >
                       ↓ Priority
                     </button>
@@ -2162,7 +2162,7 @@ export default function PlaybooksTab({
 
       {/* ── Footer ──────────────────────────────────────────────────────────── */}
       {isPremium && data && !loading && playbooks.length > 0 && (
-        <p className="text-center text-xs text-slate-600">
+        <p className="text-center text-xs text-[#5a5a7a]">
           Generated by Claude · based on your live data · refreshes weekly
         </p>
       )}

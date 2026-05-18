@@ -40,7 +40,7 @@ function LiveUserBadge() {
       })
       .catch(() => {});
   }, []);
-  return <span className="text-[#f8f8fc] font-semibold">{label}</span>;
+  return <span className="text-[#1a1a2e] font-semibold">{label}</span>;
 }
 
 export default function SignupPage() {
@@ -125,11 +125,11 @@ export default function SignupPage() {
   // ── Check-email screen ──────────────────────────────────────────────────
   if (step === "check-email") {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#252531] px-6 py-24">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#fafafa] px-6 py-24">
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <div className="h-[500px] w-[500px] rounded-full bg-[#00d4aa]/4 blur-3xl" />
         </div>
-        <div className="pointer-events-none absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(#363650 1px, transparent 1px)", backgroundSize: "24px 24px" }} />
+        <div className="pointer-events-none absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(#d4d4e8 1px, transparent 1px)", backgroundSize: "24px 24px" }} />
         <div className="relative w-full max-w-md text-center">
           <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border border-[#00d4aa]/30 bg-[#00d4aa]/10">
             <svg className="h-7 w-7 text-[#00d4aa]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -137,15 +137,15 @@ export default function SignupPage() {
             </svg>
           </div>
           <p className="mb-2 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#00d4aa]">Almost there</p>
-          <h1 className="mb-4 font-mono text-2xl font-bold text-[#f8f8fc]">Check your inbox</h1>
-          <p className="text-sm leading-relaxed text-[#bcbcd8]">
+          <h1 className="mb-4 font-mono text-2xl font-bold text-[#1a1a2e]">Check your inbox</h1>
+          <p className="text-sm leading-relaxed text-[#4a4a6a]">
             We sent a confirmation link to{" "}
-            <span className="font-semibold text-[#f8f8fc]">{email}</span>.{" "}
+            <span className="font-semibold text-[#1a1a2e]">{email}</span>.{" "}
             Click it to activate your account.
           </p>
 
           {/* Tips */}
-          <div className="mt-6 rounded-xl border border-[#303042] bg-[#1f1f2a] px-4 py-3 text-left space-y-1.5">
+          <div className="mt-6 rounded-xl border border-[#d4d4e8] bg-[#f4f4fc] px-4 py-3 text-left space-y-1.5">
             {[
               "Check your spam / junk folder",
               "The link expires in 24 hours",
@@ -165,7 +165,7 @@ export default function SignupPage() {
               <button
                 onClick={handleResend}
                 disabled={resendLoading || resendCooldown > 0}
-                className="rounded-xl border border-[#3c3c52] px-4 py-2 font-mono text-[11px] font-semibold text-[#8585aa] transition hover:border-[#00d4aa]/30 hover:text-[#00d4aa] disabled:cursor-not-allowed disabled:opacity-40"
+                className="rounded-xl border border-[#ccccec] px-4 py-2 font-mono text-[11px] font-semibold text-[#6a6a90] transition hover:border-[#00d4aa]/30 hover:text-[#00d4aa] disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {resendLoading ? "Sending…" : resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend confirmation email"}
               </button>
@@ -181,12 +181,12 @@ export default function SignupPage() {
 
   // ── Main signup screen ──────────────────────────────────────────────────
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-[#252531] px-6 py-16">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-[#fafafa] px-6 py-16">
       {/* Background glows */}
       <div className="pointer-events-none fixed inset-0">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 h-[500px] w-[800px] rounded-full bg-[#00d4aa]/5 blur-3xl" />
         <div className="absolute bottom-0 right-0 h-64 w-64 rounded-full bg-[#6366f1]/6 blur-3xl" />
-        <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: "radial-gradient(#363650 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
+        <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: "radial-gradient(#d4d4e8 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
       </div>
 
       <div className="relative w-full max-w-sm">
@@ -200,7 +200,7 @@ export default function SignupPage() {
 
         {/* Above-card hook */}
         <div className="mb-5 text-center">
-          <h1 className="font-mono text-2xl font-bold leading-snug text-[#f8f8fc]">
+          <h1 className="font-mono text-2xl font-bold leading-snug text-[#1a1a2e]">
             Your whole business,<br />
             <span className="text-[#00d4aa]">understood in seconds.</span>
           </h1>
@@ -217,25 +217,25 @@ export default function SignupPage() {
                   alt={a.initials}
                   width={24}
                   height={24}
-                  className="h-6 w-6 rounded-full border-2 border-[#252531] object-cover"
+                  className="h-6 w-6 rounded-full border-2 border-[#fafafa] object-cover"
                 />
               ) : (
                 <div
                   key={i}
-                  className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-[#252531] bg-[#363650] font-mono text-[9px] font-bold text-[#00d4aa]"
+                  className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-[#fafafa] bg-[#d4d4e8] font-mono text-[9px] font-bold text-[#00d4aa]"
                 >
                   {a.initials}
                 </div>
               )
             ))}
           </div>
-          <p className="font-mono text-[10px] text-[#8585aa]">
+          <p className="font-mono text-[10px] text-[#6a6a90]">
             <LiveUserBadge /> already using Fold
           </p>
         </div>
 
         {/* Card */}
-        <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/90 p-8 shadow-2xl backdrop-blur-md">
+        <div className="rounded-2xl border border-[#d4d4e8] bg-[#f2f2f8]/90 p-8 shadow-2xl backdrop-blur-md">
 
           {/* 3-item value strip */}
           {/* <div className="mb-6 grid grid-cols-3 gap-2">
@@ -244,9 +244,9 @@ export default function SignupPage() {
               { icon: "🤖", label: "AI insights" },
               { icon: "🚨", label: "Anomaly alerts" },
             ].map((item) => (
-              <div key={item.label} className="flex flex-col items-center gap-1 rounded-xl border border-[#363650] bg-[#343447] py-2.5 px-1">
+              <div key={item.label} className="flex flex-col items-center gap-1 rounded-xl border border-[#d4d4e8] bg-[#e8e8f4] py-2.5 px-1">
                 <span className="text-base">{item.icon}</span>
-                <span className="font-mono text-[9px] font-semibold text-[#8585aa]">{item.label}</span>
+                <span className="font-mono text-[9px] font-semibold text-[#6a6a90]">{item.label}</span>
               </div>
             ))}
           </div> */}
@@ -262,7 +262,7 @@ export default function SignupPage() {
             type="button"
             onClick={handleGoogleSignUp}
             disabled={oauthLoading || loading}
-            className="mb-4 flex w-full items-center justify-center gap-3 rounded-xl border border-[#363650] bg-[#343447] py-3 font-mono text-sm font-semibold text-[#f8f8fc] transition-all hover:border-[#8585aa] hover:bg-[#3c3c52] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+            className="mb-4 flex w-full items-center justify-center gap-3 rounded-xl border border-[#d4d4e8] bg-[#e8e8f4] py-3 font-mono text-sm font-semibold text-[#1a1a2e] transition-all hover:border-[#6a6a90] hover:bg-[#e0e0f0] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {oauthLoading ? (
               <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
@@ -282,9 +282,9 @@ export default function SignupPage() {
 
           {/* Divider */}
           <div className="relative mb-4 flex items-center">
-            <div className="flex-1 border-t border-[#363650]" />
+            <div className="flex-1 border-t border-[#d4d4e8]" />
             <span className="mx-3 font-mono text-[10px] text-[#58588a]">OR</span>
-            <div className="flex-1 border-t border-[#363650]" />
+            <div className="flex-1 border-t border-[#d4d4e8]" />
           </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-3.5" noValidate>
@@ -298,7 +298,7 @@ export default function SignupPage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Work email"
               disabled={loading}
-              className="w-full rounded-xl border border-[#363650] bg-[#343447] px-4 py-3 text-sm text-[#f8f8fc] placeholder-[#8585aa] outline-none transition-all focus:border-[#00d4aa]/60 focus:ring-2 focus:ring-[#00d4aa]/20 disabled:opacity-60"
+              className="w-full rounded-xl border border-[#d4d4e8] bg-[#e8e8f4] px-4 py-3 text-sm text-[#1a1a2e] placeholder-[#6a6a90] outline-none transition-all focus:border-[#00d4aa]/60 focus:ring-2 focus:ring-[#00d4aa]/20 disabled:opacity-60"
             />
 
             {/* Password */}
@@ -311,7 +311,7 @@ export default function SignupPage() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Password (8+ characters)"
               disabled={loading}
-              className="w-full rounded-xl border border-[#363650] bg-[#343447] px-4 py-3 text-sm text-[#f8f8fc] placeholder-[#8585aa] outline-none transition-all focus:border-[#00d4aa]/60 focus:ring-2 focus:ring-[#00d4aa]/20 disabled:opacity-60"
+              className="w-full rounded-xl border border-[#d4d4e8] bg-[#e8e8f4] px-4 py-3 text-sm text-[#1a1a2e] placeholder-[#6a6a90] outline-none transition-all focus:border-[#00d4aa]/60 focus:ring-2 focus:ring-[#00d4aa]/20 disabled:opacity-60"
             />
 
             {/* Confirm Password */}
@@ -325,7 +325,7 @@ export default function SignupPage() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Confirm password"
                 disabled={loading}
-                className="w-full rounded-xl border border-[#363650] bg-[#343447] px-4 py-3 text-sm text-[#f8f8fc] placeholder-[#8585aa] outline-none transition-all focus:border-[#00d4aa]/60 focus:ring-2 focus:ring-[#00d4aa]/20 disabled:opacity-60"
+                className="w-full rounded-xl border border-[#d4d4e8] bg-[#e8e8f4] px-4 py-3 text-sm text-[#1a1a2e] placeholder-[#6a6a90] outline-none transition-all focus:border-[#00d4aa]/60 focus:ring-2 focus:ring-[#00d4aa]/20 disabled:opacity-60"
               />
               {confirmPassword.length > 0 && (
                 <p className={`mt-1 font-mono text-[10px] ${password === confirmPassword ? "text-[#00d4aa]" : "text-[#f87171]"}`}>
@@ -345,7 +345,7 @@ export default function SignupPage() {
             <button
               type="submit"
               disabled={loading || !email || !password || !confirmPassword}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#00d4aa] py-3.5 font-mono text-sm font-bold text-[#252531] transition-all hover:bg-[#00bfa0] hover:shadow-[0_0_28px_rgba(0,212,170,0.3)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#00d4aa] py-3.5 font-mono text-sm font-bold text-[#fafafa] transition-all hover:bg-[#00bfa0] hover:shadow-[0_0_28px_rgba(0,212,170,0.3)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? (
                 <>
@@ -368,15 +368,15 @@ export default function SignupPage() {
             {/* Legal consent */}
             <p className="text-center font-mono text-[10px] leading-relaxed text-[#cecece]">
               By creating an account you agree to our{" "}
-              <Link href="/terms" className="text-[#58588a] underline underline-offset-2 hover:text-[#8585aa]">Terms of Service</Link>
+              <Link href="/terms" className="text-[#58588a] underline underline-offset-2 hover:text-[#6a6a90]">Terms of Service</Link>
               {" "}and{" "}
-              <Link href="/privacy" className="text-[#58588a] underline underline-offset-2 hover:text-[#8585aa]">Privacy Policy</Link>.
+              <Link href="/privacy" className="text-[#58588a] underline underline-offset-2 hover:text-[#6a6a90]">Privacy Policy</Link>.
             </p>
           </form>
         </div>
 
         {/* Footer */}
-        <p className="mt-5 text-center text-sm text-[#8585aa]">
+        <p className="mt-5 text-center text-sm text-[#6a6a90]">
           Already have an account?{" "}
           <Link href="/login" className="font-semibold text-[#00d4aa] hover:underline underline-offset-4">Sign in →</Link>
         </p>

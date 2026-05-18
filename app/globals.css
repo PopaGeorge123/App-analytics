@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #1c1c21;
-  --foreground: #f0f0f5;
+  --background: #f5f5f8;
+  --foreground: #1a1a2e;
   --accent: #00d4aa;
 }
 
@@ -38,48 +38,27 @@ body {
  *   elevated     #343447  (was #222235)
  */
 :root {
-  --c-bg:       #252531;
-  --c-surface:  #2e2e3c;
-  --c-card:     #343447;
-  --c-border:   #424256;
-  --c-borderhi: #525268;
-  --c-muted-lo: #7575a0;
-  --c-muted:    #8585aa;
-  --c-muted-hi: #bcbcd8;
-  --c-text-sec: #e0e0f0;
-  --c-text:     #f8f8fc;
+  --c-bg:       #f5f5f8;
+  --c-surface:  #ffffff;
+  --c-card:     #f8f8fc;
+  --c-border:   #d4d4e8;
+  --c-borderhi: #c4c4dc;
+  --c-muted-lo: #9090b8;
+  --c-muted:    #7070a0;
+  --c-muted-hi: #4a4a6a;
+  --c-text-sec: #2a2a3e;
+  --c-text:     #1a1a2e;
 }
 
-/* ── Light mode ────────────────────────────────────────────────────────────── *
- * All components use hardcoded dark hex values, so we invert the whole page.
- * invert(1) flips luminosity (dark bg → light bg, light text → dark text).
- * hue-rotate(180deg) corrects the hue shift that invert() introduces, keeping
- * accent colours (teal #00d4aa, purple #6366f1, etc.) recognisable.
- *
- * We deliberately omit extra contrast/saturate — those were causing the
- * "denaturing" (blown-out midtones, over-saturated accents, ugly borders).
- *
- * Elements that contain real imagery (photos, videos, SVG logos in <img> tags)
- * are double-inverted back to their natural colours.
- * --------------------------------------------------------------------------- */
+/* ── Light mode (default) ──────────────────────────────────────────────────── */
 html.light {
   color-scheme: light;
 }
 
 html.light body {
-  filter: invert(1) hue-rotate(180deg);
-  background: #f4f4f8;
-}
-
-/* Restore natural colours on real media */
-html.light img,
-html.light video,
-html.light iframe,
-html.light canvas,
-html.light embed,
-html.light object,
-html.light svg image {
-  filter: invert(1) hue-rotate(180deg);
+  background: #f5f5f8;
+  color: #1a1a2e;
+  filter: none;
 }
 
 
@@ -88,7 +67,7 @@ body {
   transition: filter 0.2s ease, background 0.2s ease;
 }
 
-/* Apply lifted background globally */
+/* Apply light background globally */
 body {
   background: var(--c-bg);
 }
@@ -111,7 +90,7 @@ body {
 /* Selection */
 ::selection {
   background: rgba(0, 212, 170, 0.2);
-  color: #f4f4f8;
+  color: #1a1a2e;
 }
 
 /* Hide scrollbar on horizontal platform tab bar */
@@ -124,10 +103,10 @@ body {
 
 /* Integrations section highlight — triggered by OnboardingModal "Maybe later" */
 @keyframes integrations-pulse {
-  0%   { box-shadow: 0 0 0 0 rgba(0, 212, 170, 0); border-color: #424256; }
+  0%   { box-shadow: 0 0 0 0 rgba(0, 212, 170, 0); border-color: #d4d4e8; }
   25%  { box-shadow: 0 0 0 6px rgba(0, 212, 170, 0.25); border-color: #00d4aa; }
   75%  { box-shadow: 0 0 0 6px rgba(0, 212, 170, 0.25); border-color: #00d4aa; }
-  100% { box-shadow: 0 0 0 0 rgba(0, 212, 170, 0); border-color: #424256; }
+  100% { box-shadow: 0 0 0 0 rgba(0, 212, 170, 0); border-color: #d4d4e8; }
 }
 .integrations-highlight {
   animation: integrations-pulse 2s ease-in-out forwards;

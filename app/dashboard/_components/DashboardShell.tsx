@@ -258,28 +258,28 @@ function NotificationBell() {
     <div ref={ref} className="relative">
       <button
         onClick={() => { setOpen((v) => !v); if (!open) markAllRead(); }}
-        className="relative flex h-8 w-8 items-center justify-center rounded-lg border border-[#363650] bg-[#343447] text-[#8585aa] hover:border-[#454560] hover:text-[#bcbcd8] transition-all"
+        className="relative flex h-8 w-8 items-center justify-center rounded-lg border border-[#d4d4e8] bg-[#e8e8f4] text-[#6a6a90] hover:border-[#c8c8e8] hover:text-[#4a4a6a] transition-all"
         aria-label="Notifications"
       >
         <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
         </svg>
         {unread > 0 && (
-          <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 font-mono text-[8px] font-bold text-white">
+          <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 font-mono text-[8px] font-bold text-[#1a1a2e]">
             {unread > 9 ? "9+" : unread}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 z-50 w-80 rounded-2xl border border-[#363650] bg-[#2e2e3c] shadow-2xl overflow-hidden">
+        <div className="absolute right-0 top-full mt-2 z-50 w-80 rounded-2xl border border-[#d4d4e8] bg-[#f2f2f8] shadow-2xl overflow-hidden">
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-[#363650]">
-            <p className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#8585aa]">Notifications</p>
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[#d4d4e8]">
+            <p className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#6a6a90]">Notifications</p>
             {notifications.length > 0 && (
               <button
                 onClick={clearAll}
-                className="font-mono text-[9px] text-[#8585aa] hover:text-red-400 transition-colors"
+                className="font-mono text-[9px] text-[#6a6a90] hover:text-red-400 transition-colors"
               >
                 Clear all
               </button>
@@ -290,20 +290,20 @@ function NotificationBell() {
           <div className="max-h-80 overflow-y-auto">
             {notifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 text-center px-4">
-                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#343447] text-[#58588a]">
+                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#e8e8f4] text-[#58588a]">
                   <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
                   </svg>
                 </div>
-                <p className="font-mono text-[10px] text-[#8585aa]">No notifications yet</p>
+                <p className="font-mono text-[10px] text-[#6a6a90]">No notifications yet</p>
                 <p className="font-mono text-[9px] text-[#58588a] mt-0.5">Alerts will appear here when thresholds are crossed</p>
               </div>
             ) : (
               notifications.map((n) => (
                 <div
                   key={n.id}
-                  className={`flex items-start gap-3 px-4 py-3 border-b border-[#363650]/50 transition-colors ${
-                    n.read ? "opacity-60" : "bg-[#343447]/40"
+                  className={`flex items-start gap-3 px-4 py-3 border-b border-[#d4d4e8]/50 transition-colors ${
+                    n.read ? "opacity-60" : "bg-[#e8e8f4]/40"
                   }`}
                 >
                   <span
@@ -311,7 +311,7 @@ function NotificationBell() {
                     style={{ backgroundColor: n.color }}
                   />
                   <div className="flex-1 min-w-0">
-                    <p className="font-mono text-[11px] text-[#e0e0f0] leading-relaxed">{n.message}</p>
+                    <p className="font-mono text-[11px] text-[#3a3a58] leading-relaxed">{n.message}</p>
                     <p className="font-mono text-[9px] text-[#58588a] mt-0.5">{timeAgoShort(n.timestamp)}</p>
                   </div>
                 </div>
@@ -418,13 +418,13 @@ function UpgradeModal({ tab, onClose }: { tab: Tab; onClose: () => void }) {
 
       {/* Card */}
       <div
-        className="relative w-full max-w-md rounded-2xl border border-[#363650] bg-[#2e2e3c] p-8 shadow-2xl"
+        className="relative w-full max-w-md rounded-2xl border border-[#d4d4e8] bg-[#f2f2f8] p-8 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close */}
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 flex h-7 w-7 items-center justify-center rounded-lg text-[#8585aa] hover:bg-[#363650] hover:text-[#f8f8fc] transition-colors"
+          className="absolute right-4 top-4 flex h-7 w-7 items-center justify-center rounded-lg text-[#6a6a90] hover:bg-[#d4d4e8] hover:text-[#1a1a2e] transition-colors"
           aria-label="Close"
         >
           <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -444,10 +444,10 @@ function UpgradeModal({ tab, onClose }: { tab: Tab; onClose: () => void }) {
         <p className="mb-1 font-mono text-[9px] font-semibold uppercase tracking-widest" style={{ color: copy.color }}>
           Premium Feature
         </p>
-        <h2 className="mb-2 font-mono text-lg font-bold leading-snug text-[#f8f8fc]">
+        <h2 className="mb-2 font-mono text-lg font-bold leading-snug text-[#1a1a2e]">
           {copy.headline}
         </h2>
-        <p className="mb-5 text-sm leading-relaxed text-[#bcbcd8]">{copy.sub}</p>
+        <p className="mb-5 text-sm leading-relaxed text-[#4a4a6a]">{copy.sub}</p>
 
         {/* Feature list */}
         <ul className="mb-6 space-y-2">
@@ -456,7 +456,7 @@ function UpgradeModal({ tab, onClose }: { tab: Tab; onClose: () => void }) {
               <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="#00d4aa" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
               </svg>
-              <span className="font-mono text-[11px] text-[#e0e0f0]">{f}</span>
+              <span className="font-mono text-[11px] text-[#3a3a58]">{f}</span>
             </li>
           ))}
         </ul>
@@ -465,11 +465,11 @@ function UpgradeModal({ tab, onClose }: { tab: Tab; onClose: () => void }) {
         <button
           onClick={handleCheckout}
           disabled={loading}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#00d4aa] py-3 font-mono text-sm font-bold text-[#252531] transition hover:bg-[#00bfa0] hover:shadow-[0_0_24px_rgba(0,212,170,0.3)] disabled:opacity-60"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#00d4aa] py-3 font-mono text-sm font-bold text-[#fafafa] transition hover:bg-[#00bfa0] hover:shadow-[0_0_24px_rgba(0,212,170,0.3)] disabled:opacity-60"
         >
           {loading ? "Redirecting…" : "Start 7-day free trial →"}
         </button>
-        <p className="mt-2.5 text-center font-mono text-[10px] text-[#8585aa]">$19/mo after trial · Cancel anytime</p>
+        <p className="mt-2.5 text-center font-mono text-[10px] text-[#6a6a90]">$19/mo after trial · Cancel anytime</p>
       </div>
     </div>
   );
@@ -613,7 +613,7 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
       {/* ── Sidebar ────────────────────────────────────────── */}
       <aside
         className={`
-          fixed top-14 left-0 z-30 h-[calc(100vh-56px)] w-56 shrink-0 border-r border-[#363650] bg-[#2e2e3c]
+          fixed top-14 left-0 z-30 h-[calc(100vh-56px)] w-56 shrink-0 border-r border-[#d4d4e8] bg-[#f2f2f8]
           transform transition-transform duration-200 flex flex-col
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
           lg:relative lg:top-0 lg:h-full lg:translate-x-0 lg:flex
@@ -623,43 +623,43 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
         <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-linear-to-b from-[#00d4aa]/4 to-transparent" />
 
         {/* User info */}
-        <div className="relative px-4 pt-5 pb-4 border-b border-[#363650]/60">
+        <div className="relative px-4 pt-5 pb-4 border-b border-[#d4d4e8]/60">
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#00d4aa]/15 text-[#00d4aa] font-mono text-xs font-bold uppercase select-none">
               {email.charAt(0)}
             </div>
             <div className="min-w-0">
-              <p className="truncate font-mono text-[10px] font-semibold text-[#bcbcd8]" title={email}>{email}</p>
+              <p className="truncate font-mono text-[10px] font-semibold text-[#4a4a6a]" title={email}>{email}</p>
               {isPremium ? (
                 <span className="inline-flex items-center gap-1 font-mono text-[9px] font-semibold text-[#00d4aa]">
                   <span className="h-1 w-1 rounded-full bg-[#00d4aa] animate-pulse" />
                   Premium
                 </span>
               ) : (
-                <span className="font-mono text-[9px] text-[#8585aa]">Free plan</span>
+                <span className="font-mono text-[9px] text-[#6a6a90]">Free plan</span>
               )}
             </div>
           </div>
         </div>
 
         <nav className="flex flex-col gap-0.5 p-3 flex-1">
-          <p className="px-2 pb-2 pt-1 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#8585aa]">Navigation</p>
+          <p className="px-2 pb-2 pt-1 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#6a6a90]">Navigation</p>
         {tabs.filter((tab) => !(isDemo && tab.id === "danger")).map((tab) => (
             <div key={tab.id}>
               {/* Visual separator above Advanced (settings sub-section) */}
               {tab.id === "danger" && (
-                <div className="mt-1 mb-1 border-t border-[#363650]/50" />
+                <div className="mt-1 mb-1 border-t border-[#d4d4e8]/50" />
               )}
               <button
                 onClick={() => navigate(tab.id)}
                 className={`relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-all ${
                   tab.id === "danger"
                     ? activeTab === "danger"
-                      ? "bg-[#363650]/60 text-[#bcbcd8] border border-[#454560]"
-                      : "text-[#8585aa] hover:bg-[#363650]/50 hover:text-[#bcbcd8] border border-transparent pl-5"
+                      ? "bg-[#d4d4e8]/60 text-[#4a4a6a] border border-[#c8c8e8]"
+                      : "text-[#6a6a90] hover:bg-[#d4d4e8]/50 hover:text-[#4a4a6a] border border-transparent pl-5"
                     : activeTab === tab.id
                     ? "bg-[#00d4aa]/10 text-[#00d4aa] border border-[#00d4aa]/20"
-                    : "text-[#bcbcd8] hover:bg-[#363650]/80 hover:text-[#f8f8fc] border border-transparent"
+                    : "text-[#4a4a6a] hover:bg-[#d4d4e8]/80 hover:text-[#1a1a2e] border border-transparent"
                 }`}
               >
                 {/* Active left-border indicator */}
@@ -668,8 +668,8 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
                 )}
                 <span className={
                   tab.id === "danger"
-                    ? activeTab === "danger" ? "text-[#8585aa]" : "text-[#58588a]"
-                    : activeTab === tab.id ? "text-[#00d4aa]" : "text-[#8585aa]"
+                    ? activeTab === "danger" ? "text-[#6a6a90]" : "text-[#58588a]"
+                    : activeTab === tab.id ? "text-[#00d4aa]" : "text-[#6a6a90]"
                 }>
                   {tab.icon}
                 </span>
@@ -677,7 +677,7 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
                 {/* Premium lock badge for non-premium tabs */}
                 {!isPremium && (tab.id === "analytics" || tab.id === "growth" || tab.id === "customers" || tab.id === "ai") && (
                   <span className="ml-auto">
-                    <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className="text-[#8585aa]">
+                    <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className="text-[#6a6a90]">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
                     </svg>
                   </span>
@@ -688,7 +688,7 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
         </nav>
 
         {/* Bottom section */}
-        <div className="relative p-3 border-t border-[#363650]/60">
+        <div className="relative p-3 border-t border-[#d4d4e8]/60">
           {isOnTrial ? (
             /* ── Trial countdown badge ── */
             <div className={`rounded-xl border px-3 py-2.5 ${trialUrgent ? "border-red-500/30 bg-red-500/5" : "border-[#f59e0b]/25 bg-[#f59e0b]/5"}`}>
@@ -704,7 +704,7 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
                 </p>
               </div>
               {/* Progress bar */}
-              <div className="h-1 w-full rounded-full bg-[#363650] overflow-hidden mb-2">
+              <div className="h-1 w-full rounded-full bg-[#d4d4e8] overflow-hidden mb-2">
                 <div
                   className="h-full rounded-full transition-all"
                   style={{ width: `${trialElapsedPct}%`, backgroundColor: trialUrgent ? "#ef4444" : "#f59e0b" }}
@@ -726,12 +726,12 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
                 </svg>
                 <p className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#00d4aa]">Premium Active</p>
               </div>
-              <p className="mt-1 font-mono text-[9px] text-[#8585aa]">All features unlocked</p>
+              <p className="mt-1 font-mono text-[9px] text-[#6a6a90]">All features unlocked</p>
             </div>
           ) : (
             <div className="rounded-xl border border-[#a78bfa]/20 bg-[#a78bfa]/5 px-3 py-2.5">
               <p className="font-mono text-[9px] font-semibold text-[#a78bfa]">Upgrade to Premium</p>
-              <p className="mt-0.5 font-mono text-[9px] text-[#8585aa]">Unlock all features</p>
+              <p className="mt-0.5 font-mono text-[9px] text-[#6a6a90]">Unlock all features</p>
             </div>
           )}
         </div>
@@ -740,22 +740,22 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
       {/* ── Main content ───────────────────────────────────── */}
       <main className="flex-1 overflow-auto">
         {/* Mobile hamburger */}
-        <div className="flex items-center gap-3 border-b border-[#363650] bg-[#2e2e3c]/60 px-4 py-3 lg:hidden">
+        <div className="flex items-center gap-3 border-b border-[#d4d4e8] bg-[#f2f2f8]/60 px-4 py-3 lg:hidden">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="rounded-lg p-1.5 text-[#bcbcd8] hover:bg-[#363650] hover:text-[#f8f8fc] transition-colors"
+            className="rounded-lg p-1.5 text-[#4a4a6a] hover:bg-[#d4d4e8] hover:text-[#1a1a2e] transition-colors"
             aria-label="Open menu"
           >
             <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
             </svg>
           </button>
-          <span className="text-[#8585aa]">/</span>
+          <span className="text-[#6a6a90]">/</span>
           <div className="flex items-center gap-2 flex-1">
-            <span className="text-[#8585aa]">
+            <span className="text-[#6a6a90]">
               {tabs.find((t) => t.id === activeTab)?.icon}
             </span>
-            <span className="font-mono text-sm font-semibold text-[#f8f8fc]">
+            <span className="font-mono text-sm font-semibold text-[#1a1a2e]">
               {tabs.find((t) => t.id === activeTab)?.label}
             </span>
           </div>
@@ -779,7 +779,7 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke={trialUrgent ? "#ef4444" : "#f59e0b"} strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z" />
               </svg>
-              <p className="flex-1 font-mono text-xs text-[#f8f8fc]">
+              <p className="flex-1 font-mono text-xs text-[#1a1a2e]">
                 <span className={`font-bold ${trialUrgent ? "text-red-400" : "text-[#f59e0b]"}`}>
                   ⏳ {trialTimeLabel} on your trial
                 </span>
@@ -788,7 +788,7 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
               <button
                 onClick={handleUpgrade}
                 disabled={checkoutLoading}
-                className={`shrink-0 rounded-lg px-3 py-1.5 font-mono text-[10px] font-bold transition disabled:opacity-60 ${trialUrgent ? "bg-red-500 text-white hover:bg-red-600" : "bg-[#f59e0b] text-[#252531] hover:bg-[#e08a00]"}`}
+                className={`shrink-0 rounded-lg px-3 py-1.5 font-mono text-[10px] font-bold transition disabled:opacity-60 ${trialUrgent ? "bg-red-500 text-[#1a1a2e] hover:bg-red-600" : "bg-[#f59e0b] text-[#fafafa] hover:bg-[#e08a00]"}`}
               >
                 {checkoutLoading ? "…" : "Upgrade →"}
               </button>

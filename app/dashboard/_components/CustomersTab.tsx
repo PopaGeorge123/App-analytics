@@ -214,19 +214,19 @@ function buildCohorts(customers: CustomerRecord[]): CohortRow[] {
 function SectionHeader({ title, sub }: { title: string; sub?: string }) {
   return (
     <div className="mb-5">
-      <h2 className="font-mono text-sm font-bold text-[#f8f8fc] tracking-tight">{title}</h2>
-      {sub && <p className="mt-0.5 font-mono text-[10px] text-[#8585aa]">{sub}</p>}
+      <h2 className="font-mono text-sm font-bold text-[#1a1a2e] tracking-tight">{title}</h2>
+      {sub && <p className="mt-0.5 font-mono text-[10px] text-[#6a6a90]">{sub}</p>}
     </div>
   );
 }
 
 // ── Stat Pill ─────────────────────────────────────────────────────────────
 
-function StatPill({ label, value, color = "#8585aa" }: { label: string; value: string; color?: string }) {
+function StatPill({ label, value, color = "#6a6a90" }: { label: string; value: string; color?: string }) {
   return (
-    <div className="flex flex-col gap-0.5 rounded-xl border border-[#363650] bg-[#2e2e3c]/60 px-3 py-2.5">
+    <div className="flex flex-col gap-0.5 rounded-xl border border-[#d4d4e8] bg-[#f2f2f8]/60 px-3 py-2.5">
       <p className="font-mono text-[9px] uppercase tracking-widest" style={{ color }}>{label}</p>
-      <p className="font-mono text-base font-bold text-[#f8f8fc]">{value}</p>
+      <p className="font-mono text-base font-bold text-[#1a1a2e]">{value}</p>
     </div>
   );
 }
@@ -259,7 +259,7 @@ const PROVIDER_COLORS: Record<string, string> = {
 };
 
 function ProviderDot({ provider }: { provider: string }) {
-  const color = PROVIDER_COLORS[provider] ?? "#8585aa";
+  const color = PROVIDER_COLORS[provider] ?? "#6a6a90";
   return (
     <span
       className="inline-block h-2 w-2 rounded-full shrink-0"
@@ -281,7 +281,7 @@ function PlatformLogo({ provider }: { provider: string }) {
     woocommerce:     { text: "W",  color: "#7f54b3" },
     etsy:            { text: "E",  color: "#F56400" },
   };
-  const logo = logos[provider] ?? { text: provider.slice(0, 2).toUpperCase(), color: "#8585aa" };
+  const logo = logos[provider] ?? { text: provider.slice(0, 2).toUpperCase(), color: "#6a6a90" };
   return (
     <span
       className="inline-flex items-center justify-center rounded font-mono text-[9px] font-bold"
@@ -311,36 +311,36 @@ function EmailModal({ customer, onClose }: { customer: ScoredCustomer; onClose: 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
-      <div className="w-full max-w-md rounded-2xl border border-[rgba(255,255,255,0.1)] bg-[#25252c] p-6 shadow-2xl">
+      <div className="w-full max-w-md rounded-2xl bg-white ring-1 ring-black/[0.06] p-6 shadow-xl">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="font-mono text-sm font-bold text-[#f8f8fc]">Re-engagement Email</h3>
-            <p className="font-mono text-[9px] text-[#8585aa] mt-0.5">{customer.name} · {daysSince(customer.lastSeen)}d silent</p>
+            <h3 className="font-mono text-sm font-bold text-[#1a1a2e]">Re-engagement Email</h3>
+            <p className="font-mono text-[9px] text-[#6a6a90] mt-0.5">{customer.name} · {daysSince(customer.lastSeen)}d silent</p>
           </div>
-          <button onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-lg text-[#8585aa] hover:text-[#f8f8fc] hover:bg-[#363650] transition-colors">
+          <button onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-lg text-[#6a6a90] hover:text-[#1a1a2e] hover:bg-[#d4d4e8] transition-colors">
             <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>
         <div className="mb-3 space-y-1">
-          <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">To</p>
-          <p className="font-mono text-[11px] text-[#bcbcd8]">{customer.email || customer.name}</p>
+          <p className="font-mono text-[9px] uppercase tracking-widest text-[#6a6a90]">To</p>
+          <p className="font-mono text-[11px] text-[#4a4a6a]">{customer.email || customer.name}</p>
         </div>
         <div className="mb-3 space-y-1">
-          <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Subject</p>
-          <p className="font-mono text-[11px] text-[#bcbcd8]">{subject}</p>
+          <p className="font-mono text-[9px] uppercase tracking-widest text-[#6a6a90]">Subject</p>
+          <p className="font-mono text-[11px] text-[#4a4a6a]">{subject}</p>
         </div>
         <div className="mb-4 space-y-1">
-          <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Message</p>
-          <div className="rounded-xl bg-[#1f1f21] border border-[rgba(255,255,255,0.11)] p-3 max-h-48 overflow-y-auto">
-            <p className="font-mono text-[10px] text-[#8585aa] whitespace-pre-wrap leading-relaxed">{body}</p>
+          <p className="font-mono text-[9px] uppercase tracking-widest text-[#6a6a90]">Message</p>
+          <div className="rounded-xl bg-[#f5f5f7] border border-[rgba(0,0,0,0.07)] p-3 max-h-48 overflow-y-auto">
+            <p className="font-mono text-[10px] text-[#6a6a90] whitespace-pre-wrap leading-relaxed">{body}</p>
           </div>
         </div>
         <div className="flex gap-2">
-          <button onClick={onClose} className="flex-1 rounded-xl border border-[rgba(255,255,255,0.13)] py-2 font-mono text-[11px] text-[#8585aa] hover:border-[#6366f1] transition-colors">
+          <button onClick={onClose} className="flex-1 rounded-xl border border-[rgba(0,0,0,0.08)] py-2 font-mono text-[11px] text-[#6a6a90] hover:border-[#6366f1] transition-colors">
             Close
           </button>
           <button onClick={copyAll} className="flex-1 rounded-xl py-2 font-mono text-[11px] font-bold transition-colors"
-            style={{ backgroundColor: copied ? "#10b981" : "#f59e0b", color: "#1f1f21" }}>
+            style={{ backgroundColor: copied ? "#10b981" : "#f59e0b", color: "#f5f5f7" }}>
             {copied ? (
               <span className="flex items-center justify-center gap-1">
                 <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
@@ -357,7 +357,7 @@ function EmailModal({ customer, onClose }: { customer: ScoredCustomer; onClose: 
 // ── Avatar ────────────────────────────────────────────────────────────────
 
 function Avatar({ name, score, size = 32 }: { name: string; score?: number; size?: number }) {
-  const color = score !== undefined ? healthLabel(score).color : "#8585aa";
+  const color = score !== undefined ? healthLabel(score).color : "#6a6a90";
   return (
     <div
       className="flex shrink-0 items-center justify-center rounded-full font-mono font-bold text-[10px]"
@@ -383,7 +383,7 @@ function ScoreRing({ score, size = 80 }: { score: number; size?: number }) {
 
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#343447" strokeWidth={size * 0.1} />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#e8e8f4" strokeWidth={size * 0.1} />
       <circle
         cx={size / 2} cy={size / 2} r={r}
         fill="none"
@@ -402,7 +402,7 @@ function ScoreRing({ score, size = 80 }: { score: number; size?: number }) {
 
 function ConcentrationBar({ pct, color }: { pct: number; color: string }) {
   return (
-    <div className="h-2 w-full rounded-full bg-[#3c3c51] overflow-hidden">
+    <div className="h-2 w-full rounded-full bg-[#e0e0f0] overflow-hidden">
       <div
         className="h-full rounded-full transition-all duration-700"
         style={{ width: `${clamp(pct, 0, 100)}%`, backgroundColor: color }}
@@ -415,7 +415,7 @@ function ConcentrationBar({ pct, color }: { pct: number; color: string }) {
 
 function CohortCell({ pct, isFirst, isFuture }: { pct: number; isFirst: boolean; isFuture: boolean }) {
   if (isFuture) {
-    return <td className="px-2 py-2 text-center"><span className="font-mono text-[9px] text-[#363650]">—</span></td>;
+    return <td className="px-2 py-2 text-center"><span className="font-mono text-[9px] text-[#d4d4e8]">—</span></td>;
   }
   if (pct === 0 && !isFirst) {
     return <td className="px-2 py-2 text-center"><span className="font-mono text-[9px] text-[#7575a0]">0%</span></td>;
@@ -553,13 +553,13 @@ export default function CustomersTab({
   if (!hasRevenue) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
-        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-[rgba(255,255,255,0.11)] bg-[#25252c] text-[#8585aa]">
+        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-white ring-1 ring-black/[0.06] shadow-[0_1px_4px_rgba(0,0,0,0.05)] text-[#6a6a90]">
           <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
           </svg>
         </div>
-        <p className="font-mono text-sm font-bold text-[#f8f8fc]">No customer data yet</p>
-        <p className="mt-1 font-mono text-[11px] text-[#8585aa] max-w-xs">
+        <p className="font-mono text-sm font-bold text-[#1a1a2e]">No customer data yet</p>
+        <p className="mt-1 font-mono text-[11px] text-[#6a6a90] max-w-xs">
           Connect a revenue platform (Stripe, Gumroad, Shopify…) to see your customer insights.
         </p>
       </div>
@@ -624,10 +624,10 @@ export default function CustomersTab({
       {isSynthetic && (
         <div
           className="flex items-start gap-3 rounded-xl border px-4 py-3"
-          style={{ borderColor: "#8585aa50", borderLeftWidth: 4, borderLeftColor: "#8585aa", background: "#8585aa08" }}
+          style={{ borderColor: "#6a6a9050", borderLeftWidth: 4, borderLeftColor: "#6a6a90", background: "#6a6a9008" }}
         >
-          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#8585aa" strokeWidth={2} className="mt-0.5 shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" /></svg>
-          <p className="flex-1 font-mono text-[11px] text-[#8585aa] leading-relaxed">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#6a6a90" strokeWidth={2} className="mt-0.5 shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" /></svg>
+          <p className="flex-1 font-mono text-[11px] text-[#6a6a90] leading-relaxed">
             <span className="font-semibold text-[#b0b0cc]">Estimated data</span> — Individual customer records aren&apos;t available yet. Figures are approximated from your daily transaction totals and will be replaced with real data once your integration syncs customer-level records.
           </p>
         </div>
@@ -640,12 +640,12 @@ export default function CustomersTab({
           style={{ borderColor: "#f59e0b50", borderLeftWidth: 4, borderLeftColor: "#f59e0b", background: "#f59e0b08" }}
         >
           <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#f59e0b" strokeWidth={2} className="mt-0.5 shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
-          <p className="flex-1 font-mono text-[11px] text-[#f8f8fc] leading-relaxed">
+          <p className="flex-1 font-mono text-[11px] text-[#1a1a2e] leading-relaxed">
             <span className="font-bold text-[#f59e0b]">{atRiskList.length} of {stats.totalCustomers}</span> customers haven&apos;t purchased in 30+ days —{" "}
             <span className="font-bold text-[#f59e0b]">{fmtCents(atRiskLtv, revCurrency)}</span> combined LTV at risk.{" "}
             <a href="#at-risk" className="text-[#f59e0b] underline underline-offset-2 hover:text-[#fbbf24]">Start a re-engagement campaign →</a>
           </p>
-          <button onClick={() => setAlertDismissed(true)} className="flex h-6 w-6 items-center justify-center rounded-lg text-[#8585aa] hover:text-[#f8f8fc] hover:bg-[#f59e0b]/10 shrink-0 transition-colors">
+          <button onClick={() => setAlertDismissed(true)} className="flex h-6 w-6 items-center justify-center rounded-lg text-[#6a6a90] hover:text-[#1a1a2e] hover:bg-[#f59e0b]/10 shrink-0 transition-colors">
             <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>
@@ -653,8 +653,8 @@ export default function CustomersTab({
 
       {/* ── Page header ─────────────────────────────────────────────────── */}
       <div>
-        <h1 className="font-mono text-lg font-bold text-[#f8f8fc]">Customers</h1>
-        <p className="mt-0.5 font-mono text-[11px] text-[#8585aa]">
+        <h1 className="font-mono text-lg font-bold text-[#1a1a2e]">Customers</h1>
+        <p className="mt-0.5 font-mono text-[11px] text-[#6a6a90]">
           Who&apos;s paying you, what they&apos;re worth, and who&apos;s about to leave.
         </p>
       </div>
@@ -662,7 +662,7 @@ export default function CustomersTab({
       {/* ── KPI pills ───────────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-2">
         {[
-          { icon: <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg>, label: "Total", value: String(stats.totalCustomers), color: "#8585aa" },
+          { icon: <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg>, label: "Total", value: String(stats.totalCustomers), color: "#6a6a90" },
           { icon: <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>, label: "Active", value: String(stats.activeCount), color: "#10b981" },
           { icon: <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>, label: "Avg LTV", value: fmtCents(stats.avgLtv, revCurrency), color: "#f59e0b" },
           { icon: <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>, label: "At Risk", value: `${atRiskList.length} (${stats.totalCustomers > 0 ? Math.round((atRiskList.length / stats.totalCustomers) * 100) : 0}%)`,
@@ -678,8 +678,8 @@ export default function CustomersTab({
             }}
           >
             <span>{p.icon}</span>
-            <span className="text-[#8585aa]">{p.label}</span>
-            <span className="font-bold text-[#f8f8fc]">{p.value}</span>
+            <span className="text-[#6a6a90]">{p.label}</span>
+            <span className="font-bold text-[#1a1a2e]">{p.value}</span>
           </span>
         ))}
       </div>
@@ -687,7 +687,7 @@ export default function CustomersTab({
       {/* ══ §7 NEW — Customer Acquisition ══════════════════════════════════ */}
       <section>
         <SectionHeader title="Customer Acquisition" sub="New customers by month — track if your top-of-funnel is growing" />
-        <div className="rounded-2xl border border-[rgba(255,255,255,0.11)] bg-[#13131a] p-5">
+        <div className="rounded-2xl bg-white ring-1 ring-black/[0.06] p-5 shadow-[0_1px_4px_rgba(0,0,0,0.05)]">
           <div className="flex items-end justify-between gap-1 mb-3">
             {newCustomersByMonth.map((m) => {
               const maxCount = Math.max(...newCustomersByMonth.map((x) => x.count), 1);
@@ -695,20 +695,20 @@ export default function CustomersTab({
               const isLast = m === newCustomersByMonth[newCustomersByMonth.length - 1];
               return (
                 <div key={m.label} className="flex flex-1 flex-col items-center gap-1">
-                  <span className="font-mono text-[9px] text-[#8585aa]">{m.count > 0 ? m.count : ""}</span>
+                  <span className="font-mono text-[9px] text-[#6a6a90]">{m.count > 0 ? m.count : ""}</span>
                   <div
                     className="w-full rounded-t-sm transition-all duration-700"
-                    style={{ height: h, backgroundColor: isLast ? "#f8f8fc" : m.count === 0 ? "#343447" : "#6366f1", opacity: isLast ? 1 : 0.65 + (newCustomersByMonth.indexOf(m) / 6) * 0.35 }}
+                    style={{ height: h, backgroundColor: isLast ? "#1a1a2e" : m.count === 0 ? "#e8e8f4" : "#6366f1", opacity: isLast ? 1 : 0.65 + (newCustomersByMonth.indexOf(m) / 6) * 0.35 }}
                   />
                   <span className="font-mono text-[9px] text-[#7575a0]">{m.label}</span>
                 </div>
               );
             })}
           </div>
-          <div className="flex items-center justify-between font-mono text-[9px] text-[#8585aa] pt-2 border-t border-[rgba(255,255,255,0.11)]">
+          <div className="flex items-center justify-between font-mono text-[9px] text-[#6a6a90] pt-2 border-t border-[rgba(0,0,0,0.07)]">
             <span>This month: <span className={`font-bold ${newCustomersByMonth[5]?.count === 0 ? "text-[#ef4444]" : "text-[#10b981]"}`}>{newCustomersByMonth[5]?.count ?? 0}</span></span>
-            <span>Last month: <span className="font-bold text-[#f8f8fc]">{newCustomersByMonth[4]?.count ?? 0}</span></span>
-            <span>All time: <span className="font-bold text-[#f8f8fc]">{stats.totalCustomers}</span></span>
+            <span>Last month: <span className="font-bold text-[#1a1a2e]">{newCustomersByMonth[4]?.count ?? 0}</span></span>
+            <span>All time: <span className="font-bold text-[#1a1a2e]">{stats.totalCustomers}</span></span>
           </div>
         </div>
       </section>
@@ -716,7 +716,7 @@ export default function CustomersTab({
       {/* ══ §1 — Customer Health Score ══════════════════════════════════════ */}
       <section>
         <SectionHeader title="Customer Health Score" sub="Composite score based on recency, purchase frequency, and spend." />
-        <div className="rounded-2xl border border-[rgba(255,255,255,0.11)] bg-[#13131a] p-4 sm:p-6">
+        <div className="rounded-2xl bg-white ring-1 ring-black/[0.06] p-4 sm:p-6 shadow-[0_1px_4px_rgba(0,0,0,0.05)]">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
 
             {/* Left — dial + legend */}
@@ -724,8 +724,8 @@ export default function CustomersTab({
               <div className="relative">
                 <ScoreRing score={stats.avgHealth} size={110} />
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <p className="font-mono text-2xl font-bold text-[#f8f8fc]">{stats.avgHealth}</p>
-                  <p className="font-mono text-[9px] text-[#8585aa]">/ 100</p>
+                  <p className="font-mono text-2xl font-bold text-[#1a1a2e]">{stats.avgHealth}</p>
+                  <p className="font-mono text-[9px] text-[#6a6a90]">/ 100</p>
                 </div>
               </div>
               <HealthBadge score={stats.avgHealth} />
@@ -740,7 +740,7 @@ export default function CustomersTab({
                 {healthSegments.map((seg) => (
                   <div key={seg.label} className="flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: seg.color }} />
-                    <span className="font-mono text-[9px] text-[#8585aa] flex-1">{seg.label}</span>
+                    <span className="font-mono text-[9px] text-[#6a6a90] flex-1">{seg.label}</span>
                     <span className="font-mono text-[9px] font-bold" style={{ color: seg.color }}>
                       {stats.totalCustomers > 0 ? Math.round((seg.count / stats.totalCustomers) * 100) : 0}%
                     </span>
@@ -756,8 +756,8 @@ export default function CustomersTab({
                 const isUrgent = seg.label === "Dormant" || seg.label === "At Risk";
                 return (
                   <div key={seg.label} className="flex items-center gap-3">
-                    <p className="w-20 font-mono text-[10px] text-[#8585aa] shrink-0">{seg.label}</p>
-                    <div className="flex-1 h-8 rounded-lg bg-[#343447] overflow-hidden relative"
+                    <p className="w-20 font-mono text-[10px] text-[#6a6a90] shrink-0">{seg.label}</p>
+                    <div className="flex-1 h-8 rounded-lg bg-[#e8e8f4] overflow-hidden relative"
                       style={isUrgent && seg.count > 0 ? { boxShadow: `0 0 10px ${seg.color}25` } : undefined}>
                       <div
                         className="h-full rounded-lg transition-all duration-700 flex items-center justify-center gap-2"
@@ -790,15 +790,15 @@ export default function CustomersTab({
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#a5b4fc" strokeWidth={1.8} className="mt-px shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" /></svg>
               <p className="font-mono text-[10px] font-bold text-[#a5b4fc]">Key Insight</p>
             </div>
-            <div className="space-y-1 font-mono text-[10px] text-[#8585aa] leading-relaxed pl-5">
+            <div className="space-y-1 font-mono text-[10px] text-[#6a6a90] leading-relaxed pl-5">
               {stats.champions === 0 && stats.loyal === 0 && (
-                <p>0 Champions and 0 Loyal customers means <span className="text-[#f8f8fc]">no stable revenue base</span>.</p>
+                <p>0 Champions and 0 Loyal customers means <span className="text-[#1a1a2e]">no stable revenue base</span>.</p>
               )}
               {stats.dormant > 0 && (
                 <p><span className="text-[#ef4444] font-bold">{Math.round((stats.dormant / stats.totalCustomers) * 100)}% of customers are Dormant</span> — they&apos;ve stopped engaging entirely.</p>
               )}
               {atRiskList.length > 0 && (
-                <p>Recommended action: <span className="text-[#f8f8fc]">Run a win-back email campaign for the {stats.dormant} Dormant customers.</span></p>
+                <p>Recommended action: <span className="text-[#1a1a2e]">Run a win-back email campaign for the {stats.dormant} Dormant customers.</span></p>
               )}
             </div>
             <div className="flex gap-2 mt-3 pl-5">
@@ -812,13 +812,13 @@ export default function CustomersTab({
       {/* ══ §2 — Top Customers by LTV ══════════════════════════════════════ */}
       <section>
         <SectionHeader title="Top Customers by LTV" sub="Your highest-value customers ranked by total lifetime spend." />
-        <div className="rounded-2xl border border-[rgba(255,255,255,0.11)] bg-[#25252c] p-4 sm:p-6">
+        <div className="rounded-2xl bg-white ring-1 ring-black/[0.06] p-4 sm:p-6 shadow-[0_1px_4px_rgba(0,0,0,0.05)]">
           {/* Table controls */}
           <div className="flex flex-wrap items-center gap-2 mb-4">
             <div className="relative flex-1 min-w-40">
-              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8585aa]"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 15.803a7.5 7.5 0 0010.607 0z" /></svg>
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6a6a90]"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 15.803a7.5 7.5 0 0010.607 0z" /></svg>
               <input
-                className="w-full rounded-xl border border-[rgba(255,255,255,0.13)] bg-[#1f1f21] pl-8 pr-3 py-1.5 font-mono text-[11px] text-[#f8f8fc] focus:border-[#6366f1] focus:outline-none"
+                className="w-full rounded-xl border border-[rgba(0,0,0,0.08)] bg-[#f5f5f7] pl-8 pr-3 py-1.5 font-mono text-[11px] text-[#1a1a2e] focus:border-[#6366f1] focus:outline-none"
                 placeholder="Search customers..."
                 value={customerSearch}
                 onChange={(e) => setCustomerSearch(e.target.value)}
@@ -831,8 +831,8 @@ export default function CustomersTab({
                   onClick={() => setCustomerFilter(f)}
                   className={`px-2.5 py-1 rounded-full font-mono text-[9px] transition-all border ${
                     customerFilter === f
-                      ? "bg-[#6366f1] border-[#6366f1] text-white"
-                      : "border-[rgba(255,255,255,0.13)] text-[#8585aa] hover:border-[#6366f1]"
+                      ? "bg-[#6366f1] border-[#6366f1] text-[#1a1a2e]"
+                      : "border-[rgba(0,0,0,0.08)] text-[#6a6a90] hover:border-[#6366f1]"
                   }`}
                 >
                   {f}
@@ -842,22 +842,22 @@ export default function CustomersTab({
           </div>
 
           {filteredCustomers.length === 0 ? (
-            <p className="font-mono text-[11px] text-[#8585aa]">No customers match this filter.</p>
+            <p className="font-mono text-[11px] text-[#6a6a90]">No customers match this filter.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-130 text-left">
                 <thead>
-                  <tr className="border-b border-[rgba(255,255,255,0.11)]">
-                    <th className="pb-2 font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Customer</th>
-                    <th className="pb-2 text-right font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">LTV</th>
-                    <th className="pb-2 text-right font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Orders</th>
-                    <th className="pb-2 text-center font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Health</th>
-                    <th className="pb-2 text-right font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Last seen</th>
-                    <th className="pb-2 text-center font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Source</th>
-                    <th className="pb-2 text-center font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Actions</th>
+                  <tr className="border-b border-[rgba(0,0,0,0.07)]">
+                    <th className="pb-2 font-mono text-[9px] uppercase tracking-widest text-[#6a6a90]">Customer</th>
+                    <th className="pb-2 text-right font-mono text-[9px] uppercase tracking-widest text-[#6a6a90]">LTV</th>
+                    <th className="pb-2 text-right font-mono text-[9px] uppercase tracking-widest text-[#6a6a90]">Orders</th>
+                    <th className="pb-2 text-center font-mono text-[9px] uppercase tracking-widest text-[#6a6a90]">Health</th>
+                    <th className="pb-2 text-right font-mono text-[9px] uppercase tracking-widest text-[#6a6a90]">Last seen</th>
+                    <th className="pb-2 text-center font-mono text-[9px] uppercase tracking-widest text-[#6a6a90]">Source</th>
+                    <th className="pb-2 text-center font-mono text-[9px] uppercase tracking-widest text-[#6a6a90]">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[rgba(255,255,255,0.13)]">
+                <tbody className="divide-y divide-[rgba(0,0,0,0.08)]">
                   {filteredCustomers.map((c, i) => {
                     const days = daysSince(c.lastSeen);
                     const recencyColor = days < 30 ? "#10b981" : days < 90 ? "#f59e0b" : "#ef4444";
@@ -867,7 +867,7 @@ export default function CustomersTab({
                       <>
                         <tr
                           key={c.id}
-                          className="group hover:bg-[rgba(255,255,255,0.02)] transition-colors cursor-pointer"
+                          className="group hover:bg-[rgba(0,0,0,0.02)] transition-colors cursor-pointer"
                           onClick={() => setExpandedId(isExpanded ? null : c.id)}
                         >
                           <td className="py-3 pr-4">
@@ -875,7 +875,7 @@ export default function CustomersTab({
                               <Avatar name={c.name} score={c.score} />
                               <div className="min-w-0">
                                 <div className="flex items-center gap-2">
-                                  <p className="font-mono text-[11px] font-semibold text-[#e0e0f0] truncate max-w-35">{c.name}</p>
+                                  <p className="font-mono text-[11px] font-semibold text-[#3a3a58] truncate max-w-35">{c.name}</p>
                                   {i < 3 && (
                                     <span className="font-mono text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#f59e0b]/20 text-[#f59e0b]">#{i + 1}</span>
                                   )}
@@ -886,10 +886,10 @@ export default function CustomersTab({
                               </div>
                             </div>
                           </td>
-                          <td className="py-3 text-right font-mono text-[11px] font-bold text-[#f8f8fc]">
+                          <td className="py-3 text-right font-mono text-[11px] font-bold text-[#1a1a2e]">
                             {fmtCents(c.totalSpent, revCurrency)}
                           </td>
-                          <td className="py-3 text-right font-mono text-[11px] text-[#bcbcd8]">{c.orderCount}</td>
+                          <td className="py-3 text-right font-mono text-[11px] text-[#4a4a6a]">{c.orderCount}</td>
                           <td className="py-3 text-center">
                             <HealthBadge score={c.score} />
                           </td>
@@ -906,7 +906,7 @@ export default function CustomersTab({
                               <button
                                 onClick={() => setEmailCustomer(c)}
                                 title="Send re-engagement email"
-                                className="flex h-7 w-7 items-center justify-center rounded-lg border border-[rgba(255,255,255,0.13)] text-[#8585aa] hover:border-[#f59e0b] hover:text-[#f59e0b] transition-colors"
+                                className="flex h-7 w-7 items-center justify-center rounded-lg border border-[rgba(0,0,0,0.08)] text-[#6a6a90] hover:border-[#f59e0b] hover:text-[#f59e0b] transition-colors"
                               >
                                 <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /></svg>
                               </button>
@@ -916,27 +916,27 @@ export default function CustomersTab({
                         {isExpanded && (
                           <tr key={c.id + "-expanded"}>
                             <td colSpan={7} className="pb-3 pt-0">
-                              <div className="mx-3 rounded-xl border border-[rgba(255,255,255,0.11)] bg-[#1f1f21] p-4">
+                              <div className="mx-3 rounded-xl border border-[rgba(0,0,0,0.07)] bg-[#f5f5f7] p-4">
                                 <div className="flex flex-wrap gap-6 mb-3">
                                   <div>
-                                    <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">LTV</p>
-                                    <p className="font-mono text-sm font-bold text-[#f8f8fc]">{fmtCents(c.totalSpent, revCurrency)}</p>
+                                    <p className="font-mono text-[9px] uppercase tracking-widest text-[#6a6a90]">LTV</p>
+                                    <p className="font-mono text-sm font-bold text-[#1a1a2e]">{fmtCents(c.totalSpent, revCurrency)}</p>
                                   </div>
                                   <div>
-                                    <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Orders</p>
-                                    <p className="font-mono text-sm font-bold text-[#f8f8fc]">{c.orderCount}</p>
+                                    <p className="font-mono text-[9px] uppercase tracking-widest text-[#6a6a90]">Orders</p>
+                                    <p className="font-mono text-sm font-bold text-[#1a1a2e]">{c.orderCount}</p>
                                   </div>
                                   <div>
-                                    <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Avg order</p>
-                                    <p className="font-mono text-sm font-bold text-[#f8f8fc]">{fmtCents(avgOrder, revCurrency)}</p>
+                                    <p className="font-mono text-[9px] uppercase tracking-widest text-[#6a6a90]">Avg order</p>
+                                    <p className="font-mono text-sm font-bold text-[#1a1a2e]">{fmtCents(avgOrder, revCurrency)}</p>
                                   </div>
                                   <div>
-                                    <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">First seen</p>
-                                    <p className="font-mono text-sm font-bold text-[#f8f8fc]">{c.firstSeen}</p>
+                                    <p className="font-mono text-[9px] uppercase tracking-widest text-[#6a6a90]">First seen</p>
+                                    <p className="font-mono text-sm font-bold text-[#1a1a2e]">{c.firstSeen}</p>
                                   </div>
                                   <div>
-                                    <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Source</p>
-                                    <p className="font-mono text-sm font-bold text-[#f8f8fc] capitalize">{c.provider}</p>
+                                    <p className="font-mono text-[9px] uppercase tracking-widest text-[#6a6a90]">Source</p>
+                                    <p className="font-mono text-sm font-bold text-[#1a1a2e] capitalize">{c.provider}</p>
                                   </div>
                                 </div>
                                 <div className="flex gap-2">
@@ -968,7 +968,7 @@ export default function CustomersTab({
       {/* ══ §3 — Cohort Retention ══════════════════════════════════════════ */}
       <section className={locked ? "relative overflow-hidden rounded-2xl" : ""}>
         {locked && (
-          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-[#1f1f21]/80 backdrop-blur-sm">
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-[#f5f5f7]/80 backdrop-blur-sm">
             <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#a78bfa" strokeWidth={1.8}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
             </svg>
@@ -979,33 +979,33 @@ export default function CustomersTab({
           title="Cohort Retention"
           sub="What % of customers acquired each month are still active in subsequent months."
         />
-        <div className="rounded-2xl border border-[rgba(255,255,255,0.11)] bg-[#25252c] p-4 sm:p-6">
+        <div className="rounded-2xl bg-white ring-1 ring-black/[0.06] p-4 sm:p-6 shadow-[0_1px_4px_rgba(0,0,0,0.05)]">
           {cohorts.length === 0 ? (
-            <p className="font-mono text-[11px] text-[#8585aa]">Need at least 1 month of data to build cohorts.</p>
+            <p className="font-mono text-[11px] text-[#6a6a90]">Need at least 1 month of data to build cohorts.</p>
           ) : (
             <>
               <div className="overflow-x-auto">
                 <table className="w-full min-w-105 border-collapse">
                   <thead>
                     <tr>
-                      <th className="pb-3 pr-4 text-left font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Cohort</th>
-                      <th className="pb-3 px-2 text-center font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Customers</th>
+                      <th className="pb-3 pr-4 text-left font-mono text-[9px] uppercase tracking-widest text-[#6a6a90]">Cohort</th>
+                      <th className="pb-3 px-2 text-center font-mono text-[9px] uppercase tracking-widest text-[#6a6a90]">Customers</th>
                       {["Month 0", "Month 1", "Month 2", "Month 3"].map((h) => (
-                        <th key={h} className="pb-3 px-2 text-center font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">{h}</th>
+                        <th key={h} className="pb-3 px-2 text-center font-mono text-[9px] uppercase tracking-widest text-[#6a6a90]">{h}</th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[rgba(255,255,255,0.13)]">
+                  <tbody className="divide-y divide-[rgba(0,0,0,0.08)]">
                     {cohorts.map((row) => {
                       const maxCohortSize = Math.max(...cohorts.map((r) => r.newCustomers), 1);
                       const sizeBarPct = clamp((row.newCustomers / maxCohortSize) * 100, 0, 100);
                       return (
                         <tr key={row.month}>
-                          <td className="py-2 pr-4 font-mono text-[10px] text-[#bcbcd8] whitespace-nowrap">{row.month}</td>
+                          <td className="py-2 pr-4 font-mono text-[10px] text-[#4a4a6a] whitespace-nowrap">{row.month}</td>
                           <td className="py-2 px-2">
                             <div className="flex items-center gap-2">
-                              <span className="font-mono text-[10px] text-[#8585aa] w-4 text-right">{row.newCustomers}</span>
-                              <div className="h-1.5 flex-1 rounded-full bg-[#343447] overflow-hidden">
+                              <span className="font-mono text-[10px] text-[#6a6a90] w-4 text-right">{row.newCustomers}</span>
+                              <div className="h-1.5 flex-1 rounded-full bg-[#e8e8f4] overflow-hidden">
                                 <div className="h-full rounded-full bg-[#6366f1]" style={{ width: `${sizeBarPct}%` }} />
                               </div>
                             </div>
@@ -1025,12 +1025,12 @@ export default function CustomersTab({
                       );
                     })}
                     {/* Average row */}
-                    <tr className="border-t-2 border-[rgba(255,255,255,0.13)]">
-                      <td className="py-2 pr-4 font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Average</td>
+                    <tr className="border-t-2 border-[rgba(0,0,0,0.08)]">
+                      <td className="py-2 pr-4 font-mono text-[9px] uppercase tracking-widest text-[#6a6a90]">Average</td>
                       <td className="py-2 px-2" />
                       {cohortAvgByOffset.map((avg, i) => (
                         <td key={i} className="px-2 py-2 text-center">
-                          <span className="font-mono text-[10px] font-bold text-[#bcbcd8]">{avg > 0 ? `${avg}%` : "—"}</span>
+                          <span className="font-mono text-[10px] font-bold text-[#4a4a6a]">{avg > 0 ? `${avg}%` : "—"}</span>
                         </td>
                       ))}
                     </tr>
@@ -1050,7 +1050,7 @@ export default function CustomersTab({
       {/* ══ §4 — At-Risk Customers ═════════════════════════════════════════ */}
       <section id="at-risk" className={locked ? "relative overflow-hidden rounded-2xl" : ""}>
         {locked && (
-          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-[#1f1f21]/80 backdrop-blur-sm">
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-[#f5f5f7]/80 backdrop-blur-sm">
             <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#a78bfa" strokeWidth={1.8}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
             </svg>
@@ -1060,7 +1060,7 @@ export default function CustomersTab({
         <SectionHeader title="At-Risk Customers" sub="Active customers with no activity in 30+ days, sorted by urgency." />
 
         {atRiskList.length === 0 ? (
-          <div className="rounded-2xl border border-[rgba(255,255,255,0.11)] bg-[#25252c] p-5">
+          <div className="rounded-2xl bg-white ring-1 ring-black/[0.06] p-5 shadow-[0_1px_4px_rgba(0,0,0,0.05)]">
             <div className="flex items-center gap-3 rounded-xl border border-[#10b981]/20 bg-[#10b981]/05 px-4 py-3">
               <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#10b981" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1069,7 +1069,7 @@ export default function CustomersTab({
             </div>
           </div>
         ) : (
-          <div className="rounded-2xl border border-[rgba(255,255,255,0.11)] bg-[#25252c] p-4 sm:p-6">
+          <div className="rounded-2xl bg-white ring-1 ring-black/[0.06] p-4 sm:p-6 shadow-[0_1px_4px_rgba(0,0,0,0.05)]">
             {/* Alert header with CTA */}
             <div className="flex flex-wrap items-center justify-between gap-3 mb-5 rounded-xl border border-[#f59e0b]/25 bg-[#f59e0b]/06 px-4 py-3" style={{ background: "#f59e0b0a" }}>
               <div className="flex items-center gap-2">
@@ -1092,7 +1092,7 @@ export default function CustomersTab({
                   <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /></svg>
                   Email all at-risk
                 </button> */}
-                {/* <button className="rounded-xl bg-[#f59e0b] px-3 py-1.5 font-mono text-[10px] font-bold text-[#1f1f21] hover:bg-[#fbbf24] transition-colors">
+                {/* <button className="rounded-xl bg-[#f59e0b] px-3 py-1.5 font-mono text-[10px] font-bold text-[#f0f0f8] hover:bg-[#fbbf24] transition-colors">
                   → Win-back playbook
                 </button> */}
               </div>
@@ -1112,7 +1112,7 @@ export default function CustomersTab({
                     return (
                       <div
                         key={c.id}
-                        className="flex items-center gap-3 rounded-xl border border-[rgba(255,255,255,0.13)] bg-[#1f1f21] px-4 py-3 hover:border-[#ef4444]/30 transition-all"
+                        className="flex items-center gap-3 rounded-xl border border-[rgba(0,0,0,0.08)] bg-[#f5f5f7] px-4 py-3 hover:border-[#ef4444]/30 transition-all"
                       >
                         <input
                           type="checkbox"
@@ -1126,7 +1126,7 @@ export default function CustomersTab({
                         />
                         <Avatar name={c.name} score={c.score} size={28} />
                         <div className="flex-1 min-w-0">
-                          <p className="font-mono text-[11px] font-semibold text-[#e0e0f0] truncate">{c.name}</p>
+                          <p className="font-mono text-[11px] font-semibold text-[#3a3a58] truncate">{c.name}</p>
                           <p className="font-mono text-[9px] text-[#7575a0]">
                             LTV: {fmtCents(c.totalSpent, revCurrency)} · {c.orderCount} orders · Last: {c.lastSeen}
                           </p>
@@ -1164,7 +1164,7 @@ export default function CustomersTab({
                     return (
                       <div
                         key={c.id}
-                        className="flex items-center gap-3 rounded-xl border border-[rgba(255,255,255,0.13)] bg-[#1f1f21] px-4 py-3 hover:border-[#f59e0b]/30 transition-all"
+                        className="flex items-center gap-3 rounded-xl border border-[rgba(0,0,0,0.08)] bg-[#f5f5f7] px-4 py-3 hover:border-[#f59e0b]/30 transition-all"
                       >
                         <input
                           type="checkbox"
@@ -1178,7 +1178,7 @@ export default function CustomersTab({
                         />
                         <Avatar name={c.name} score={c.score} size={28} />
                         <div className="flex-1 min-w-0">
-                          <p className="font-mono text-[11px] font-semibold text-[#e0e0f0] truncate">{c.name}</p>
+                          <p className="font-mono text-[11px] font-semibold text-[#3a3a58] truncate">{c.name}</p>
                           <p className="font-mono text-[9px] text-[#7575a0]">
                             LTV: {fmtCents(c.totalSpent, revCurrency)} · {c.orderCount} orders · Last: {c.lastSeen}
                           </p>
@@ -1206,7 +1206,7 @@ export default function CustomersTab({
       {/* ══ §5 — Revenue Concentration ════════════════════════════════════ */}
       <section className={locked ? "relative overflow-hidden rounded-2xl" : ""}>
         {locked && (
-          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-[#1f1f21]/80 backdrop-blur-sm">
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-[#f5f5f7]/80 backdrop-blur-sm">
             <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#a78bfa" strokeWidth={1.8}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
             </svg>
@@ -1215,8 +1215,8 @@ export default function CustomersTab({
         )}
         <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
           <div>
-            <h2 className="font-mono text-sm font-bold text-[#f8f8fc] tracking-tight">Revenue Concentration</h2>
-            <p className="mt-0.5 font-mono text-[10px] text-[#8585aa]">How dependent are you on a small group? High concentration = fragile revenue.</p>
+            <h2 className="font-mono text-sm font-bold text-[#1a1a2e] tracking-tight">Revenue Concentration</h2>
+            <p className="mt-0.5 font-mono text-[10px] text-[#6a6a90]">How dependent are you on a small group? High concentration = fragile revenue.</p>
           </div>
           <span
             className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 font-mono text-[9px] font-bold"
@@ -1226,7 +1226,7 @@ export default function CustomersTab({
           </span>
         </div>
 
-        <div className="rounded-2xl border border-[rgba(255,255,255,0.11)] bg-[#25252c] p-4 sm:p-6 space-y-4">
+        <div className="rounded-2xl bg-white ring-1 ring-black/[0.06] p-4 sm:p-6 space-y-4 shadow-[0_1px_4px_rgba(0,0,0,0.05)]">
           {[
             {
               label: `Top 10% of customers (${Math.max(1, Math.floor(stats.totalCustomers * 0.1))})`,
@@ -1247,12 +1247,12 @@ export default function CustomersTab({
               verdict: stats.bottom50pct < 5 ? "Very low contribution from the majority" : "Good long-tail revenue distribution",
             },
           ].map((row) => (
-            <div key={row.label} className="rounded-xl border bg-[#1f1f21] p-4" style={{ borderColor: row.color + "30" }}>
+            <div key={row.label} className="rounded-xl border bg-[#f5f5f7] p-4" style={{ borderColor: row.color + "30" }}>
               <div className="flex flex-wrap items-center justify-between gap-1 mb-2">
-                <p className="font-mono text-[10px] text-[#bcbcd8]">{row.label}</p>
+                <p className="font-mono text-[10px] text-[#4a4a6a]">{row.label}</p>
                 <p className="font-mono text-lg font-bold" style={{ color: row.color }}>{row.pct.toFixed(1)}%</p>
               </div>
-              <div className="h-4 rounded-full bg-[#343447] overflow-hidden mb-2">
+              <div className="h-4 rounded-full bg-[#e8e8f4] overflow-hidden mb-2">
                 <div
                   className="h-full rounded-full transition-all duration-700"
                   style={{ width: `${clamp(row.pct, 0, 100)}%`, backgroundColor: row.color }}
@@ -1263,14 +1263,14 @@ export default function CustomersTab({
           ))}
 
           {/* Pareto callout */}
-          <div className="rounded-xl border border-[rgba(255,255,255,0.11)] bg-[#1f1f21] p-4">
+          <div className="rounded-xl border border-[rgba(0,0,0,0.07)] bg-[#f5f5f7] p-4">
             <div className="flex items-start gap-2 mb-2">
               <span className="text-sm">📊</span>
               <p className="font-mono text-[10px] font-bold text-[#f59e0b]">Pareto Analysis</p>
             </div>
-            <div className="space-y-1 font-mono text-[9px] text-[#8585aa] leading-relaxed pl-5">
+            <div className="space-y-1 font-mono text-[9px] text-[#6a6a90] leading-relaxed pl-5">
               <p>The 80/20 rule predicts your top 20% of customers generate ~80% of revenue.</p>
-              <p>Your top 20% currently generate <span className="font-bold text-[#f8f8fc]">{stats.top25pct.toFixed(0)}%</span> —{" "}
+              <p>Your top 20% currently generate <span className="font-bold text-[#1a1a2e]">{stats.top25pct.toFixed(0)}%</span> —{" "}
                 {stats.top25pct < 60 ? "healthier than average." : stats.top25pct > 85 ? "higher than average — consider diversifying." : "roughly in line with the Pareto expectation."}
               </p>
               <p className="font-bold" style={{ color: concentrationRisk.color }}>
@@ -1288,10 +1288,10 @@ export default function CustomersTab({
           {/* What-if scenario */}
           {topCustomer && (
             <div className="rounded-xl border border-[#6366f1]/25 bg-[#6366f1]/05 p-4" style={{ background: "#6366f108" }}>
-              <p className="font-mono text-[9px] text-[#8585aa] leading-relaxed">
-                <span className="font-bold text-[#a5b4fc]">What-if:</span> If you lost your top customer (<span className="font-bold text-[#f8f8fc]">{topCustomer.name}</span>,{" "}
+              <p className="font-mono text-[9px] text-[#6a6a90] leading-relaxed">
+                <span className="font-bold text-[#a5b4fc]">What-if:</span> If you lost your top customer (<span className="font-bold text-[#1a1a2e]">{topCustomer.name}</span>,{" "}
                 {fmtCents(topCustomer.totalSpent, revCurrency)} LTV), you&apos;d lose{" "}
-                <span className="font-bold text-[#f8f8fc]">{topCustomerPct}%</span> of all-time revenue.
+                <span className="font-bold text-[#1a1a2e]">{topCustomerPct}%</span> of all-time revenue.
               </p>
             </div>
           )}

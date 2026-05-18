@@ -45,7 +45,7 @@ function StepBar({ current, onGoTo }: { current: number; onGoTo: (n: 1 | 2 | 3) 
                 style={{
                   backgroundColor: done ? "#00d4aa" : active ? "#00d4aa18" : "#3a3a5e",
                   border: active ? "1px solid #00d4aa" : done ? "none" : "1px solid #505070",
-                  color: done ? "#0a0a18" : active ? "#00d4aa" : "#7070a0",
+                  color: done ? "#f8f8fc" : active ? "#00d4aa" : "#7070a0",
                 }}
               >
                 {done ? (
@@ -164,7 +164,7 @@ function Step1({
   return (
     <div className="flex min-h-[calc(100vh-57px)]">
       {/* ── Left panel — decorative / context ──────────────────────────── */}
-      <aside className="hidden lg:flex w-105 shrink-0 flex-col justify-between border-r border-[#30305a] bg-[#17172e] px-10 py-14">
+      <aside className="hidden lg:flex w-105 shrink-0 flex-col justify-between border-r border-[#c8c8ec] bg-[#f2f2fc] px-10 py-14">
         <div>
           <div className="mb-10 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#00d4aa]/20 bg-[#00d4aa]/8">
             <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#00d4aa" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
@@ -188,7 +188,7 @@ function Step1({
               <div key={item.title} className="flex gap-3.5">
                 <span className="mt-0.5 shrink-0 font-mono text-[11px] text-[#00d4aa]/60">{item.icon}</span>
                 <div>
-                  <p className="mb-0.5 text-[13px] font-medium text-[#c8c8e8]">{item.title}</p>
+                  <p className="mb-0.5 text-[13px] font-medium text-[#3a3a5a]">{item.title}</p>
                   <p className="text-[12px] leading-relaxed text-[#7878a8]">{item.body}</p>
                 </div>
               </div>
@@ -210,7 +210,7 @@ function Step1({
           </div>
 
           {/* URL card */}
-          <div className="rounded-2xl border border-[#2e2e4a] bg-[#1e1e32] p-6">
+          <div className="rounded-2xl border border-[#d0d0ec] bg-[#f4f4fc] p-6">
             <label className="mb-3 block text-[11px] font-semibold uppercase tracking-widest text-[#7878a8]">
               Website URL
             </label>
@@ -227,7 +227,7 @@ function Step1({
                   onChange={(e) => { setUrl(e.target.value); setExtracted(false); setExtractError(""); }}
                   onKeyDown={(e) => e.key === "Enter" && !extracting && handleExtract()}
                   placeholder="https://yourwebsite.com"
-                  className="w-full rounded-xl border border-[#303055] bg-[#171728] pl-10 pr-4 py-3 text-sm text-[#e8e8f8] placeholder-[#54547a] outline-none transition focus:border-[#00d4aa]/40 focus:ring-2 focus:ring-[#00d4aa]/10"
+                  className="w-full rounded-xl border border-[#c8c8ec] bg-[#f2f2fc] pl-10 pr-4 py-3 text-sm text-[#e8e8f8] placeholder-[#54547a] outline-none transition focus:border-[#00d4aa]/40 focus:ring-2 focus:ring-[#00d4aa]/10"
                 />
               </div>
               <button
@@ -266,7 +266,7 @@ function Step1({
             {extracting && (
               <div className="mt-4 space-y-2.5">
                 {[80, 60, 90].map((w, i) => (
-                  <div key={i} className="h-3 rounded-full bg-[#30305a] animate-pulse" style={{ width: `${w}%` }} />
+                  <div key={i} className="h-3 rounded-full bg-[#e8e8f5] animate-pulse" style={{ width: `${w}%` }} />
                 ))}
               </div>
             )}
@@ -274,7 +274,7 @@ function Step1({
 
           {/* Extracted results card */}
           {(extracted || description) && !extracting && (
-            <div className="mt-4 rounded-2xl border border-[#00d4aa]/15 bg-[#182422] p-6 space-y-5">
+            <div className="mt-4 rounded-2xl border border-[#00d4aa]/15 bg-[#f0f8f4] p-6 space-y-5">
               {/* Badge */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -300,7 +300,7 @@ function Step1({
                     type="text"
                     value={businessName}
                     onChange={(e) => setBusinessName(e.target.value)}
-                    className="w-full rounded-xl border border-[#2a4040] bg-[#121e1c] px-4 py-2.5 text-sm text-[#d8d8f0] placeholder-[#4a7a74] outline-none transition focus:border-[#00d4aa]/35 focus:ring-2 focus:ring-[#00d4aa]/8"
+                    className="w-full rounded-xl border border-[#eaf8f8] bg-[#f0f8f6] px-4 py-2.5 text-sm text-[#d8d8f0] placeholder-[#4a7a74] outline-none transition focus:border-[#00d4aa]/35 focus:ring-2 focus:ring-[#00d4aa]/8"
                   />
                 </div>
               )}
@@ -314,7 +314,7 @@ function Step1({
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={4}
-                  className="w-full resize-none rounded-xl border border-[#2a4040] bg-[#121e1c] px-4 py-3 text-sm text-[#d8d8f0] placeholder-[#4a7a74] outline-none transition focus:border-[#00d4aa]/35 focus:ring-2 focus:ring-[#00d4aa]/8 leading-relaxed"
+                  className="w-full resize-none rounded-xl border border-[#eaf8f8] bg-[#f0f8f6] px-4 py-3 text-sm text-[#d8d8f0] placeholder-[#4a7a74] outline-none transition focus:border-[#00d4aa]/35 focus:ring-2 focus:ring-[#00d4aa]/8 leading-relaxed"
                   placeholder="Describe what your business does, who your customers are, and what problem you solve…"
                 />
                 <p className="mt-1.5 text-[11px] text-[#4a9090]">
@@ -332,8 +332,8 @@ function Step1({
                       onClick={() => setIndustry(opt)}
                       className="rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-all"
                       style={{
-                        backgroundColor: industry === opt ? "#00d4aa15" : "#182422",
-                        borderColor:     industry === opt ? "#00d4aa35" : "#2a4040",
+                        backgroundColor: industry === opt ? "#00d4aa15" : "#f0f8f4",
+                        borderColor:     industry === opt ? "#00d4aa35" : "#eaf8f8",
                         color:           industry === opt ? "#00d4aa" : "#5aafa8",
                       }}
                     >
@@ -348,14 +348,14 @@ function Step1({
           {/* Manual entry prompt — only shown when URL is empty and no extraction */}
           {!extracted && !description && !extracting && (
             <div className="mt-3 flex items-center gap-2">
-              <div className="h-px flex-1 bg-[#30305a]" />
+              <div className="h-px flex-1 bg-[#e8e8f5]" />
               <button
                 onClick={() => { setExtracted(true); }}
                 className="shrink-0 text-[11px] text-[#5858a0] transition hover:text-[#8888b0]"
               >
                 Skip scan — enter description manually
               </button>
-              <div className="h-px flex-1 bg-[#30305a]" />
+              <div className="h-px flex-1 bg-[#e8e8f5]" />
             </div>
           )}
 
@@ -364,7 +364,7 @@ function Step1({
             <button
               onClick={handleNext}
               disabled={!canContinue || saving}
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#00d4aa] px-6 py-3.5 text-[13px] font-semibold text-[#050d0c] transition hover:bg-[#00c49d] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-30"
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#00d4aa] px-6 py-3.5 text-[13px] font-semibold text-[#f4faf8] transition hover:bg-[#00c49d] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-30"
             >
               {saving ? (
                 <>
@@ -384,7 +384,7 @@ function Step1({
             </button>
             <button
               onClick={handleSkip}
-              className="rounded-xl border border-[#2e2e4a] px-4 py-3.5 text-[12px] text-[#8080b0] transition hover:border-[#343447] hover:text-[#a0a0c8]"
+              className="rounded-xl border border-[#d0d0ec] px-4 py-3.5 text-[12px] text-[#6070a0] transition hover:border-[#e8e8f4] hover:text-[#a0a0c8]"
             >
               Skip
             </button>
@@ -478,7 +478,7 @@ function Step2({
   return (
     <div className="flex min-h-[calc(100vh-57px)]">
       {/* ── Left panel ─────────────────────────────────────────────────── */}
-      <aside className="hidden lg:flex w-105 shrink-0 flex-col justify-between border-r border-[#30305a] bg-[#17172e] px-10 py-14">
+      <aside className="hidden lg:flex w-105 shrink-0 flex-col justify-between border-r border-[#c8c8ec] bg-[#f2f2fc] px-10 py-14">
         <div>
           <div className="mb-10 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#6366f1]/20 bg-[#6366f1]/8">
             <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#818cf8" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
@@ -501,7 +501,7 @@ function Step2({
               <div key={item.title} className="flex gap-3.5">
                 <span className="mt-0.5 shrink-0 text-[11px] text-[#6366f1]/50">✦</span>
                 <div>
-                  <p className="mb-0.5 text-[13px] font-medium text-[#c8c8e8]">{item.title}</p>
+                  <p className="mb-0.5 text-[13px] font-medium text-[#3a3a5a]">{item.title}</p>
                   <p className="text-[12px] leading-relaxed text-[#7878a8]">{item.body}</p>
                 </div>
               </div>
@@ -524,7 +524,7 @@ function Step2({
 
           <div className="space-y-5">
             {/* Industry */}
-            <div className="rounded-2xl border border-[#2e2e4a] bg-[#1e1e32] p-5">
+            <div className="rounded-2xl border border-[#d0d0ec] bg-[#f4f4fc] p-5">
               <div className="mb-3 flex items-center justify-between">
                 <label className="text-[11px] font-semibold uppercase tracking-widest text-[#7878a8]">
                   Industry <span className="text-[#ef4444] normal-case tracking-normal font-normal">required</span>
@@ -539,8 +539,8 @@ function Step2({
                     onClick={() => setIndustry(opt)}
                     className="rounded-xl border px-3.5 py-2 text-[12px] font-medium transition-all active:scale-[0.97]"
                     style={{
-                      backgroundColor: industry === opt ? "#6366f115" : "#171728",
-                      borderColor:     industry === opt ? "#6366f140" : "#303055",
+                      backgroundColor: industry === opt ? "#6366f115" : "#f2f2fc",
+                      borderColor:     industry === opt ? "#6366f140" : "#e8e8f5",
                       color:           industry === opt ? "#818cf8" : "#8888b0",
                     }}
                   >
@@ -551,7 +551,7 @@ function Step2({
             </div>
 
             {/* Team size */}
-            <div className="rounded-2xl border border-[#2e2e4a] bg-[#1e1e32] p-5">
+            <div className="rounded-2xl border border-[#d0d0ec] bg-[#f4f4fc] p-5">
               <div className="mb-3 flex items-center justify-between">
                 <label className="text-[11px] font-semibold uppercase tracking-widest text-[#7878a8]">
                   Team size <span className="text-[#ef4444] normal-case tracking-normal font-normal">required</span>
@@ -570,8 +570,8 @@ function Step2({
                     onClick={() => setEmployeeCount(opt.value)}
                     className="rounded-xl border px-4 py-2.5 text-[12px] font-medium transition-all active:scale-[0.97]"
                     style={{
-                      backgroundColor: employeeCount === opt.value ? "#6366f115" : "#171728",
-                      borderColor:     employeeCount === opt.value ? "#6366f140" : "#303055",
+                      backgroundColor: employeeCount === opt.value ? "#6366f115" : "#f2f2fc",
+                      borderColor:     employeeCount === opt.value ? "#6366f140" : "#e8e8f5",
                       color:           employeeCount === opt.value ? "#818cf8" : "#8888b0",
                     }}
                   >
@@ -582,7 +582,7 @@ function Step2({
             </div>
 
             {/* Monthly revenue */}
-            <div className="rounded-2xl border border-[#2e2e4a] bg-[#1e1e32] p-5">
+            <div className="rounded-2xl border border-[#d0d0ec] bg-[#f4f4fc] p-5">
               <div className="mb-3 flex items-center justify-between">
                 <label className="text-[11px] font-semibold uppercase tracking-widest text-[#7878a8]">
                   Monthly revenue <span className="text-[#ef4444] normal-case tracking-normal font-normal">required</span>
@@ -601,8 +601,8 @@ function Step2({
                     onClick={() => setMonthlyRevenue(opt.value)}
                     className="rounded-xl border px-3.5 py-2 text-[12px] font-medium transition-all active:scale-[0.97]"
                     style={{
-                      backgroundColor: monthlyRevenue === opt.value ? "#6366f115" : "#171728",
-                      borderColor:     monthlyRevenue === opt.value ? "#6366f140" : "#303055",
+                      backgroundColor: monthlyRevenue === opt.value ? "#6366f115" : "#f2f2fc",
+                      borderColor:     monthlyRevenue === opt.value ? "#6366f140" : "#e8e8f5",
                       color:           monthlyRevenue === opt.value ? "#818cf8" : "#8888b0",
                     }}
                   >
@@ -613,7 +613,7 @@ function Step2({
             </div>
 
             {/* Referral source */}
-            <div className="rounded-2xl border border-[#2e2e4a] bg-[#1e1e32] p-5">
+            <div className="rounded-2xl border border-[#d0d0ec] bg-[#f4f4fc] p-5">
               <div className="mb-3 flex items-center gap-2">
                 <label className="text-[11px] font-semibold uppercase tracking-widest text-[#7878a8]">How did you hear about Fold?</label>
                 <span className="text-[10px] text-[#5858a0]">optional</span>
@@ -626,8 +626,8 @@ function Step2({
                     onClick={() => setReferralSource(referralSource === opt.value ? "" : opt.value)}
                     className="rounded-xl border px-3.5 py-2 text-[12px] font-medium transition-all active:scale-[0.97]"
                     style={{
-                      backgroundColor: referralSource === opt.value ? "#6366f115" : "#171728",
-                      borderColor:     referralSource === opt.value ? "#6366f140" : "#303055",
+                      backgroundColor: referralSource === opt.value ? "#6366f115" : "#f2f2fc",
+                      borderColor:     referralSource === opt.value ? "#6366f140" : "#e8e8f5",
                       color:           referralSource === opt.value ? "#818cf8" : "#8888b0",
                     }}
                   >
@@ -642,7 +642,7 @@ function Step2({
           <div className="mt-6 flex items-center gap-3">
             <button
               onClick={onBack}
-              className="flex items-center gap-1.5 rounded-xl border border-[#2e2e4a] px-4 py-3.5 text-[12px] text-[#8080b0] transition hover:border-[#404068] hover:text-[#a0a0c8]"
+              className="flex items-center gap-1.5 rounded-xl border border-[#d0d0ec] px-4 py-3.5 text-[12px] text-[#6070a0] transition hover:border-[#c0c0e8] hover:text-[#a0a0c8]"
             >
               <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
@@ -652,7 +652,7 @@ function Step2({
             <button
               onClick={handleNext}
               disabled={!canContinue || saving}
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#6366f1] px-6 py-3.5 text-[13px] font-semibold text-white transition hover:bg-[#5558e8] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-30"
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#6366f1] px-6 py-3.5 text-[13px] font-semibold text-[#1a1a2e] transition hover:bg-[#5558e8] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-30"
             >
               {saving ? (
                 <>
@@ -762,16 +762,16 @@ export default function OnboardingWizard({
   }
 
   return (
-    <div className="min-h-screen bg-[#13132a] text-[#f8f8fc]">
+    <div className="min-h-screen bg-[#f4f4fc] text-[#1a1a2e]">
       {/* ── Top bar ───────────────────────────────────────────────────────── */}
-      <header className="border-b border-[#3a3a58] bg-[#22223a]/90 backdrop-blur-sm px-6 py-3.5 sticky top-0 z-30">
+      <header className="border-b border-[#3a3a58] bg-[#f2f2f8]/90 backdrop-blur-sm px-6 py-3.5 sticky top-0 z-30">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
           <a href="/">
             <img src="/fold-primary-dark.svg" alt="Fold" className="h-7 w-auto" />
           </a>
           <StepBar current={step} onGoTo={(n) => setStep(n)} />
           <div className="flex items-center gap-3">
-            <span className="hidden font-mono text-[11px] text-[#8080b0] sm:block truncate max-w-40">
+            <span className="hidden font-mono text-[11px] text-[#6070a0] sm:block truncate max-w-40">
               {userEmail}
             </span>
             <button

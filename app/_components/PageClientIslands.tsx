@@ -144,14 +144,14 @@ function OverviewMockup() {
       </div>
       <div className="grid grid-cols-3 gap-2">
         {kpis.map((k) => (
-          <div key={k.label} className="rounded-xl border border-[#363650] bg-[#343447] p-2.5">
+          <div key={k.label} className="rounded-xl border border-[#d4d4e8] bg-[#e8e8f4] p-2.5">
             <p className="font-mono text-[8px] uppercase tracking-widest text-[#8585aa] mb-1">{k.label}</p>
-            <p className="font-mono text-sm font-bold text-[#f8f8fc]">{k.value}</p>
+            <p className="font-mono text-sm font-bold text-[#1a1a2e]">{k.value}</p>
             <p className={`font-mono text-[9px] ${k.up ? "text-[#00d4aa]" : "text-red-400"}`}>{k.change}</p>
           </div>
         ))}
       </div>
-      <div className="rounded-xl border border-[#363650] bg-[#343447] p-3">
+      <div className="rounded-xl border border-[#d4d4e8] bg-[#e8e8f4] p-3">
         <p className="mb-2 font-mono text-[8px] uppercase tracking-widest text-[#8585aa]">Revenue — last 7 days</p>
         <div className="flex items-end gap-1 h-10">
           {[45, 62, 55, 78, 70, 88, 95].map((h, i) => (
@@ -203,11 +203,11 @@ function AnalyticsMockup() {
   return (
     <div className="flex flex-col gap-1.5 max-h-85 overflow-y-auto pr-0.5" style={{ scrollbarWidth: "none" }}>
       {platforms.map((p) => (
-        <div key={p.name} className="rounded-lg border border-[#363650] bg-[#343447] px-3 py-2 flex items-center gap-3">
+        <div key={p.name} className="rounded-lg border border-[#d4d4e8] bg-[#e8e8f4] px-3 py-2 flex items-center gap-3">
           {/* color dot */}
           <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
           {/* name */}
-          <p className="font-mono text-[9px] uppercase tracking-widest text-[#bcbcd8] w-19 shrink-0 truncate">{p.name}</p>
+          <p className="font-mono text-[9px] uppercase tracking-widest text-[#5a5a7a] w-19 shrink-0 truncate">{p.name}</p>
           {/* mini sparkbar */}
           <div className="flex items-end gap-px h-5 flex-1">
             {p.vals.map((h, i) => (
@@ -236,10 +236,10 @@ function WebsiteMockup() {
   ];
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-4 rounded-xl border border-[#363650] bg-[#343447] p-3">
+      <div className="flex items-center gap-4 rounded-xl border border-[#d4d4e8] bg-[#e8e8f4] p-3">
         <div className="relative flex items-center justify-center shrink-0">
           <svg width="64" height="64" viewBox="0 0 64 64" className="-rotate-90">
-            <circle cx="32" cy="32" r="26" fill="none" stroke="#363650" strokeWidth="5" />
+            <circle cx="32" cy="32" r="26" fill="none" stroke="#e5e5f5" strokeWidth="5" />
             <circle cx="32" cy="32" r="26" fill="none" stroke="#f59e0b" strokeWidth="5" strokeLinecap="round"
               strokeDasharray={`${2 * Math.PI * 26}`} strokeDashoffset={`${2 * Math.PI * 26 * (1 - score / 100)}`} />
           </svg>
@@ -253,9 +253,9 @@ function WebsiteMockup() {
       </div>
       <div className="space-y-1.5">
         {tasks.map((t) => (
-          <div key={t.label} className="flex items-center gap-2.5 rounded-xl border border-[#363650] bg-[#343447] px-3 py-2">
+          <div key={t.label} className="flex items-center gap-2.5 rounded-xl border border-[#d4d4e8] bg-[#e8e8f4] px-3 py-2">
             <span className="font-mono text-[8px] font-bold px-1.5 py-0.5 rounded" style={{ color: t.color, backgroundColor: `${t.color}15` }}>{t.cat}</span>
-            <span className="flex-1 min-w-0 font-mono text-[10px] text-[#e0e0f0] truncate">{t.label}</span>
+            <span className="flex-1 min-w-0 font-mono text-[10px] text-[#3a3a5a] truncate">{t.label}</span>
             <span className="font-mono text-[9px] font-bold text-[#f59e0b] shrink-0">+{t.pts}</span>
           </div>
         ))}
@@ -273,16 +273,16 @@ function AiMockup() {
     <div className="space-y-2.5">
       <div className="rounded-xl border border-[#00d4aa]/20 bg-[#00d4aa]/5 p-3 mb-1">
         <p className="font-mono text-[8px] uppercase tracking-widest text-[#00d4aa] mb-1.5">Daily Insight</p>
-        <p className="font-mono text-[10px] text-[#e0e0f0] leading-relaxed">
-          <span className="text-[#f8f8fc] font-semibold">Revenue up 8.2%</span> this week. Highest-converting source is organic search (34% CR). CAC improved 18% — your A/B test is working.
+        <p className="font-mono text-[10px] text-[#3a3a5a] leading-relaxed">
+          <span className="text-[#1a1a2e] font-semibold">Revenue up 8.2%</span> this week. Highest-converting source is organic search (34% CR). CAC improved 18% — your A/B test is working.
         </p>
       </div>
       {msgs.map((m, i) => (
         <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
           <div className={`max-w-[85%] rounded-xl px-3 py-2 font-mono text-[10px] leading-relaxed ${
             m.role === "user"
-              ? "bg-[#6366f1]/15 border border-[#6366f1]/20 text-[#e0e0f0]"
-              : "bg-[#343447] border border-[#363650] text-[#e0e0f0]"
+              ? "bg-[#6366f1]/15 border border-[#6366f1]/20 text-[#3a3a5a]"
+              : "bg-[#e8e8f4] border border-[#d4d4e8] text-[#3a3a5a]"
           }`}>
             {m.role === "ai" && <span className="block font-mono text-[8px] uppercase tracking-widest text-[#00d4aa] mb-1">AI Advisor</span>}
             {m.text}
@@ -308,7 +308,7 @@ export function DashboardMockup() {
   return (
     <div className="relative w-11/12 md:w-full max-w-xl mx-auto select-none">
       <div className="pointer-events-none absolute -inset-6 rounded-3xl bg-[#00d4aa]/6 blur-3xl" />
-      <div className="relative rounded-2xl border border-[#363650] bg-[#2e2e3c]/95 shadow-2xl overflow-hidden">
+      <div className="relative rounded-2xl border border-[#d4d4e8] bg-[#f0f0f8]/95 shadow-2xl overflow-hidden">
         <div className="flex items-center gap-1.5 px-4 pt-3 pb-0">
           <div className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
           <div className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
@@ -319,7 +319,7 @@ export function DashboardMockup() {
             <span className="font-mono text-[9px] text-[#00d4aa] tracking-widest">LIVE</span>
           </div>
         </div>
-        <div className="flex border-b border-[#363650] px-4 mt-3">
+        <div className="flex border-b border-[#d4d4e8] px-4 mt-3">
           {tabs.map((t) => (
             <button
               key={t.id}
@@ -329,7 +329,7 @@ export function DashboardMockup() {
                   ? "border-[#00d4aa] text-[#00d4aa]"
                   : t.premium
                   ? "border-transparent text-[#3a3a5a] hover:text-[#6a6a8a]"
-                  : "border-transparent text-[#8585aa] hover:text-[#bcbcd8]"
+                  : "border-transparent text-[#8585aa] hover:text-[#5a5a7a]"
               }`}
             >
               {t.label}
@@ -347,15 +347,15 @@ export function DashboardMockup() {
           {activeTab === "website"   && <WebsiteMockup />}
           {activeTab === "ai"        && <AiMockup />}
           {activePremium && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center rounded-b-2xl backdrop-blur-sm bg-[#2e2e3c]/80">
+            <div className="absolute inset-0 flex flex-col items-center justify-center rounded-b-2xl backdrop-blur-sm bg-[#f0f0f8]/80">
               <div className="flex h-11 w-11 items-center justify-center rounded-full border border-[#a78bfa]/30 bg-[#a78bfa]/10 mb-3">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-[#a78bfa]">
                   <path d="M12 1a5 5 0 00-5 5v3H5a2 2 0 00-2 2v10a2 2 0 002 2h14a2 2 0 002-2V11a2 2 0 00-2-2h-2V6a5 5 0 00-5-5zm3 8H9V6a3 3 0 116 0v3z"/>
                 </svg>
               </div>
-              <p className="font-mono text-xs font-bold uppercase tracking-widest text-[#f8f8fc] mb-1">Premium feature</p>
+              <p className="font-mono text-xs font-bold uppercase tracking-widest text-[#1a1a2e] mb-1">Premium feature</p>
               <p className="font-mono text-[10px] text-[#8585aa] mb-4 text-center px-6">Upgrade to unlock Analytics, Website Optimizer &amp; AI Advisor.</p>
-              <a href="/signup" className="rounded-xl bg-[#a78bfa] px-5 py-2 font-mono text-[10px] font-bold uppercase tracking-wider text-[#252531] transition-all hover:bg-[#9674f5]">
+              <a href="/signup" className="rounded-xl bg-[#a78bfa] px-5 py-2 font-mono text-[10px] font-bold uppercase tracking-wider text-[#3a3a4e] transition-all hover:bg-[#9674f5]">
                 Upgrade to Premium
               </a>
             </div>
@@ -383,11 +383,11 @@ const FAQ_ITEMS = [
 function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="border-b border-[#363650] last:border-0">
+    <div className="border-b border-[#d4d4e8] last:border-0">
       <button onClick={() => setOpen((v) => !v)} className="flex w-full items-center justify-between gap-4 py-5 text-left">
-        <span className="font-mono text-sm font-semibold text-[#f8f8fc]">{q}</span>
+        <span className="font-mono text-sm font-semibold text-[#1a1a2e]">{q}</span>
         <span
-          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[#363650] text-[#8585aa] transition-transform duration-200"
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[#d4d4e8] text-[#8585aa] transition-transform duration-200"
           style={{ transform: open ? "rotate(45deg)" : "rotate(0deg)" }}
         >
           <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
@@ -395,14 +395,14 @@ function FaqItem({ q, a }: { q: string; a: string }) {
           </svg>
         </span>
       </button>
-      {open && <p className="pb-5 text-sm leading-relaxed text-[#bcbcd8]">{a}</p>}
+      {open && <p className="pb-5 text-sm leading-relaxed text-[#5a5a7a]">{a}</p>}
     </div>
   );
 }
 
 export function FaqSection() {
   return (
-    <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 px-6 divide-y-0">
+    <div className="rounded-2xl border border-[#d4d4e8] bg-[#f0f0f8]/60 px-6 divide-y-0">
       {FAQ_ITEMS.map((item) => (
         <FaqItem key={item.q} q={item.q} a={item.a} />
       ))}
@@ -436,7 +436,7 @@ export function Nav() {
 
   return (
     <nav className={`fixed top-0 z-50 w-full backdrop-blur-xl transition-all duration-300 ${
-      scrolled ? "border-b border-[#363650] bg-[#252531]/90" : "bg-[#252531]/60 border-b border-[#363650]/40"
+      scrolled ? "border-b border-[#d4d4e8] bg-[#f5f5f8]/90" : "bg-[#f5f5f8]/60 border-b border-[#d4d4e8]/40"
     }`}>
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         <a href="/">
@@ -444,16 +444,16 @@ export function Nav() {
         </a>
         <div className="hidden md:flex items-center gap-8">
           {links.map((l) => (
-            <a key={l.href} href={l.href} className="font-mono text-xs uppercase tracking-widest text-[#8585aa] transition-colors hover:text-[#f8f8fc]">
+            <a key={l.href} href={l.href} className="font-mono text-xs uppercase tracking-widest text-[#8585aa] transition-colors hover:text-[#1a1a2e]">
               {l.label}
             </a>
           ))}
         </div>
         <div className="flex items-center gap-3">
           {/* <ThemeToggle /> */}
-          <a href="/login" className="hidden md:block font-mono text-xs uppercase tracking-widest text-[#8585aa] transition-colors hover:text-[#f8f8fc] px-3 py-2">Sign in</a>
-          <a href="/signup" className="rounded-xl bg-[#00d4aa] px-4 py-2 font-mono text-xs font-semibold uppercase tracking-wider text-[#252531] transition-all hover:bg-[#00bfa0]">Get started free</a>
-          <button className="md:hidden p-2 text-[#8585aa] hover:text-[#f8f8fc]" onClick={() => setMobileOpen((v) => !v)} aria-label="Toggle menu">
+          <a href="/login" className="hidden md:block font-mono text-xs uppercase tracking-widest text-[#8585aa] transition-colors hover:text-[#1a1a2e] px-3 py-2">Sign in</a>
+          <a href="/signup" className="rounded-xl bg-[#00d4aa] px-4 py-2 font-mono text-xs font-semibold uppercase tracking-wider text-[#3a3a4e] transition-all hover:bg-[#00bfa0]">Get started free</a>
+          <button className="md:hidden p-2 text-[#8585aa] hover:text-[#1a1a2e]" onClick={() => setMobileOpen((v) => !v)} aria-label="Toggle menu">
             <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth={1.8}>
               {mobileOpen ? (
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -469,13 +469,13 @@ export function Nav() {
         </div>
       </div>
       {mobileOpen && (
-        <div className="md:hidden border-t border-[#363650] bg-[#252531]/95 backdrop-blur-xl px-6 py-4 space-y-3">
+        <div className="md:hidden border-t border-[#d4d4e8] bg-[#f5f5f8]/95 backdrop-blur-xl px-6 py-4 space-y-3">
           {links.map((l) => (
-            <a key={l.href} href={l.href} onClick={() => setMobileOpen(false)} className="block font-mono text-xs uppercase tracking-widest text-[#bcbcd8] py-2 hover:text-[#f8f8fc]">
+            <a key={l.href} href={l.href} onClick={() => setMobileOpen(false)} className="block font-mono text-xs uppercase tracking-widest text-[#5a5a7a] py-2 hover:text-[#1a1a2e]">
               {l.label}
             </a>
           ))}
-          <a href="/login" className="block font-mono text-xs uppercase tracking-widest text-[#bcbcd8] py-2 hover:text-[#f8f8fc]">Sign in</a>
+          <a href="/login" className="block font-mono text-xs uppercase tracking-widest text-[#5a5a7a] py-2 hover:text-[#1a1a2e]">Sign in</a>
           <a href="/signup" className="block font-mono text-xs uppercase tracking-widest text-[#00d4aa] py-2 font-semibold hover:text-[#00bfa0]">Get started free</a>
         </div>
       )}

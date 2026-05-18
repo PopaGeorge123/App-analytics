@@ -11,27 +11,27 @@
 function Skeleton({ className = "" }: { className?: string }) {
   return (
     <div
-      className={`rounded-lg bg-[#363650]/60 animate-pulse ${className}`}
+      className={`rounded-lg bg-[#d4d4e8]/60 animate-pulse ${className}`}
     />
   );
 }
 
 export default function DashboardLoading() {
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-[#252531] text-[#f8f8fc]">
+    <div className="flex h-screen flex-col overflow-hidden bg-[#fafafa] text-[#1a1a2e]">
 
       {/* ── Top bar ──────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-40 border-b border-[#363650] bg-[#2e2e3c]/95">
+      <header className="sticky top-0 z-40 border-b border-[#d4d4e8] bg-[#f2f2f8]/95">
         <div className="flex items-center justify-between px-5 py-3">
           <div className="flex items-center gap-3">
             {/* Logo placeholder */}
             <Skeleton className="h-7 w-20" />
-            <span className="hidden text-[#363650] sm:block">/</span>
+            <span className="hidden text-[#d4d4e8] sm:block">/</span>
             <Skeleton className="hidden sm:block h-3 w-20" />
           </div>
           <div className="flex items-center gap-3">
             <Skeleton className="hidden sm:block h-5 w-24 rounded-full" />
-            <div className="hidden h-4 w-px bg-[#363650] sm:block" />
+            <div className="hidden h-4 w-px bg-[#d4d4e8] sm:block" />
             <Skeleton className="hidden sm:block h-3 w-32" />
             <Skeleton className="h-8 w-20 rounded-xl" />
           </div>
@@ -42,9 +42,9 @@ export default function DashboardLoading() {
       <div className="flex flex-1 overflow-hidden">
 
         {/* ── Sidebar ──────────────────────────────────────────────────── */}
-        <aside className="hidden lg:flex flex-col w-56 shrink-0 border-r border-[#363650] bg-[#2e2e3c]">
+        <aside className="hidden lg:flex flex-col w-56 shrink-0 border-r border-[#d4d4e8] bg-[#f2f2f8]">
           {/* User info */}
-          <div className="px-4 pt-5 pb-4 border-b border-[#363650]/60 flex items-center gap-3">
+          <div className="px-4 pt-5 pb-4 border-b border-[#d4d4e8]/60 flex items-center gap-3">
             <Skeleton className="h-8 w-8 rounded-lg shrink-0" />
             <div className="flex-1 space-y-1.5">
               <Skeleton className="h-2.5 w-full" />
@@ -64,7 +64,7 @@ export default function DashboardLoading() {
           </nav>
 
           {/* Bottom card */}
-          <div className="p-3 border-t border-[#363650]/60">
+          <div className="p-3 border-t border-[#d4d4e8]/60">
             <Skeleton className="h-14 w-full rounded-xl" />
           </div>
         </aside>
@@ -81,7 +81,7 @@ export default function DashboardLoading() {
             {/* KPI cards row */}
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
               {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="rounded-2xl border border-[#363650] bg-[#2e2e3c] p-4 space-y-3">
+                <div key={i} className="rounded-2xl border border-[#d4d4e8] bg-[#f2f2f8] p-4 space-y-3">
                   <Skeleton className="h-2.5 w-16" />
                   <Skeleton className="h-6 w-3/4" />
                   <Skeleton className="h-2 w-12" />
@@ -90,7 +90,7 @@ export default function DashboardLoading() {
                     {[55, 40, 65, 50, 70, 60, 80].map((h, j) => (
                       <div
                         key={j}
-                        className="flex-1 rounded-sm bg-[#363650]/80 animate-pulse"
+                        className="flex-1 rounded-sm bg-[#d4d4e8]/80 animate-pulse"
                         style={{ height: `${h}%`, animationDelay: `${j * 60}ms` }}
                       />
                     ))}
@@ -100,7 +100,7 @@ export default function DashboardLoading() {
             </div>
 
             {/* Main chart panel */}
-            <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c] p-6 space-y-4">
+            <div className="rounded-2xl border border-[#d4d4e8] bg-[#f2f2f8] p-6 space-y-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-1.5">
                   <Skeleton className="h-3 w-32" />
@@ -128,7 +128,7 @@ export default function DashboardLoading() {
             {/* Two-column lower row */}
             <div className="grid gap-4 lg:grid-cols-2">
               {/* Insights panel */}
-              <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c] p-5 space-y-4">
+              <div className="rounded-2xl border border-[#d4d4e8] bg-[#f2f2f8] p-5 space-y-4">
                 <Skeleton className="h-3 w-24" />
                 {Array.from({ length: 3 }).map((_, i) => (
                   <div key={i} className="flex items-start gap-3">
@@ -143,7 +143,7 @@ export default function DashboardLoading() {
               </div>
 
               {/* Activity feed */}
-              <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c] p-5 space-y-4">
+              <div className="rounded-2xl border border-[#d4d4e8] bg-[#f2f2f8] p-5 space-y-4">
                 <Skeleton className="h-3 w-28" />
                 {Array.from({ length: 4 }).map((_, i) => (
                   <div key={i} className="flex items-center gap-3">

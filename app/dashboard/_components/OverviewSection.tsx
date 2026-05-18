@@ -413,7 +413,7 @@ function pctChange(curr: number, prev: number): { pct: number; up: boolean } | n
 function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload || !payload.length) return null;
   return (
-    <div className="rounded-xl border border-[rgba(255,255,255,0.10)] bg-[#1f1f21] px-3 py-2.5 shadow-2xl">
+    <div className="rounded-xl border border-[#eeeef4] bg-[#f5f5f7] px-3 py-2.5 shadow-2xl">
       <p className="mb-1.5 font-mono text-[10px] text-[#64748b]">{label}</p>
       {payload.map(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -421,7 +421,7 @@ function CustomTooltip({ active, payload, label }: any) {
           <div key={entry.name} className="flex items-center gap-2">
             <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: entry.color }} />
             <span className="font-mono text-[11px] text-[#94a3b8]">{entry.name}:</span>
-            <span className="font-mono text-[11px] font-bold text-white">{entry.value}</span>
+            <span className="font-mono text-[11px] font-bold text-[#1a1a2e]">{entry.value}</span>
           </div>
         )
       )}
@@ -447,7 +447,7 @@ function KpiCard({
   icon: string;
 }) {
   return (
-    <div className="rounded-xl border border-[#363650] bg-[#343447] p-5 flex flex-col gap-2">
+    <div className="rounded-xl border border-[#d4d4e8] bg-[#e8e8f4] p-5 flex flex-col gap-2">
       <div className="flex items-center justify-between">
         <span className="text-lg">{icon}</span>
         {change && (
@@ -466,7 +466,7 @@ function KpiCard({
         <p className="font-mono text-2xl font-bold" style={{ color }}>
           {value}
         </p>
-        <p className="mt-0.5 font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">
+        <p className="mt-0.5 font-mono text-[9px] uppercase tracking-widest text-[#6a6a90]">
           {label}
         </p>
         {sub && <p className="mt-1 font-mono text-[10px] text-[#6666888]">{sub}</p>}
@@ -490,7 +490,7 @@ function InsightCard({
 }) {
   return (
     <div
-      className="rounded-xl border bg-[#343447] p-4 flex gap-3"
+      className="rounded-xl border bg-[#e8e8f4] p-4 flex gap-3"
       style={{ borderColor: `${accent}30` }}
     >
       <div
@@ -500,8 +500,8 @@ function InsightCard({
         {icon}
       </div>
       <div>
-        <p className="font-mono text-xs font-semibold text-[#f8f8fc]">{title}</p>
-        <p className="mt-1 text-xs leading-relaxed text-[#bcbcd8]">{body}</p>
+        <p className="font-mono text-xs font-semibold text-[#1a1a2e]">{title}</p>
+        <p className="mt-1 text-xs leading-relaxed text-[#4a4a6a]">{body}</p>
       </div>
     </div>
   );
@@ -1301,7 +1301,7 @@ function GrowthPulseChart({
   function PulseTooltip({ active, payload, label }: any) {
     if (!active || !payload?.length) return null;
     return (
-      <div className="rounded-xl border border-[rgba(255,255,255,0.10)] bg-[#1f1f21] px-3 py-2.5 shadow-2xl min-w-36">
+      <div className="rounded-xl border border-[#eeeef4] bg-[#f5f5f7] px-3 py-2.5 shadow-2xl min-w-36">
         <p className="mb-1.5 font-mono text-[10px] text-[#64748b]">{label}</p>
         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
         {payload.map((entry: any) => {
@@ -1310,14 +1310,14 @@ function GrowthPulseChart({
             <div key={entry.dataKey} className="flex items-center gap-2">
               <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: entry.color }} />
               <span className="font-mono text-[10px] text-[#94a3b8]">{entry.name}:</span>
-              <span className="font-mono text-[10px] font-bold text-white">
+              <span className="font-mono text-[10px] font-bold text-[#1a1a2e]">
                 {typeof entry.value === "number" ? formatPulseValue(entry.dataKey as GrowthPulseSeries, entry.value) : entry.value}
               </span>
             </div>
           );
         })}
         {payload.find((e: { dataKey: string }) => e.dataKey === "wowDelta") && (
-          <div className="mt-1.5 border-t border-[rgba(255,255,255,0.11)] pt-1.5">
+          <div className="mt-1.5 border-t border-[rgba(0,0,0,0.07)] pt-1.5">
             <span className="font-mono text-[10px]" style={{ color: payload.find((e: { dataKey: string }) => e.dataKey === "wowDelta")?.value >= 0 ? "#00d4aa" : "#f87171" }}>
               WoW: {payload.find((e: { dataKey: string }) => e.dataKey === "wowDelta")?.value >= 0 ? "+" : ""}{payload.find((e: { dataKey: string }) => e.dataKey === "wowDelta")?.value}%
             </span>
@@ -1328,7 +1328,7 @@ function GrowthPulseChart({
   }
 
   return (
-    <div className="rounded-xl border border-[rgba(255,255,255,0.11)] bg-[#13131a] p-4 space-y-3">
+    <div className="rounded-xl bg-white ring-1 ring-black/[0.06] p-4 space-y-3 shadow-[0_1px_4px_rgba(0,0,0,0.05)]">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
@@ -1338,8 +1338,8 @@ function GrowthPulseChart({
             </svg>
           </div>
           <div>
-            <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Growth Pulse</h3>
-            <p className="font-mono text-[10px] text-[#8585aa]">7-day rolling totals · WoW revenue delta bars</p>
+            <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">Growth Pulse</h3>
+            <p className="font-mono text-[10px] text-[#6a6a90]">7-day rolling totals · WoW revenue delta bars</p>
           </div>
         </div>
         {/* Series toggles */}
@@ -1355,12 +1355,12 @@ function GrowthPulseChart({
                 title={isLocked ? "Always shown" : undefined}
                 className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 font-mono text-[10px] font-semibold transition-all ${
                   enabled
-                    ? "border-[#363650] text-[#f8f8fc]"
-                    : "border-[#363650]/50 text-[#7575a0] opacity-50"
+                    ? "border-[#d4d4e8] text-[#1a1a2e]"
+                    : "border-[#d4d4e8]/50 text-[#7575a0] opacity-50"
                 } ${isLocked ? "cursor-default" : ""}`}
                 style={enabled ? { borderColor: meta.color + "50", backgroundColor: meta.color + "12", color: meta.color } : {}}
               >
-                <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: enabled ? meta.color : "#363650" }} />
+                <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: enabled ? meta.color : "#d4d4e8" }} />
                 {meta.label}
                 {isLocked && <span className="opacity-50">·</span>}
               </button>
@@ -1390,7 +1390,7 @@ function GrowthPulseChart({
                   {meta.icon}
                 </div>
                 <div>
-                  <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">{meta.label.replace(" (7d roll.)", "")}</p>
+                  <p className="font-mono text-[9px] uppercase tracking-widest text-[#6a6a90]">{meta.label.replace(" (7d roll.)", "")}</p>
                   <div className="flex items-center gap-1.5">
                     <p className="font-mono text-sm font-bold" style={{ color: meta.color }}>
                       {formatPulseValue(s, curr)}
@@ -1419,7 +1419,7 @@ function GrowthPulseChart({
               </linearGradient>
             ))}
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.13)" vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.08)" vertical={false} />
           <XAxis dataKey="date" tick={{ fill: "#64748b", fontSize: 9, fontFamily: "monospace" }} tickLine={false} axisLine={false} interval="preserveStartEnd" tickMargin={4} />
           <YAxis yAxisId="left" tick={{ fill: "#64748b", fontSize: 9, fontFamily: "monospace" }} tickLine={false} axisLine={false} width={44} />
           <YAxis yAxisId="right" orientation="right" tick={{ fill: "#64748b", fontSize: 9, fontFamily: "monospace" }} tickLine={false} axisLine={false} width={44} />
@@ -1430,7 +1430,7 @@ function GrowthPulseChart({
               dataKey="wowDelta"
               yAxisId="right"
               name="WoW %"
-              fill="#363650"
+              fill="#d4d4e8"
               opacity={0}
               // Use custom cell coloring via a Cell workaround — we render this as a transparent bar
               // The actual delta tooltip value is shown via tooltip
@@ -1450,7 +1450,7 @@ function GrowthPulseChart({
               activeDot={{ r: 3, strokeWidth: 0 }}
             />
           ))}
-          <Brush dataKey="date" height={18} stroke="#363650" fill="#252531" travellerWidth={5} startIndex={Math.max(0, chartData.length - 30)} tickFormatter={() => ""} />
+          <Brush dataKey="date" height={18} stroke="#d4d4e8" fill="#fafafa" travellerWidth={5} startIndex={Math.max(0, chartData.length - 30)} tickFormatter={() => ""} />
         </ComposedChart>
       </ResponsiveContainer>
 
@@ -1749,10 +1749,10 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
       </div>
 
       {/* ── Chart Panel ─────────────────────────────────────────── */}
-      <div className="rounded-xl border border-[rgba(255,255,255,0.11)] bg-[#13131a] overflow-hidden">
+      <div className="rounded-xl bg-white ring-1 ring-black/[0.06] overflow-hidden">
 
         {/* ── Report Selector Header ──────────────────────────── */}
-        <div className="border-b border-[#363650] bg-[#2e2e3c]/60 px-6 pt-5 pb-0">
+        <div className="border-b border-[#d4d4e8] bg-[#f2f2f8]/60 px-6 pt-5 pb-0">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#635bff]/15">
@@ -1760,7 +1760,7 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
                   <path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/>
                 </svg>
               </div>
-              <span className="font-mono text-[11px] font-semibold text-[#f8f8fc]">Chart View</span>
+              <span className="font-mono text-[11px] font-semibold text-[#1a1a2e]">Chart View</span>
               {popChange && (
                 <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[9px] font-bold ${popChange.up ? "bg-[#00d4aa]/12 text-[#00d4aa]" : "bg-red-400/12 text-red-400"}`}>
                   {popChange.up ? "▲" : "▼"} {popChange.pct}% vs prior period
@@ -1769,15 +1769,15 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
             </div>
             {/* Time range — hidden when parent controls it */}
             {!externalTimeRange && (
-              <div className="flex gap-0.5 rounded-lg border border-[#363650] bg-[#252531] p-0.5">
+              <div className="flex gap-0.5 rounded-lg border border-[#d4d4e8] bg-[#fafafa] p-0.5">
                 {TIME_RANGES.map((t) => (
                   <button
                     key={t.key}
                     onClick={() => setInternalTimeRange(t.key)}
                     className={`rounded-md px-3 py-1 font-mono text-[10px] font-semibold transition-all ${
                       timeRange === t.key
-                        ? "bg-[#363650] text-[#f8f8fc]"
-                        : "text-[#8585aa] hover:text-[#bcbcd8]"
+                        ? "bg-[#d4d4e8] text-[#1a1a2e]"
+                        : "text-[#6a6a90] hover:text-[#4a4a6a]"
                     }`}
                   >
                     {t.label}
@@ -1799,8 +1799,8 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
                     title={r.description}
                     className={`relative shrink-0 flex items-center gap-2 px-4 py-3 font-mono text-[11px] font-semibold transition-all border-b-2 -mb-px whitespace-nowrap ${
                       isActive
-                        ? "border-[#635bff] text-[#f8f8fc]"
-                        : "border-transparent text-[#8585aa] hover:text-[#bcbcd8] hover:border-[#363650]"
+                        ? "border-[#635bff] text-[#1a1a2e]"
+                        : "border-transparent text-[#6a6a90] hover:text-[#4a4a6a] hover:border-[#d4d4e8]"
                     }`}
                   >
                     <span className={`shrink-0 transition-colors ${isActive ? "text-[#635bff]" : "text-[#58588a]"}`}>
@@ -1813,7 +1813,7 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
             </div>
 
             {/* Custom Builder — separate button on the right */}
-            <div className="shrink-0 flex items-center px-3 border-l border-[#363650]/60 border-b-2 border-b-transparent -mb-px">
+            <div className="shrink-0 flex items-center px-3 border-l border-[#d4d4e8]/60 border-b-2 border-b-transparent -mb-px">
               <button
                 onClick={() => {
                   setReport("custom" as ReportType);
@@ -1823,7 +1823,7 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
                 className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 font-mono text-[10px] font-semibold transition-all ${
                   report === "custom"
                     ? "border-[#f59e0b]/40 bg-[#f59e0b]/10 text-[#f59e0b]"
-                    : "border-[#363650] text-[#8585aa] hover:text-[#bcbcd8] hover:border-[#454560] hover:bg-[#343447]"
+                    : "border-[#d4d4e8] text-[#6a6a90] hover:text-[#4a4a6a] hover:border-[#c8c8e8] hover:bg-[#e8e8f4]"
                 }`}
               >
                 <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -1832,7 +1832,7 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
                 </svg>
                 <span>Custom</span>
                 {customMetrics.length > 0 && (
-                  <span className={`rounded-full px-1.5 py-px font-mono text-[8px] font-bold ${report === "custom" ? "bg-[#f59e0b]/20 text-[#f59e0b]" : "bg-[#363650] text-[#8585aa]"}`}>
+                  <span className={`rounded-full px-1.5 py-px font-mono text-[8px] font-bold ${report === "custom" ? "bg-[#f59e0b]/20 text-[#f59e0b]" : "bg-[#d4d4e8] text-[#6a6a90]"}`}>
                     {customMetrics.length}
                   </span>
                 )}
@@ -1842,8 +1842,8 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
         </div>
 
         {/* ── Report description bar ──────────────────────────── */}
-        <div className="flex items-center gap-3 px-6 py-3 border-b border-[#363650]/60 bg-[#2e2e3c]/30">
-          <p className="font-mono text-[10px] text-[#8585aa] flex-1">
+        <div className="flex items-center gap-3 px-6 py-3 border-b border-[#d4d4e8]/60 bg-[#f2f2f8]/30">
+          <p className="font-mono text-[10px] text-[#6a6a90] flex-1">
             {report === "custom"
               ? "Pick any metrics from your connected integrations and combine them freely"
               : REPORT_TYPES.find((r) => r.key === report)?.description}
@@ -1852,16 +1852,16 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
 
         {/* ── Custom Builder Panel ──────────────────────────── */}
         {report === "custom" && (
-          <div className="border-b border-[#363650] bg-[#252531]/60">
+          <div className="border-b border-[#d4d4e8] bg-[#fafafa]/60">
             {/* Builder toolbar */}
-            <div className="flex items-center justify-between px-6 py-3 border-b border-[#363650]/50">
+            <div className="flex items-center justify-between px-6 py-3 border-b border-[#d4d4e8]/50">
               <div className="flex items-center gap-2.5">
                 <div className="flex h-6 w-6 items-center justify-center rounded-md bg-[#f59e0b]/15">
                   <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="#f59e0b" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
                   </svg>
                 </div>
-                <span className="font-mono text-[11px] font-semibold text-[#f8f8fc]">Build your chart</span>
+                <span className="font-mono text-[11px] font-semibold text-[#1a1a2e]">Build your chart</span>
                 <span className="font-mono text-[9px] text-[#58588a]">
                   {customMetrics.length === 0 ? "Pick metrics below" : `${customMetrics.length}/6 series selected`}
                 </span>
@@ -1870,7 +1870,7 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
                 {customMetrics.length > 0 && (
                   <button
                     onClick={() => setCustomMetrics([])}
-                    className="font-mono text-[9px] text-[#8585aa] hover:text-red-400 transition flex items-center gap-1"
+                    className="font-mono text-[9px] text-[#6a6a90] hover:text-red-400 transition flex items-center gap-1"
                   >
                     <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/>
@@ -1883,7 +1883,7 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
                   className={`flex items-center gap-1 rounded-lg border px-2.5 py-1 font-mono text-[10px] transition-all ${
                     showCustomBuilder
                       ? "border-[#f59e0b]/30 bg-[#f59e0b]/8 text-[#f59e0b]"
-                      : "border-[#363650] text-[#8585aa] hover:text-[#bcbcd8]"
+                      : "border-[#d4d4e8] text-[#6a6a90] hover:text-[#4a4a6a]"
                   }`}
                 >
                   <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -1899,12 +1899,12 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
             {/* Two-column layout: picker + selected */}
             <div className={`grid transition-all ${showCustomBuilder ? "grid-rows-[1fr]" : "grid-rows-[0fr]"} overflow-hidden`}>
               <div className="overflow-hidden">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 divide-y lg:divide-y-0 lg:divide-x divide-[#363650]/50">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 divide-y lg:divide-y-0 lg:divide-x divide-[#d4d4e8]/50">
 
                   {/* Left: metric picker by platform */}
                   <div className="relative flex flex-col max-h-72 overflow-hidden">
                     {/* Sticky header — outside the scroll area so content never passes through it */}
-                    <p className="flex-none font-mono text-[9px] uppercase tracking-widest text-[#8585aa] px-5 pt-5 pb-2 border-b border-[#363650] bg-[#252531]">
+                    <p className="flex-none font-mono text-[9px] uppercase tracking-widest text-[#6a6a90] px-5 pt-5 pb-2 border-b border-[#d4d4e8] bg-[#fafafa]">
                       Available metrics · {availableForCustom.length} platform{availableForCustom.length !== 1 ? "s" : ""}
                     </p>
                     {/* Scrollable list below the header */}
@@ -1917,10 +1917,10 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
                         return (
                           <div key={platform} className="space-y-2">
                             <div className="flex items-center gap-2">
-                              <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#8585aa]">
+                              <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#6a6a90]">
                                 {PLATFORM_DISPLAY_NAMES[platform] ?? platform}
                               </span>
-                              <div className="flex-1 h-px bg-[#363650]/60" />
+                              <div className="flex-1 h-px bg-[#d4d4e8]/60" />
                             </div>
                             <div className="grid grid-cols-2 gap-1.5">
                               {defs.map((def) => {
@@ -1936,8 +1936,8 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
                                       isSelected
                                         ? "border-[#00d4aa]/30 bg-[#00d4aa]/8 text-[#00d4aa]"
                                         : atMax
-                                        ? "border-[#363650]/30 text-[#58588a] opacity-40 cursor-not-allowed"
-                                        : "border-[#363650]/60 text-[#bcbcd8] hover:border-[#454560] hover:bg-[#343447] hover:text-[#f8f8fc]"
+                                        ? "border-[#d4d4e8]/30 text-[#58588a] opacity-40 cursor-not-allowed"
+                                        : "border-[#d4d4e8]/60 text-[#4a4a6a] hover:border-[#c8c8e8] hover:bg-[#e8e8f4] hover:text-[#1a1a2e]"
                                     }`}
                                   >
                                     {/* Color swatch */}
@@ -1962,7 +1962,7 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
                       })
                     )}
                     {customMetrics.length >= 6 && (
-                      <div className="sticky bottom-0 z-10 bg-[#252531] py-1">
+                      <div className="sticky bottom-0 z-10 bg-[#fafafa] py-1">
                         <p className="font-mono text-[9px] text-[#f59e0b]">⚠ Max 6 series. Remove one to add another.</p>
                       </div>
                     )}
@@ -1971,10 +1971,10 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
 
                   {/* Right: selected series controls */}
                   <div className="p-5">
-                    <p className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa] mb-3">Selected series</p>
+                    <p className="font-mono text-[9px] uppercase tracking-widest text-[#6a6a90] mb-3">Selected series</p>
                     {customMetrics.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center h-32 rounded-xl border border-dashed border-[#363650]/60 gap-2">
-                        <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="#363650" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                      <div className="flex flex-col items-center justify-center h-32 rounded-xl border border-dashed border-[#d4d4e8]/60 gap-2">
+                        <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="#d4d4e8" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
                           <path d="M12 5v14M5 12h14"/>
                         </svg>
                         <p className="font-mono text-[10px] text-[#58588a]">Select metrics from the left</p>
@@ -1991,27 +1991,27 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
                             <div className="flex items-center gap-2 shrink-0">
                               <span className="font-mono text-[9px] text-[#58588a] w-3">{idx + 1}</span>
                               <div
-                                className="h-3 w-3 rounded-full ring-2 ring-[#252531] shrink-0"
+                                className="h-3 w-3 rounded-full ring-2 ring-[#fafafa] shrink-0"
                                 style={{ backgroundColor: m.color }}
                               />
                             </div>
 
                             {/* Label + platform */}
                             <div className="flex-1 min-w-0">
-                              <p className="font-mono text-[11px] font-semibold text-[#f8f8fc] truncate">{m.label}</p>
-                              <p className="font-mono text-[9px] text-[#8585aa]">{PLATFORM_DISPLAY_NAMES[m.platform] ?? m.platform}</p>
+                              <p className="font-mono text-[11px] font-semibold text-[#1a1a2e] truncate">{m.label}</p>
+                              <p className="font-mono text-[9px] text-[#6a6a90]">{PLATFORM_DISPLAY_NAMES[m.platform] ?? m.platform}</p>
                             </div>
 
                             {/* Controls */}
                             <div className="flex items-center gap-1.5 shrink-0">
                               {/* Chart type icon buttons */}
-                              <div className="flex gap-0.5 rounded-md border border-[#363650] overflow-hidden">
+                              <div className="flex gap-0.5 rounded-md border border-[#d4d4e8] overflow-hidden">
                                 {(["line", "area", "bar"] as ChartSeriesType[]).map((t) => (
                                   <button
                                     key={t}
                                     onClick={() => updateMetricChartType(m.id, t)}
                                     title={t}
-                                    className={`px-1.5 py-1 transition-all ${m.chartType === t ? "bg-[#363650] text-[#f8f8fc]" : "text-[#58588a] hover:text-[#bcbcd8]"}`}
+                                    className={`px-1.5 py-1 transition-all ${m.chartType === t ? "bg-[#d4d4e8] text-[#1a1a2e]" : "text-[#58588a] hover:text-[#4a4a6a]"}`}
                                   >
                                     {t === "line"
                                       ? <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M3 12l5-5 4 4 6-6"/></svg>
@@ -2026,7 +2026,7 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
                               {/* Axis toggle */}
                               <button
                                 onClick={() => updateMetricAxis(m.id, m.axis === "left" ? "right" : "left")}
-                                className="flex items-center gap-0.5 rounded-md border border-[#363650] px-1.5 py-1 font-mono text-[9px] text-[#8585aa] hover:text-[#bcbcd8] hover:border-[#454560] transition-all"
+                                className="flex items-center gap-0.5 rounded-md border border-[#d4d4e8] px-1.5 py-1 font-mono text-[9px] text-[#6a6a90] hover:text-[#4a4a6a] hover:border-[#c8c8e8] transition-all"
                                 title="Toggle Y axis"
                               >
                                 <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -2056,7 +2056,7 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
                               {/* Remove */}
                               <button
                                 onClick={() => removeMetric(m.id)}
-                                className="flex h-6 w-6 items-center justify-center rounded-md text-[#8585aa] hover:text-red-400 hover:bg-red-400/10 transition-all ml-0.5"
+                                className="flex h-6 w-6 items-center justify-center rounded-md text-[#6a6a90] hover:text-red-400 hover:bg-red-400/10 transition-all ml-0.5"
                               >
                                 <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
                                   <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -2096,10 +2096,10 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
         <div className="px-4 pb-3">
         {/* Chart */}
         {!hasData ? (
-          <div className="flex h-48 items-center justify-center rounded-xl border border-[rgba(255,255,255,0.11)] bg-[#25252c]">
+          <div className="flex h-48 items-center justify-center rounded-xl border border-[rgba(0,0,0,0.07)] bg-white">
             <div className="text-center">
-              <p className="font-mono text-xs text-[#8585aa]">No data for selected period</p>
-              <p className="mt-1 font-mono text-[10px] text-[#2e2e4e]">Try a wider time range</p>
+              <p className="font-mono text-xs text-[#6a6a90]">No data for selected period</p>
+              <p className="mt-1 font-mono text-[10px] text-[#eaeaf5]">Try a wider time range</p>
             </div>
           </div>
         ) : (
@@ -2114,7 +2114,7 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
                     </linearGradient>
                   ))}
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.13)" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.08)" vertical={false} />
                 <XAxis
                   dataKey="date"
                   tick={{ fill: "#64748b", fontSize: 10, fontFamily: "monospace" }}
@@ -2142,7 +2142,7 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
                 <Legend
                   wrapperStyle={{ fontFamily: "monospace", fontSize: 10, paddingTop: 16 }}
                   formatter={(value) => (
-                    <span style={{ color: "#bcbcd8" }}>{value}</span>
+                    <span style={{ color: "#4a4a6a" }}>{value}</span>
                   )}
                 />
 
@@ -2247,8 +2247,8 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
                 <Brush
                   dataKey="date"
                   height={22}
-                  stroke="#363650"
-                  fill="#252531"
+                  stroke="#d4d4e8"
+                  fill="#fafafa"
                   travellerWidth={6}
                   startIndex={Math.max(0, chartData.length - Math.min(chartData.length, 30))}
                   tickFormatter={() => ""}
@@ -2268,7 +2268,7 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
               </ComposedChart>
             </ResponsiveContainer>
             {chartData.some((r) => r[`${primaryKey}_anomaly`] === 1) && (
-              <p className="mt-2 font-mono text-[9px] text-[#8585aa]">
+              <p className="mt-2 font-mono text-[9px] text-[#6a6a90]">
                 <span className="inline-flex items-center gap-1 mr-1">
                   <svg width="10" height="10" viewBox="0 0 10 10">
                     <circle cx="5" cy="5" r="4" fill="none" stroke={primaryColor} strokeWidth="1" opacity="0.7" />
@@ -2280,12 +2280,12 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
               </p>
             )}
             {!chartData.some((r) => r[`${primaryKey}_anomaly`] === 1) && hasPriorData && (
-              <p className="mt-2 font-mono text-[9px] text-[#8585aa]">
+              <p className="mt-2 font-mono text-[9px] text-[#6a6a90]">
                 Dashed line = prior period · Drag the brush below to zoom
               </p>
             )}
             {!chartData.some((r) => r[`${primaryKey}_anomaly`] === 1) && !hasPriorData && (
-              <p className="mt-2 font-mono text-[9px] text-[#8585aa]">
+              <p className="mt-2 font-mono text-[9px] text-[#6a6a90]">
                 Drag the handles below the chart to zoom into a sub-range
               </p>
             )}
@@ -2307,8 +2307,8 @@ export default function OverviewSection({ snapshots, connectedPlatforms, timeRan
       {insights.length > 0 && (
         <div>
           <div className="mb-4 flex items-center gap-2">
-            <span className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Key Insights</span>
-            <div className="flex-1 border-t border-[#363650]" />
+            <span className="font-mono text-[9px] uppercase tracking-widest text-[#6a6a90]">Key Insights</span>
+            <div className="flex-1 border-t border-[#d4d4e8]" />
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             {insights.map((ins, i) => (
@@ -2426,7 +2426,7 @@ function RevenueAttributionSection({
   }
 
   return (
-    <div className="rounded-2xl border border-[#363650] bg-[#2e2e3c]/60 p-5 space-y-5">
+    <div className="rounded-2xl border border-[#d4d4e8] bg-[#f2f2f8]/60 p-5 space-y-5">
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#a78bfa]/10 text-[#a78bfa]">
@@ -2435,20 +2435,20 @@ function RevenueAttributionSection({
           </svg>
         </div>
         <div>
-          <h3 className="font-mono text-sm font-semibold text-[#f8f8fc]">Revenue Attribution</h3>
-          <p className="font-mono text-[10px] text-[#8585aa]">CAC &amp; ROAS per ad channel · proportional attribution</p>
+          <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">Revenue Attribution</h3>
+          <p className="font-mono text-[10px] text-[#6a6a90]">CAC &amp; ROAS per ad channel · proportional attribution</p>
         </div>
         {(lowestCAC || highestROAS) && (
           <div className="ml-auto flex items-center gap-3">
             {lowestCAC && (
               <div className="text-right">
-                <p className="font-mono text-[8px] uppercase tracking-widest text-[#8585aa]">Best CAC</p>
+                <p className="font-mono text-[8px] uppercase tracking-widest text-[#6a6a90]">Best CAC</p>
                 <p className="font-mono text-[11px] font-bold text-[#00d4aa]">{lowestCAC.label}</p>
               </div>
             )}
             {highestROAS && (
               <div className="text-right">
-                <p className="font-mono text-[8px] uppercase tracking-widest text-[#8585aa]">Best ROAS</p>
+                <p className="font-mono text-[8px] uppercase tracking-widest text-[#6a6a90]">Best ROAS</p>
                 <p className="font-mono text-[11px] font-bold text-[#a78bfa]">{highestROAS.label}</p>
               </div>
             )}
@@ -2465,7 +2465,7 @@ function RevenueAttributionSection({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full" style={{ backgroundColor: ch.color }} />
-                  <span className="font-mono text-[11px] font-semibold text-[#f8f8fc]">{ch.label}</span>
+                  <span className="font-mono text-[11px] font-semibold text-[#1a1a2e]">{ch.label}</span>
                   {ch.sharePct > 0 && (
                     <span className="font-mono text-[9px] text-[#58588a]">{ch.sharePct.toFixed(0)}% of spend</span>
                   )}
@@ -2473,13 +2473,13 @@ function RevenueAttributionSection({
                 <div className="flex items-center gap-4">
                   {ch.cac !== null && (
                     <div className="text-right">
-                      <p className="font-mono text-[8px] text-[#8585aa]">CAC</p>
-                      <p className="font-mono text-[11px] font-bold text-[#f8f8fc]">{fmtSpend(ch.cac, ch.currency)}</p>
+                      <p className="font-mono text-[8px] text-[#6a6a90]">CAC</p>
+                      <p className="font-mono text-[11px] font-bold text-[#1a1a2e]">{fmtSpend(ch.cac, ch.currency)}</p>
                     </div>
                   )}
                   {ch.roas !== null && (
                     <div className="text-right">
-                      <p className="font-mono text-[8px] text-[#8585aa]">ROAS</p>
+                      <p className="font-mono text-[8px] text-[#6a6a90]">ROAS</p>
                       <p className={`font-mono text-[11px] font-bold ${ch.roas >= 3 ? "text-[#00d4aa]" : ch.roas >= 1 ? "text-[#f59e0b]" : "text-red-400"}`}>
                         {ch.roas.toFixed(2)}×
                       </p>
@@ -2487,17 +2487,17 @@ function RevenueAttributionSection({
                   )}
                   {ch.cpc !== null && (
                     <div className="text-right">
-                      <p className="font-mono text-[8px] text-[#8585aa]">CPC</p>
-                      <p className="font-mono text-[11px] font-bold text-[#f8f8fc]">{fmtSpend(ch.cpc, ch.currency)}</p>
+                      <p className="font-mono text-[8px] text-[#6a6a90]">CPC</p>
+                      <p className="font-mono text-[11px] font-bold text-[#1a1a2e]">{fmtSpend(ch.cpc, ch.currency)}</p>
                     </div>
                   )}
                   <div className="text-right w-20">
-                    <p className="font-mono text-[8px] text-[#8585aa]">Spend</p>
-                    <p className="font-mono text-[11px] font-bold text-[#f8f8fc]">{fmtSpend(ch.spend, ch.currency)}</p>
+                    <p className="font-mono text-[8px] text-[#6a6a90]">Spend</p>
+                    <p className="font-mono text-[11px] font-bold text-[#1a1a2e]">{fmtSpend(ch.spend, ch.currency)}</p>
                   </div>
                 </div>
               </div>
-              <div className="h-2 w-full rounded-full bg-[#363650]/60 overflow-hidden">
+              <div className="h-2 w-full rounded-full bg-[#d4d4e8]/60 overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all duration-700"
                   style={{ width: `${Math.max(barPct, 1)}%`, backgroundColor: ch.color + "80" }}
@@ -2522,30 +2522,30 @@ function RevenueAttributionSection({
       </div>
 
       {/* Summary row */}
-      <div className="flex flex-wrap gap-4 rounded-xl border border-[#363650] bg-[#343447] px-4 py-3">
+      <div className="flex flex-wrap gap-4 rounded-xl border border-[#d4d4e8] bg-[#e8e8f4] px-4 py-3">
         <div>
-          <p className="font-mono text-[8px] uppercase tracking-widest text-[#8585aa]">Total Ad Spend</p>
-          <p className="font-mono text-sm font-bold text-[#f8f8fc]">
+          <p className="font-mono text-[8px] uppercase tracking-widest text-[#6a6a90]">Total Ad Spend</p>
+          <p className="font-mono text-sm font-bold text-[#1a1a2e]">
             {fmtSpend(totalSpendAll, (connectedAds[0] ? currencies[connectedAds[0].key] : null) ?? "USD")}
           </p>
         </div>
         {totalNewCustomers > 0 && (
           <div>
-            <p className="font-mono text-[8px] uppercase tracking-widest text-[#8585aa]">New Customers</p>
-            <p className="font-mono text-sm font-bold text-[#f8f8fc]">{totalNewCustomers.toLocaleString("en-US")}</p>
+            <p className="font-mono text-[8px] uppercase tracking-widest text-[#6a6a90]">New Customers</p>
+            <p className="font-mono text-sm font-bold text-[#1a1a2e]">{totalNewCustomers.toLocaleString("en-US")}</p>
           </div>
         )}
         {totalNewCustomers > 0 && totalSpendAll > 0 && (
           <div>
-            <p className="font-mono text-[8px] uppercase tracking-widest text-[#8585aa]">Blended CAC</p>
-            <p className="font-mono text-sm font-bold text-[#f8f8fc]">
+            <p className="font-mono text-[8px] uppercase tracking-widest text-[#6a6a90]">Blended CAC</p>
+            <p className="font-mono text-sm font-bold text-[#1a1a2e]">
               {fmtSpend(totalSpendAll / totalNewCustomers, (connectedAds[0] ? currencies[connectedAds[0].key] : null) ?? "USD")}
             </p>
           </div>
         )}
         {totalRevenueUSD > 0 && totalSpendAll > 0 && (
           <div>
-            <p className="font-mono text-[8px] uppercase tracking-widest text-[#8585aa]">Blended ROAS</p>
+            <p className="font-mono text-[8px] uppercase tracking-widest text-[#6a6a90]">Blended ROAS</p>
             <p className={`font-mono text-sm font-bold ${totalRevenueUSD / totalSpendAll >= 3 ? "text-[#00d4aa]" : totalRevenueUSD / totalSpendAll >= 1 ? "text-[#f59e0b]" : "text-red-400"}`}>
               {(totalRevenueUSD / totalSpendAll).toFixed(2)}×
             </p>
@@ -2623,10 +2623,10 @@ function HealthScore({ snapshots, connectedPlatforms }: { snapshots: Snapshot[];
   if (!score) return null;
 
   return (
-    <div className="rounded-2xl border border-[#363650] bg-[#343447] p-6">
+    <div className="rounded-2xl border border-[#d4d4e8] bg-[#e8e8f4] p-6">
       <div className="mb-5 flex items-center gap-2">
-        <span className="font-mono text-[9px] uppercase tracking-widest text-[#8585aa]">Business Health Score</span>
-        <div className="flex-1 border-t border-[#363650]" />
+        <span className="font-mono text-[9px] uppercase tracking-widest text-[#6a6a90]">Business Health Score</span>
+        <div className="flex-1 border-t border-[#d4d4e8]" />
       </div>
 
       <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
@@ -2640,13 +2640,13 @@ function HealthScore({ snapshots, connectedPlatforms }: { snapshots: Snapshot[];
               <p className="font-mono text-3xl font-bold" style={{ color: score.color }}>
                 {score.pct}
               </p>
-              <p className="font-mono text-[10px] text-[#8585aa]">/ 100</p>
+              <p className="font-mono text-[10px] text-[#6a6a90]">/ 100</p>
             </div>
           </div>
           <p className="font-mono text-sm font-semibold" style={{ color: score.color }}>
             {score.label}
           </p>
-          <p className="font-mono text-[9px] text-[#8585aa]">
+          <p className="font-mono text-[9px] text-[#6a6a90]">
             {score.connectedCount} platform{score.connectedCount !== 1 ? "s" : ""} connected
           </p>
         </div>
@@ -2656,10 +2656,10 @@ function HealthScore({ snapshots, connectedPlatforms }: { snapshots: Snapshot[];
           {score.metrics.map((m) => (
             <div key={m.label}>
               <div className="mb-1 flex items-center justify-between">
-                <span className="font-mono text-[10px] text-[#bcbcd8]">{m.label}</span>
-                <span className="font-mono text-[10px] text-[#8585aa]">{m.note}</span>
+                <span className="font-mono text-[10px] text-[#4a4a6a]">{m.label}</span>
+                <span className="font-mono text-[10px] text-[#6a6a90]">{m.note}</span>
               </div>
-              <div className="h-1.5 w-full rounded-full bg-[#363650]">
+              <div className="h-1.5 w-full rounded-full bg-[#d4d4e8]">
                 <div
                   className="h-full rounded-full transition-all duration-700"
                   style={{
