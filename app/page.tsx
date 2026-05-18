@@ -833,7 +833,7 @@ export default async function Home() {
         <div className="mx-auto max-w-6xl">
           <div className="grid grid-cols-1 gap-10 sm:grid-cols-3">
             <div>
-              <img src="/fold-primary-dark.svg" alt="Fold" className="h-9 w-auto mb-3" />
+              <img src="/fold-primary-light.svg" alt="Fold" className="h-9 w-auto mb-3" />
               <p className="text-sm text-[#6a6a90] leading-relaxed max-w-xs">
                 AI-powered business intelligence for small business founders. Know what&apos;s happening. Know what to do.
               </p>

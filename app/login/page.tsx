@@ -70,7 +70,7 @@ function LoginForm() {
         {/* Logo */}
         <div className="mb-10 text-center w-full flex items-center justify-center">
           <Link href="/">
-            <img src="/fold-primary-dark.svg" alt="Fold Logo" className="mx-auto h-12 w-auto" />
+            <img src="/fold-primary-light.svg" alt="Fold Logo" className="mx-auto h-12 w-auto" />
           </Link>
         </div>
 

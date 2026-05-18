@@ -145,7 +145,7 @@ export default function GA4SetupPage() {
 
             <div className="flex items-center gap-3">
               <button
-                onClick={() => router.push("/dashboard?tab=settings")}
+                onClick={() => router.push("/dashboard?tab=data-sources")}
                 className="rounded-xl border border-[#d4d4e8] px-4 py-2.5 text-sm text-[#6a6a90] transition-all hover:text-[#3a3a5a]"
               >
                 Cancel

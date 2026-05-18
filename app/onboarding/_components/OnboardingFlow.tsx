@@ -582,7 +582,7 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
       <header className="border-b border-[#d4d4e8] bg-[#f4f4fc]/90 backdrop-blur-sm px-6 py-3.5 sticky top-0 z-30">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src="/fold-primary-dark.svg" alt="Fold" className="h-7 w-auto" />
+            <img src="/fold-primary-light.svg" alt="Fold" className="h-7 w-auto" />
             <span className="hidden font-mono text-xs text-[#6868a0] sm:block select-none">/</span>
             {/* Step indicator */}
             <div className="hidden sm:flex items-center gap-1.5">

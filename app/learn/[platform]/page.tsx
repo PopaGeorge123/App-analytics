@@ -694,7 +694,7 @@ export default async function PlatformDetailPage({
       {/* ── FOOTER ───────────────────────────────────────────────────────── */}
       <footer className="border-t border-[#d4d4e8] px-6 py-10">
         <div className="mx-auto max-w-4xl flex flex-col sm:flex-row items-center justify-between gap-4">
-          <img src="/fold-primary-dark.svg" alt="Fold" className="h-7 w-auto" />
+          <img src="/fold-primary-light.svg" alt="Fold" className="h-7 w-auto" />
           <div className="flex flex-wrap justify-center gap-6">
             {[
               { label: "Home", href: "/" },

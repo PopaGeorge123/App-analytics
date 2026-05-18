@@ -194,7 +194,7 @@ export default function SignupPage() {
         {/* Logo */}
         <div className="mb-8 flex justify-center">
           <Link href="/">
-            <img src="/fold-primary-dark.svg" alt="Fold" className="h-8 w-auto" />
+            <img src="/fold-primary-light.svg" alt="Fold" className="h-8 w-auto" />
           </Link>
         </div>
 

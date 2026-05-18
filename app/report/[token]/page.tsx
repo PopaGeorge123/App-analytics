@@ -140,7 +140,7 @@ export default async function ReportPage({
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/fold-primary-dark.svg"
+                src="/fold-primary-light.svg"
                 alt="Fold"
                 width={90}
                 height={39}

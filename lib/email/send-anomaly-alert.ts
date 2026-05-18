@@ -110,7 +110,7 @@ export async function sendAnomalyAlertEmail(
         You're receiving anomaly alerts because you're subscribed to Fold Digest.
       </p>
       <p style="font-family:monospace;font-size:10px;color:#454560;margin:0;">
-        <a href="https://app.usefold.io/dashboard?tab=settings" style="color:#454560;">Manage notification settings</a>
+        <a href="https://app.usefold.io/dashboard?tab=data-sources" style="color:#454560;">Manage notification settings</a>
       </p>
     </div>
 

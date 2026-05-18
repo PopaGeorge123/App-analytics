@@ -237,7 +237,7 @@ export default async function SharePage({ params }: { params: Promise<{ token: s
       {/* ── Top bar ─────────────────────────────────────────────────────── */}
       <header style={{ background: "#f3f3fb", borderBottom: "1px solid rgba(255,255,255,0.07)", position: "sticky", top: 0, zIndex: 50 }}>
         <div style={{ maxWidth: 900, margin: "0 auto", padding: "12px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
-          <Image src="/fold-primary-dark.svg" alt="Fold Analytics" width={100} height={43} style={{ height: 28, width: "auto" }} />
+          <Image src="/fold-primary-light.svg" alt="Fold Analytics" width={100} height={43} style={{ height: 28, width: "auto" }} />
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
             <span style={{ background: "rgba(99,102,241,0.12)", color: "#a5b4fc", fontFamily: "monospace", fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", padding: "3px 8px", borderRadius: 999 }}>
               Read-only snapshot
@@ -472,7 +472,7 @@ export default async function SharePage({ params }: { params: Promise<{ token: s
 
         {/* ── CTA ──────────────────────────────────────────────────────── */}
         <div style={{ borderRadius: 24, border: "1px solid rgba(0,212,170,0.2)", background: "linear-gradient(135deg, rgba(0,212,170,0.07) 0%, rgba(99,102,241,0.05) 100%)", padding: "40px 32px", textAlign: "center" }}>
-          <Image src="/fold-primary-dark.svg" alt="Fold Analytics" width={120} height={52} style={{ height: 36, width: "auto", margin: "0 auto 16px" }} />
+          <Image src="/fold-primary-light.svg" alt="Fold Analytics" width={120} height={52} style={{ height: 36, width: "auto", margin: "0 auto 16px" }} />
           <h2 style={{ fontSize: 22, fontWeight: 800, color: "#1a1a2e", margin: "0 0 10px", lineHeight: 1.2 }}>
             Want your own live analytics dashboard?
           </h2>

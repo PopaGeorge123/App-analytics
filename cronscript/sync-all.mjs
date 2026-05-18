@@ -5061,7 +5061,7 @@ function buildAnomalyAlertEmailHtml(alerts) {
         You're receiving anomaly alerts from Fold Analytics.
       </p>
       <p style="font-family:monospace;font-size:10px;color:#454560;margin:0;">
-        <a href="${appUrl}/dashboard?tab=settings" style="color:#454560;">Manage notification settings</a>
+        <a href="${appUrl}/dashboard?tab=data-sources" style="color:#454560;">Manage notification settings</a>
       </p>
     </div>
   </div>
@@ -5130,7 +5130,7 @@ function buildPlaybooksEmailHtml(payload, appUrl) {
 
   <tr><td style="height:28px;border-top:1px solid #1e1e2e;padding-top:16px;margin-top:28px;">
     <p style="margin:0;font-size:11px;color:#4a4a6a;text-align:center;">
-      Fold AI · <a href="${appUrl}/dashboard?tab=settings" style="color:#4a4a6a;">Manage notifications</a>
+      Fold AI · <a href="${appUrl}/dashboard?tab=data-sources" style="color:#4a4a6a;">Manage notifications</a>
     </p>
   </td></tr>
 
