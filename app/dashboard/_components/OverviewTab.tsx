@@ -9,7 +9,7 @@ import type { Snapshot } from "./DashboardShell";
 import { pushNotification } from "./DashboardShell";
 import type { Tab } from "./DashboardShell";
 import { DEMO_SNAPSHOTS, DEMO_CONNECTED_PLATFORMS } from "./demoData";
-import { DEFAULT_ALERTS, type AlertRules } from "./SettingsTab";
+import { DEFAULT_ALERTS, type AlertRules } from "./DataSourcesTab";
 import { LIVE_INTEGRATIONS, REVENUE_PROVIDERS, ANALYTICS_PROVIDERS, ADS_PROVIDERS } from "@/lib/integrations/catalog";
 
 // ── Types ─────────────────────────────────────────────────────────────────
@@ -721,12 +721,12 @@ export default function OverviewTab({
 
     return {
       kpis: {
-        revenue: { value: hasRevenue ? fmt(revenue7, "currency", primaryRevCurrency) : null, trend: hasRevenue ? { current: revenue7, prev: revenuePrev } : null, spark: hasRevenue ? spark(connRevenue, "revenue") : [], connect: "Connect Stripe", connectHref: "/dashboard?tab=settings" },
-        sessions: { value: hasAnalytics ? fmt(sessions7) : null, trend: hasAnalytics ? { current: sessions7, prev: sessionsPrev } : null, spark: hasAnalytics && primaryAnalytics ? spark([primaryAnalytics], "sessions") : [], connect: "Connect GA4", connectHref: "/dashboard?tab=settings" },
-        adSpend: { value: hasAds ? fmtMetaSpend(spend7, primaryAdCurrency) : null, trend: hasAds ? { current: spend7, prev: spendPrev } : null, spark: hasAds ? spark(connAds, "spend") : [], connect: "Connect Meta Ads", connectHref: "/dashboard?tab=settings" },
-        customers: { value: hasRevenue ? fmt(newCustomers7) : null, trend: hasRevenue ? { current: newCustomers7, prev: newCustomersPrev } : null, spark: hasRevenue ? spark(connRevenue, "newCustomers") : [], connect: "Connect Stripe", connectHref: "/dashboard?tab=settings" },
-        cac: { value: (hasAds && hasRevenue && cac7 !== null) ? fmtMetaSpend(cac7, primaryAdCurrency) : null, connect: "Needs Ads + Stripe", connectHref: "/dashboard?tab=settings" },
-        bounce: { value: hasAnalytics ? fmt(bounceRate7, "percent") : null, connect: "Connect GA4", connectHref: "/dashboard?tab=settings" },
+        revenue: { value: hasRevenue ? fmt(revenue7, "currency", primaryRevCurrency) : null, trend: hasRevenue ? { current: revenue7, prev: revenuePrev } : null, spark: hasRevenue ? spark(connRevenue, "revenue") : [], connect: "Connect Stripe", connectHref: "/dashboard?tab=data-sources" },
+        sessions: { value: hasAnalytics ? fmt(sessions7) : null, trend: hasAnalytics ? { current: sessions7, prev: sessionsPrev } : null, spark: hasAnalytics && primaryAnalytics ? spark([primaryAnalytics], "sessions") : [], connect: "Connect GA4", connectHref: "/dashboard?tab=data-sources" },
+        adSpend: { value: hasAds ? fmtMetaSpend(spend7, primaryAdCurrency) : null, trend: hasAds ? { current: spend7, prev: spendPrev } : null, spark: hasAds ? spark(connAds, "spend") : [], connect: "Connect Meta Ads", connectHref: "/dashboard?tab=data-sources" },
+        customers: { value: hasRevenue ? fmt(newCustomers7) : null, trend: hasRevenue ? { current: newCustomers7, prev: newCustomersPrev } : null, spark: hasRevenue ? spark(connRevenue, "newCustomers") : [], connect: "Connect Stripe", connectHref: "/dashboard?tab=data-sources" },
+        cac: { value: (hasAds && hasRevenue && cac7 !== null) ? fmtMetaSpend(cac7, primaryAdCurrency) : null, connect: "Needs Ads + Stripe", connectHref: "/dashboard?tab=data-sources" },
+        bounce: { value: hasAnalytics ? fmt(bounceRate7, "percent") : null, connect: "Connect GA4", connectHref: "/dashboard?tab=data-sources" },
         conversions: conversions7,
       },
       narrative,
@@ -880,7 +880,7 @@ export default function OverviewTab({
           <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#a78bfa]">Demo</span>
           <span className="text-[#d0d0e8]">·</span>
           <p className="flex-1 font-mono text-[11px] text-[#6070a0]">Viewing sample data. Connect real integrations to see live metrics.</p>
-          <button onClick={() => onNavigate("settings")} className="font-mono text-[10px] font-bold text-[#a78bfa] hover:underline shrink-0">Connect →</button>
+          <button onClick={() => onNavigate("data-sources")} className="font-mono text-[10px] font-bold text-[#a78bfa] hover:underline shrink-0">Connect →</button>
         </div>
       )}
       {!isPremium && (
@@ -903,7 +903,7 @@ export default function OverviewTab({
               <span className="font-mono text-[10px]" style={{ color: a.color }}>●</span>
               <p className="flex-1 font-mono text-[11px] leading-relaxed" style={{ color: a.color }}>{a.message}</p>
               {a.auto && <span className="font-mono text-[8px] text-[#eaeaf5] shrink-0">AI</span>}
-              <button onClick={() => onNavigate("settings")} className="font-mono text-[9px] font-bold hover:underline shrink-0" style={{ color: a.color }}>Fix →</button>
+              <button onClick={() => onNavigate("data-sources")} className="font-mono text-[9px] font-bold hover:underline shrink-0" style={{ color: a.color }}>Fix →</button>
             </div>
           ))}
         </div>
@@ -950,7 +950,7 @@ export default function OverviewTab({
             ) : (
               <div>
                 <p className="font-mono text-[52px] font-bold text-[#1a1a2e] leading-none mb-3">—</p>
-                <a href="/dashboard?tab=settings" className="inline-flex items-center gap-2 rounded-xl border border-[#635bff]/20 bg-[#635bff]/8 px-4 py-2 font-mono text-[11px] font-semibold text-[#635bff] hover:bg-[#635bff]/14 transition">
+                <a href="/dashboard?tab=data-sources" className="inline-flex items-center gap-2 rounded-xl border border-[#635bff]/20 bg-[#635bff]/8 px-4 py-2 font-mono text-[11px] font-semibold text-[#635bff] hover:bg-[#635bff]/14 transition">
                   Connect Stripe →
                 </a>
               </div>
@@ -995,7 +995,7 @@ export default function OverviewTab({
             ) : (
               <>
                 <p className="font-mono text-3xl font-bold text-[#1a1a2e] leading-none mb-2">—</p>
-                <a href="/dashboard?tab=settings" className="font-mono text-[9px] text-[#4a4a6a] hover:text-[#f59e0b] transition">+ Connect GA4</a>
+                <a href="/dashboard?tab=data-sources" className="font-mono text-[9px] text-[#4a4a6a] hover:text-[#f59e0b] transition">+ Connect GA4</a>
               </>
             )}
           </div>
@@ -1021,7 +1021,7 @@ export default function OverviewTab({
             ) : (
               <>
                 <p className="font-mono text-3xl font-bold text-[#1a1a2e] leading-none mb-2">—</p>
-                <a href="/dashboard?tab=settings" className="font-mono text-[9px] text-[#4a4a6a] hover:text-[#1877f2] transition">+ Connect Meta Ads</a>
+                <a href="/dashboard?tab=data-sources" className="font-mono text-[9px] text-[#4a4a6a] hover:text-[#1877f2] transition">+ Connect Meta Ads</a>
               </>
             )}
           </div>
@@ -1048,7 +1048,7 @@ export default function OverviewTab({
             ) : (
               <>
                 <p className="font-mono text-3xl font-bold text-[#1a1a2e] leading-none mb-2">—</p>
-                <a href="/dashboard?tab=settings" className="font-mono text-[9px] text-[#4a4a6a] hover:text-[#00d4aa] transition">+ Connect Stripe</a>
+                <a href="/dashboard?tab=data-sources" className="font-mono text-[9px] text-[#4a4a6a] hover:text-[#00d4aa] transition">+ Connect Stripe</a>
               </>
             )}
           </div>
@@ -1143,10 +1143,10 @@ export default function OverviewTab({
         {/* Health Signals */}
         <div className="rounded-2xl border border-black/8 bg-[#ffffff] p-4 space-y-1">
           <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#4a4a6a] block mb-3">Health · 7d</span>
-          <CompactStat label="Sessions" value={kpis.sessions.value} trend={kpis.sessions.trend} spark={kpis.sessions.spark} accent="#f59e0b" connect="Connect GA4" connectHref="/dashboard?tab=settings" />
-          <CompactStat label="Bounce Rate" value={kpis.bounce.value} accent={kpis.bounce.value && parseFloat(kpis.bounce.value) > 65 ? "#f59e0b" : "#00d4aa"} connect="Connect GA4" connectHref="/dashboard?tab=settings" border />
-          <CompactStat label="Ad Spend" value={kpis.adSpend.value} trend={kpis.adSpend.trend} spark={kpis.adSpend.spark} accent="#1877f2" connect="Connect Meta Ads" connectHref="/dashboard?tab=settings" border />
-          <CompactStat label="CAC" value={kpis.cac.value} accent="#f87171" connect="Needs Ads + Revenue" connectHref="/dashboard?tab=settings" border={false} />
+          <CompactStat label="Sessions" value={kpis.sessions.value} trend={kpis.sessions.trend} spark={kpis.sessions.spark} accent="#f59e0b" connect="Connect GA4" connectHref="/dashboard?tab=data-sources" />
+          <CompactStat label="Bounce Rate" value={kpis.bounce.value} accent={kpis.bounce.value && parseFloat(kpis.bounce.value) > 65 ? "#f59e0b" : "#00d4aa"} connect="Connect GA4" connectHref="/dashboard?tab=data-sources" border />
+          <CompactStat label="Ad Spend" value={kpis.adSpend.value} trend={kpis.adSpend.trend} spark={kpis.adSpend.spark} accent="#1877f2" connect="Connect Meta Ads" connectHref="/dashboard?tab=data-sources" border />
+          <CompactStat label="CAC" value={kpis.cac.value} accent="#f87171" connect="Needs Ads + Revenue" connectHref="/dashboard?tab=data-sources" border={false} />
         </div>
 
         {/* Quick Access */}

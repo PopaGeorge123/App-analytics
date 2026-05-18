@@ -8,6 +8,7 @@ import AnalyticsTab from "./AnalyticsTab";
 import OnboardingModal from "./OnboardingModal";
 import TabErrorBoundary from "./TabErrorBoundary";
 import SettingsTab from "./SettingsTab";
+import DataSourcesTab from "./DataSourcesTab";
 import AiTab from "./AiTab";
 import GrowthTab from "./GrowthTab";
 import CustomersTab from "./CustomersTab";
@@ -15,7 +16,7 @@ import DangerZoneTab from "./DangerZoneTab";
 import PlaybooksTab from "./PlaybooksTab";
 import type { CustomerRow } from "../page";
 
-export type Tab = "overview" | "analytics" | "growth" | "customers" | "ai" | "playbooks" | "settings" | "danger";
+export type Tab = "overview" | "analytics" | "growth" | "customers" | "ai" | "playbooks" | "data-sources" | "settings" | "danger";
 
 export interface Snapshot {
   id: string;
@@ -90,6 +91,15 @@ const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
     icon: (
       <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
+      </svg>
+    ),
+  },
+  {
+    id: "data-sources" as Tab,
+    label: "Data Sources",
+    icon: (
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 5.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
       </svg>
     ),
   },
@@ -519,7 +529,7 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
   // Only update when the tab value actually changes to avoid fighting user clicks.
   useEffect(() => {
     const tab = searchParams.get("tab") as Tab | null;
-    if (tab && ["overview", "analytics", "growth", "customers", "ai", "playbooks", "settings", "danger"].includes(tab) && tab !== activeTab) {
+    if (tab && ["overview", "analytics", "growth", "customers", "ai", "playbooks", "data-sources", "settings", "danger"].includes(tab) && tab !== activeTab) {
       setActiveTab(tab);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -761,20 +771,20 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
           </div>
           {/* Bell in mobile bar */}
           {/* <ThemeToggle /> */}
-          {activeTab !== "settings" && <NotificationBell />}
+          {activeTab !== "settings" && activeTab !== "data-sources" && <NotificationBell />}
         </div>
 
         {/* Desktop notification bell + theme toggle — fixed top-right of the content area */}
-        {activeTab !== "settings" && (
+        {activeTab !== "settings" && activeTab !== "data-sources" && (
           <div className="hidden lg:flex items-center gap-2 justify-end px-8 pt-5 pb-0">
             {/* <ThemeToggle /> */}
             <NotificationBell />
           </div>
         )}
 
-        <div className={activeTab === "settings" ? "" : "p-3 sm:p-6 lg:p-8"}>
+        <div className={(activeTab === "settings" || activeTab === "data-sources") ? "" : "p-3 sm:p-6 lg:p-8"}>
           {/* ── Dismissable trial banner — shown at top of content when on trial ── */}
-          {isOnTrial && !trialBannerDismissed && !isDemo && activeTab !== "settings" && (
+          {isOnTrial && !trialBannerDismissed && !isDemo && activeTab !== "settings" && activeTab !== "data-sources" && (
             <div className={`mb-6 flex items-center gap-3 rounded-xl border px-4 py-3 ${trialUrgent ? "border-red-500/30 bg-red-500/8" : "border-[#f59e0b]/30 bg-[#f59e0b]/8"}`}>
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke={trialUrgent ? "#ef4444" : "#f59e0b"} strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z" />
@@ -804,7 +814,7 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
             </div>
           )}
           {/* Syncing banner — shown right after a platform connects */}
-          {isSyncing && activeTab !== "settings" && (
+          {isSyncing && activeTab !== "settings" && activeTab !== "data-sources" && (
             <div className="mb-6 flex items-center gap-3 rounded-xl border border-[#00d4aa]/30 bg-[#00d4aa]/10 px-4 py-3">
               <svg
                 className="h-4 w-4 shrink-0 animate-spin text-[#00d4aa]"
@@ -877,6 +887,17 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
                 isPremium={isPremium}
                 connectedPlatforms={connectedPlatforms}
                 snapshots={snapshots}
+                currencies={currencies}
+                isDemo={isDemo}
+              />
+            </TabErrorBoundary>
+          )}
+          {activeTab === "data-sources" && (
+            <TabErrorBoundary tabName="Data Sources">
+              <DataSourcesTab
+                email={email}
+                isPremium={isPremium}
+                connectedPlatforms={connectedPlatforms}
                 currencies={currencies}
                 isDemo={isDemo}
               />

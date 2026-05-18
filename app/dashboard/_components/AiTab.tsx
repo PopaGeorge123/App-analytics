@@ -91,7 +91,7 @@ function InlineText({ text }: { text: string }) {
     <>
       {parts.map((part, i) =>
         part.startsWith("**") && part.endsWith("**") && part.length > 4 ? (
-          <strong key={i} style={{ color: "#a5b4fc", fontWeight: 600 }}>{part.slice(2, -2)}</strong>
+          <strong key={i} style={{ color: "#6366f1", fontWeight: 600 }}>{part.slice(2, -2)}</strong>
         ) : (
           <span key={i}>{part.replace(/\*+/g, "")}</span>
         )
@@ -499,6 +499,399 @@ function InsightRenderer({
   );
 }
 
+// ── Chart components ──────────────────────────────────────────────────────
+
+interface ChartData {
+  type: "line" | "bar" | "pie" | "donut";
+  title?: string;
+  labels: string[];
+  datasets: Array<{
+    label: string;
+    data: number[];
+    color?: string;
+  }>;
+  prefix?: string;
+  suffix?: string;
+}
+
+const CHART_COLORS = ["#6366f1", "#10b981", "#f59e0b", "#ef4444", "#14b8a6", "#a78bfa", "#f97316"];
+
+function fmtChartVal(v: number, prefix?: string, suffix?: string): string {
+  if (v >= 1_000_000) return `${prefix ?? ""}${(v / 1_000_000).toFixed(1)}M${suffix ?? ""}`;
+  if (v >= 10_000)    return `${prefix ?? ""}${(v / 1_000).toFixed(1)}k${suffix ?? ""}`;
+  if (v >= 1_000)     return `${prefix ?? ""}${(v / 1_000).toFixed(1)}k${suffix ?? ""}`;
+  if (v >= 10)        return `${prefix ?? ""}${v.toFixed(0)}${suffix ?? ""}`;
+  return `${prefix ?? ""}${v.toFixed(1)}${suffix ?? ""}`;
+}
+
+function fmtFull(v: number, prefix?: string, suffix?: string): string {
+  if (v >= 1_000_000) return `${prefix ?? ""}${(v / 1_000_000).toFixed(2)}M${suffix ?? ""}`;
+  if (v >= 1_000)     return `${prefix ?? ""}${v.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}${suffix ?? ""}`;
+  return `${prefix ?? ""}${v.toFixed(2)}${suffix ?? ""}`;
+}
+
+// Tooltip floating box (shared)
+function ChartTooltip({ x, y, lines, svgW }: { x: number; y: number; lines: string[]; svgW: number }) {
+  const TW = 140;
+  const clampedX = Math.min(Math.max(x - TW / 2, 0), svgW - TW);
+  return (
+    <g style={{ pointerEvents: "none" }}>
+      <rect
+        x={clampedX} y={y - 14 - lines.length * 16}
+        width={TW} height={14 + lines.length * 16}
+        rx={6} fill="white"
+        style={{ filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.14))" }}
+        stroke="rgba(99,102,241,0.18)" strokeWidth={1}
+      />
+      {lines.map((l, i) => (
+        <text
+          key={i}
+          x={clampedX + TW / 2} y={y - 14 - lines.length * 16 + 13 + i * 16}
+          textAnchor="middle" fontSize={10}
+          fill={i === 0 ? "#6366f1" : "#1a1a2e"} fontWeight={i === 0 ? 700 : 500}
+        >{l}</text>
+      ))}
+    </g>
+  );
+}
+
+function LineChartSvg({ data, colors }: { data: ChartData; colors: string[] }) {
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+  const W = 500, H = 220, PL = 58, PR = 16, PT = 22, PB = 42;
+  const cW = W - PL - PR, cH = H - PT - PB;
+  const allVals = data.datasets.flatMap((d) => d.data);
+  const rawMin = Math.min(...allVals), rawMax = Math.max(...allVals);
+  const padding = (rawMax - rawMin) * 0.12 || rawMax * 0.1 || 1;
+  const minV = Math.max(0, rawMin - padding), maxV = rawMax + padding;
+  const range = maxV - minV || 1;
+  const n = data.labels.length;
+  const xPos = (i: number) => PL + (n <= 1 ? cW / 2 : (i / (n - 1)) * cW);
+  const yPos = (v: number) => PT + cH - ((v - minV) / range) * cH;
+  const smoothPathD = (pts: number[]) => {
+    if (pts.length < 2) return pts.map((v, i) => `${i === 0 ? "M" : "L"}${xPos(i).toFixed(1)},${yPos(v).toFixed(1)}`).join(" ");
+    let d = `M${xPos(0).toFixed(1)},${yPos(pts[0]).toFixed(1)}`;
+    for (let i = 1; i < pts.length; i++) {
+      const x0 = xPos(i - 1), y0 = yPos(pts[i - 1]);
+      const x1 = xPos(i),     y1 = yPos(pts[i]);
+      const cx0 = x0 + (x1 - x0) * 0.45, cy0 = y0;
+      const cx1 = x1 - (x1 - x0) * 0.45, cy1 = y1;
+      d += ` C${cx0.toFixed(1)},${cy0.toFixed(1)} ${cx1.toFixed(1)},${cy1.toFixed(1)} ${x1.toFixed(1)},${y1.toFixed(1)}`;
+    }
+    return d;
+  };
+  const areaPath = (pts: number[], path: string) =>
+    `${path} L${xPos(n - 1).toFixed(1)},${(PT + cH).toFixed(1)} L${xPos(0).toFixed(1)},${(PT + cH).toFixed(1)} Z`;
+  const yTicks = Array.from({ length: 5 }, (_, i) => minV + (range / 4) * i);
+  const step = Math.max(1, Math.ceil(n / 8));
+  const gradId = `lg-${data.title?.replace(/\s+/g, "") ?? "c"}`;
+
+  return (
+    <svg
+      width="100%" viewBox={`0 0 ${W} ${H}`}
+      style={{ display: "block", overflow: "visible" }}
+      onMouseLeave={() => setHoverIdx(null)}
+    >
+      <defs>
+        {data.datasets.map((_, di) => (
+          <linearGradient key={di} id={`${gradId}-${di}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={colors[di]} stopOpacity={0.18} />
+            <stop offset="100%" stopColor={colors[di]} stopOpacity={0.01} />
+          </linearGradient>
+        ))}
+      </defs>
+
+      {/* Grid lines */}
+      {yTicks.map((v, i) => (
+        <g key={i}>
+          <line x1={PL} y1={yPos(v)} x2={W - PR} y2={yPos(v)} stroke="rgba(0,0,0,0.05)" strokeWidth={1} strokeDasharray={i === 0 ? "0" : "3,3"} />
+          <text x={PL - 6} y={yPos(v) + 4} textAnchor="end" fontSize={9} fill="#9a9ab0" fontFamily="inherit">{fmtChartVal(v, data.prefix, data.suffix)}</text>
+        </g>
+      ))}
+
+      {/* X labels */}
+      {data.labels.map((lbl, i) => (i % step === 0 || i === n - 1) && (
+        <text key={i} x={xPos(i)} y={H - 6} textAnchor="middle" fontSize={9} fill="#9a9ab0" fontFamily="inherit">{lbl}</text>
+      ))}
+
+      {/* Areas */}
+      {data.datasets.map((ds, di) => {
+        const p = smoothPathD(ds.data);
+        return <path key={di} d={areaPath(ds.data, p)} fill={`url(#${gradId}-${di})`} />;
+      })}
+
+      {/* Lines */}
+      {data.datasets.map((ds, di) => (
+        <path key={di} d={smoothPathD(ds.data)} fill="none" stroke={colors[di]} strokeWidth={2.2} strokeLinejoin="round" strokeLinecap="round" />
+      ))}
+
+      {/* Hover vertical line */}
+      {hoverIdx !== null && (
+        <line x1={xPos(hoverIdx)} y1={PT} x2={xPos(hoverIdx)} y2={PT + cH} stroke="rgba(99,102,241,0.25)" strokeWidth={1.5} strokeDasharray="4,3" />
+      )}
+
+      {/* Data points — always show at small n, else only on hover */}
+      {data.datasets.map((ds, di) =>
+        ds.data.map((v, i) => {
+          const isHover = hoverIdx === i;
+          const show = n <= 20 || isHover;
+          if (!show) return null;
+          return (
+            <circle
+              key={`${di}-${i}`}
+              cx={xPos(i)} cy={yPos(v)} r={isHover ? 5 : 3}
+              fill="white" stroke={colors[di]}
+              strokeWidth={isHover ? 2.5 : 1.8}
+              style={{ transition: "r 0.1s" }}
+            />
+          );
+        })
+      )}
+
+      {/* Hover capture zones */}
+      {data.labels.map((_, i) => {
+        const colW = n > 1 ? cW / (n - 1) : cW;
+        return (
+          <rect
+            key={i}
+            x={xPos(i) - colW / 2} y={PT}
+            width={colW} height={cH}
+            fill="transparent"
+            style={{ cursor: "crosshair" }}
+            onMouseEnter={() => setHoverIdx(i)}
+          />
+        );
+      })}
+
+      {/* Tooltip */}
+      {hoverIdx !== null && (() => {
+        const lines = [
+          data.labels[hoverIdx],
+          ...data.datasets.map((ds) => `${ds.label}: ${fmtFull(ds.data[hoverIdx] ?? 0, data.prefix, data.suffix)}`),
+        ];
+        const ty = Math.min(...data.datasets.map((ds) => yPos(ds.data[hoverIdx] ?? 0))) - 6;
+        return <ChartTooltip x={xPos(hoverIdx)} y={Math.max(ty, PT + 6 + lines.length * 16)} lines={lines} svgW={W} />;
+      })()}
+    </svg>
+  );
+}
+
+function BarChartSvg({ data, colors }: { data: ChartData; colors: string[] }) {
+  const [hoverKey, setHoverKey] = useState<string | null>(null);
+  const W = 500, H = 220, PL = 58, PR = 16, PT = 22, PB = 42;
+  const cW = W - PL - PR, cH = H - PT - PB;
+  const allVals = data.datasets.flatMap((d) => d.data).filter((v) => v >= 0);
+  const maxV = Math.max(...allVals, 1) * 1.1;
+  const n = data.labels.length;
+  const dsCount = data.datasets.length;
+  const groupW = cW / n;
+  const gap = groupW * 0.12;
+  const barW = Math.max(2, Math.min((groupW - gap * 2) / dsCount - 1, 40));
+  const yPos = (v: number) => PT + cH - (v / maxV) * cH;
+  const step = Math.max(1, Math.ceil(n / 8));
+  const yTicks = Array.from({ length: 5 }, (_, i) => (maxV / 5) * (i + 1));
+  const gradId = `bg-${data.title?.replace(/\s+/g, "") ?? "b"}`;
+
+  return (
+    <svg
+      width="100%" viewBox={`0 0 ${W} ${H}`}
+      style={{ display: "block", overflow: "visible" }}
+      onMouseLeave={() => setHoverKey(null)}
+    >
+      <defs>
+        {data.datasets.map((_, di) => (
+          <linearGradient key={di} id={`${gradId}-${di}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={colors[di]} stopOpacity={0.92} />
+            <stop offset="100%" stopColor={colors[di]} stopOpacity={0.6} />
+          </linearGradient>
+        ))}
+      </defs>
+
+      {/* Grid */}
+      {yTicks.map((v, i) => (
+        <g key={i}>
+          <line x1={PL} y1={yPos(v)} x2={W - PR} y2={yPos(v)} stroke="rgba(0,0,0,0.05)" strokeWidth={1} strokeDasharray="3,3" />
+          <text x={PL - 6} y={yPos(v) + 4} textAnchor="end" fontSize={9} fill="#9a9ab0">{fmtChartVal(v, data.prefix, data.suffix)}</text>
+        </g>
+      ))}
+      <line x1={PL} y1={PT + cH} x2={W - PR} y2={PT + cH} stroke="rgba(0,0,0,0.08)" strokeWidth={1} />
+
+      {/* Bars */}
+      {data.labels.map((lbl, li) => {
+        const gx = PL + li * groupW + groupW / 2;
+        return (
+          <g key={li}>
+            {(li % step === 0 || li === n - 1) && (
+              <text x={gx} y={H - 6} textAnchor="middle" fontSize={9} fill="#9a9ab0">{lbl}</text>
+            )}
+            {data.datasets.map((ds, di) => {
+              const v = ds.data[li] ?? 0;
+              const bx = gx - (dsCount * (barW + 1)) / 2 + di * (barW + 1);
+              const bh = Math.max(2, (v / maxV) * cH);
+              const key = `${li}-${di}`;
+              const isHover = hoverKey === key;
+              return (
+                <g key={di} onMouseEnter={() => setHoverKey(key)} style={{ cursor: "pointer" }}>
+                  <rect
+                    x={bx} y={yPos(v)} width={barW} height={bh}
+                    fill={`url(#${gradId}-${di})`}
+                    rx={3} ry={3}
+                    opacity={isHover ? 1 : hoverKey !== null ? 0.65 : 1}
+                    style={{ transition: "opacity 0.1s" }}
+                  />
+                  {isHover && (
+                    <ChartTooltip
+                      x={bx + barW / 2}
+                      y={yPos(v) - 6}
+                      lines={[lbl, `${ds.label}: ${fmtFull(v, data.prefix, data.suffix)}`]}
+                      svgW={W}
+                    />
+                  )}
+                </g>
+              );
+            })}
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+function PieChartSvg({ data, colors, donut }: { data: ChartData; colors: string[]; donut?: boolean }) {
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+  const ds = data.datasets[0];
+  if (!ds || ds.data.length === 0) return null;
+  const total = ds.data.reduce((a, b) => a + b, 0) || 1;
+  const cx = 95, cy = 95, r = 78, ir = donut ? 48 : 0;
+  let angle = -Math.PI / 2;
+  const slices = ds.data.map((v, i) => {
+    const sweep = (v / total) * 2 * Math.PI;
+    const s = angle, e = angle + sweep;
+    angle += sweep;
+    const large = sweep > Math.PI ? 1 : 0;
+    const expand = hoverIdx === i ? 6 : 0;
+    const midA = (s + e) / 2;
+    const ecx = cx + expand * Math.cos(midA);
+    const ecy = cy + expand * Math.sin(midA);
+    const x1 = ecx + r * Math.cos(s), y1 = ecy + r * Math.sin(s);
+    const x2 = ecx + r * Math.cos(e), y2 = ecy + r * Math.sin(e);
+    const xi1 = ecx + ir * Math.cos(e), yi1 = ecy + ir * Math.sin(e);
+    const xi2 = ecx + ir * Math.cos(s), yi2 = ecy + ir * Math.sin(s);
+    const d = donut
+      ? `M${x1.toFixed(1)},${y1.toFixed(1)} A${r},${r} 0 ${large},1 ${x2.toFixed(1)},${y2.toFixed(1)} L${xi1.toFixed(1)},${yi1.toFixed(1)} A${ir},${ir} 0 ${large},0 ${xi2.toFixed(1)},${yi2.toFixed(1)} Z`
+      : `M${ecx.toFixed(1)},${ecy.toFixed(1)} L${x1.toFixed(1)},${y1.toFixed(1)} A${r},${r} 0 ${large},1 ${x2.toFixed(1)},${y2.toFixed(1)} Z`;
+    return { v, i, d, label: data.labels[i] ?? `Item ${i + 1}`, midA };
+  });
+
+  const hov = hoverIdx !== null ? slices[hoverIdx] : null;
+
+  return (
+    <div style={{ display: "flex", gap: 20, alignItems: "center", flexWrap: "wrap" }}>
+      <svg width={190} height={190} viewBox="0 0 190 190" style={{ flexShrink: 0, overflow: "visible" }}>
+        {slices.map((s) => (
+          <path
+            key={s.i} d={s.d}
+            fill={colors[s.i % colors.length]}
+            fillOpacity={hoverIdx !== null && hoverIdx !== s.i ? 0.55 : 0.9}
+            stroke="white" strokeWidth={2}
+            style={{ cursor: "pointer", transition: "fill-opacity 0.15s" }}
+            onMouseEnter={() => setHoverIdx(s.i)}
+            onMouseLeave={() => setHoverIdx(null)}
+          />
+        ))}
+        {donut && (
+          <g style={{ pointerEvents: "none" }}>
+            {hov ? (
+              <>
+                <text x={cx} y={cy - 5} textAnchor="middle" fontSize={11} fill="#6a6a90" fontFamily="inherit">{hov.label}</text>
+                <text x={cx} y={cy + 10} textAnchor="middle" fontSize={13} fontWeight={700} fill="#1a1a2e" fontFamily="inherit">{fmtFull(hov.v, data.prefix, data.suffix)}</text>
+                <text x={cx} y={cy + 24} textAnchor="middle" fontSize={10} fill="#6a6a90" fontFamily="inherit">{((hov.v / total) * 100).toFixed(1)}%</text>
+              </>
+            ) : (
+              <>
+                <text x={cx} y={cy - 4} textAnchor="middle" fontSize={9} fill="#9a9ab0" fontFamily="inherit">Total</text>
+                <text x={cx} y={cy + 12} textAnchor="middle" fontSize={14} fontWeight={700} fill="#1a1a2e" fontFamily="inherit">{fmtChartVal(total, data.prefix, data.suffix)}</text>
+              </>
+            )}
+          </g>
+        )}
+      </svg>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6, minWidth: 120 }}>
+        {slices.map((s) => {
+          const isHov = hoverIdx === s.i;
+          return (
+            <div
+              key={s.i}
+              onMouseEnter={() => setHoverIdx(s.i)}
+              onMouseLeave={() => setHoverIdx(null)}
+              style={{
+                display: "flex", alignItems: "center", gap: 8, fontSize: 12,
+                padding: "4px 6px", borderRadius: 7, cursor: "pointer",
+                background: isHov ? `${colors[s.i % colors.length]}14` : "transparent",
+                transition: "background 0.1s",
+              }}
+            >
+              <div style={{ width: 9, height: 9, borderRadius: "50%", background: colors[s.i % colors.length], flexShrink: 0, opacity: isHov ? 1 : 0.8 }} />
+              <span style={{ color: isHov ? "#1a1a2e" : "#4a4a6a", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: isHov ? 600 : 400 }}>{s.label}</span>
+              <span style={{ color: "#1a1a2e", fontWeight: 600, whiteSpace: "nowrap" }}>{fmtFull(s.v, data.prefix, data.suffix)}</span>
+              <span style={{ color: "#6a6a90", fontSize: 10, minWidth: 34, textAlign: "right" }}>{((s.v / total) * 100).toFixed(1)}%</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ChartBlock({ data }: { data: ChartData }) {
+  const colors = data.datasets.map((ds, i) => ds.color ?? CHART_COLORS[i % CHART_COLORS.length]);
+  return (
+    <div style={{
+      background: "white",
+      border: "1px solid rgba(99,102,241,0.12)",
+      borderRadius: 14,
+      padding: "14px 16px",
+      margin: "10px 0",
+      boxShadow: "0 1px 6px rgba(0,0,0,0.05)",
+    }}>
+      {/* Header */}
+      {data.title && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, fontWeight: 600, color: "#2a2a4a" }}>
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="#6366f1" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+            </svg>
+            {data.title}
+          </div>
+          {/* Legend (multi-series) */}
+          {data.datasets.length > 1 && data.type !== "pie" && data.type !== "donut" && (
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              {data.datasets.map((ds, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10, color: "#6a6a90" }}>
+                  <div style={{ width: 8, height: 3, borderRadius: 2, background: colors[i] }} />
+                  {ds.label}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Chart */}
+      {data.type === "line"  && <LineChartSvg data={data} colors={colors} />}
+      {data.type === "bar"   && <BarChartSvg  data={data} colors={colors} />}
+      {(data.type === "pie" || data.type === "donut") && <PieChartSvg data={data} colors={colors} donut={data.type === "donut"} />}
+
+      {/* Single-series legend below line/bar */}
+      {data.datasets.length === 1 && data.type !== "pie" && data.type !== "donut" && (
+        <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 6, fontSize: 10, color: "#6a6a90" }}>
+          <div style={{ width: 12, height: 3, borderRadius: 2, background: colors[0] }} />
+          {data.datasets[0].label}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── AiMessageBody — renders an assistant message with structured sections ──
 function AiMessageBody({
   content,
@@ -545,7 +938,7 @@ function AiMessageBody({
     if (t.startsWith("## ")) {
       const headText = t.slice(3).replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, "").trim();
       return (
-        <p key={i} style={{ fontWeight: 700, color: "#1a1a2e", margin: "18px 0 6px 0", fontSize: 16, borderBottom: "1px solid rgba(255,255,255,0.07)", paddingBottom: 4 }}>
+        <p key={i} style={{ fontWeight: 700, color: "#1a1a2e", margin: "18px 0 6px 0", fontSize: 16, borderBottom: "1px solid rgba(0,0,0,0.08)", paddingBottom: 4 }}>
           <InlineText text={headText} />
         </p>
       );
@@ -676,13 +1069,27 @@ function AiMessageBody({
     );
   };
 
-  // Pre-process bodyLines: group consecutive table rows into table blocks
-  type LineNode = { type: "line"; line: string; idx: number } | { type: "table"; rows: string[][] };
+  // Pre-process bodyLines: group consecutive table rows into table blocks, detect chart blocks
+  type LineNode = { type: "line"; line: string; idx: number } | { type: "table"; rows: string[][] } | { type: "chart"; data: ChartData };
   const lineNodes: LineNode[] = [];
   let i2 = 0;
   while (i2 < bodyLines.length) {
     const t = bodyLines[i2].trim();
-    if (t.startsWith("|") && t.endsWith("|")) {
+    // Chart blocks: ```chart or ~~~chart
+    if (t === "```chart" || t === "~~~chart") {
+      i2++;
+      const jsonLines: string[] = [];
+      while (i2 < bodyLines.length) {
+        const tt = bodyLines[i2].trim();
+        if (tt === "```" || tt === "~~~") { i2++; break; }
+        jsonLines.push(bodyLines[i2]);
+        i2++;
+      }
+      try {
+        const chartData = JSON.parse(jsonLines.join("\n")) as ChartData;
+        lineNodes.push({ type: "chart", data: chartData });
+      } catch { /* malformed JSON — skip silently */ }
+    } else if (t.startsWith("|") && t.endsWith("|")) {
       // Collect all consecutive pipe-delimited lines (including separator rows)
       const tableLines: string[] = [];
       while (i2 < bodyLines.length) {
@@ -723,8 +1130,8 @@ function AiMessageBody({
                       textAlign: "left",
                       padding: "7px 12px",
                       fontWeight: 700,
-                      color: "#a5b4fc",
-                      borderBottom: "1px solid rgba(165,180,252,0.2)",
+                      color: "#6366f1",
+                      borderBottom: "1px solid rgba(99,102,241,0.15)",
                       whiteSpace: "nowrap",
                     }}
                   >
@@ -742,8 +1149,8 @@ function AiMessageBody({
                     key={ci}
                     style={{
                       padding: "7px 12px",
-                      color: ci === 0 ? "#e2e8f0" : "#c0c0d5",
-                      borderBottom: "1px solid rgba(0,0,0,0.08)",
+                      color: ci === 0 ? "#1a1a2e" : "#4a4a6a",
+                      borderBottom: "1px solid rgba(0,0,0,0.06)",
                       verticalAlign: "top",
                     }}
                   >
@@ -763,6 +1170,8 @@ function AiMessageBody({
       {lineNodes.map((node, ni) =>
         node.type === "table"
           ? renderTable(node.rows, ni)
+          : node.type === "chart"
+          ? <ChartBlock key={`chart-${ni}`} data={node.data} />
           : renderBodyLine(node.line, node.idx)
       )}
       {stepLines.length > 0 && (
@@ -1984,6 +2393,7 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
   // ── Mobile detection ───────────────────────────────────────────────────
   const [isMobile, setIsMobile] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 640);
     check();
@@ -2157,8 +2567,8 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
             alignItems: "center",
             gap: 12,
             padding: "10px 20px",
-            borderBottom: "1px solid rgba(0,0,0,0.08)",
-            background: "rgba(23,23,42,0.8)",
+            borderBottom: "1px solid rgba(0,0,0,0.07)",
+            background: "#f5f5fa",
             flexWrap: "wrap",
           }}
         >
@@ -2392,7 +2802,7 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
                 <div style={{ borderTop: "1px solid rgba(0,0,0,0.07)", padding: 8, display: "flex", flexDirection: "column", gap: 2, maxHeight: 200, overflowY: "auto" }}>
                   {convsLoading ? (
                     [1, 2].map((i) => (
-                      <div key={i} style={{ height: 36, borderRadius: 10, background: "rgba(255,255,255,0.09)", animation: "pulse 1.5s ease-in-out infinite" }} />
+                      <div key={i} style={{ height: 36, borderRadius: 10, background: "rgba(0,0,0,0.06)", animation: "pulse 1.5s ease-in-out infinite" }} />
                     ))
                   ) : conversations.length === 0 ? (
                     <p style={{ fontSize: 12, color: "#6a6a90", textAlign: "center", padding: "12px 0" }}>No chats yet. Click &quot;+ New&quot; to start.</p>
@@ -2417,7 +2827,7 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
           /* Desktop sidebar */
           <div
             style={{
-              width: 240,
+              width: sidebarCollapsed ? 48 : 240,
               flexShrink: 0,
               borderRadius: 16,
               border: "1px solid rgba(0,0,0,0.07)",
@@ -2425,68 +2835,151 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
               overflow: "hidden",
               display: "flex",
               flexDirection: "column",
+              transition: "width 0.2s ease",
             }}
           >
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "space-between",
-                padding: "10px 12px",
+                justifyContent: sidebarCollapsed ? "center" : "space-between",
+                padding: sidebarCollapsed ? "10px 0" : "10px 12px",
                 borderBottom: "1px solid rgba(0,0,0,0.07)",
               }}
             >
-              <span style={{ fontSize: 11, fontWeight: 700, color: "#4a4a6a", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                Chats
-              </span>
-              <button
-                onClick={createConversation}
-                disabled={creatingConv}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 4,
-                  fontSize: 10,
-                  fontWeight: 600,
-                  padding: "4px 8px",
-                  borderRadius: 6,
-                  border: "1px solid rgba(0,0,0,0.08)",
-                  background: "#f5f5f7",
-                  color: "#4a4a6a",
-                  cursor: creatingConv ? "not-allowed" : "pointer",
-                  opacity: creatingConv ? 0.5 : 1,
-                }}
-              >
-                {creatingConv ? <Spinner size={10} /> : "+ New"}
-              </button>
-            </div>
-            <div style={{ flex: 1, overflowY: "auto", padding: 8, display: "flex", flexDirection: "column", gap: 2 }}>
-              {convsLoading ? (
-                [1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    style={{ height: 36, borderRadius: 10, background: "rgba(255,255,255,0.09)", animation: "pulse 1.5s ease-in-out infinite" }}
-                  />
-                ))
-              ) : conversations.length === 0 ? (
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "32px 8px", textAlign: "center" }}>
-                  <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="#6a6a90" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" /></svg>
-                  <p style={{ fontSize: 11, color: "#6a6a90" }}>No chats yet.<br />Click &ldquo;+ New&rdquo; to start.</p>
-                </div>
-              ) : (
-                conversations.map((conv) => (
-                  <ConvItem
-                    key={conv.id}
-                    conv={conv}
-                    isActive={conv.id === activeConvId}
-                    onSelect={() => setActiveConvId(conv.id)}
-                    onDelete={() => deleteConversation(conv.id)}
-                    onRename={(title) => renameConversation(conv.id, title)}
-                    messageCount={conv.id === activeConvId ? messages.length : undefined}
-                  />
-                ))
+              {!sidebarCollapsed && (
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#4a4a6a", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                  Chats
+                </span>
               )}
+              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                {!sidebarCollapsed && (
+                  <button
+                    onClick={createConversation}
+                    disabled={creatingConv}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                      fontSize: 10,
+                      fontWeight: 600,
+                      padding: "4px 8px",
+                      borderRadius: 6,
+                      border: "1px solid rgba(0,0,0,0.08)",
+                      background: "#f5f5f7",
+                      color: "#4a4a6a",
+                      cursor: creatingConv ? "not-allowed" : "pointer",
+                      opacity: creatingConv ? 0.5 : 1,
+                    }}
+                  >
+                    {creatingConv ? <Spinner size={10} /> : "+ New"}
+                  </button>
+                )}
+                {/* Collapse / expand toggle */}
+                <button
+                  onClick={() => setSidebarCollapsed((v) => !v)}
+                  title={sidebarCollapsed ? "Expand chats" : "Collapse chats"}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: 4,
+                    borderRadius: 6,
+                    color: "#6a6a90",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d={sidebarCollapsed ? "M8.25 4.5l7.5 7.5-7.5 7.5" : "M15.75 19.5L8.25 12l7.5-7.5"} />
+                  </svg>
+                </button>
+              </div>
             </div>
+
+            {sidebarCollapsed ? (
+              /* Collapsed: show avatar dots for each conversation */
+              <div style={{ flex: 1, overflowY: "auto", padding: "8px 0", display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                {conversations.slice(0, 8).map((conv) => {
+                  const isActive = conv.id === activeConvId;
+                  const avatarColor = AVATAR_COLORS[conv.title.toUpperCase().charCodeAt(0) % AVATAR_COLORS.length];
+                  return (
+                    <button
+                      key={conv.id}
+                      onClick={() => setActiveConvId(conv.id)}
+                      title={conv.title}
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: "50%",
+                        background: isActive ? avatarColor + "33" : avatarColor + "18",
+                        border: isActive ? `2px solid ${avatarColor}` : "2px solid transparent",
+                        color: avatarColor,
+                        fontSize: 12,
+                        fontWeight: 700,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        cursor: "pointer",
+                        transition: "all 0.15s",
+                      }}
+                    >
+                      {conv.title.trim()[0]?.toUpperCase() ?? "C"}
+                    </button>
+                  );
+                })}
+                <button
+                  onClick={createConversation}
+                  disabled={creatingConv}
+                  title="New chat"
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: "50%",
+                    background: "rgba(99,102,241,0.08)",
+                    border: "1px dashed rgba(99,102,241,0.3)",
+                    color: "#6366f1",
+                    fontSize: 18,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: creatingConv ? "not-allowed" : "pointer",
+                    marginTop: 4,
+                  }}
+                >
+                  {creatingConv ? <Spinner size={10} /> : "+"}
+                </button>
+              </div>
+            ) : (
+              <div style={{ flex: 1, overflowY: "auto", padding: 8, display: "flex", flexDirection: "column", gap: 2 }}>
+                {convsLoading ? (
+                  [1, 2, 3].map((i) => (
+                    <div
+                      key={i}
+                      style={{ height: 36, borderRadius: 10, background: "rgba(0,0,0,0.06)", animation: "pulse 1.5s ease-in-out infinite" }}
+                    />
+                  ))
+                ) : conversations.length === 0 ? (
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "32px 8px", textAlign: "center" }}>
+                    <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="#6a6a90" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" /></svg>
+                    <p style={{ fontSize: 11, color: "#6a6a90" }}>No chats yet.<br />Click &ldquo;+ New&rdquo; to start.</p>
+                  </div>
+                ) : (
+                  conversations.map((conv) => (
+                    <ConvItem
+                      key={conv.id}
+                      conv={conv}
+                      isActive={conv.id === activeConvId}
+                      onSelect={() => setActiveConvId(conv.id)}
+                      onDelete={() => deleteConversation(conv.id)}
+                      onRename={(title) => renameConversation(conv.id, title)}
+                      messageCount={conv.id === activeConvId ? messages.length : undefined}
+                    />
+                  ))
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -2624,7 +3117,7 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
                       style={{
                         height: 48,
                         borderRadius: 16,
-                        background: "rgba(255,255,255,0.09)",
+                        background: "rgba(0,0,0,0.06)",
                         width: `${40 + i * 15}%`,
                         animation: "pulse 1.5s ease-in-out infinite",
                       }}

@@ -73,7 +73,7 @@ export const INTEGRATIONS_CATALOG: Integration[] = [
     category: "Payments & Revenue",
     color: "#FFC233",
     status: "live",
-    connectUrl: "/dashboard?tab=settings&connect=lemon-squeezy",
+    connectUrl: "/dashboard?tab=data-sources&connect=lemon-squeezy",
     icon: "/integrations/lemon-squeezy.svg",
   },
   {
@@ -93,7 +93,7 @@ export const INTEGRATIONS_CATALOG: Integration[] = [
     category: "Payments & Revenue",
     color: "#3ddc97",
     status: "live",  // Very common for indie SaaS founders — MoR model popular with small teams
-    connectUrl: "/dashboard?tab=settings&connect=paddle",
+    connectUrl: "/dashboard?tab=data-sources&connect=paddle",
     icon: "/integrations/paddle.svg",
   },
   {
@@ -118,7 +118,7 @@ export const INTEGRATIONS_CATALOG: Integration[] = [
     category: "Web Analytics",
     color: "#5850ec",
     status: "live",  // Top choice for indie founders replacing GA4
-    connectUrl: "/dashboard?tab=settings&connect=plausible",
+    connectUrl: "/dashboard?tab=data-sources&connect=plausible",
     icon: "/integrations/plausible.svg",
   },
   {
@@ -138,7 +138,7 @@ export const INTEGRATIONS_CATALOG: Integration[] = [
     category: "Web Analytics",
     color: "#f76300",
     status: "live",
-    connectUrl: "/dashboard?tab=settings&connect=posthog",
+    connectUrl: "/dashboard?tab=data-sources&connect=posthog",
     icon: "/integrations/posthog.svg",
   },
   {
@@ -148,7 +148,7 @@ export const INTEGRATIONS_CATALOG: Integration[] = [
     category: "Web Analytics",
     color: "#7856ff",
     status: "soon",  // Leans mid-market; setup complexity deters solo founders
-    connectUrl: "/dashboard?tab=settings&connect=mixpanel",
+    connectUrl: "/dashboard?tab=data-sources&connect=mixpanel",
     icon: "/integrations/mixpanel.svg",
   },
   {
@@ -158,7 +158,7 @@ export const INTEGRATIONS_CATALOG: Integration[] = [
     category: "Web Analytics",
     color: "#1e73be",
     status: "soon",  // Enterprise-oriented; smaller founder adoption than PostHog/Mixpanel
-    connectUrl: "/dashboard?tab=settings&connect=amplitude",
+    connectUrl: "/dashboard?tab=data-sources&connect=amplitude",
     icon: "/integrations/amplitude.svg",
   },
 
@@ -271,7 +271,7 @@ export const INTEGRATIONS_CATALOG: Integration[] = [
     category: "Email & Marketing",
     color: "#FC5200",
     status: "live",  // Fastest-growing newsletter platform; high overlap with Fold's ICP
-    connectUrl: "/dashboard?tab=settings&connect=beehiiv",
+    connectUrl: "/dashboard?tab=data-sources&connect=beehiiv",
     icon: "/integrations/beehiiv.png",
   },
   {
@@ -291,7 +291,7 @@ export const INTEGRATIONS_CATALOG: Integration[] = [
     category: "Email & Marketing",
     color: "#0092FF",
     status: "soon",  // Lower brand awareness in English-speaking indie founder communities
-    connectUrl: "/dashboard?tab=settings&connect=brevo",
+    connectUrl: "/dashboard?tab=data-sources&connect=brevo",
     icon: "/integrations/brevo.svg",
   },
 
@@ -444,7 +444,7 @@ export const INTEGRATIONS_CATALOG: Integration[] = [
     category: "Product Analytics",
     color: "#FD3A5C",
     status: "soon",  // Widely used by solo founders; free tier drives massive adoption
-    connectUrl: "/dashboard?tab=settings&connect=hotjar",
+    connectUrl: "/dashboard?tab=data-sources&connect=hotjar",
     icon: "/integrations/hotjar.svg",
   },
   {
@@ -464,7 +464,7 @@ export const INTEGRATIONS_CATALOG: Integration[] = [
     category: "Product Analytics",
     color: "#FF5B5B",
     status: "soon",  // Targets growth/product teams; less common for bootstrapped founders
-    connectUrl: "/dashboard?tab=settings&connect=heap",
+    connectUrl: "/dashboard?tab=data-sources&connect=heap",
     icon: "/integrations/heap.svg",
   },
   {
@@ -474,7 +474,7 @@ export const INTEGRATIONS_CATALOG: Integration[] = [
     category: "Product Analytics",
     color: "#3B1D8E",
     status: "soon",  // Enterprise positioning; pricing excludes most solo founders
-    connectUrl: "/dashboard?tab=settings&connect=fullstory",
+    connectUrl: "/dashboard?tab=data-sources&connect=fullstory",
     icon: "/integrations/fullstory.svg",
   },
 

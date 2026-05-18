@@ -1741,7 +1741,7 @@ export default function PlaybooksTab({
           onClose={() => setShowNoRevenue(false)}
           onGoToSettings={() => {
             setShowNoRevenue(false);
-            window.location.href = "/dashboard?tab=settings";
+            window.location.href = "/dashboard?tab=data-sources";
           }}
         />
       )}
