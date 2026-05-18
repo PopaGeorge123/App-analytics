@@ -149,7 +149,7 @@ export default function SignupPage() {
             {[
               "Check your spam / junk folder",
               "The link expires in 24 hours",
-              "Gmail? Search: from:noreply@usefold.io",
+              "Gmail? Search: from:info@usefold.io",
             ].map((tip) => (
               <p key={tip} className="flex items-center gap-2 font-mono text-[10px] text-[#58588a]">
                 <span className="text-[#cdcdcd]">→</span> {tip}

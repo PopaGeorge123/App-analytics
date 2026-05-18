@@ -211,6 +211,9 @@ interface MetricDef {
   chartType: ChartSeriesType;
   formatType: FormatType;
   aggregation: AggregationType;
+  /** Set true for platforms that store currency as real decimals (e.g. Meta spend = 41.43),
+   *  as opposed to Stripe which stores in cents (e.g. 4143 = $41.43). */
+  rawCurrency?: boolean;
 }
 
 export interface SelectedMetric extends MetricDef {
@@ -258,7 +261,7 @@ const PLATFORM_METRICS: Record<string, MetricDef[]> = {
     { field: "sessions",    label: "Sessions",     color: "#f59e0b", axis: "right", chartType: "bar",  formatType: "number", aggregation: "sum" },
   ],
   meta: [
-    { field: "spend",       label: "Ad Spend",     color: "#1877f2", axis: "left",  chartType: "bar",  formatType: "currency", aggregation: "sum" },
+    { field: "spend",       label: "Ad Spend",     color: "#1877f2", axis: "left",  chartType: "bar",  formatType: "currency", aggregation: "sum", rawCurrency: true },
     { field: "clicks",      label: "Clicks",       color: "#60a5fa", axis: "right", chartType: "line", formatType: "number",   aggregation: "sum" },
     { field: "reach",       label: "Reach",        color: "#34d399", axis: "right", chartType: "line", formatType: "number",   aggregation: "sum" },
     { field: "conversions", label: "Conversions",  color: "#00d4aa", axis: "right", chartType: "bar",  formatType: "number",   aggregation: "sum" },
@@ -861,13 +864,13 @@ function buildCustomChartData(
       let val = 0;
       if (m.aggregation === "sum") {
         val = b.sum;
-        if (m.formatType === "currency") val = val / 100; // stored in cents
+        if (m.formatType === "currency" && !m.rawCurrency) val = val / 100; // stored in cents (Stripe etc.)
       } else if (m.aggregation === "avg") {
         val = b.vals.length ? b.vals.reduce((a, v) => a + v, 0) / b.vals.length : 0;
       } else {
         // latest
         val = b.last;
-        if (m.formatType === "currency") val = val / 100;
+        if (m.formatType === "currency" && !m.rawCurrency) val = val / 100;
       }
       row[m.id] = parseFloat(val.toFixed(3));
     }
