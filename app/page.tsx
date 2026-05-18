@@ -756,8 +756,7 @@ export default async function Home() {
                 {[
                   { label: "Bootstrapped" },
                   { label: "No VC pressure" },
-                  { label: "Built in public" },
-                  { label: "Shipping weekly" },
+                  { label: "Built in public" }
                 ].map(({ label }) => (
                   <span
                     key={label}

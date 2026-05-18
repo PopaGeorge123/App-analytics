@@ -82,6 +82,15 @@ export async function POST() {
   const bounceRate7 = avg(snaps7, "ga4", "bounceRate");
   const newCustomers7 = sum(snaps7, "stripe", "newCustomers");
 
+  // Read Meta currency from integrations table (authoritative source)
+  const { data: metaIntegration } = await db
+    .from("integrations")
+    .select("currency")
+    .eq("user_id", user.id)
+    .eq("platform", "meta")
+    .maybeSingle();
+  const metaCurrency: string = (metaIntegration?.currency as string | null) ?? "USD";
+
   // Website data
   const { data: website } = await db
     .from("website_profiles")
@@ -92,14 +101,22 @@ export async function POST() {
   const revChange = revenuePrev > 0 ? ((revenue7 - revenuePrev) / revenuePrev) * 100 : 0;
   const sessChange = sessionsPrev > 0 ? ((sessions7 - sessionsPrev) / sessionsPrev) * 100 : 0;
 
+  // Stripe revenue/refunds are stored in cents — divide by 100.
+  // Meta spend is stored as the actual currency value (e.g. 229.24 RON) — do NOT divide by 100.
+  const revenueFormatted = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(revenue7 / 100);
+  const spendFormatted   = new Intl.NumberFormat("en-US", { style: "currency", currency: metaCurrency }).format(spend7);
+  const cacFormatted     = newCustomers7 > 0
+    ? new Intl.NumberFormat("en-US", { style: "currency", currency: metaCurrency }).format(spend7 / newCustomers7)
+    : "N/A";
+
   const contextBlock = `
 DATE: ${today}
-Revenue (7d): $${(revenue7 / 100).toFixed(2)} (${revChange >= 0 ? "+" : ""}${revChange.toFixed(1)}% vs prev week)
+Revenue (7d): ${revenueFormatted} (${revChange >= 0 ? "+" : ""}${revChange.toFixed(1)}% vs prev week)
 Sessions (7d): ${sessions7} (${sessChange >= 0 ? "+" : ""}${sessChange.toFixed(1)}% vs prev week)
-Ad Spend (7d): $${(spend7 / 100).toFixed(2)}
+Ad Spend (7d): ${spendFormatted} (currency: ${metaCurrency})
 New Customers (7d): ${newCustomers7}
 Bounce Rate (7d): ${bounceRate7.toFixed(1)}%
-CAC: ${newCustomers7 > 0 ? `$${((spend7 / 100) / newCustomers7).toFixed(2)}` : "N/A"}
+CAC: ${cacFormatted}
 Website: ${website?.url ?? "Not set"} — Score ${website?.score ?? 0}/100
 `.trim();
 

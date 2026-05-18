@@ -152,7 +152,7 @@ export default function SignupPage() {
               "Gmail? Search: from:noreply@usefold.io",
             ].map((tip) => (
               <p key={tip} className="flex items-center gap-2 font-mono text-[10px] text-[#58588a]">
-                <span className="text-[#3a3a55]">→</span> {tip}
+                <span className="text-[#cdcdcd]">→</span> {tip}
               </p>
             ))}
           </div>
@@ -170,7 +170,7 @@ export default function SignupPage() {
                 {resendLoading ? "Sending…" : resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend confirmation email"}
               </button>
             )}
-            <Link href="/login" className="font-mono text-[10px] text-[#3a3a55] hover:text-[#58588a] underline underline-offset-2">
+            <Link href="/login" className="font-mono text-[10px] text-[#cecece] hover:text-[#58588a] underline underline-offset-2">
               Already confirmed? Sign in →
             </Link>
           </div>
@@ -366,7 +366,7 @@ export default function SignupPage() {
             </button>
 
             {/* Legal consent */}
-            <p className="text-center font-mono text-[10px] leading-relaxed text-[#3a3a55]">
+            <p className="text-center font-mono text-[10px] leading-relaxed text-[#cecece]">
               By creating an account you agree to our{" "}
               <Link href="/terms" className="text-[#58588a] underline underline-offset-2 hover:text-[#8585aa]">Terms of Service</Link>
               {" "}and{" "}
