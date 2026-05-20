@@ -172,7 +172,7 @@ function Step1({
               <path d="M3.6 9h16.8M3.6 15h16.8M12 3c-2.4 4-3 8-3 9s.6 5 3 9M12 3c2.4 4 3 8 3 9s-.6 5-3 9" />
             </svg>
           </div>
-          <h1 className="mb-3 text-2xl font-semibold tracking-tight text-[#f0f0fa]">
+          <h1 className="mb-3 text-2xl font-semibold tracking-tight text-[#464646]">
             Start with your website
           </h1>
           <p className="text-[15px] leading-relaxed text-[#8888b0]">
@@ -205,7 +205,7 @@ function Step1({
 
           {/* Mobile-only heading */}
           <div className="mb-8 lg:hidden">
-            <h2 className="text-xl font-semibold text-[#f0f0fa]">Start with your website</h2>
+            <h2 className="text-xl font-semibold text-[#4a4a4a]">Start with your website</h2>
             <p className="mt-1 text-sm text-[#8888b0]">We'll scan it and generate a description of your business.</p>
           </div>
 
@@ -227,7 +227,7 @@ function Step1({
                   onChange={(e) => { setUrl(e.target.value); setExtracted(false); setExtractError(""); }}
                   onKeyDown={(e) => e.key === "Enter" && !extracting && handleExtract()}
                   placeholder="https://yourwebsite.com"
-                  className="w-full rounded-xl border border-[#c8c8ec] bg-[#f2f2fc] pl-10 pr-4 py-3 text-sm text-[#e8e8f8] placeholder-[#54547a] outline-none transition focus:border-[#00d4aa]/40 focus:ring-2 focus:ring-[#00d4aa]/10"
+                  className="w-full rounded-xl border border-[#c8c8ec] bg-[#f2f2fc] pl-10 pr-4 py-3 text-sm text-[#6d6d6d] placeholder-[#54547a] outline-none transition focus:border-[#00d4aa]/40 focus:ring-2 focus:ring-[#00d4aa]/10"
                 />
               </div>
               <button
