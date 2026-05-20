@@ -6232,6 +6232,124 @@ async function runBackfillForUser(userId, platform, newAccountId = null) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HTTP TRIGGER SERVER
+// ─────────────────────────────────────────────────────────────────────────────
+// SYNC TODAY — fetches today's live data for a single user+platform.
+// Called by the dashboard "Refresh" button via POST /sync-today.
+// Mirrors the syncUserPlatforms logic in runSync() but targets today's date.
+// ─────────────────────────────────────────────────────────────────────────────
+async function syncTodayForUser(userId, platform) {
+  const today = new Date().toISOString().slice(0, 10);
+  log(`[sync-today] Starting — user=${userId.slice(0, 8)} platform=${platform} date=${today}`);
+
+  // Fetch integration row for this user+platform
+  let rows;
+  try {
+    rows = await SB.select('integrations', 'user_id,platform,access_token,refresh_token,account_id,currency', {
+      user_id: userId, platform,
+    });
+  } catch (err) {
+    logFail(`[sync-today] Cannot fetch integration: ${err.message}`);
+    return;
+  }
+
+  if (!rows?.length) {
+    logWarn(`[sync-today] No integration found for user=${userId.slice(0, 8)} platform=${platform}`);
+    return;
+  }
+
+  const intg = rows[0];
+
+  try {
+    if (platform === 'stripe') {
+      await healStripeCurrency(userId, intg.access_token);
+      const r = await syncStripeDay(userId, intg.access_token, today);
+      logOk(`[sync-today] stripe — ${today} | $${(r.revenue / 100).toFixed(2)} revenue | ${r.txCount} tx`);
+    } else if (platform === 'ga4') {
+      // GA4 syncGA4 hardcodes yesterday() — call the underlying API with today
+      if (!GOOGLE_ID || !GOOGLE_SEC) throw new Error('GA4: missing GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET');
+      if (!intg.refresh_token) throw new Error('GA4: no refresh_token');
+      const token  = await refreshGoogleToken(intg.refresh_token);
+      const propId = intg.account_id.startsWith('properties/')
+        ? intg.account_id
+        : `properties/${intg.account_id}`;
+      const res = await fetchRetry('GA4 runReport today',
+        `https://analyticsdata.googleapis.com/v1beta/${propId}:runReport`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            dateRanges: [{ startDate: today, endDate: today }],
+            metrics: [{ name: 'sessions' }, { name: 'totalUsers' }, { name: 'bounceRate' }, { name: 'conversions' }],
+          }),
+        });
+      const row = res?.rows?.[0]?.metricValues ?? [];
+      const d = {
+        sessions:    parseInt(row[0]?.value ?? '0', 10),
+        totalUsers:  parseInt(row[1]?.value ?? '0', 10),
+        bounceRate:  parseFloat(row[2]?.value ?? '0'),
+        conversions: parseInt(row[3]?.value ?? '0', 10),
+      };
+      await SB.upsert('daily_snapshots', { user_id: userId, provider: 'ga4', date: today, data: d }, 'user_id,provider,date');
+      logOk(`[sync-today] ga4 — ${today} | ${d.sessions} sessions | ${d.totalUsers} users`);
+    } else if (platform === 'meta') {
+      const freshToken  = await extendMetaToken(userId, intg.access_token);
+      const currency    = intg.currency ?? 'USD';
+      const d = await fetchMetaDay(intg.account_id, freshToken, today, currency);
+      await SB.upsert('daily_snapshots', { user_id: userId, provider: 'meta', date: today, data: d }, 'user_id,provider,date');
+      logOk(`[sync-today] meta — ${today} | ${d.spend} spend`);
+    } else {
+      // For all other platforms, fall back to their standard sync function
+      // which uses yesterday() — they don't expose intra-day data anyway
+      const plats = { [platform]: intg };
+      const syncMap = {
+        paypal: () => syncPayPal(userId, intg),
+        paddle: () => syncPaddle(userId, intg),
+        'lemon-squeezy': () => syncLemonSqueezy(userId, intg),
+        gumroad: () => syncGumroad(userId, intg),
+        plausible: () => syncPlausible(userId, intg),
+        mixpanel: () => syncMixpanel(userId, intg),
+        amplitude: () => syncAmplitude(userId, intg),
+        posthog: () => syncPostHog(userId, intg),
+        fathom: () => syncFathom(userId, intg),
+        'google-ads': () => syncGoogleAds(userId, intg),
+        'tiktok-ads': () => syncTikTokAds(userId, intg),
+        'twitter-ads': () => syncTwitterAds(userId, intg),
+        'linkedin-ads': () => syncLinkedInAds(userId, intg),
+        'snapchat-ads': () => syncSnapchatAds(userId, intg),
+        'pinterest-ads': () => syncPinterestAds(userId, intg),
+        mailchimp: () => syncMailchimp(userId, intg),
+        klaviyo: () => syncKlaviyo(userId, intg),
+        convertkit: () => syncConvertKit(userId, intg),
+        activecampaign: () => syncActiveCampaign(userId, intg),
+        brevo: () => syncBrevo(userId, intg),
+        beehiiv: () => syncBeehiiv(userId, intg),
+        shopify: () => syncShopify(userId, intg),
+        woocommerce: () => syncWooCommerce(userId, intg),
+        bigcommerce: () => syncBigCommerce(userId, intg),
+        'amazon-seller': () => syncAmazonSeller(userId, intg),
+        etsy: () => syncEtsy(userId, intg),
+        hubspot: () => syncHubSpot(userId, intg),
+        salesforce: () => syncSalesforce(userId, intg),
+        pipedrive: () => syncPipedrive(userId, intg),
+        notion: () => syncNotion(userId, intg),
+        intercom: () => syncIntercom(userId, intg),
+        zendesk: () => syncZendesk(userId, intg),
+        freshdesk: () => syncFreshdesk(userId, intg),
+        instagram: () => syncInstagram(userId, intg),
+        youtube: () => syncYouTube(userId, intg),
+        'twitter-organic': () => syncTwitterOrganic(userId, intg),
+      };
+      if (syncMap[platform]) {
+        await syncMap[platform]();
+        logOk(`[sync-today] ${platform} — synced (latest available data)`);
+      } else {
+        logWarn(`[sync-today] No sync function for platform=${platform}`);
+      }
+    }
+  } catch (err) {
+    logFail(`[sync-today] Failed — user=${userId.slice(0, 8)} platform=${platform}: ${err.message}`);
+  }
+}
+
 // Listens for POST /sync-trigger with Bearer SYNC_SECRET.
 // Starts alongside daemon mode so the Next.js app can kick off backfills
 // immediately after a user connects a platform via OAuth.
@@ -6312,6 +6430,30 @@ function startTriggerServer() {
       res.end(JSON.stringify({ ok: true, message: 'Backfill queued' }));
       runBackfillForUser(userId, platform, newAccountId).catch(e =>
         logFail(`[trigger] Unhandled error in backfill: ${e.message}`)
+      );
+      return;
+    }
+
+    // ── POST /sync-today ─────────────────────────────────────────────────────
+    // Syncs today's snapshot for a specific user + platform.
+    // Called by the dashboard "Refresh" button so users see live data immediately.
+    if (req.url === '/sync-today') {
+      let userId, platform;
+      try {
+        ({ userId, platform } = JSON.parse(body));
+        if (!userId || !platform) throw new Error('Missing userId or platform');
+      } catch (err) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
+        return;
+      }
+      log(`[sync-today] Received — user=${userId.slice(0, 8)} platform=${platform}`);
+      res.writeHead(202, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, message: 'Today sync queued' }));
+
+      // Run today's sync for this user+platform asynchronously
+      syncTodayForUser(userId, platform).catch(e =>
+        logFail(`[sync-today] Unhandled error: ${e.message}`)
       );
       return;
     }

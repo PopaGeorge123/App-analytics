@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   AreaChart, Area, Bar, ComposedChart, Legend, Tooltip, ResponsiveContainer,
   XAxis, YAxis, CartesianGrid,
@@ -4931,6 +4932,38 @@ export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots,
   const [shareState, setShareState] = useState<"idle" | "loading" | "copied" | "error">("idle");
   const shareTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Refresh (sync now) state
+  const router = useRouter();
+  const [refreshState, setRefreshState] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isRouterRefreshing, startRouterRefresh] = useTransition();
+
+  async function handleRefresh() {
+    if (refreshState === "loading" || isRouterRefreshing) return;
+    setRefreshState("loading");
+    try {
+      const res = await fetch("/api/sync/now", { method: "POST" });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        console.warn("Sync daemon:", d.error);
+      }
+      // startTransition wraps router.refresh() so React tracks when the
+      // re-render caused by the refresh is fully complete before we mark "done"
+      await new Promise<void>((resolve) => {
+        startRouterRefresh(() => {
+          router.refresh();
+          resolve();
+        });
+      });
+      setRefreshState("done");
+    } catch {
+      setRefreshState("error");
+    } finally {
+      if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current);
+      refreshTimeoutRef.current = setTimeout(() => setRefreshState("idle"), 3000);
+    }
+  }
+
   async function handleShare() {
     if (shareState === "loading") return;
     setShareState("loading");
@@ -5009,37 +5042,67 @@ export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots,
           <p className="mt-1 text-sm text-[#4a4a6a]">Daily breakdown per integration.</p>
         </div>
         {availablePlatforms.length > 0 && (
-          <button
-            onClick={handleShare}
-            disabled={shareState === "loading"}
-            className="flex shrink-0 items-center gap-2 rounded-xl border border-[#d4d4e8] bg-[#f2f2f8] px-4 py-2.5 font-mono text-xs font-semibold transition-all hover:border-[#00d4aa]/40 hover:text-[#00d4aa] disabled:opacity-50"
-            style={{
-              color: shareState === "copied" ? "#00d4aa" : shareState === "error" ? "#f87171" : "#4a4a6a",
-              borderColor: shareState === "copied" ? "#00d4aa40" : shareState === "error" ? "#f8717140" : undefined,
-            }}
-          >
-            {shareState === "loading" ? (
-              <>
-                <svg className="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
-                Generating…
-              </>
-            ) : shareState === "copied" ? (
-              <>
-                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-                Link copied!
-              </>
-            ) : shareState === "error" ? (
-              <>
-                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                Error — retry
-              </>
-            ) : (
-              <>
-                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
-                Share report
-              </>
-            )}
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Refresh button */}
+            <button
+              onClick={handleRefresh}
+              disabled={refreshState === "loading" || isRouterRefreshing}
+              title="Sync latest data now"
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-[#d4d4e8] bg-[#f2f2f8] px-3 py-2.5 font-mono text-xs font-semibold transition-all hover:border-[#00d4aa]/40 hover:text-[#00d4aa] disabled:opacity-50"
+              style={{
+                color: refreshState === "done" ? "#00d4aa" : refreshState === "error" ? "#f87171" : "#4a4a6a",
+                borderColor: refreshState === "done" ? "#00d4aa40" : refreshState === "error" ? "#f8717140" : undefined,
+              }}
+            >
+              {(refreshState === "loading" || isRouterRefreshing) ? (
+                <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
+              ) : refreshState === "done" ? (
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+              ) : refreshState === "error" ? (
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+              ) : (
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                  <path d="M3 3v5h5" />
+                  <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+                  <path d="M16 16h5v5" />
+                </svg>
+              )}
+            </button>
+
+            {/* Share report button */}
+            <button
+              onClick={handleShare}
+              disabled={shareState === "loading"}
+              className="flex shrink-0 items-center gap-2 rounded-xl border border-[#d4d4e8] bg-[#f2f2f8] px-4 py-2.5 font-mono text-xs font-semibold transition-all hover:border-[#00d4aa]/40 hover:text-[#00d4aa] disabled:opacity-50"
+              style={{
+                color: shareState === "copied" ? "#00d4aa" : shareState === "error" ? "#f87171" : "#4a4a6a",
+                borderColor: shareState === "copied" ? "#00d4aa40" : shareState === "error" ? "#f8717140" : undefined,
+              }}
+            >
+              {shareState === "loading" ? (
+                <>
+                  <svg className="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
+                  Generating…
+                </>
+              ) : shareState === "copied" ? (
+                <>
+                  <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                  Link copied!
+                </>
+              ) : shareState === "error" ? (
+                <>
+                  <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                  Error — retry
+                </>
+              ) : (
+                <>
+                  <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
+                  Share report
+                </>
+              )}
+            </button>
+          </div>
         )}
       </div>
 
