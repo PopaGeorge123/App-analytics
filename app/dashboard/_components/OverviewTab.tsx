@@ -974,7 +974,7 @@ export default function OverviewTab({
         <div className="lg:col-span-6 grid grid-cols-2 gap-3">
 
           {/* Sessions */}
-          <div className="rounded-2xl bg-[#ffffff] border border-black/8 p-4 flex flex-col justify-between">
+          <div className="rounded-2xl bg-[#ffffff] border border-black/8 p-4 flex flex-col justify-between overflow-hidden min-w-0">
             <div className="flex items-center justify-between mb-3">
               <span className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#4a4a6a]">Sessions</span>
               <div className="flex h-5 w-5 items-center justify-center rounded-lg bg-[#f59e0b]/10">
@@ -986,7 +986,7 @@ export default function OverviewTab({
             </div>
             {kpis.sessions.value ? (
               <>
-                <p className="font-mono text-3xl font-bold text-[#1a1a2e] tabular-nums leading-none mb-2">{kpis.sessions.value}</p>
+                <p className="font-mono text-3xl font-bold text-[#1a1a2e] tabular-nums leading-none mb-2 break-all">{kpis.sessions.value}</p>
                 <div className="flex items-center justify-between">
                   {kpis.sessions.trend && <TrendBadge current={kpis.sessions.trend.current} prev={kpis.sessions.trend.prev} size="sm" />}
                   {kpis.sessions.spark.length > 1 && <Sparkline data={kpis.sessions.spark} color="#f59e0b" width={64} height={22} />}
@@ -1001,7 +1001,7 @@ export default function OverviewTab({
           </div>
 
           {/* Ad Spend */}
-          <div className="rounded-2xl bg-[#ffffff] border border-black/8 p-4 flex flex-col justify-between">
+          <div className="rounded-2xl bg-[#ffffff] border border-black/8 p-4 flex flex-col justify-between overflow-hidden min-w-0">
             <div className="flex items-center justify-between mb-3">
               <span className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#4a4a6a]">Ad Spend</span>
               <div className="flex h-5 w-5 items-center justify-center rounded-lg bg-[#1877f2]/10">
@@ -1012,7 +1012,7 @@ export default function OverviewTab({
             </div>
             {kpis.adSpend.value ? (
               <>
-                <p className="font-mono text-3xl font-bold text-[#1a1a2e] tabular-nums leading-none mb-2">{kpis.adSpend.value}</p>
+                <p className="font-mono text-3xl font-bold text-[#1a1a2e] tabular-nums leading-none mb-2 break-all">{kpis.adSpend.value}</p>
                 <div className="flex items-center justify-between">
                   {kpis.adSpend.trend && <TrendBadge current={kpis.adSpend.trend.current} prev={kpis.adSpend.trend.prev} size="sm" />}
                   {kpis.adSpend.spark.length > 1 && <Sparkline data={kpis.adSpend.spark} color="#1877f2" width={64} height={22} />}
@@ -1027,7 +1027,7 @@ export default function OverviewTab({
           </div>
 
           {/* New Customers */}
-          <div className="rounded-2xl bg-[#ffffff] border border-black/8 p-4 flex flex-col justify-between">
+          <div className="rounded-2xl bg-[#ffffff] border border-black/8 p-4 flex flex-col justify-between overflow-hidden min-w-0">
             <div className="flex items-center justify-between mb-3">
               <span className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#4a4a6a]">New Customers</span>
               <div className="flex h-5 w-5 items-center justify-center rounded-lg bg-[#00d4aa]/10">
@@ -1039,7 +1039,7 @@ export default function OverviewTab({
             </div>
             {kpis.customers.value ? (
               <>
-                <p className="font-mono text-3xl font-bold text-[#1a1a2e] tabular-nums leading-none mb-2">{kpis.customers.value}</p>
+                <p className="font-mono text-3xl font-bold text-[#1a1a2e] tabular-nums leading-none mb-2 break-all">{kpis.customers.value}</p>
                 <div className="flex items-center justify-between">
                   {kpis.customers.trend && <TrendBadge current={kpis.customers.trend.current} prev={kpis.customers.trend.prev} size="sm" />}
                   {kpis.customers.spark.length > 1 && <Sparkline data={kpis.customers.spark} color="#00d4aa" width={64} height={22} />}
@@ -1054,14 +1054,14 @@ export default function OverviewTab({
           </div>
 
           {/* CAC + Bounce stacked */}
-          <div className="rounded-2xl bg-[#ffffff] border border-black/8 p-4 flex flex-col gap-0 justify-between">
+          <div className="rounded-2xl bg-[#ffffff] border border-black/8 p-4 flex flex-col gap-0 justify-between overflow-hidden min-w-0">
             {/* CAC */}
             <div className="pb-3 border-b border-black/8">
               <div className="flex items-center justify-between mb-1">
                 <span className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#4a4a6a]">CAC</span>
               </div>
               {kpis.cac.value ? (
-                <p className="font-mono text-xl font-bold text-[#1a1a2e] tabular-nums">{kpis.cac.value}</p>
+                <p className="font-mono text-xl font-bold text-[#1a1a2e] tabular-nums break-all">{kpis.cac.value}</p>
               ) : (
                 <p className="font-mono text-xl font-bold text-[#1a1a2e]">—</p>
               )}
@@ -1072,7 +1072,7 @@ export default function OverviewTab({
                 <span className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#4a4a6a]">Bounce</span>
               </div>
               {kpis.bounce.value ? (
-                <p className={`font-mono text-xl font-bold tabular-nums ${parseFloat(kpis.bounce.value) > 65 ? "text-amber-400" : "text-[#1a1a2e]"}`}>
+                <p className={`font-mono text-xl font-bold tabular-nums break-all ${parseFloat(kpis.bounce.value) > 65 ? "text-amber-400" : "text-[#1a1a2e]"}`}>
                   {kpis.bounce.value}
                 </p>
               ) : (
