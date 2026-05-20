@@ -375,7 +375,7 @@ function GoalsWidget({
         </div>
         <div>
           <p className="font-mono text-[11px] font-semibold text-[#4a4a6a] group-hover:text-[#00d4aa] transition-colors">Set monthly goals</p>
-          <p className="font-mono text-[9px] text-[#eaeaf5]">Track revenue + sessions against targets</p>
+          <p className="font-mono text-[9px] text-[#414141]">Track revenue + sessions against targets</p>
         </div>
       </button>
     );
@@ -1166,7 +1166,7 @@ export default function OverviewTab({
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-mono text-[11px] font-semibold text-[#5a5a7a] group-hover:text-[#1a1a2e] transition leading-tight">{item.label}</p>
-                <p className="font-mono text-[9px] text-[#eaeaf5] truncate">{item.desc}</p>
+                <p className="font-mono text-[9px] text-[#4a4a4a] truncate">{item.desc}</p>
               </div>
               <svg width="9" height="9" fill="none" viewBox="0 0 24 24" stroke="#eaeaf5" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="shrink-0 group-hover:stroke-[#5050a0] transition">
                 <path d="M5 12h14M13 6l6 6-6 6" />
@@ -1190,7 +1190,7 @@ export default function OverviewTab({
       {!hasAllIntegrations && (
         <div className="rounded-2xl border border-black/6 bg-white px-4 py-3">
           <div className="flex items-center gap-4 flex-wrap">
-            <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#eaeaf5] shrink-0">
+            <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#464646] shrink-0">
               {connectedPlatforms.length}/{LIVE_INTEGRATIONS.length} Connected
             </span>
             <div className="flex items-center gap-2 flex-wrap flex-1">

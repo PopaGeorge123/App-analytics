@@ -208,6 +208,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [authProvider, setAuthProvider] = useState<string>("email");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [newEmail, setNewEmail] = useState("");
   const [emailLoading, setEmailLoading] = useState(false);
@@ -236,6 +237,8 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
       if (data?.user?.app_metadata?.provider) {
         setAuthProvider(data.user.app_metadata.provider as string);
       }
+      const pic = data?.user?.user_metadata?.avatar_url ?? data?.user?.user_metadata?.picture;
+      if (pic) setAvatarUrl(pic as string);
     });
     if (isPremium) {
       fetch("/api/stripe/subscription")
@@ -500,9 +503,20 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
             <div className="rounded-2xl bg-white ring-1 ring-black/[0.06] p-6 space-y-5 shadow-[0_1px_4px_rgba(0,0,0,0.05)]">
               {/* Avatar + email */}
               <div className="flex items-center gap-4">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-mono text-sm font-bold uppercase select-none" style={{ backgroundColor: "#6366f118", color: "#6366f1", border: "1px solid #6366f130" }}>
-                  {email.charAt(0)}
-                </div>
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt={email}
+                    width={40}
+                    height={40}
+                    className="h-10 w-10 shrink-0 rounded-full object-cover border border-black/8"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-mono text-sm font-bold uppercase select-none" style={{ backgroundColor: "#6366f118", color: "#6366f1", border: "1px solid #6366f130" }}>
+                    {email.charAt(0)}
+                  </div>
+                )}
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-[#1a1a2e] truncate">{email}</p>
                   <p className="font-mono text-[10px] text-[#6a6a90] mt-0.5">Signed in via {authProvider.charAt(0).toUpperCase() + authProvider.slice(1)}</p>
