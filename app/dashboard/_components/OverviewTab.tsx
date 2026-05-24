@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -626,6 +626,32 @@ export default function OverviewTab({
   const [upgradeError, setUpgradeError] = useState("");
   const [alertRules, setAlertRules] = useState<AlertRules>(DEFAULT_ALERTS);
 
+  // Refresh (sync now) state
+  const [refreshState, setRefreshState] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isRouterRefreshing, startRouterRefresh] = useTransition();
+
+  async function handleRefresh() {
+    if (refreshState === "loading" || isRouterRefreshing) return;
+    setRefreshState("loading");
+    try {
+      const res = await fetch("/api/sync/now", { method: "POST" });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        console.warn("Sync daemon:", d.error);
+      }
+      await new Promise<void>((resolve) => {
+        startRouterRefresh(() => { router.refresh(); resolve(); });
+      });
+      setRefreshState("done");
+    } catch {
+      setRefreshState("error");
+    } finally {
+      if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current);
+      refreshTimeoutRef.current = setTimeout(() => setRefreshState("idle"), 3000);
+    }
+  }
+
   useEffect(() => {
     fetch("/api/user/settings").then((r) => r.json()).then((d) => { if (d.alertRules) setAlertRules(d.alertRules); }).catch(() => {});
   }, []);
@@ -838,27 +864,55 @@ export default function OverviewTab({
       {/* ═══════════════════════════════════════════════════════
           PULSE BAR — slim inline status line, no card
       ═══════════════════════════════════════════════════════ */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pb-5">
-        <div className="flex items-center gap-2">
-          <span className="font-mono text-[11px] text-[#3a3a5a]">{formatDate()}</span>
-          <span className="text-[#2a2a3e]">·</span>
-          <span className="font-mono text-[11px] font-semibold text-[#7070a0]">{greetingTime()}, {capitalFirst}</span>
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 pb-5">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-[11px] text-[#3a3a5a]">{formatDate()}</span>
+            <span className="text-[#2a2a3e]">·</span>
+            <span className="font-mono text-[11px] font-semibold text-[#7070a0]">{greetingTime()}, {capitalFirst}</span>
+          </div>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {glanceSignals.map((s, i) => (
+              <span key={i} className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 font-mono text-[9px] font-bold border"
+                style={{ color: s.color, borderColor: s.color + "30", backgroundColor: s.color + "0c" }}>
+                <span className="h-1 w-1 rounded-full" style={{ backgroundColor: s.color }} />
+                {s.label}
+              </span>
+            ))}
+            {!isPremium && (
+              <button onClick={handleUpgrade} disabled={upgradeLoading}
+                className="inline-flex items-center gap-1 rounded-full border border-[#00d4aa]/25 bg-[#00d4aa]/8 px-2.5 py-0.5 font-mono text-[9px] font-bold text-[#00d4aa] hover:bg-[#00d4aa]/15 transition disabled:opacity-50">
+                {upgradeLoading ? "…" : "↑ Upgrade"}
+              </button>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {glanceSignals.map((s, i) => (
-            <span key={i} className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 font-mono text-[9px] font-bold border"
-              style={{ color: s.color, borderColor: s.color + "30", backgroundColor: s.color + "0c" }}>
-              <span className="h-1 w-1 rounded-full" style={{ backgroundColor: s.color }} />
-              {s.label}
-            </span>
-          ))}
-          {!isPremium && (
-            <button onClick={handleUpgrade} disabled={upgradeLoading}
-              className="inline-flex items-center gap-1 rounded-full border border-[#00d4aa]/25 bg-[#00d4aa]/8 px-2.5 py-0.5 font-mono text-[9px] font-bold text-[#00d4aa] hover:bg-[#00d4aa]/15 transition disabled:opacity-50">
-              {upgradeLoading ? "…" : "↑ Upgrade"}
-            </button>
-          )}
-        </div>
+        {/* Refresh button */}
+        {isPremium && connectedPlatforms.length > 0 && (
+          <button
+            onClick={handleRefresh}
+            disabled={refreshState === "loading" || isRouterRefreshing}
+            title="Sync latest data now"
+            className="flex items-center justify-center gap-1.5 rounded-xl border border-[#d4d4e8] bg-[#f2f2f8] px-3 py-2 font-mono text-xs font-semibold transition-all hover:border-[#00d4aa]/40 hover:text-[#00d4aa] disabled:opacity-50"
+            style={{
+              color: refreshState === "done" ? "#00d4aa" : refreshState === "error" ? "#f87171" : "#4a4a6a",
+              borderColor: refreshState === "done" ? "#00d4aa40" : refreshState === "error" ? "#f8717140" : undefined,
+            }}
+          >
+            {(refreshState === "loading" || isRouterRefreshing) ? (
+              <svg className="animate-spin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
+            ) : refreshState === "done" ? (
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+            ) : refreshState === "error" ? (
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+            ) : (
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" />
+                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" /><path d="M16 16h5v5" />
+              </svg>
+            )}
+          </button>
+        )}
       </div>
 
       {upgradeError && <p className="font-mono text-xs text-red-400 pb-4">{upgradeError}</p>}

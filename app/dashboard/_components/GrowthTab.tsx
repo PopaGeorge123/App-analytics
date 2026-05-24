@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, Cell,
 } from "recharts";
@@ -404,6 +405,33 @@ export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, cu
   const primaryRevCurrency = REVENUE_PROVIDERS_LOCAL.map(p => currencies[p]).find(Boolean) ?? "USD";
   const fmtRev = (cents: number) => fmtCentsWithCurrency(cents, primaryRevCurrency);
 
+  // Refresh (sync now) state
+  const router = useRouter();
+  const [refreshState, setRefreshState] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isRouterRefreshing, startRouterRefresh] = useTransition();
+
+  async function handleRefresh() {
+    if (refreshState === "loading" || isRouterRefreshing) return;
+    setRefreshState("loading");
+    try {
+      const res = await fetch("/api/sync/now", { method: "POST" });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        console.warn("Sync daemon:", d.error);
+      }
+      await new Promise<void>((resolve) => {
+        startRouterRefresh(() => { router.refresh(); resolve(); });
+      });
+      setRefreshState("done");
+    } catch {
+      setRefreshState("error");
+    } finally {
+      if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current);
+      refreshTimeoutRef.current = setTimeout(() => setRefreshState("idle"), 3000);
+    }
+  }
+
   // ── Goal state (persisted in localStorage) ──────────────────────────────
   const [goalCents, setGoalCents] = useState<number>(() => {
     if (typeof window === "undefined") return 1000 * 100; // $1k default SSR
@@ -643,8 +671,34 @@ export default function GrowthTab({ isPremium, connectedPlatforms, snapshots, cu
             </span>
           </div>
 
-          {/* Right — connected platforms + add */}
+          {/* Right — refresh + connected platforms */}
           <div className="flex items-center gap-2 flex-wrap">
+            {/* Refresh button */}
+            {connRevenue.length > 0 && (
+              <button
+                onClick={handleRefresh}
+                disabled={refreshState === "loading" || isRouterRefreshing}
+                title="Sync latest data now"
+                className="flex items-center justify-center gap-1.5 rounded-xl border border-[#d4d4e8] bg-[#f2f2f8] px-3 py-2 font-mono text-xs font-semibold transition-all hover:border-[#00d4aa]/40 hover:text-[#00d4aa] disabled:opacity-50"
+                style={{
+                  color: refreshState === "done" ? "#00d4aa" : refreshState === "error" ? "#f87171" : "#4a4a6a",
+                  borderColor: refreshState === "done" ? "#00d4aa40" : refreshState === "error" ? "#f8717140" : undefined,
+                }}
+              >
+                {(refreshState === "loading" || isRouterRefreshing) ? (
+                  <svg className="animate-spin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
+                ) : refreshState === "done" ? (
+                  <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                ) : refreshState === "error" ? (
+                  <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                ) : (
+                  <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" />
+                    <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" /><path d="M16 16h5v5" />
+                  </svg>
+                )}
+              </button>
+            )}
             {connRevenue.map((p) => (
               <span
                 key={p}

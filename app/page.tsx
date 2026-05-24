@@ -321,7 +321,7 @@ export default async function Home() {
           <div className="grid gap-4 sm:grid-cols-3">
             {[
               {
-                bad: "Revenue dropped 18% last Tuesday — you found out Friday",
+                bad: "Revenue dropped 18% last Tuesday, you found out Friday",
                 good: "Fold flags the drop within hours. With the exact cause.",
               },
               {
@@ -329,7 +329,7 @@ export default async function Home() {
                 good: "See ROAS, CAC, and paid vs. organic side-by-side. Daily.",
               },
               {
-                bad: "A slow page is killing conversions — silently",
+                bad: "A slow page is killing conversions, silently",
                 good: "AI scores your site and ranks every fix by revenue impact.",
               },
             ].map((item) => (
@@ -379,9 +379,9 @@ export default async function Home() {
           </div>
           <div className="mx-auto max-w-2xl">
             <Step n={1} title="Connect your tools in 90 seconds"
-              description="Link Stripe, Google Analytics, Meta Ads, Shopify, Mailchimp and 30+ more. No code, no CSV exports, no engineers. OAuth only — read-only access, nothing is ever written to your accounts." />
+              description="Link Stripe, Google Analytics, Meta Ads, Shopify, Mailchimp and 30+ more. No code, no CSV exports, no engineers. OAuth only, read-only access, nothing is ever written to your accounts." />
             <Step n={2} title="Fold surfaces what's actually wrong"
-              description="One unified view across all your data. Revenue anomalies, traffic drops, ad budget waste, and conversion leaks are flagged automatically — with context, not just raw numbers." />
+              description="One unified view across all your data. Revenue anomalies, traffic drops, ad budget waste, and conversion leaks are flagged automatically with context, not just raw numbers." />
             <Step n={3} title="AI tells you exactly what to fix"
               description="Plain-English explanations of every anomaly. A prioritized action list updated daily. Ask follow-up questions about your own data. No analyst needed." />
           </div>
@@ -458,7 +458,7 @@ export default async function Home() {
           <div className="mb-16 text-center">
             <p className="mb-3 font-mono text-xs font-semibold uppercase tracking-widest text-[#00d4aa]">Features</p>
             <h2 className="font-mono text-3xl font-bold text-[#1a1a2e] sm:text-4xl">Every leak, caught. Every decision, backed.</h2>
-            <p className="mx-auto mt-4 max-w-xl text-[#4a4a6a]">Four modules and nine intelligence features — built to find revenue problems before they compound.</p>
+            <p className="mx-auto mt-4 max-w-xl text-[#4a4a6a]">Four modules and nine intelligence features built to find revenue problems before they compound.</p>
           </div>
 
           {/* Module deep-dives */}
@@ -475,7 +475,7 @@ export default async function Home() {
                     <span className="font-mono text-xs font-semibold uppercase tracking-widest text-[#00d4aa]">Overview Dashboard</span>
                   </div>
                   <h3 className="font-mono text-xl font-bold text-[#1a1a2e] mb-3">6 KPIs. One glance.</h3>
-                  <p className="text-[#4a4a6a] leading-relaxed mb-4">Revenue, sessions, ad spend, new customers, conversions, and customer acquisition cost — all with 7-day trends and comparisons to the prior period.</p>
+                  <p className="text-[#4a4a6a] leading-relaxed mb-4">Revenue, sessions, ad spend, new customers, conversions, and customer acquisition cost all with 7-day trends and comparisons to the prior period.</p>
                   <ul className="space-y-2">
                     {["Revenue & MRR from Stripe", "Sessions & conversions from GA4", "Ad spend & CAC from Meta Ads", "E-commerce orders from Shopify", "Growth Pulse — rolling 7-day trends", "Quick actions & recent activity feed"].map((f) => (
                       <li key={f} className="flex items-center gap-2 text-sm text-[#3a3a58]">
@@ -558,9 +558,9 @@ export default async function Home() {
                     <span className="font-mono text-[8px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-full border border-[#00d4aa]/30 text-[#00d4aa] bg-[#00d4aa]/8">Premium</span>
                   </div>
                   <h3 className="font-mono text-xl font-bold text-[#1a1a2e] mb-3">Ask your data anything.</h3>
-                  <p className="text-[#4a4a6a] leading-relaxed mb-4">Multiple persistent conversations, each with full context of your live data across all connected integrations. Get a fresh daily insight generated automatically — and chat with follow-ups any time.</p>
+                  <p className="text-[#4a4a6a] leading-relaxed mb-4">Multiple persistent conversations, each with full context of your live data across all connected integrations. Get a fresh daily insight generated automatically and chat with follow-ups any time.</p>
                   <ul className="space-y-2">
-                    {["Daily AI-generated insight from your live data", "Multi-conversation chat — revisit old chats anytime", "Ask anything: \"Why did revenue drop last Tuesday?\"", "AI has full context of all your connected integrations", "Rename, organize, and manage chat history"].map((f) => (
+                    {["Daily AI-generated insight from your live data", "Multi-conversation chat revisit old chats anytime", "Ask anything: \"Why did revenue drop last Tuesday?\"", "AI has full context of all your connected integrations", "Rename, organize, and manage chat history"].map((f) => (
                       <li key={f} className="flex items-center gap-2 text-sm text-[#3a3a58]">
                         <span className="h-1.5 w-1.5 rounded-full bg-[#00d4aa] shrink-0" />{f}
                       </li>
@@ -592,12 +592,12 @@ export default async function Home() {
               {
                 icon: <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>,
                 title: "Anomaly Alerts", color: "#f87171",
-                description: "Unusual churn? Sudden drop in sessions? Fold catches it before it costs you — and explains why in plain English.",
+                description: "Unusual churn? Sudden drop in sessions? Fold catches it before it costs you and explains why in plain English.",
               },
               {
                 icon: <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
                 title: "Daily Digest", color: "#f59e0b",
-                description: "Every morning, your AI-generated summary tells you what changed, what matters, and what to do — before your first coffee.",
+                description: "Every morning, your AI-generated summary tells you what changed, what matters, and what to do before your first coffee.",
               },
               {
                 icon: <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z" /></svg>,
@@ -612,7 +612,7 @@ export default async function Home() {
               {
                 icon: <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>,
                 title: "7-Day Free Trial", color: "#a78bfa",
-                description: "Try every feature fully unlocked for 7 days. No card required — just sign up and you're in. Cancel any time and you'll never pay a cent.",
+                description: "Try every feature fully unlocked for 7 days. No card required, just sign up and you're in. Cancel any time and you'll never pay a cent.",
               },
               {
                 icon: <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 010 1.9A3.745 3.745 0 0117.34 19.06a3.745 3.745 0 01-1.9 0A3.745 3.745 0 0112 21a3.745 3.745 0 01-3.068-1.593 3.745 3.745 0 010-1.9A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 010-1.9A3.745 3.745 0 017.661 4.94a3.745 3.745 0 011.9 0A3.746 3.746 0 0112 3a3.746 3.746 0 013.068 1.593 3.746 3.746 0 011.9 0 3.745 3.745 0 013.068 3.068 3.746 3.746 0 010 1.9A3.745 3.745 0 0121 12z" /></svg>,
@@ -622,17 +622,17 @@ export default async function Home() {
               {
                 icon: <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" /></svg>,
                 title: "Cross-Platform Attribution", color: "#f59e0b",
-                description: "See which channel — paid, organic, email, or direct — is actually driving revenue. Fold links Stripe payments back to GA4 sources and Meta campaigns so you stop guessing.",
+                description: "See which channel, paid, organic, email, or direct, is actually driving revenue. Fold links Stripe payments back to GA4 sources and Meta campaigns so you stop guessing.",
               },
               {
                 icon: <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941" /></svg>,
                 title: "Revenue Forecasting", color: "#a78bfa",
-                description: "AI projects your next 30 days of revenue by combining trend data from Stripe, ad spend efficiency, and traffic growth — so you can see problems before they happen.",
+                description: "AI projects your next 30 days of revenue by combining trend data from Stripe, ad spend efficiency, and traffic growth so you can see problems before they happen.",
               },
               {
                 icon: <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>,
                 title: "Custom Alert Rules", color: "#60a5fa",
-                description: "Set your own thresholds — alert me when CAC exceeds $50, when churn crosses 5%, or when daily revenue drops below $1k. Fold watches your numbers so you don't have to.",
+                description: "Set your own thresholds alert me when CAC exceeds $50, when churn crosses 5%, or when daily revenue drops below $1k. Fold watches your numbers so you don't have to.",
               },
             ].map((f) => (
               <FeatureCard key={f.title} icon={f.icon} title={f.title} description={f.description} color={f.color} />
@@ -650,7 +650,7 @@ export default async function Home() {
           <div className="mb-16 text-center">
             <p className="mb-3 font-mono text-xs font-semibold uppercase tracking-widest text-[#00d4aa]">Pricing</p>
             <h2 className="font-mono text-3xl font-bold text-[#1a1a2e] sm:text-4xl">Simple, transparent pricing</h2>
-            <p className="mx-auto mt-4 max-w-xl text-[#4a4a6a]">Try every feature free for 7 days. No card required — upgrade to Pro when you&apos;re ready. Cancel anytime.</p>
+            <p className="mx-auto mt-4 max-w-xl text-[#4a4a6a]">Try every feature free for 7 days. No card required, upgrade to Pro when you&apos;re ready. Cancel anytime.</p>
           </div>
           <div className="grid gap-6 sm:grid-cols-2 max-w-3xl mx-auto">
             {/* Free Trial card */}
@@ -664,7 +664,7 @@ export default async function Home() {
                   <span className="font-mono text-4xl font-bold text-[#a78bfa]">$0</span>
                   <span className="font-mono text-sm text-[#a78bfa]/70">/ 7 days</span>
                 </div>
-                <p className="text-sm text-[#4a4a6a]">Every Premium feature. Fully unlocked. No restrictions — no card required for the trial, upgrade to $19/mo whenever you&apos;re ready.</p>
+                <p className="text-sm text-[#4a4a6a]">Every Premium feature. Fully unlocked. No restrictions, no card required for the trial, upgrade to $19/mo whenever you&apos;re ready.</p>
               </div>
               <ul className="flex-1 space-y-3 mb-8">
                 {[
@@ -692,7 +692,7 @@ export default async function Home() {
             <PricingCard
               name="Premium"
               price="$19"
-              description="Full access to every feature. Starts with a 7-day free trial — no card required. $19/month after the trial, cancel anytime."
+              description="Full access to every feature. Starts with a 7-day free trial, no card required. $19/month after the trial, cancel anytime."
               features={[
                 "Unified KPI dashboard with 7-day trends",
                 "Full 30-day analytics per platform",
@@ -813,7 +813,7 @@ export default async function Home() {
             <span className="text-[#00d4aa]">Start knowing.</span>
           </h2>
           <p className="mb-10 text-lg text-[#4a4a6a] max-w-lg mx-auto">
-            Connect your live integrations in minutes. Get a unified dashboard, AI-generated daily insights, and anomaly alerts — all your data, all in one place.
+            Connect your live integrations in minutes. Get a unified dashboard, AI-generated daily insights, and anomaly alerts, all your data, all in one place.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <a href="/signup" className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-8 py-4 font-mono text-sm font-bold uppercase tracking-wider text-[#fafafa] transition-all hover:bg-[#00bfa0] hover:shadow-[0_0_40px_rgba(0,212,170,0.35)]">

@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import type { Snapshot } from "./DashboardShell";
 import type { CustomerRow } from "../page";
 import { REVENUE_PROVIDERS } from "@/lib/integrations/catalog";
@@ -454,6 +455,33 @@ export default function CustomersTab({
   const REVENUE_PROVIDERS_LOCAL = ["stripe", "lemon-squeezy", "paddle", "shopify", "woocommerce", "gumroad"];
   const revCurrency = REVENUE_PROVIDERS_LOCAL.map((p) => currencies[p]).find(Boolean) ?? "USD";
 
+  // Refresh (sync now) state
+  const router = useRouter();
+  const [refreshState, setRefreshState] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isRouterRefreshing, startRouterRefresh] = useTransition();
+
+  async function handleRefresh() {
+    if (refreshState === "loading" || isRouterRefreshing) return;
+    setRefreshState("loading");
+    try {
+      const res = await fetch("/api/sync/now", { method: "POST" });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        console.warn("Sync daemon:", d.error);
+      }
+      await new Promise<void>((resolve) => {
+        startRouterRefresh(() => { router.refresh(); resolve(); });
+      });
+      setRefreshState("done");
+    } catch {
+      setRefreshState("error");
+    } finally {
+      if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current);
+      refreshTimeoutRef.current = setTimeout(() => setRefreshState("idle"), 3000);
+    }
+  }
+
   // ── UI state ──────────────────────────────────────────────────────────
   const [alertDismissed, setAlertDismissed] = useState(false);
   const [expandedId, setExpandedId]         = useState<string | null>(null);
@@ -620,7 +648,38 @@ export default function CustomersTab({
   return (
     <div className="space-y-5 sm:space-y-8">
 
-      {/* ── Synthetic data notice ────────────────────────────────────────── */}
+      {/* ── Page header with refresh button ─────────────────────────────── */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-mono text-xl font-bold text-[#1a1a2e]">Customers</h1>
+          <p className="mt-0.5 font-mono text-xs text-[#6a6a90]">Retention, LTV &amp; health scoring.</p>
+        </div>
+        {hasRevenue && (
+          <button
+            onClick={handleRefresh}
+            disabled={refreshState === "loading" || isRouterRefreshing}
+            title="Sync latest data now"
+            className="flex items-center justify-center gap-1.5 rounded-xl border border-[#d4d4e8] bg-[#f2f2f8] px-3 py-2.5 font-mono text-xs font-semibold transition-all hover:border-[#00d4aa]/40 hover:text-[#00d4aa] disabled:opacity-50"
+            style={{
+              color: refreshState === "done" ? "#00d4aa" : refreshState === "error" ? "#f87171" : "#4a4a6a",
+              borderColor: refreshState === "done" ? "#00d4aa40" : refreshState === "error" ? "#f8717140" : undefined,
+            }}
+          >
+            {(refreshState === "loading" || isRouterRefreshing) ? (
+              <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
+            ) : refreshState === "done" ? (
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+            ) : refreshState === "error" ? (
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+            ) : (
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" />
+                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" /><path d="M16 16h5v5" />
+              </svg>
+            )}
+          </button>
+        )}
+      </div>
       {isSynthetic && (
         <div
           className="flex items-start gap-3 rounded-xl border px-4 py-3"

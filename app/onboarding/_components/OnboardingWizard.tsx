@@ -734,6 +734,22 @@ export default function OnboardingWizard({
       .catch(() => {/* silently ignore — profile will just be empty */});
   }, []);
 
+  // Fire Meta Pixel "Started free trial" Lead event exactly once per user.
+  // localStorage key ensures it never fires again even if the user refreshes
+  // or navigates back to this page.
+  useEffect(() => {
+    const PIXEL_KEY = "fold_trial_pixel_fired";
+    try {
+      if (localStorage.getItem(PIXEL_KEY)) return;
+      const fbq = (window as unknown as { fbq?: (...args: unknown[]) => void }).fbq;
+      if (typeof fbq !== "function") return;
+      fbq("track", "Lead", { content_name: "Started free trial" });
+      localStorage.setItem(PIXEL_KEY, "1");
+    } catch {
+      // localStorage or fbq unavailable — skip silently
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   function handleStep1Next(data: Step1Data) {
     // Keep local profile in sync so Step 2 gets latest industry from extraction
     setProfile((p) => ({
