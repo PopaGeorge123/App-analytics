@@ -730,7 +730,7 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
                           />
                         </div>
                         <div className="pr-5">
-                          <p className="font-mono text-[12px] font-semibold leading-snug text-[#e8e8f8]">
+                          <p className="font-mono text-[12px] font-semibold leading-snug text-[#393939]">
                             {integration.name}
                           </p>
                           <p className="mt-0.5 text-[10px] leading-snug text-[#6070a0]">
@@ -763,9 +763,9 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
                 </p>
                 <div className="w-full space-y-2 text-left">
                   {[
-                    { icon: "🔒", text: "Aggregated data only — never personal info" },
-                    { icon: "⚡", text: "Daily snapshots synced automatically" },
-                    { icon: "🔌", text: "Revoke access any time from the provider" },
+                    { icon: "", text: "Aggregated data only — never personal info" },
+                    { icon: "", text: "Daily snapshots synced automatically" },
+                    { icon: "", text: "Revoke access any time from the provider" },
                   ].map(({ icon, text }) => (
                     <div key={text} className="flex items-center gap-2.5 rounded-lg border border-[#c8c8ec] bg-[#f5f5fb] px-3 py-2">
                       <span className="text-sm">{icon}</span>
@@ -913,7 +913,7 @@ function DetailPanel({
             <img src={selected.icon} alt={selected.name} width={24} height={24} className="object-contain" />
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="font-mono text-sm font-bold text-[#e8e8f8]">{selected.name}</h2>
+            <h2 className="font-mono text-sm font-bold text-[#4c4c4c]">{selected.name}</h2>
             <p className="text-[11px] text-[#5a5a7a] truncate">{selected.description}</p>
           </div>
           <button
@@ -943,7 +943,7 @@ function DetailPanel({
               {(PREVIEW_METRICS[selected.id] ?? DEFAULT_PREVIEW_METRICS).map(({ label, value, trend }) => (
                 <div key={label} className="rounded-lg border border-[#c8c8ec] bg-[#f0f0fc] px-2.5 py-2">
                   <p className="font-mono text-[9px] text-[#7878a8] truncate">{label}</p>
-                  <p className="font-mono text-sm font-bold text-[#e8e8f8] mt-0.5">{value}</p>
+                  <p className="font-mono text-sm font-bold text-[#595959] mt-0.5">{value}</p>
                   {trend && (
                     <p className="font-mono text-[9px] mt-0.5" style={{ color: trend.startsWith("↓") ? "#f87171" : "#00d4aa" }}>
                       {trend}
@@ -1121,7 +1121,7 @@ function ApiKeyForm({
             onChange={(e) => onChange(field.name, e.target.value)}
             placeholder={field.placeholder}
             autoComplete="off"
-            className="w-full rounded-lg border border-[#d4d4e8] bg-[#f4f4fc] px-3 py-2.5 font-mono text-[12px] text-[#e8e8f8] placeholder-[#636363] outline-none transition focus:border-[#00d4aa]/35 focus:ring-1 focus:ring-[#00d4aa]/15"
+            className="w-full rounded-lg border border-[#d4d4e8] bg-[#f4f4fc] px-3 py-2.5 font-mono text-[12px] text-[#3e3e3e] placeholder-[#636363] outline-none transition focus:border-[#00d4aa]/35 focus:ring-1 focus:ring-[#00d4aa]/15"
           />
         </div>
       ))}
@@ -1197,7 +1197,7 @@ function ShopifyForm({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="yourstore.myshopify.com"
-          className="w-full rounded-lg border border-[#d4d4e8] bg-[#f4f4fc] px-3 py-2.5 font-mono text-[12px] text-[#e8e8f8] placeholder-[#636363] outline-none transition focus:border-[#96bf48]/35 focus:ring-1 focus:ring-[#96bf48]/15"
+          className="w-full rounded-lg border border-[#d4d4e8] bg-[#f4f4fc] px-3 py-2.5 font-mono text-[12px] text-[#515151] placeholder-[#636363] outline-none transition focus:border-[#96bf48]/35 focus:ring-1 focus:ring-[#96bf48]/15"
           onKeyDown={(e) => e.key === "Enter" && onSubmit()}
         />
       </div>

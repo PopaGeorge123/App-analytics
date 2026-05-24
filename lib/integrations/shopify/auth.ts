@@ -1,11 +1,13 @@
 export function getShopifyAuthUrl(userId: string, shop: string): string {
+  // Normalise: strip any protocol prefix and trailing slashes the user may have pasted
+  const cleanShop = shop.replace(/^https?:\/\//i, "").replace(/\/+$/, "");
   const params = new URLSearchParams({
     client_id: process.env.SHOPIFY_CLIENT_ID!,
     scope: "read_orders,read_products,read_customers",
     redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/shopify/callback`,
     state: userId,
   });
-  return `https://${shop}/admin/oauth/authorize?${params.toString()}`;
+  return `https://${cleanShop}/admin/oauth/authorize?${params.toString()}`;
 }
 
 /**

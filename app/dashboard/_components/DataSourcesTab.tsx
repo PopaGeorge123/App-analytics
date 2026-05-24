@@ -187,7 +187,12 @@ function IntegrationRow({
     const val = paramValue.trim();
     if (!val) { setError(`Please enter your ${paramConfig.label.toLowerCase()}.`); return; }
     let finalVal = val;
-    if (integration.id === "shopify" && !val.includes(".")) finalVal = `${val}.myshopify.com`;
+    if (integration.id === "shopify") {
+      // Strip any protocol and trailing slashes the user may have pasted
+      finalVal = finalVal.replace(/^https?:\/\//i, "").replace(/\/+$/, "");
+      // Auto-append .myshopify.com for bare store names like "mystore"
+      if (!finalVal.includes(".")) finalVal = `${finalVal}.myshopify.com`;
+    }
     window.location.href = `${integration.connectUrl}?${paramConfig.param}=${encodeURIComponent(finalVal)}`;
   }
 
