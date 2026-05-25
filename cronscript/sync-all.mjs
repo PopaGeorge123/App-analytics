@@ -4331,6 +4331,106 @@ function buildAlertEmailHtml(alerts, email) {
 </body></html>`;
 }
 
+async function checkPreviewOutreach() {
+  const now = new Date().toISOString();
+  let rows;
+  try {
+    const res = await SB.client
+      .from('preview_scans')
+      .select('id,domain,site_title,site_url,outreach_email,predictions')
+      .lte('outreach_scheduled_at', now)
+      .is('outreach_sent_at', null)
+      .not('outreach_email', 'is', null);
+    if (res.error) throw new Error(res.error.message);
+    rows = res.data ?? [];
+  } catch (err) {
+    logWarn(`[preview-outreach] DB query failed: ${err.message}`);
+    return;
+  }
+
+  if (!rows.length) { log('[preview-outreach] No outreach due.'); return; }
+  log(`[preview-outreach] ${rows.length} outreach(es) to send…`);
+
+  for (const row of rows) {
+    const { id, domain, site_title, site_url, outreach_email, predictions } = row;
+    const siteTitle = site_title || domain;
+    const category  = predictions?.businessCategory ?? 'online business';
+    const desc      = predictions?.businessDescription ?? '';
+
+    // Generate personalised email body via AI
+    let emailHtml = '';
+    try {
+      const prompt = `You are writing a short, genuine cold outreach email on behalf of Fold (usefold.io) — a revenue analytics tool.
+
+The recipient runs "${siteTitle}" (${site_url}), which is a ${category}. ${desc ? `It seems to be: ${desc}` : ''}
+
+They just visited usefold.io and ran a free analytics preview scan of their site minutes ago, so they're clearly interested in analytics.
+
+Write a plain, conversational email (no fluff, no buzzwords) that:
+1. Opens with a specific, genuine observation about their site/business (1 sentence)
+2. Mentions you noticed they checked out Fold's free preview for their site
+3. Briefly explains Fold connects real revenue data (Stripe, Shopify, etc.) so they get live dashboards instead of estimates
+4. Ends with a single soft CTA: reply to this email or visit usefold.io to connect their first integration (free to start)
+5. Signed "— The Fold Team"
+
+Keep it under 120 words. Output only the email body HTML (no subject line, no wrapping html/body tags). Use <p> tags for paragraphs.`;
+
+      const msg = await anthropic.messages.create({
+        model: 'claude-opus-4-5',
+        max_tokens: 400,
+        messages: [{ role: 'user', content: prompt }],
+      });
+      emailHtml = (msg.content[0]).text.trim();
+    } catch (aiErr) {
+      logWarn(`[preview-outreach] AI generation failed for ${domain}: ${aiErr.message}`);
+      // Fallback body
+      emailHtml = `<p>Hey,</p><p>I noticed you ran a free analytics preview for <strong>${siteTitle}</strong> on Fold — nice site! The estimates in the preview are AI-generated, but Fold can connect to your real Stripe, Shopify, or Google Analytics data and give you a live dashboard in minutes.</p><p>Happy to help you get set up — just reply here or visit <a href="https://usefold.io">usefold.io</a> to connect your first integration (it's free to start).</p><p>— The Fold Team</p>`;
+    }
+
+    const fullHtml = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <div style="max-width:540px;margin:40px auto;color:#1a1a2e;font-size:15px;line-height:1.6;">
+    ${emailHtml}
+    <hr style="margin:28px 0;border:none;border-top:1px solid #eee;">
+    <p style="font-size:12px;color:#888;">Fold · <a href="https://usefold.io" style="color:#00d4aa;text-decoration:none;">usefold.io</a> — You're receiving this because you ran a free preview scan on our site. <a href="https://usefold.io/unsubscribe" style="color:#888;">Unsubscribe</a>.</p>
+  </div>
+</body></html>`;
+
+    if (!RESEND_KEY) {
+      logWarn(`[preview-outreach] RESEND_API_KEY not set — would have sent to ${outreach_email}`);
+    } else {
+      try {
+        const res = await fetchRetry('Resend outreach', 'https://api.resend.com/emails', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            from: FROM_EMAIL,
+            to: outreach_email,
+            subject: `Quick note about ${siteTitle}'s analytics`,
+            html: fullHtml,
+          }),
+        });
+        if (!res.ok) {
+          const e = await res.json().catch(() => ({}));
+          logWarn(`[preview-outreach] Send failed for ${outreach_email}: ${e?.message ?? res.status}`);
+        } else {
+          logOk(`[preview-outreach] Sent to ${outreach_email} (${domain})`);
+        }
+      } catch (sendErr) {
+        logWarn(`[preview-outreach] Send error for ${outreach_email}: ${sendErr.message}`);
+        continue;
+      }
+    }
+
+    // Mark as sent regardless (avoid re-sending on RESEND_KEY missing)
+    await SB.client
+      .from('preview_scans')
+      .update({ outreach_sent_at: new Date().toISOString() })
+      .eq('id', id);
+  }
+}
+
 async function checkAlerts() {
   log('[alerts] Checking alert rules for all premium users…');
 
@@ -4697,6 +4797,47 @@ async function sendDailyDigests() {
     const ALL_ANALYTICS_P   = ['ga4', 'plausible', 'posthog', 'fathom', 'mixpanel', 'amplitude'];
     const connectedProviders = [...new Set(snaps.map(s => s.provider))];
 
+    // ── Fetch currencies from integrations table ──────────────────────────────
+    let integrationCurrencies = {};
+    try {
+      const p = new URLSearchParams({
+        select:  'platform,currency',
+        user_id: `eq.${uid}`,
+      });
+      const getHeaders = { apikey: SB.headers.apikey, Authorization: SB.headers.Authorization };
+      const r = await fetchRetry(
+        `SB SELECT integrations currencies[digest:${uid.slice(0, 8)}]`,
+        `${SUPABASE_URL}/rest/v1/integrations?${p}`,
+        { headers: getHeaders },
+      );
+      if (r.ok) {
+        const rows = await r.json();
+        for (const row of rows) {
+          if (row.currency) integrationCurrencies[row.platform] = row.currency.toUpperCase();
+        }
+      }
+    } catch (_) { /* non-fatal — fall back to USD */ }
+
+    // Determine canonical currencies for revenue and ads
+    const revCurrency = integrationCurrencies['stripe']
+      ?? integrationCurrencies['shopify']
+      ?? integrationCurrencies['paddle']
+      ?? integrationCurrencies['lemon-squeezy']
+      ?? 'USD';
+    const adsCurrency = integrationCurrencies['meta']
+      ?? integrationCurrencies['google-ads']
+      ?? integrationCurrencies['tiktok-ads']
+      ?? 'USD';
+
+    // Currency formatter helpers
+    const fmtRev  = (cents) => new Intl.NumberFormat('en-US', { style: 'currency', currency: revCurrency,  minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(cents / 100);
+    const fmtAds  = (val)   => new Intl.NumberFormat('en-US', { style: 'currency', currency: adsCurrency,  minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
+    const fmtPlatCurrency = (platform, val, isCents = false) => {
+      const cur = integrationCurrencies[platform] ?? (REVENUE_PLATFORMS.includes(platform) ? revCurrency : adsCurrency);
+      const amount = isCents ? val / 100 : val;
+      return new Intl.NumberFormat('en-US', { style: 'currency', currency: cur, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
+    };
+
     const revenue7    = REVENUE_PLATFORMS.reduce((a, p) => a + sumField(snaps7, p, 'revenue'), 0);
     const revenuePrev = REVENUE_PLATFORMS.reduce((a, p) => a + sumField(snapsPrev7, p, 'revenue'), 0);
 
@@ -4734,7 +4875,7 @@ async function sendDailyDigests() {
         const r7 = sumField(snaps7, p, 'revenue');
         const rPrev = sumField(snapsPrev7, p, 'revenue');
         const pct = rPrev > 0 ? ((r7 - rPrev) / rPrev * 100).toFixed(1) : null;
-        return r7 > 0 ? `  ${p}: $${(r7/100).toFixed(2)}${pct !== null ? ` (${pct}%)` : ''}` : null;
+        return r7 > 0 ? `  ${p}: ${fmtPlatCurrency(p, r7, true)}${pct !== null ? ` (${pct}%)` : ''}` : null;
       }).filter(Boolean);
 
     // Email / newsletter platforms
@@ -4756,7 +4897,7 @@ async function sendDailyDigests() {
         const adSpend = sumField(snaps7, p, 'spend');
         const clicks  = sumField(snaps7, p, 'clicks');
         const conv    = sumField(snaps7, p, 'conversions');
-        return adSpend > 0 ? `  ${p}: $${adSpend.toFixed(2)}${clicks > 0 ? ` — ${clicks} clicks` : ''}${conv > 0 ? ` — ${conv} conversions` : ''}` : null;
+        return adSpend > 0 ? `  ${p}: ${fmtPlatCurrency(p, adSpend)}${clicks > 0 ? ` — ${clicks} clicks` : ''}${conv > 0 ? ` — ${conv} conversions` : ''}` : null;
       }).filter(Boolean);
 
     // % changes
@@ -4764,7 +4905,7 @@ async function sendDailyDigests() {
     const sessChange  = sessionsPrev > 0 ? ((sessions7 - sessionsPrev) / sessionsPrev * 100) : null;
     const spendChange = spendPrev    > 0 ? ((spend7    - spendPrev)    / spendPrev    * 100) : null;
     const cacLine     = newCustomers7 > 0 && spend7 > 0
-      ? `CAC (total ad spend / new customers): $${(spend7 / newCustomers7).toFixed(2)}`
+      ? `CAC (total ad spend / new customers): ${fmtAds(spend7 / newCustomers7)}`
       : null;
 
     // ── 5. Fetch website profile for context ─────────────────────────────────
@@ -4781,9 +4922,9 @@ async function sendDailyDigests() {
       `Primary analytics platform: ${primaryAn ?? 'none'}`,
       '',
       `=== REVENUE ===`,
-      `Total Revenue (7d): $${(revenue7 / 100).toFixed(2)}${revChange !== null ? ` (${revChange >= 0 ? '+' : ''}${revChange.toFixed(1)}% vs prev week)` : ' (no prior week data)'}`,
+      `Total Revenue (7d): ${fmtRev(revenue7)}${revChange !== null ? ` (${revChange >= 0 ? '+' : ''}${revChange.toFixed(1)}% vs prev week)` : ' (no prior week data)'}`,
       revByPlatform.length ? `Breakdown:\n${revByPlatform.join('\n')}` : null,
-      currentMRR > 0 ? `MRR: $${(currentMRR / 100).toFixed(2)}` : 'MRR: $0 (no active subscriptions or not tracked)',
+      currentMRR > 0 ? `MRR: ${fmtRev(currentMRR)}` : 'MRR: 0 (no active subscriptions or not tracked)',
       activeSubs > 0 ? `Active Subscriptions: ${activeSubs}${trialingSubs > 0 ? ` + ${trialingSubs} trialing` : ''}` : null,
       churnedTotal > 0 ? `Churned Subscribers (7d): ${churnedTotal}` : null,
       newCustomers7 > 0 ? `New Customers (7d): ${newCustomers7}` : null,
@@ -4799,8 +4940,8 @@ async function sendDailyDigests() {
       '',
       `=== ADVERTISING ===`,
       spend7 > 0
-        ? `Total Ad Spend (7d): $${spend7.toFixed(2)}${spendChange !== null ? ` (${spendChange >= 0 ? '+' : ''}${spendChange.toFixed(1)}% vs prev week)` : ''}`
-        : 'Ad Spend: $0 — no paid campaigns running',
+        ? `Total Ad Spend (7d): ${fmtAds(spend7)}${spendChange !== null ? ` (${spendChange >= 0 ? '+' : ''}${spendChange.toFixed(1)}% vs prev week)` : ''}`
+        : 'Ad Spend: 0 — no paid campaigns running',
       ...adLines,
       cacLine,
       '',
@@ -5198,11 +5339,19 @@ async function generatePlaybooksForUser(uid) {
 
     const intRes = await fetchRetry(
       `[playbooks] integrations ${uid.slice(0, 8)}`,
-      `${SUPABASE_URL}/rest/v1/integrations?` + new URLSearchParams({ select: 'platform,access_token', user_id: `eq.${uid}` }),
+      `${SUPABASE_URL}/rest/v1/integrations?` + new URLSearchParams({ select: 'platform,access_token,currency', user_id: `eq.${uid}` }),
       { headers: getHeaders },
     );
     const integrations = intRes.ok ? (await intRes.json()) : [];
     const connectedPlatforms = integrations.map(i => i.platform);
+
+    // Build currency map from integrations
+    const playbookCurrencies = {};
+    for (const row of integrations) {
+      if (row.currency) playbookCurrencies[row.platform] = row.currency.toUpperCase();
+    }
+    const playbookRevCurrency = playbookCurrencies['stripe'] ?? playbookCurrencies['shopify'] ?? playbookCurrencies['paddle'] ?? playbookCurrencies['lemon-squeezy'] ?? 'USD';
+    const playbookAdsCurrency = playbookCurrencies['meta'] ?? playbookCurrencies['google-ads'] ?? 'USD';
 
     // If latestStripeSnap has 0 MRR but stripe is connected, fetch live from Stripe API
     let liveMRR = latestStripeSnap?.data?.mrr ?? 0;
@@ -5295,7 +5444,8 @@ async function generatePlaybooksForUser(uid) {
     const churnRate = activeSubs > 0 ? churned30 / activeSubs : 0;
     const cac30     = newCx30 > 0 && spend30 > 0 ? spend30 / newCx30 : 0;
     const convRate  = sess30  > 0 && newCx30 > 0  ? newCx30 / sess30  : 0;
-    const fmtUSD = (cents) => `$${(cents / 100).toFixed(2)}`;
+    const fmtUSD = (cents) => new Intl.NumberFormat('en-US', { style: 'currency', currency: playbookRevCurrency, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(cents / 100);
+    const fmtAdsAmt = (val) => new Intl.NumberFormat('en-US', { style: 'currency', currency: playbookAdsCurrency, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
 
     let website = null;
     try {
@@ -5429,7 +5579,7 @@ async function generatePlaybooksForUser(uid) {
       `New customers 7d: ${newCx7} | 30d: ${newCx30}`,
       `Churned (30d): ${churned30} | Churn rate: ${churnRate > 0 ? (churnRate * 100).toFixed(2) + '%' : 'N/A'}`,
       `Refunds (30d): ${fmtUSD(refunds30)}`,
-      `CAC (30d): ${cac30 > 0 ? '$' + (cac30 / 100).toFixed(2) : 'N/A'}`,
+      `CAC (30d): ${cac30 > 0 ? fmtAdsAmt(cac30 / 100) : 'N/A'}`,
       '',
       ...(shopifyRev30 > 0 ? [
         '=== SHOPIFY ===',
@@ -5460,17 +5610,17 @@ async function generatePlaybooksForUser(uid) {
       ...(amplitudeEv30 > 0   ? [`Amplitude: Events 30d: ${amplitudeEv30}`] : []),
       '',
       '=== PAID ADS ===',
-      `Total ad spend 7d: $${totalAdSpend7.toFixed(2)} | 30d: $${totalAdSpend30.toFixed(2)}`,
+      `Total ad spend 7d: ${fmtAdsAmt(totalAdSpend7)} | 30d: ${fmtAdsAmt(totalAdSpend30)}`,
       ...(metaSpend30 > 0 ? [
-        `Meta: Spend 30d: $${metaSpend30.toFixed(2)} | Reach: ${metaReach30} | Clicks: ${metaClicks30} | Conversions: ${metaConv30}`,
-        `Meta: CPC: ${cpc30 > 0 ? '$' + cpc30.toFixed(2) : 'N/A'} | CTR: ${ctr30 > 0 ? (ctr30 * 100).toFixed(2) + '%' : 'N/A'}`,
+        `Meta: Spend 30d: ${fmtAdsAmt(metaSpend30)} | Reach: ${metaReach30} | Clicks: ${metaClicks30} | Conversions: ${metaConv30}`,
+        `Meta: CPC: ${cpc30 > 0 ? fmtAdsAmt(cpc30) : 'N/A'} | CTR: ${ctr30 > 0 ? (ctr30 * 100).toFixed(2) + '%' : 'N/A'}`,
       ] : []),
-      ...(gadsSpend30 > 0   ? [`Google Ads: Spend 30d: $${gadsSpend30.toFixed(2)} | Clicks: ${gadsClicks30} | CPC: ${gadsCpc30 > 0 ? '$' + gadsCpc30.toFixed(2) : 'N/A'} | Conversions: ${gadsConv30}`] : []),
-      ...(tiktokSpend30 > 0 ? [`TikTok Ads: Spend 30d: $${tiktokSpend30.toFixed(2)} | Clicks: ${tiktokClicks30}`] : []),
-      ...(linkedinSpend30 > 0 ? [`LinkedIn Ads: Spend 30d: $${linkedinSpend30.toFixed(2)}`] : []),
+      ...(gadsSpend30 > 0   ? [`Google Ads: Spend 30d: ${fmtAdsAmt(gadsSpend30)} | Clicks: ${gadsClicks30} | CPC: ${gadsCpc30 > 0 ? fmtAdsAmt(gadsCpc30) : 'N/A'} | Conversions: ${gadsConv30}`] : []),
+      ...(tiktokSpend30 > 0 ? [`TikTok Ads: Spend 30d: ${fmtAdsAmt(tiktokSpend30)} | Clicks: ${tiktokClicks30}`] : []),
+      ...(linkedinSpend30 > 0 ? [`LinkedIn Ads: Spend 30d: ${fmtAdsAmt(linkedinSpend30)}`] : []),
       ...(twitterSpend30 > 0  ? [`Twitter Ads: Spend 30d: $${twitterSpend30.toFixed(2)}`] : []),
-      ...(snapSpend30 > 0     ? [`Snapchat Ads: Spend 30d: $${snapSpend30.toFixed(2)}`] : []),
-      ...(pinSpend30 > 0      ? [`Pinterest Ads: Spend 30d: $${pinSpend30.toFixed(2)}`] : []),
+      ...(snapSpend30 > 0     ? [`Snapchat Ads: Spend 30d: ${fmtAdsAmt(snapSpend30)}`] : []),
+      ...(pinSpend30 > 0      ? [`Pinterest Ads: Spend 30d: ${fmtAdsAmt(pinSpend30)}`] : []),
       '',
       '=== EMAIL MARKETING ===',
       ...(mcSubs30 > 0   ? [`Mailchimp: Subscribers 30d: ${mcSubs30} | Sent: ${mcSent30} | Open rate: ${mcOpen30 > 0 ? (mcOpen30*100).toFixed(1)+'%' : 'N/A'} | Click rate: ${mcClick30 > 0 ? (mcClick30*100).toFixed(1)+'%' : 'N/A'}`] : []),
@@ -6502,6 +6652,7 @@ if (backfillMode) {
   await runAnomalyAlerts();
   await checkGoals();
   await checkTrialEmails();
+  await checkPreviewOutreach();
   // Manual one-shot: digest send only, then exit
   await sendDailyDigests();
   await generateAllPlaybooks();
@@ -6537,12 +6688,14 @@ if (backfillMode) {
   await runAnomalyAlerts();
   await checkGoals();
   await checkTrialEmails();
+  await checkPreviewOutreach();
   await pingHeartbeat();
 
   // 2. Auto-backfill loop — every 30 minutes
   setInterval(async () => {
     try { await runAutoBackfill(); } catch (e) { logFail(`[auto-backfill loop] ${e.message}`); }
     try { await checkTrialEmails(); } catch (e) { logFail(`[trial-emails loop] ${e.message}`); }
+    try { await checkPreviewOutreach(); } catch (e) { logFail(`[preview-outreach loop] ${e.message}`); }
   }, CHECK_INTERVAL_MS);
 
   // 3. Daily sync + alerts + anomalies + goals + digest + trial emails at 02:00 UTC
@@ -6552,6 +6705,7 @@ if (backfillMode) {
     await runAnomalyAlerts();
     await checkGoals();
     await checkTrialEmails();
+    await checkPreviewOutreach();
     await sendDailyDigests();
     await pingHeartbeat();
   }, 'daily-sync+alerts+anomalies+digest');
@@ -6577,6 +6731,7 @@ if (backfillMode) {
   await runAnomalyAlerts();
   await checkGoals();
   await checkTrialEmails();
+  await checkPreviewOutreach();
   await sendDailyDigests();
   await generateAllPlaybooks();
 }

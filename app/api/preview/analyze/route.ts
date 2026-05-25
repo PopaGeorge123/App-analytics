@@ -72,6 +72,27 @@ function extractMeta(html: string): { title: string; description: string } {
   return { title, description };
 }
 
+function extractContactEmail(html: string): string | null {
+  const skipPrefixes = /^(noreply|no-reply|donotreply|support|help|info|hello|contact|admin|sales|team|billing|abuse|postmaster|webmaster|newsletter|unsubscribe|legal|privacy|press|media|jobs|careers|hr)/i;
+
+  // 1. mailto: links first (most reliable)
+  const mailtoMatches = [...html.matchAll(/mailto:([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})/gi)];
+  for (const m of mailtoMatches) {
+    const email = m[1].toLowerCase();
+    if (!skipPrefixes.test(email.split("@")[0])) return email;
+  }
+  // 2. Fallback: raw email patterns in text/content
+  const rawMatches = [...html.matchAll(/\b([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})\b/g)];
+  for (const m of rawMatches) {
+    const email = m[1].toLowerCase();
+    if (!skipPrefixes.test(email.split("@")[0])) return email;
+  }
+  // 3. Accept generic contact emails as last resort
+  for (const m of mailtoMatches) return m[1].toLowerCase();
+  for (const m of rawMatches) return m[1].toLowerCase();
+  return null;
+}
+
 function extractFavicon(html: string, origin: string): string {
   const match =
     html.match(/<link[^>]+rel=["'](?:shortcut )?icon["'][^>]+href=["']([^"']+)["']/i) ??
@@ -306,6 +327,16 @@ Respond ONLY with valid JSON — no markdown:
     detected_integrations: detectedIntegrations,
     predictions,
   }, { onConflict: "domain" });
+
+  // ── 5b. Schedule outreach email (4-hour delay) ────────────────────────────
+  const outreachEmail = extractContactEmail(html);
+  if (outreachEmail) {
+    const scheduledAt = new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString();
+    await db.from("preview_scans").update({
+      outreach_email: outreachEmail,
+      outreach_scheduled_at: scheduledAt,
+    }).eq("domain", domain).is("outreach_sent_at", null);
+  }
 
   await db.from("preview_ip_log").upsert(
     { ip_hash: ipHash, scan_domain: domain },
