@@ -724,7 +724,7 @@ export default async function Home() {
               <div className="relative">
                 <div className="absolute inset-0 rounded-2xl bg-[#00d4aa]/10 blur-xl" />
                 <img
-                  src="/founder-george-popa.jpg"
+                  src="/founder-george-popa.png"
                   alt="George Popa — Founder of Fold"
                   className="relative h-48 w-48 rounded-2xl object-cover object-top shadow-md"
                 />

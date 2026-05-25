@@ -676,7 +676,7 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
           {/* Author + meta */}
           <div className="flex items-center gap-4">
             <img
-              src="/founder-george-popa.jpg"
+              src="/founder-george-popa.png"
               alt="George Popa"
               className="h-10 w-10 rounded-full border-2 object-cover"
               style={{ borderColor: color + "60" }}
@@ -706,7 +706,7 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
         {/* Author bio */}
         <div className="mt-14 flex items-start gap-5 rounded-2xl border border-[#d4d4e8] bg-[#f0f0f8] p-6">
           <img
-            src="/founder-george-popa.jpg"
+            src="/founder-george-popa.png"
             alt="George Popa"
             className="h-14 w-14 shrink-0 rounded-full border-2 border-[#d4d4e8] object-cover"
           />
