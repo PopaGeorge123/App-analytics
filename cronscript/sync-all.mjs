@@ -5087,7 +5087,7 @@ Schema:
 //   ga4     → sessions, conversions, bounceRate
 //   meta    → spend, clicks, impressions
 //   shopify → revenue, orders
-//   mailchimp, klaviyo, beehiiv → subscribers, openRate
+//   mailchimp, klaviyo, beehiiv, convertkit → subscribers, openRate
 // ─────────────────────────────────────────────────────────────────────────────
 
 const ANOMALY_MONITORED = {
@@ -5120,6 +5120,11 @@ const ANOMALY_MONITORED = {
   beehiiv:   [
     { key: 'subscribers', label: 'Subscribers',             unit: null,       lowerIsBad: true  },
     { key: 'openRate',    label: 'Newsletter Open Rate',     unit: 'pct',      lowerIsBad: true  },
+  ],
+  convertkit: [
+    { key: 'totalSubscribers', label: 'Subscribers',        unit: null,       lowerIsBad: true  },
+    { key: 'newSubscribers',   label: 'New Subscribers',     unit: null,       lowerIsBad: true  },
+    { key: 'broadcastsSent',   label: 'Broadcasts Sent',     unit: null,       lowerIsBad: true  },
   ],
 };
 
@@ -6028,7 +6033,7 @@ async function runAnomalyAlerts() {
 // goals shape (matches SettingsTab GoalsSection):
 //   revenueTarget      – cents (Stripe MtD revenue goal)
 //   sessionsTarget     – integer (GA4 MtD sessions goal)
-//   subscribersTarget  – integer (Mailchimp/Beehiiv/Klaviyo MtD new-subscribers goal)
+//   subscribersTarget  – integer (Mailchimp/Beehiiv/Klaviyo/ConvertKit MtD new-subscribers goal)
 //   adSpendBudget      – cents (Meta MtD ad-spend budget cap — fires when OVER budget)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -6142,7 +6147,8 @@ async function checkGoals() {
     // new subscribers: aggregate across all connected email platforms
     const mtdSubscribers  = sumField('mailchimp', 'newSubscribers')
                           + sumField('klaviyo',   'newSubscribers')
-                          + sumField('beehiiv',   'newSubscribers');
+                          + sumField('beehiiv',   'newSubscribers')
+                          + sumField('convertkit', 'newSubscribers');
     // Meta ad spend is stored in dollars → convert to cents for comparison
     const mtdAdSpendCents = Math.round(sumField('meta', 'spend') * 100);
 

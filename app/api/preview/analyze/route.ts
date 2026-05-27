@@ -109,49 +109,49 @@ const FALLBACK_PREDICTIONS = {
   businessCategory: "SaaS",
   businessDescription: "A web-based business serving online customers.",
   techStack: [] as string[],
-  mrr: 3200, mrrGrowth: 9.2, monthlyVisitors: 6800, visitorsGrowth: 7.1,
-  bounceRate: 48, conversionRate: 2.1, avgSessionDuration: 165,
-  newCustomers: 24, churnRate: 3.1, ltv: 280, adSpend: 900, roas: 2.9,
-  revenueChart: { labels: ["Dec","Jan","Feb","Mar","Apr","May"], data: [2100,2400,2700,2900,3100,3200] },
-  visitorsChart: { labels: ["Dec","Jan","Feb","Mar","Apr","May"], data: [4200,4700,5100,5700,6200,6800] },
-  dailyRevenue:  { labels: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"], data: [420,580,710,640,820,490,380] },
+  mrr: 3247, mrrGrowth: 8.7, monthlyVisitors: 6891, visitorsGrowth: 6.3,
+  bounceRate: 47.2, conversionRate: 2.3, avgSessionDuration: 167,
+  newCustomers: 23, churnRate: 3.4, ltv: 287, adSpend: 920, roas: 2.7,
+  revenueChart: { labels: ["Dec","Jan","Feb","Mar","Apr","May"], data: [2187,2456,2623,2891,3054,3247] },
+  visitorsChart: { labels: ["Dec","Jan","Feb","Mar","Apr","May"], data: [4387,4892,5234,5876,6421,6891] },
+  dailyRevenue:  { labels: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"], data: [437,592,683,671,798,512,394] },
   topPages: [
-    { path: "/", views: 3200, bounceRate: 44, avgTime: 118 },
-    { path: "/pricing", views: 1100, bounceRate: 33, avgTime: 165 },
-    { path: "/about", views: 680, bounceRate: 58, avgTime: 90 },
-    { path: "/blog", views: 520, bounceRate: 65, avgTime: 82 },
-    { path: "/contact", views: 310, bounceRate: 52, avgTime: 73 },
+    { path: "/", views: 3287, bounceRate: 43.8, avgTime: 121 },
+    { path: "/pricing", views: 1143, bounceRate: 31.2, avgTime: 172 },
+    { path: "/about", views: 697, bounceRate: 56.4, avgTime: 94 },
+    { path: "/blog", views: 534, bounceRate: 63.7, avgTime: 87 },
+    { path: "/contact", views: 318, bounceRate: 51.3, avgTime: 76 },
   ],
   trafficSources: [
-    { source: "Organic Search", sessions: 2900, pct: 43 },
-    { source: "Direct", sessions: 1700, pct: 25 },
-    { source: "Referral", sessions: 1100, pct: 16 },
-    { source: "Paid Search", sessions: 680, pct: 10 },
-    { source: "Social", sessions: 420, pct: 6 },
+    { source: "Organic Search", sessions: 2967, pct: 43 },
+    { source: "Direct", sessions: 1723, pct: 25 },
+    { source: "Referral", sessions: 1102, pct: 16 },
+    { source: "Paid Search", sessions: 689, pct: 10 },
+    { source: "Social", sessions: 413, pct: 6 },
   ],
-  devices: { desktop: 60, mobile: 34, tablet: 6 },
+  devices: { desktop: 61, mobile: 33, tablet: 6 },
   countries: [
-    { name: "United States", code: "US", sessions: 2900, pct: 43 },
-    { name: "United Kingdom", code: "GB", sessions: 680, pct: 10 },
-    { name: "Canada", code: "CA", sessions: 490, pct: 7 },
-    { name: "Germany", code: "DE", sessions: 380, pct: 6 },
-    { name: "Australia", code: "AU", sessions: 290, pct: 4 },
+    { name: "United States", code: "US", sessions: 2963, pct: 43 },
+    { name: "United Kingdom", code: "GB", sessions: 689, pct: 10 },
+    { name: "Canada", code: "CA", sessions: 482, pct: 7 },
+    { name: "Germany", code: "DE", sessions: 413, pct: 6 },
+    { name: "Australia", code: "AU", sessions: 275, pct: 4 },
   ],
   recentCustomers: [
-    { name: "Alex M.", email: "a***@gmail.com", plan: "Pro", mrr: 49, joinedDaysAgo: 1 },
-    { name: "Sarah K.", email: "s***@company.com", plan: "Pro", mrr: 49, joinedDaysAgo: 2 },
-    { name: "Tom W.", email: "t***@startup.io", plan: "Starter", mrr: 19, joinedDaysAgo: 4 },
+    { name: "Jordan T.", email: "j***@startup.co", plan: "Pro", mrr: 49, joinedDaysAgo: 1 },
+    { name: "Maya R.", email: "m***@business.io", plan: "Growth", mrr: 79, joinedDaysAgo: 3 },
+    { name: "Chris L.", email: "c***@gmail.com", plan: "Starter", mrr: 19, joinedDaysAgo: 5 },
   ],
   aiInsights: [
-    "Connect real data to replace these estimates with live metrics from your integrations.",
-    "Based on your tech stack, there are quick wins available for conversion rate improvement.",
-    "Your industry benchmarks suggest meaningful growth potential in organic search.",
-    "Investing in SEO content could accelerate traffic growth at a lower CAC than paid ads.",
+    "Connect real integrations to replace these estimates with accurate live metrics.",
+    "Your pricing page engagement suggests strong product-market fit worth investigating further.",
+    "Consider adding retargeting campaigns to convert the 43% organic traffic at a lower CAC.",
+    "Desktop-heavy traffic indicates B2B audience - optimize checkout flow for business buyers.",
   ],
   opportunities: [
-    { title: "Recover abandoned checkouts", impact: "high", effort: "low", estimatedRevenue: 280 },
-    { title: "Add annual plan pricing", impact: "high", effort: "medium", estimatedRevenue: 900 },
-    { title: "Implement referral program", impact: "medium", effort: "medium", estimatedRevenue: 480 },
+    { title: "Implement exit-intent popup", impact: "high", effort: "low", estimatedRevenue: 340 },
+    { title: "Launch annual billing option", impact: "high", effort: "medium", estimatedRevenue: 980 },
+    { title: "Create affiliate program", impact: "medium", effort: "medium", estimatedRevenue: 520 },
   ],
 };
 
@@ -250,63 +250,98 @@ export async function POST(req: Request) {
     .replace(/\s+/g, " ")
     .slice(0, 3500);
 
-  const prompt = `You are a business intelligence analyst. Generate a full estimated dashboard for this website.
+  const prompt = `You are an expert business intelligence analyst creating realistic estimated analytics for a website preview dashboard.
 
-Website: ${finalUrl}
-Title: ${title || "unknown"}
-Meta description: ${description || "not available"}
-Detected tools: ${integrationNames}
-Page text: ${htmlSnippet}
+WEBSITE INFORMATION:
+- URL: ${finalUrl}
+- Title: ${title || "unknown"}
+- Description: ${description || "not available"}
+- Detected integrations: ${integrationNames}
+- Page content sample: ${htmlSnippet}
 
-Respond ONLY with valid JSON — no markdown:
+IMPORTANT: Generate REALISTIC, VARIED data based on the actual business type and detected tools. Make it look authentic and natural, NOT templated.
+
+Guidelines for realistic variation:
+- Numbers should be irregular (avoid round numbers like 4800, use 4,762 or 3,891)
+- Growth rates vary significantly by industry (bootstrapped SaaS: 5-15%, VC-backed: 15-40%, ecommerce: varies wildly)
+- Charts should show realistic fluctuations, not smooth linear growth
+- Traffic sources depend on business type (B2B = more direct/organic, B2C = more social/paid)
+- Device split varies (B2B = 65-75% desktop, consumer apps = 60-70% mobile)
+- Bounce rates realistic to page type (landing pages 40-70%, app dashboards 25-40%)
+- Insights should reference ACTUAL detected tools and specific business characteristics
+- Top pages should match the business type (SaaS has /pricing, /docs; ecommerce has /shop, /products)
+
+Respond ONLY with valid JSON (no markdown, no code blocks):
 {
-  "businessCategory": "SaaS",
-  "businessDescription": "One concise sentence.",
-  "techStack": ["Next.js", "Stripe"],
-  "mrr": 4800, "mrrGrowth": 11.2,
-  "monthlyVisitors": 9200, "visitorsGrowth": 8.7,
-  "bounceRate": 41.3, "conversionRate": 3.1, "avgSessionDuration": 194,
-  "newCustomers": 38, "churnRate": 2.1, "ltv": 420, "adSpend": 1200, "roas": 3.8,
-  "revenueChart": { "labels": ["Dec","Jan","Feb","Mar","Apr","May"], "data": [2900,3200,3600,4000,4400,4800] },
-  "visitorsChart": { "labels": ["Dec","Jan","Feb","Mar","Apr","May"], "data": [5800,6400,7100,7900,8500,9200] },
-  "dailyRevenue":  { "labels": ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"], "data": [680,920,1100,840,1300,760,590] },
+  "businessCategory": "Determine from content: SaaS, Ecommerce, Marketplace, Agency, Media/Blog, etc.",
+  "businessDescription": "One specific sentence describing what this business actually does based on the content.",
+  "techStack": ["List actual detected tools like ${integrationNames}, plus infer likely stack from HTML"],
+  "mrr": "Realistic monthly revenue based on business type (varied, use decimals)",
+  "mrrGrowth": "Realistic % growth (varied, can be negative, use decimals like 7.3 or -2.1)",
+  "monthlyVisitors": "Realistic visitor count (irregular numbers)",
+  "visitorsGrowth": "Realistic % (varied, can fluctuate)",
+  "bounceRate": "Realistic % for this business type (40-70 range, decimals)",
+  "conversionRate": "Industry-appropriate % (SaaS: 2-5%, ecommerce: 1-3%, decimals)",
+  "avgSessionDuration": "Realistic seconds (120-300 range, irregular)",
+  "newCustomers": "Realistic count based on MRR and pricing tier",
+  "churnRate": "Realistic % (SaaS: 2-7%, ecommerce higher, decimals)",
+  "ltv": "Realistic lifetime value based on MRR and churn",
+  "adSpend": "Realistic ad spend (can be 0 for organic-only, or varied amount)",
+  "roas": "Realistic return on ad spend (1.5-5.0 range, decimals, or null if no ads)",
+  "revenueChart": {
+    "labels": ["Dec","Jan","Feb","Mar","Apr","May"],
+    "data": [6 realistic, IRREGULAR values showing actual business fluctuations - NOT smooth growth]
+  },
+  "visitorsChart": {
+    "labels": ["Dec","Jan","Feb","Mar","Apr","May"],
+    "data": [6 realistic, VARIED values - include dips, spikes, plateaus]
+  },
+  "dailyRevenue": {
+    "labels": ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
+    "data": [7 realistic values - B2B lower on weekends, consumer varies differently]
+  },
   "topPages": [
-    { "path": "/", "views": 4200, "bounceRate": 38, "avgTime": 124 },
-    { "path": "/pricing", "views": 1900, "bounceRate": 29, "avgTime": 187 }
+    {"path": "Actual likely page path based on business type", "views": "irregular number", "bounceRate": "varied %", "avgTime": "varied seconds"},
+    {"path": "Another realistic page", "views": "lower than first", "bounceRate": "varied", "avgTime": "varied"},
+    {"path": "Third page", "views": "even lower", "bounceRate": "varied", "avgTime": "varied"},
+    {"path": "Fourth page if applicable", "views": "irregular", "bounceRate": "varied", "avgTime": "varied"},
+    {"path": "Fifth page if applicable", "views": "irregular", "bounceRate": "varied", "avgTime": "varied"}
   ],
   "trafficSources": [
-    { "source": "Organic Search", "sessions": 3800, "pct": 41 },
-    { "source": "Direct", "sessions": 2200, "pct": 24 },
-    { "source": "Referral", "sessions": 1400, "pct": 15 },
-    { "source": "Paid Search", "sessions": 1100, "pct": 12 },
-    { "source": "Social", "sessions": 700, "pct": 8 }
+    {"source": "Source name", "sessions": "irregular number", "pct": "realistic % that varies by business type"},
+    "4-6 sources total, percentages must add to ~100, vary the mix significantly based on business type and detected tools"
   ],
-  "devices": { "desktop": 57, "mobile": 37, "tablet": 6 },
+  "devices": {
+    "desktop": "Realistic % based on business type (B2B: 65-75, consumer: 30-45)",
+    "mobile": "Realistic % (remainder minus tablet)",
+    "tablet": "Realistic % (usually 4-8)"
+  },
   "countries": [
-    { "name": "United States", "code": "US", "sessions": 4100, "pct": 45 },
-    { "name": "United Kingdom", "code": "GB", "sessions": 980, "pct": 11 },
-    { "name": "Germany", "code": "DE", "sessions": 720, "pct": 8 },
-    { "name": "Canada", "code": "CA", "sessions": 610, "pct": 7 },
-    { "name": "Australia", "code": "AU", "sessions": 430, "pct": 5 }
+    {"name": "Most likely primary market", "code": "2-letter code", "sessions": "irregular", "pct": "realistic %"},
+    {"name": "Second market", "code": "XX", "sessions": "varied", "pct": "varied %"},
+    {"name": "Third market", "code": "XX", "sessions": "varied", "pct": "varied %"},
+    "Add 2-5 countries total, with realistic geographic distribution for this business type"
   ],
   "recentCustomers": [
-    { "name": "Alex M.", "email": "a***@gmail.com", "plan": "Pro", "mrr": 49, "joinedDaysAgo": 1 },
-    { "name": "Sarah K.", "email": "s***@company.com", "plan": "Pro", "mrr": 49, "joinedDaysAgo": 2 },
-    { "name": "Tom W.", "email": "t***@startup.io", "plan": "Starter", "mrr": 19, "joinedDaysAgo": 3 }
+    {"name": "Varied realistic name", "email": "realistic masked email format", "plan": "Plan name fitting the business", "mrr": "varied realistic amount", "joinedDaysAgo": "varied 1-7"},
+    {"name": "Different name", "email": "different email domain", "plan": "varied plan", "mrr": "different amount", "joinedDaysAgo": "varied"},
+    {"name": "Another name", "email": "another domain", "plan": "varied", "mrr": "varied", "joinedDaysAgo": "varied"}
   ],
   "aiInsights": [
-    "Your /pricing page has an unusually low bounce rate — visitors are highly engaged. A/B test a sticky CTA.",
-    "Organic search drives 41% of traffic but paid only 12%. SEO investment could double growth at lower CAC.",
-    "Desktop users account for 57% of traffic, suggesting a B2B audience. Optimize the desktop flow first.",
-    "MRR growth of 11.2% MoM is strong. At this rate you will cross $10k MRR within 8 months.",
-    "The bounce rate on the homepage is below industry average. The messaging is resonating well."
+    "SPECIFIC insight referencing ACTUAL detected tools or page content - make it personalized",
+    "Another SPECIFIC insight about THIS business's actual metrics or market position",
+    "Third SPECIFIC insight with actionable detail relevant to detected tech stack",
+    "Fourth SPECIFIC insight about growth trajectory or competitive positioning",
+    "Optional fifth insight if you have something particularly relevant"
   ],
   "opportunities": [
-    { "title": "Recover abandoned checkouts", "impact": "high", "effort": "low", "estimatedRevenue": 380 },
-    { "title": "Add annual plan pricing", "impact": "high", "effort": "medium", "estimatedRevenue": 1200 },
-    { "title": "Implement referral program", "impact": "medium", "effort": "medium", "estimatedRevenue": 640 }
+    {"title": "Specific opportunity based on ACTUAL business type", "impact": "high/medium/low", "effort": "low/medium/high", "estimatedRevenue": "realistic varied number"},
+    {"title": "Another specific opportunity for THIS business", "impact": "varied", "effort": "varied", "estimatedRevenue": "varied"},
+    {"title": "Third opportunity if applicable", "impact": "varied", "effort": "varied", "estimatedRevenue": "varied"}
   ]
-}`;
+}
+
+Remember: Make every number IRREGULAR and VARIED. No smooth curves. Real businesses have fluctuations, dips, spikes. Make insights SPECIFIC to what you actually detected.`;
 
   let predictions: typeof FALLBACK_PREDICTIONS = FALLBACK_PREDICTIONS;
   try {

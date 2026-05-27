@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
   let subdomain = request.nextUrl.searchParams.get("subdomain") ?? "";
   if (!subdomain) {
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&freshdesk=missing_subdomain", process.env.NEXT_PUBLIC_APP_URL),
+      new URL("/dashboard?tab=data-sources&freshdesk=missing_subdomain", process.env.NEXT_PUBLIC_APP_URL),
     );
   }
 
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
       } else if (hostname.includes(".freshworks.com")) {
         // If they entered freshworks.com, reject it
         return NextResponse.redirect(
-          new URL("/dashboard?tab=settings&freshdesk=invalid_subdomain", process.env.NEXT_PUBLIC_APP_URL),
+          new URL("/dashboard?tab=data-sources&freshdesk=invalid_subdomain", process.env.NEXT_PUBLIC_APP_URL),
         );
       } else {
         // If it's some other domain, use the first part
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
 
   if (!subdomain) {
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&freshdesk=invalid_subdomain", process.env.NEXT_PUBLIC_APP_URL),
+      new URL("/dashboard?tab=data-sources&freshdesk=invalid_subdomain", process.env.NEXT_PUBLIC_APP_URL),
     );
   }
 

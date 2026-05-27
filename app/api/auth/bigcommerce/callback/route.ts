@@ -12,18 +12,18 @@ export async function GET(request: NextRequest) {
 
   if (error || !code || !state) {
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&bigcommerce=error", process.env.NEXT_PUBLIC_APP_URL),
+      new URL("/dashboard?tab=data-sources&bigcommerce=error", process.env.NEXT_PUBLIC_APP_URL),
     );
   }
   try {
     await handleBigCommerceOAuthCallback(state, code, storeHash);
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&bigcommerce=connected&syncing=bigcommerce", process.env.NEXT_PUBLIC_APP_URL),
+      new URL("/dashboard?tab=data-sources&bigcommerce=connected&syncing=bigcommerce", process.env.NEXT_PUBLIC_APP_URL),
     );
   } catch (err) {
     console.error("BigCommerce OAuth callback error:", err);
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&bigcommerce=error", process.env.NEXT_PUBLIC_APP_URL),
+      new URL("/dashboard?tab=data-sources&bigcommerce=error", process.env.NEXT_PUBLIC_APP_URL),
     );
   }
 }

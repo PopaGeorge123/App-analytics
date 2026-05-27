@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
 
   if (error || !code || !state) {
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&google-ads=error", process.env.NEXT_PUBLIC_APP_URL),
+      new URL("/dashboard?tab=data-sources&google-ads=error", process.env.NEXT_PUBLIC_APP_URL),
     );
   }
 
@@ -19,14 +19,14 @@ export async function GET(request: NextRequest) {
     await notifyIntegrationConnected(state, "google-ads");
     return NextResponse.redirect(
       new URL(
-        "/dashboard?tab=settings&google-ads=connected&syncing=google-ads",
+        "/dashboard?tab=data-sources&google-ads=connected&syncing=google-ads",
         process.env.NEXT_PUBLIC_APP_URL,
       ),
     );
   } catch (err) {
     console.error("Google Ads OAuth callback error:", err);
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&google-ads=error", process.env.NEXT_PUBLIC_APP_URL),
+      new URL("/dashboard?tab=data-sources&google-ads=error", process.env.NEXT_PUBLIC_APP_URL),
     );
   }
 }

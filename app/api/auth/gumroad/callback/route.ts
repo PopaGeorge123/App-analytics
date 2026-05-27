@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
 
   if (error || !code || !state) {
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&gumroad=error", process.env.NEXT_PUBLIC_APP_URL),
+      new URL("/dashboard?tab=data-sources&gumroad=error", process.env.NEXT_PUBLIC_APP_URL),
     );
   }
 
@@ -18,12 +18,12 @@ export async function GET(request: NextRequest) {
     await handleGumroadOAuthCallback(state, code);
     await notifyIntegrationConnected(state, "gumroad");
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&gumroad=connected&syncing=gumroad", process.env.NEXT_PUBLIC_APP_URL),
+      new URL("/dashboard?tab=data-sources&gumroad=connected&syncing=gumroad", process.env.NEXT_PUBLIC_APP_URL),
     );
   } catch (err) {
     console.error("Gumroad OAuth callback error:", err);
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&gumroad=error", process.env.NEXT_PUBLIC_APP_URL),
+      new URL("/dashboard?tab=data-sources&gumroad=error", process.env.NEXT_PUBLIC_APP_URL),
     );
   }
 }

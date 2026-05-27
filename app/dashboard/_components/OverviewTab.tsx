@@ -1208,7 +1208,7 @@ export default function OverviewTab({
           <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#4a4a6a] block mb-1">Quick Access</span>
           {[
             { label: "Analytics", desc: "Sessions, conversions, funnel", icon: "M3 17l5-5 4 4 9-9", tab: "analytics" as Tab, color: "#f59e0b" },
-            { label: "Integrations", desc: `${connectedPlatforms.length}/${LIVE_INTEGRATIONS.length} connected`, icon: "M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71", tab: "settings" as Tab, color: "#635bff" },
+            { label: "Integrations", desc: `${connectedPlatforms.length}/${LIVE_INTEGRATIONS.length} connected`, icon: "M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71", tab: "data-sources" as Tab, color: "#635bff" },
             { label: "Alerts", desc: allAlerts.length > 0 ? `${allAlerts.length} active alert${allAlerts.length !== 1 ? "s" : ""}` : "No active alerts", icon: "M13 10V3L4 14h7v7l9-11h-7z", tab: "settings" as Tab, color: allAlerts.length > 0 ? "#f87171" : "#3a3a5a" },
           ].map((item) => (
             <button key={item.label} onClick={() => onNavigate(item.tab)}

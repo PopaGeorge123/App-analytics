@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
   const subdomain = request.nextUrl.searchParams.get("subdomain") ?? "";
   if (!subdomain) {
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&zendesk=missing_subdomain", process.env.NEXT_PUBLIC_APP_URL),
+      new URL("/dashboard?tab=data-sources&zendesk=missing_subdomain", process.env.NEXT_PUBLIC_APP_URL),
     );
   }
 

@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
 
   if (error || !code || !state) {
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&hubspot=error", process.env.NEXT_PUBLIC_APP_URL),
+      new URL("/dashboard?tab=data-sources&hubspot=error", process.env.NEXT_PUBLIC_APP_URL),
     );
   }
 
@@ -18,12 +18,12 @@ export async function GET(request: NextRequest) {
     await handleHubSpotOAuthCallback(state, code);
     await notifyIntegrationConnected(state, "hubspot");
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&hubspot=connected&syncing=hubspot", process.env.NEXT_PUBLIC_APP_URL),
+      new URL("/dashboard?tab=data-sources&hubspot=connected&syncing=hubspot", process.env.NEXT_PUBLIC_APP_URL),
     );
   } catch (err) {
     console.error("HubSpot OAuth callback error:", err);
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&hubspot=error", process.env.NEXT_PUBLIC_APP_URL),
+      new URL("/dashboard?tab=data-sources&hubspot=error", process.env.NEXT_PUBLIC_APP_URL),
     );
   }
 }

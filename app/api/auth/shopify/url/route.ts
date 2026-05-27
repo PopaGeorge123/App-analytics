@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
   const shop = request.nextUrl.searchParams.get("shop") ?? "";
   if (!shop) {
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&shopify=missing_shop", process.env.NEXT_PUBLIC_APP_URL),
+      new URL("/dashboard?tab=data-sources&shopify=missing_shop", process.env.NEXT_PUBLIC_APP_URL),
     );
   }
 

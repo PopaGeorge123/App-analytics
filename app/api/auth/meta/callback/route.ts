@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
 
   if (error || !code || !state) {
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&meta=error", process.env.NEXT_PUBLIC_APP_URL)
+      new URL("/dashboard?tab=data-sources&meta=error", process.env.NEXT_PUBLIC_APP_URL)
     );
   }
 
@@ -18,12 +18,12 @@ export async function GET(request: NextRequest) {
     await handleMetaCallback(state, code);
     await notifyIntegrationConnected(state, "meta");
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&meta=connected&syncing=meta", process.env.NEXT_PUBLIC_APP_URL)
+      new URL("/dashboard?tab=data-sources&meta=connected&syncing=meta", process.env.NEXT_PUBLIC_APP_URL)
     );
   } catch (err) {
     console.error("Meta OAuth callback error:", err);
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&meta=error", process.env.NEXT_PUBLIC_APP_URL)
+      new URL("/dashboard?tab=data-sources&meta=error", process.env.NEXT_PUBLIC_APP_URL)
     );
   }
 }

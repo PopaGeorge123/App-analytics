@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
 
   if (error || !code || !state) {
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&google=error", process.env.NEXT_PUBLIC_APP_URL)
+      new URL("/dashboard?tab=data-sources&google=error", process.env.NEXT_PUBLIC_APP_URL)
     );
   }
 
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
   } catch (err) {
     console.error("Google OAuth callback error:", err);
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&google=error", process.env.NEXT_PUBLIC_APP_URL)
+      new URL("/dashboard?tab=data-sources&google=error", process.env.NEXT_PUBLIC_APP_URL)
     );
   }
 }

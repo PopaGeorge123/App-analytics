@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
 
   if (error || !code || !state) {
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&twitter-ads=error", process.env.NEXT_PUBLIC_APP_URL),
+      new URL("/dashboard?tab=data-sources&twitter-ads=error", process.env.NEXT_PUBLIC_APP_URL),
     );
   }
 
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     await handleTwitterAdsOAuthCallback(state, code, codeVerifier);
     const response = NextResponse.redirect(
       new URL(
-        "/dashboard?tab=settings&twitter-ads=connected&syncing=twitter-ads",
+        "/dashboard?tab=data-sources&twitter-ads=connected&syncing=twitter-ads",
         process.env.NEXT_PUBLIC_APP_URL,
       ),
     );
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
   } catch (err) {
     console.error("Twitter Ads OAuth callback error:", err);
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&twitter-ads=error", process.env.NEXT_PUBLIC_APP_URL),
+      new URL("/dashboard?tab=data-sources&twitter-ads=error", process.env.NEXT_PUBLIC_APP_URL),
     );
   }
 }

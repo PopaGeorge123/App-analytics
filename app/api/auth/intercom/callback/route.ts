@@ -10,19 +10,19 @@ export async function GET(request: NextRequest) {
 
   if (error || !code || !state) {
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&intercom=error", process.env.NEXT_PUBLIC_APP_URL),
+      new URL("/dashboard?tab=data-sources&intercom=error", process.env.NEXT_PUBLIC_APP_URL),
     );
   }
   try {
     await handleIntercomOAuthCallback(state, code);
     await notifyIntegrationConnected(state, "intercom");
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&intercom=connected&syncing=intercom", process.env.NEXT_PUBLIC_APP_URL),
+      new URL("/dashboard?tab=data-sources&intercom=connected&syncing=intercom", process.env.NEXT_PUBLIC_APP_URL),
     );
   } catch (err) {
     console.error("Intercom OAuth callback error:", err);
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&intercom=error", process.env.NEXT_PUBLIC_APP_URL),
+      new URL("/dashboard?tab=data-sources&intercom=error", process.env.NEXT_PUBLIC_APP_URL),
     );
   }
 }

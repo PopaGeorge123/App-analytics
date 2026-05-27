@@ -10,19 +10,19 @@ export async function GET(request: NextRequest) {
 
   if (error || !code || !state) {
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&pipedrive=error", process.env.NEXT_PUBLIC_APP_URL),
+      new URL("/dashboard?tab=data-sources&pipedrive=error", process.env.NEXT_PUBLIC_APP_URL),
     );
   }
   try {
     await handlePipedriveOAuthCallback(state, code);
     await notifyIntegrationConnected(state, "pipedrive");
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&pipedrive=connected&syncing=pipedrive", process.env.NEXT_PUBLIC_APP_URL),
+      new URL("/dashboard?tab=data-sources&pipedrive=connected&syncing=pipedrive", process.env.NEXT_PUBLIC_APP_URL),
     );
   } catch (err) {
     console.error("Pipedrive OAuth callback error:", err);
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&pipedrive=error", process.env.NEXT_PUBLIC_APP_URL),
+      new URL("/dashboard?tab=data-sources&pipedrive=error", process.env.NEXT_PUBLIC_APP_URL),
     );
   }
 }

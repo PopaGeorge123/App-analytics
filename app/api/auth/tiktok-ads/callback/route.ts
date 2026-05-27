@@ -10,19 +10,19 @@ export async function GET(request: NextRequest) {
 
   if (error || !code || !state) {
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&tiktok-ads=error", process.env.NEXT_PUBLIC_APP_URL),
+      new URL("/dashboard?tab=data-sources&tiktok-ads=error", process.env.NEXT_PUBLIC_APP_URL),
     );
   }
   try {
     await handleTikTokAdsOAuthCallback(state, code);
     await notifyIntegrationConnected(state, "tiktok-ads");
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&tiktok-ads=connected&syncing=tiktok-ads", process.env.NEXT_PUBLIC_APP_URL),
+      new URL("/dashboard?tab=data-sources&tiktok-ads=connected&syncing=tiktok-ads", process.env.NEXT_PUBLIC_APP_URL),
     );
   } catch (err) {
     console.error("TikTok Ads OAuth callback error:", err);
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&tiktok-ads=error", process.env.NEXT_PUBLIC_APP_URL),
+      new URL("/dashboard?tab=data-sources&tiktok-ads=error", process.env.NEXT_PUBLIC_APP_URL),
     );
   }
 }

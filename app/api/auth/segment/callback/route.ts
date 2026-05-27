@@ -10,19 +10,19 @@ export async function GET(request: NextRequest) {
 
   if (error || !code || !state) {
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&segment=error", process.env.NEXT_PUBLIC_APP_URL),
+      new URL("/dashboard?tab=data-sources&segment=error", process.env.NEXT_PUBLIC_APP_URL),
     );
   }
   try {
     await handleSegmentOAuthCallback(state, code);
     await notifyIntegrationConnected(state, "segment");
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&segment=connected&syncing=segment", process.env.NEXT_PUBLIC_APP_URL),
+      new URL("/dashboard?tab=data-sources&segment=connected&syncing=segment", process.env.NEXT_PUBLIC_APP_URL),
     );
   } catch (err) {
     console.error("Segment OAuth callback error:", err);
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&segment=error", process.env.NEXT_PUBLIC_APP_URL),
+      new URL("/dashboard?tab=data-sources&segment=error", process.env.NEXT_PUBLIC_APP_URL),
     );
   }
 }

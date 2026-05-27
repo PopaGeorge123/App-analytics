@@ -7,6 +7,6 @@ import { NextResponse } from "next/server";
  */
 export async function GET() {
   return NextResponse.redirect(
-    new URL("/dashboard?tab=settings&paddle=error&reason=oauth_not_supported", process.env.NEXT_PUBLIC_APP_URL),
+    new URL("/dashboard?tab=data-sources&paddle=error&reason=oauth_not_supported", process.env.NEXT_PUBLIC_APP_URL),
   );
 }

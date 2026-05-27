@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
 
   if (error || !code || !state) {
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&notion=error", process.env.NEXT_PUBLIC_APP_URL),
+      new URL("/dashboard?tab=data-sources&notion=error", process.env.NEXT_PUBLIC_APP_URL),
     );
   }
 
@@ -18,12 +18,12 @@ export async function GET(request: NextRequest) {
     await handleNotionOAuthCallback(state, code);
     await notifyIntegrationConnected(state, "notion");
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&notion=connected&syncing=notion", process.env.NEXT_PUBLIC_APP_URL),
+      new URL("/dashboard?tab=data-sources&notion=connected&syncing=notion", process.env.NEXT_PUBLIC_APP_URL),
     );
   } catch (err) {
     console.error("Notion OAuth callback error:", err);
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&notion=error", process.env.NEXT_PUBLIC_APP_URL),
+      new URL("/dashboard?tab=data-sources&notion=error", process.env.NEXT_PUBLIC_APP_URL),
     );
   }
 }

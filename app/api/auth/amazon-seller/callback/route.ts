@@ -12,21 +12,21 @@ export async function GET(request: NextRequest) {
 
   if (error || !code || !state) {
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&amazon-seller=error", process.env.NEXT_PUBLIC_APP_URL),
+      new URL("/dashboard?tab=data-sources&amazon-seller=error", process.env.NEXT_PUBLIC_APP_URL),
     );
   }
   try {
     await handleAmazonSellerOAuthCallback(state, code, sellingPartnerId);
     return NextResponse.redirect(
       new URL(
-        "/dashboard?tab=settings&amazon-seller=connected&syncing=amazon-seller",
+        "/dashboard?tab=data-sources&amazon-seller=connected&syncing=amazon-seller",
         process.env.NEXT_PUBLIC_APP_URL,
       ),
     );
   } catch (err) {
     console.error("Amazon Seller OAuth callback error:", err);
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&amazon-seller=error", process.env.NEXT_PUBLIC_APP_URL),
+      new URL("/dashboard?tab=data-sources&amazon-seller=error", process.env.NEXT_PUBLIC_APP_URL),
     );
   }
 }

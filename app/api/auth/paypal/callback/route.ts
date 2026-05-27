@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
 
   if (error || !code || !state) {
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&paypal=error", process.env.NEXT_PUBLIC_APP_URL)
+      new URL("/dashboard?tab=data-sources&paypal=error", process.env.NEXT_PUBLIC_APP_URL)
     );
   }
 
@@ -18,12 +18,12 @@ export async function GET(request: NextRequest) {
     await handlePayPalCallback(state, code);
     await notifyIntegrationConnected(state, "paypal");
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&paypal=connected&syncing=paypal", process.env.NEXT_PUBLIC_APP_URL)
+      new URL("/dashboard?tab=data-sources&paypal=connected&syncing=paypal", process.env.NEXT_PUBLIC_APP_URL)
     );
   } catch (err) {
     console.error("PayPal OAuth callback error:", err);
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&paypal=error", process.env.NEXT_PUBLIC_APP_URL)
+      new URL("/dashboard?tab=data-sources&paypal=error", process.env.NEXT_PUBLIC_APP_URL)
     );
   }
 }

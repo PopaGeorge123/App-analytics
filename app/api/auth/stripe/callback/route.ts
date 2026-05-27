@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
 
   if (error || !code || !state) {
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&stripe=error", process.env.NEXT_PUBLIC_APP_URL)
+      new URL("/dashboard?tab=data-sources&stripe=error", process.env.NEXT_PUBLIC_APP_URL)
     );
   }
 
@@ -18,12 +18,12 @@ export async function GET(request: NextRequest) {
     await handleStripeCallback(state, code);
     await notifyIntegrationConnected(state, "stripe");
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&stripe=connected&syncing=stripe", process.env.NEXT_PUBLIC_APP_URL)
+      new URL("/dashboard?tab=data-sources&stripe=connected&syncing=stripe", process.env.NEXT_PUBLIC_APP_URL)
     );
   } catch (err) {
     console.error("Stripe OAuth callback error:", err);
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&stripe=error", process.env.NEXT_PUBLIC_APP_URL)
+      new URL("/dashboard?tab=data-sources&stripe=error", process.env.NEXT_PUBLIC_APP_URL)
     );
   }
 }

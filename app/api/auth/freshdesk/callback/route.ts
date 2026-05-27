@@ -13,18 +13,18 @@ export async function GET(request: NextRequest) {
 
   if (error || !code || !userId || !subdomain) {
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&freshdesk=error", process.env.NEXT_PUBLIC_APP_URL),
+      new URL("/dashboard?tab=data-sources&freshdesk=error", process.env.NEXT_PUBLIC_APP_URL),
     );
   }
   try {
     await handleFreshdeskOAuthCallback(userId, code, subdomain);
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&freshdesk=connected&syncing=freshdesk", process.env.NEXT_PUBLIC_APP_URL),
+      new URL("/dashboard?tab=data-sources&freshdesk=connected&syncing=freshdesk", process.env.NEXT_PUBLIC_APP_URL),
     );
   } catch (err) {
     console.error("Freshdesk OAuth callback error:", err);
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&freshdesk=error", process.env.NEXT_PUBLIC_APP_URL),
+      new URL("/dashboard?tab=data-sources&freshdesk=error", process.env.NEXT_PUBLIC_APP_URL),
     );
   }
 }

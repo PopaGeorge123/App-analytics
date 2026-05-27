@@ -10,19 +10,19 @@ export async function GET(request: NextRequest) {
 
   if (error || !code || !state) {
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&snapchat-ads=error", process.env.NEXT_PUBLIC_APP_URL),
+      new URL("/dashboard?tab=data-sources&snapchat-ads=error", process.env.NEXT_PUBLIC_APP_URL),
     );
   }
   try {
     await handleSnapchatAdsOAuthCallback(state, code);
     await notifyIntegrationConnected(state, "snapchat-ads");
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&snapchat-ads=connected&syncing=snapchat-ads", process.env.NEXT_PUBLIC_APP_URL),
+      new URL("/dashboard?tab=data-sources&snapchat-ads=connected&syncing=snapchat-ads", process.env.NEXT_PUBLIC_APP_URL),
     );
   } catch (err) {
     console.error("Snapchat Ads OAuth callback error:", err);
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&snapchat-ads=error", process.env.NEXT_PUBLIC_APP_URL),
+      new URL("/dashboard?tab=data-sources&snapchat-ads=error", process.env.NEXT_PUBLIC_APP_URL),
     );
   }
 }

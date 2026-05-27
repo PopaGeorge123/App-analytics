@@ -10,19 +10,19 @@ export async function GET(request: NextRequest) {
 
   if (error || !code || !state) {
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&youtube=error", process.env.NEXT_PUBLIC_APP_URL),
+      new URL("/dashboard?tab=data-sources&youtube=error", process.env.NEXT_PUBLIC_APP_URL),
     );
   }
   try {
     await handleYouTubeOAuthCallback(state, code);
     await notifyIntegrationConnected(state, "youtube");
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&youtube=connected&syncing=youtube", process.env.NEXT_PUBLIC_APP_URL),
+      new URL("/dashboard?tab=data-sources&youtube=connected&syncing=youtube", process.env.NEXT_PUBLIC_APP_URL),
     );
   } catch (err) {
     console.error("YouTube OAuth callback error:", err);
     return NextResponse.redirect(
-      new URL("/dashboard?tab=settings&youtube=error", process.env.NEXT_PUBLIC_APP_URL),
+      new URL("/dashboard?tab=data-sources&youtube=error", process.env.NEXT_PUBLIC_APP_URL),
     );
   }
 }
