@@ -8,9 +8,9 @@ import { createServiceClient } from "@/lib/supabase/service";
 
 export async function GET(
   request: Request,
-  { params }: { params: { prospectId: string } }
+  { params }: { params: Promise<{ prospectId: string }> }
 ) {
-  const prospectId = params.prospectId;
+  const { prospectId } = await params;
   
   try {
     const db = createServiceClient();
