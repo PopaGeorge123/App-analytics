@@ -39,6 +39,6 @@ export async function GET(
   }
   
   // Redirect to signup page (or demo page, depending on your flow)
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://usefold.io";
-  return NextResponse.redirect(`${baseUrl}/signup?ref=outbound`);
+  const baseUrl = "https://usefold.io";
+  return NextResponse.redirect(`${baseUrl}/?ref=outbound`);
 }

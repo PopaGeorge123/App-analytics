@@ -317,7 +317,7 @@ node scripts/outbound-prospecting.mjs "Marketplace" --limit=20 --send-emails
 - ⚠️ Check GDPR/CAN-SPAM compliance for your region
 
 ### Email Deliverability:
-- Use authenticated domain for sending (george@usefold.io)
+- Use authenticated domain for sending (info@usefold.io)
 - Don't send too many too fast (rate limiting built-in)
 - Monitor bounce rates
 - Keep email copy conversational, not salesy

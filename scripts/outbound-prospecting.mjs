@@ -7,11 +7,11 @@
  * and sends personalized outreach emails with open tracking.
  * 
  * Usage:
- *   node scripts/outbound-prospecting.mjs <category> [--limit=10] [--send-emails]
+ *   node scripts/outbound-prospecting.mjs <category> [--prospects=10] [--send-emails]
  * 
  * Examples:
- *   node scripts/outbound-prospecting.mjs "SaaS" --limit=20 --send-emails
- *   node scripts/outbound-prospecting.mjs "E-commerce" --limit=10
+ *   node scripts/outbound-prospecting.mjs "SaaS" --prospects=20 --send-emails
+ *   node scripts/outbound-prospecting.mjs "E-commerce" --prospects=10
  */
 
 import https from 'https';
@@ -450,7 +450,7 @@ ${APP_URL}`;
 
   try {
     const body = JSON.stringify({
-      from: 'George from Fold <george@usefold.io>',
+      from: 'George from Fold <info@usefold.io>', //acum e corect
       to: [prospect.contact_email],
       subject,
       html,
@@ -492,14 +492,14 @@ ${APP_URL}`;
 async function main() {
   const args = process.argv.slice(2);
   const category = args.find(a => !a.startsWith('--'));
-  const limitArg = args.find(a => a.startsWith('--limit='));
+  const prospectsArg = args.find(a => a.startsWith('--prospects='));
   const sendEmails = args.includes('--send-emails');
   
-  const limit = limitArg ? parseInt(limitArg.split('=')[1]) : 10;
+  const limit = prospectsArg ? parseInt(prospectsArg.split('=')[1]) : 10;
   
   if (!category || !CATEGORIES.includes(category)) {
     console.error(`❌ Invalid category. Must be one of: ${CATEGORIES.join(', ')}`);
-    console.log('\nUsage: node scripts/outbound-prospecting.mjs <category> [--limit=10] [--send-emails]');
+    console.log('\nUsage: node scripts/outbound-prospecting.mjs <category> [--prospects=10] [--send-emails]');
     process.exit(1);
   }
   
@@ -591,11 +591,15 @@ async function main() {
   let emailsSent = 0;
   
   console.log(`📡 Searching with ${queries.length} different query variations...\n`);
+  console.log(`🔁 Will keep cycling through queries until finding ${limit} NEW prospects\n`);
   
-  // Keep searching until we process enough new prospects
-  while (saved < limit && queryIndex < queries.length) {
-    const searchQuery = queries[queryIndex];
-    console.log(`🔎 Query ${queryIndex + 1}/${queries.length}: "${searchQuery}"`);
+  // Keep searching until we find enough new prospects (cycle through queries indefinitely)
+  while (saved < limit) {
+    const searchQuery = queries[queryIndex % queries.length]; // Loop back to start when done
+    const cycleNumber = Math.floor(queryIndex / queries.length) + 1;
+    const queryInCycle = (queryIndex % queries.length) + 1;
+    
+    console.log(`🔎 Cycle ${cycleNumber}, Query ${queryInCycle}/${queries.length}: "${searchQuery}"`);
     
     const searchResults = await searchGoogle(searchQuery, 20); // Get 20 per query
     
@@ -688,23 +692,25 @@ async function main() {
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
     
-    // Move to next query if we haven't reached the limit
+    // Move to next query
+    queryIndex++;
+    
     if (saved < limit) {
-      queryIndex++;
-      console.log(`\n   Progress: ${saved}/${limit} prospects found. Trying next query...\n`);
+      console.log(`\n   Progress: ${saved}/${limit} prospects found. Moving to next query...\n`);
+      
+      // Add longer delay between queries to avoid rate limits
+      if (queryIndex % queries.length === 0) {
+        console.log(`   ⏸️  Completed cycle ${cycleNumber}. Pausing 5 seconds before restarting...\n`);
+        await new Promise(resolve => setTimeout(resolve, 5000));
+      }
     }
   }
   
   console.log(`\n✅ Prospecting complete!`);
   console.log(`   Total saved: ${saved} NEW prospects`);
   console.log(`   Emails sent: ${emailsSent}`);
-  
-  if (saved < limit) {
-    console.log(`\n⚠️  Only found ${saved}/${limit} prospects. All ${queries.length} queries exhausted.`);
-    console.log(`   Try running again later or use a different category.`);
-  }
-  
-  console.log(`\n💡 Tip: Add --send-emails flag to actually send emails\n`);
+  console.log(`   Total cycles: ${Math.floor(queryIndex / queries.length)}`);
+  console.log(`   Total queries executed: ${queryIndex}\n`);
 }
 
 main().catch(err => {
