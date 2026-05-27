@@ -35,3 +35,28 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 }
+
+export async function GET(req: NextRequest) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user?.id) return NextResponse.json({ integrations: [] });
+
+    const db = createServiceClient();
+    const { data, error } = await db
+      .from('integration_waitlist')
+      .select('integration_id')
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.error('[notify-me] DB read error:', error);
+      return NextResponse.json({ integrations: [] }, { status: 500 });
+    }
+
+    const integrations = Array.isArray(data) ? data.map((r: any) => r.integration_id) : [];
+    return NextResponse.json({ integrations });
+  } catch (err) {
+    console.error('[notify-me] GET error', err);
+    return NextResponse.json({ integrations: [] }, { status: 500 });
+  }
+}

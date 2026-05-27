@@ -113,26 +113,49 @@ function SectionLabel({ color, children }: { color: string; children: React.Reac
 function ComingSoonSection() {
   const [notified, setNotified] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState<string | null>(null);
+  const [fetching, setFetching] = useState(true);
+
+  // On mount: fetch the current user's existing notify-me rows so UI reflects persisted state
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const res = await fetch('/api/notify-me');
+        if (!res.ok) { if (mounted) setFetching(false); return; }
+        const d = await res.json();
+        const integrations: string[] = Array.isArray(d?.integrations) ? d.integrations : [];
+        const map: Record<string, boolean> = {};
+        for (const id of integrations) map[String(id)] = true;
+        if (mounted) setNotified(map);
+      } catch (err) {
+        // ignore
+      } finally {
+        if (mounted) setFetching(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   async function handleNotify(integrationId: string) {
     if (notified[integrationId] || loading) return;
     setLoading(integrationId);
     try {
-      const res = await fetch("/api/notify-me", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/notify-me', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ integration_id: integrationId }),
       });
       if (res.ok) setNotified((prev) => ({ ...prev, [integrationId]: true }));
-    } catch {}
-    finally { setLoading(null); }
+    } catch (e) {
+      // noop
+    } finally { setLoading(null); }
   }
 
   return (
     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
       {SOON_INTEGRATIONS.map((intg) => (
         <div key={intg.id} className="flex items-center gap-3 rounded-xl border border-black/[0.06] bg-[#fafafa] px-3 py-2.5">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: intg.color + "18" }}>
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: intg.color + '18' }}>
             <img src={intg.icon} alt={intg.name} width={14} height={14} className="object-contain opacity-50" />
           </div>
           <div className="flex-1 min-w-0">
@@ -141,19 +164,21 @@ function ComingSoonSection() {
           </div>
           <button
             onClick={() => handleNotify(intg.id)}
-            disabled={!!notified[intg.id] || loading === intg.id}
+            disabled={!!notified[intg.id] || loading === intg.id || fetching}
             className={`shrink-0 font-mono text-[10px] font-semibold px-2.5 py-1 rounded-lg border transition-all ${
               notified[intg.id]
-                ? "border-[#10b981]/30 bg-[#10b981]/10 text-[#10b981] cursor-default"
-                : "border-black/15 text-[#6a6a90] hover:border-[#6366f1]/40 hover:text-[#6366f1] hover:bg-[#6366f1]/5"
+                ? 'border-[#10b981]/30 bg-[#10b981]/10 text-[#10b981] cursor-default'
+                : 'border-black/15 text-[#6a6a90] hover:border-[#6366f1]/40 hover:text-[#6366f1] hover:bg-[#6366f1]/5'
             } disabled:opacity-60`}
           >
-            {loading === intg.id ? "…" : notified[intg.id] ? (
+            {loading === intg.id ? '…' : notified[intg.id] ? (
               <span className="flex items-center gap-1">
                 <svg width="9" height="9" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                 Noted
               </span>
-            ) : "Notify me"}
+            ) : fetching ? (
+              <span className="text-[10px]">Loading…</span>
+            ) : 'Notify me'}
           </button>
         </div>
       ))}
@@ -1022,7 +1047,7 @@ export default function DataSourcesTab({ email, isPremium, connectedPlatforms, c
 
       {/* ── Main content ──────────────────────────────────────────────── */}
       <div ref={contentRef} className="flex-1 min-w-0 overflow-y-auto pb-16">
-        <div className="mx-auto max-w-[720px] px-6 lg:px-8 space-y-10 pt-8">
+        <div className="mx-auto max-w-[820px] px-6 lg:px-8 space-y-10 pt-8">
 
           {/* Page header */}
           <div className="hidden lg:block">

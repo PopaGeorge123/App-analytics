@@ -2502,10 +2502,10 @@ export default function AiTab({ isPremium, isDemo = false, onNavigate }: AiTabPr
               opacity: checkoutLoading ? 0.7 : 1,
             }}
           >
-            {checkoutLoading ? "Redirecting…" : "Start 7-day free trial →"}
+            {checkoutLoading ? "Redirecting…" : "Start now →"}
           </button>
           <p style={{ marginTop: 12, fontFamily: "monospace", fontSize: 10, color: "#6a6a90" }}>
-            $19/mo after trial · Cancel anytime
+            $19/mo · Cancel anytime
           </p>
         </div>
       </div>

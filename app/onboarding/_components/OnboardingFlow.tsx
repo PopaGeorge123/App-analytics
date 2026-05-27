@@ -479,7 +479,23 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
   // Set a short-lived cookie so the middleware lets the user through to /dashboard
   // even if they have 0 integrations (explicit skip — expires after 24 hours)
   function skipToDashboard() {
+    // Persist a short-lived cookie so middleware will allow access.
     document.cookie = "onboarding_skipped=1; path=/; max-age=86400; SameSite=Lax";
+
+    // Fire a same-origin analytics beacon to avoid reading cross-origin responses
+    // which can trigger CORB. Prefer navigator.sendBeacon for fire-and-forget.
+    try {
+      const payload = JSON.stringify({ event: 'onboarding_skip', ts: Date.now() });
+      if (typeof navigator !== 'undefined' && 'sendBeacon' in navigator) {
+        navigator.sendBeacon('/api/beacon', new Blob([payload], { type: 'application/json' }));
+      } else {
+        // Fallback: send a keepalive fetch without reading the response
+        fetch('/api/beacon', { method: 'POST', body: payload, keepalive: true, headers: { 'Content-Type': 'application/json' } }).catch(()=>{});
+      }
+    } catch (e) {
+      // ignore any errors from analytics beacon
+    }
+
     router.push("/dashboard");
   }
 

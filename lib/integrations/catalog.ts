@@ -260,7 +260,7 @@ export const INTEGRATIONS_CATALOG: Integration[] = [
     description: "Subscriber growth, email sequences & open rates",
     category: "Email & Marketing",
     color: "#FB6970",
-    status: "soon",  // #1 email tool for indie creators, newsletter founders & solopreneurs
+    status: "live",  // #1 email tool for indie creators, newsletter founders & solopreneurs
     connectUrl: "/api/auth/convertkit/url",
     icon: "/integrations/convertkit.svg",
   },

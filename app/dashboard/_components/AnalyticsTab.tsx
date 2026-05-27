@@ -4799,9 +4799,9 @@ function LockScreen() {
       <h2 className="font-mono text-xl font-bold text-[#1a1a2e] mb-3">Analytics requires Premium</h2>
       <p className="text-sm text-[#4a4a6a] max-w-sm mb-6">Upgrade to access full analytics, revenue trends, and AI-generated insights.</p>
       <button onClick={handleCheckout} disabled={loading} className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-6 py-2.5 font-mono text-sm font-bold text-[#fafafa] hover:bg-[#00bfa0] transition disabled:opacity-60">
-        {loading ? "Redirecting…" : "Start 7-day free trial →"}
+        {loading ? "Redirecting…" : "Start now →"}
       </button>
-      <p className="mt-3 font-mono text-[10px] text-[#6a6a90]">$19/mo after trial · Cancel anytime</p>
+      <p className="mt-3 font-mono text-[10px] text-[#6a6a90]">$19/mo · Cancel anytime</p>
     </div>
   );
 }

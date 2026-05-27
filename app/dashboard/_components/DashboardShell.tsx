@@ -477,9 +477,9 @@ function UpgradeModal({ tab, onClose }: { tab: Tab; onClose: () => void }) {
           disabled={loading}
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#00d4aa] py-3 font-mono text-sm font-bold text-[#fafafa] transition hover:bg-[#00bfa0] hover:shadow-[0_0_24px_rgba(0,212,170,0.3)] disabled:opacity-60"
         >
-          {loading ? "Redirecting…" : "Start 7-day free trial →"}
+          {loading ? "Redirecting…" : "Start now →"}
         </button>
-        <p className="mt-2.5 text-center font-mono text-[10px] text-[#6a6a90]">$19/mo after trial · Cancel anytime</p>
+        <p className="mt-2.5 text-center font-mono text-[10px] text-[#6a6a90]">$19/mo · Cancel anytime</p>
       </div>
     </div>
   );
@@ -908,6 +908,7 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
               <SettingsTab
                 email={email}
                 isPremium={isPremium}
+                trialEndsAt={trialEndsAt}
                 connectedPlatforms={connectedPlatforms}
                 currencies={currencies}
                 isDemo={isDemo}

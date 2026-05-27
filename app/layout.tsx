@@ -136,7 +136,8 @@ export default function RootLayout({
         s1.async=true;
         s1.src='https://embed.tawk.to/69f04c7929ffdc1c36627aa8/default';
         s1.charset='UTF-8';
-        s1.setAttribute('crossorigin','*');
+        // Use a valid crossorigin value (anonymous) instead of '*'
+        s1.setAttribute('crossorigin','anonymous');
         s0.parentNode.insertBefore(s1,s0);
         })();
           `}

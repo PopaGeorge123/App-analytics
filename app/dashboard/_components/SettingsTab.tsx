@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 interface SettingsTabProps {
   email: string;
   isPremium: boolean;
+  trialEndsAt?: string | null;
   connectedPlatforms: string[];
   currencies: Record<string, string>;
   isDemo?: boolean;
@@ -200,7 +201,7 @@ const NAV_ITEMS = [
 
 // ── MAIN COMPONENT ────────────────────────────────────────────────────────
 
-export default function SettingsTab({ email, isPremium, connectedPlatforms, currencies, isDemo = false }: SettingsTabProps) {
+export default function SettingsTab({ email, isPremium, trialEndsAt, connectedPlatforms, currencies, isDemo = false }: SettingsTabProps) {
   const router = useRouter();
   const [activeSection, setActiveSection] = useState("account");
   const [portalLoading, setPortalLoading] = useState(false);
@@ -261,6 +262,10 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
       .catch(() => { setBizProfileLoaded(true); });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Determine if the user is currently on a free trial (client-side check)
+  const trialMsLeft = trialEndsAt ? Math.max(0, new Date(trialEndsAt).getTime() - Date.now()) : null;
+  const isOnTrial = trialMsLeft !== null && trialMsLeft > 0;
 
   async function handleBizSave() {
     setBizSaving(true);
@@ -487,7 +492,7 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
 
       {/* ── Main content ────────────────────────────────────────────────── */}
       <div ref={contentRef} className="flex-1 min-w-0 overflow-y-auto pb-16">
-        <div className="mx-auto max-w-[680px] px-6 lg:px-8 space-y-8 pt-8">
+        <div className="mx-auto max-w-[820px] px-6 lg:px-8 space-y-8 pt-8">
 
           {/* Page header — desktop only (mobile uses the pill strip above) */}
           <div className="hidden lg:flex items-center justify-between gap-4">
@@ -767,14 +772,19 @@ export default function SettingsTab({ email, isPremium, connectedPlatforms, curr
                       <div>
                         <p className="text-sm font-semibold text-[#1a1a2e]">Upgrade to Premium</p>
                         <p className="mt-0.5 text-xs text-[#4a4a6a]">Analytics, AI advisor, website optimizer & all integrations.</p>
-                        <p className="mt-1.5 font-mono text-xs font-bold text-[#1a1a2e]">$19<span className="font-normal text-[#6a6a90]">/month</span> <span className="ml-1.5 rounded-full bg-[#10b981]/10 px-2 py-0.5 font-mono text-[9px] font-semibold text-[#10b981]">7-day free trial</span></p>
+                        <p className="mt-1.5 font-mono text-xs font-bold text-[#1a1a2e]">
+                          $19<span className="font-normal text-[#6a6a90]">/month</span>
+                          {isOnTrial ? (
+                            <span className="ml-1.5 rounded-full bg-[#10b981]/10 px-2 py-0.5 font-mono text-[9px] font-semibold text-[#10b981]">7-day free trial</span>
+                          ) : null}
+                        </p>
                       </div>
                     </div>
                   </div>
                   <button onClick={handleCheckout} disabled={checkoutLoading} className="inline-flex items-center gap-2 rounded-xl bg-[#10b981] px-5 py-2 font-mono text-sm font-bold text-[#1a1a2e] hover:bg-[#059669] transition disabled:opacity-60">
                     {checkoutLoading ? "Redirecting…" : "Start free trial →"}
                   </button>
-                  <p className="font-mono text-[9px] text-[#58588a]">Card required · $19/mo after 7 days · cancel anytime</p>
+                  <p className="font-mono text-[9px] text-[#58588a]">Card required · {isOnTrial ? "$19/mo after 7 days · cancel anytime" : "$19/mo · cancel anytime"}</p>
                 </div>
               )}
             </div>

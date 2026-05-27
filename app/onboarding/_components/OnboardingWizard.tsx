@@ -774,6 +774,16 @@ export default function OnboardingWizard({
 
   function skipToDashboard() {
     document.cookie = "onboarding_skipped=1; path=/; max-age=86400; SameSite=Lax";
+    try {
+      const payload = JSON.stringify({ event: 'onboarding_skip', ts: Date.now() });
+      if (typeof navigator !== 'undefined' && 'sendBeacon' in navigator) {
+        navigator.sendBeacon('/api/beacon', new Blob([payload], { type: 'application/json' }));
+      } else {
+        fetch('/api/beacon', { method: 'POST', body: payload, keepalive: true, headers: { 'Content-Type': 'application/json' } }).catch(()=>{});
+      }
+    } catch (e) {
+      // ignore
+    }
     router.push("/dashboard");
   }
 
