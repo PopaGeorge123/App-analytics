@@ -4335,14 +4335,17 @@ async function checkPreviewOutreach() {
   const now = new Date().toISOString();
   let rows;
   try {
-    const res = await SB.client
-      .from('preview_scans')
-      .select('id,domain,site_title,site_url,outreach_email,predictions')
-      .lte('outreach_scheduled_at', now)
-      .is('outreach_sent_at', null)
-      .not('outreach_email', 'is', null);
-    if (res.error) throw new Error(res.error.message);
-    rows = res.data ?? [];
+    // Build query params for PostgREST
+    const params = new URLSearchParams({
+      select: 'id,domain,site_title,site_url,outreach_email,predictions',
+      outreach_scheduled_at: `lte.${now}`,
+      outreach_sent_at: 'is.null',
+      outreach_email: 'not.is.null',
+    });
+    const getHeaders = { apikey: SB.headers.apikey, Authorization: SB.headers.Authorization };
+    const res = await fetchRetry('SB SELECT preview_scans', `${SUPABASE_URL}/rest/v1/preview_scans?${params}`, { headers: getHeaders });
+    if (!res.ok) throw new Error(`Query failed: ${res.status}`);
+    rows = await res.json();
   } catch (err) {
     logWarn(`[preview-outreach] DB query failed: ${err.message}`);
     return;
@@ -4424,10 +4427,11 @@ Keep it under 120 words. Output only the email body HTML (no subject line, no wr
     }
 
     // Mark as sent regardless (avoid re-sending on RESEND_KEY missing)
-    await SB.client
-      .from('preview_scans')
-      .update({ outreach_sent_at: new Date().toISOString() })
-      .eq('id', id);
+    try {
+      await SB.patch('preview_scans', { outreach_sent_at: new Date().toISOString() }, { id });
+    } catch (patchErr) {
+      logWarn(`[preview-outreach] Failed to mark ${id} as sent: ${patchErr.message}`);
+    }
   }
 }
 

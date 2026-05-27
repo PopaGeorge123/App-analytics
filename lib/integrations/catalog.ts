@@ -193,7 +193,7 @@ export const INTEGRATIONS_CATALOG: Integration[] = [
     description: "Promoted posts, impressions & cost-per-click",
     category: "Advertising",
     color: "#000000",
-    status: "live",  // Declining ad platform adoption; low ROI reported by small advertisers
+    status: "soon",  // Declining ad platform adoption; low ROI reported by small advertisers
     connectUrl: "/api/auth/twitter-ads/url",
     icon: "/integrations/twitter-ads.svg",
   },
