@@ -576,14 +576,14 @@ export default function LearnPage() {
 
             <ModuleCard
               color="#f59e0b"
-              label="Module 4 · Integrations & Settings"
+              label="Module 4 · Data Sources & Settings"
               title="Connect, manage, and control your data"
               icon={
                 <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
                 </svg>
               }
-              description="The Settings tab is where you connect and manage all your integrations. Every integration is one click to connect via OAuth or API key — no code, no webhooks, no spreadsheet exports."
+              description="The Data Sources tab is where you connect and manage all your integrations. Every integration is one click to connect via OAuth or API key — no code, no webhooks, no spreadsheet exports."
               bullets={[
                 "Integration catalog: browse all available integrations organized by category",
                 "One-click OAuth connect for most integrations (Stripe, GA4, Meta Ads, Mailchimp, Gumroad, Shopify)",

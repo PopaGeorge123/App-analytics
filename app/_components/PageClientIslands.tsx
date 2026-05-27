@@ -377,7 +377,7 @@ const FAQ_ITEMS = [
   { q: "Is there a free plan?", a: "There's no ongoing free tier. The full dashboard requires Premium. However, you can create a free account and get 7 days of full access completely free. No card required at any point during the trial. Upgrade to $19/month when you're ready." },
   { q: "How much does Premium cost?", a: "Premium is $19/month with no annual lock-in, cancel any time. New accounts get a 7-day free trial with full access to all premium features. No credit card required to start. Just sign up and you're in." },
   { q: "Can I cancel my subscription at any time?", a: "Yes. Cancel with one click from your account settings. You keep access until the end of your billing period. No questions, no retention loops." },
-  { q: "How often does my data update?", a: "Fold syncs your connected integrations automatically every day. The overview dashboard reflects yesterday's numbers by default. You can also trigger a manual sync at any time from the settings page." },
+  { q: "How often does my data update?", a: "Fold syncs your connected integrations automatically every day. The overview dashboard reflects yesterday's numbers by default. You can also trigger a manual sync at any time from the Data Sources tab." },
 ];
 
 function FaqItem({ q, a }: { q: string; a: string }) {

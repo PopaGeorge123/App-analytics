@@ -456,8 +456,8 @@ function PostBody({ slug }: { slug: string }) {
           <H3>How to connect Stripe to Fold Analytics</H3>
           <OL>
             <LI>Create a Fold account at usefold.io</LI>
-            <LI>Go to Settings → Integrations → Stripe</LI>
-            <LI>Click "Connect" — you'll be redirected to Stripe's OAuth flow</LI>
+            <LI>Go to the Data Sources tab in your dashboard</LI>
+            <LI>Click "Connect" on Stripe — you'll be redirected to Stripe's OAuth flow</LI>
             <LI>Authorise read-only access (Fold never writes to your Stripe account)</LI>
             <LI>Fold starts syncing your historical data immediately</LI>
           </OL>

@@ -342,7 +342,7 @@ Rules:
 - You may emit multiple charts in one reply if comparing different metrics.
 
 MISSING PLATFORM GUIDANCE:
-- If REVENUE PLATFORMS is "none", proactively tell the user they have no revenue platform connected. Explain that connecting Stripe, Paddle, Shopify, or another revenue platform will unlock revenue tracking, MRR, churn, and customer analytics. Suggest they go to Settings → Integrations to connect one.
+- If REVENUE PLATFORMS is "none", proactively tell the user they have no revenue platform connected. Explain that connecting Stripe, Paddle, Shopify, or another revenue platform will unlock revenue tracking, MRR, churn, and customer analytics. Suggest they go to the Data Sources tab to connect one.
 - If PRIMARY ANALYTICS SOURCE is "none", mention that connecting Google Analytics or Plausible will enable traffic and conversion tracking.
 - If ADS PLATFORMS is "none" and they ask about ad performance, let them know Meta Ads or Google Ads can be connected for spend and ROI tracking.
 - When a platform is missing and relevant to their question, be specific: name which platform(s) to connect and what data it would unlock. Keep it brief and actionable — one sentence max per missing platform.`;

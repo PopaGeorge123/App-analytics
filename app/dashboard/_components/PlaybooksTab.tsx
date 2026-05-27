@@ -311,7 +311,7 @@ function NoRevenuePlatformModal({ onClose, onGoToSettings }: { onClose: () => vo
           onMouseEnter={(e) => (e.currentTarget.style.background = "#5558dd")}
           onMouseLeave={(e) => (e.currentTarget.style.background = "#635bff")}
         >
-          Go to Settings → Integrations
+          Go to Data Sources
         </button>
 
         {/* Dismiss */}
