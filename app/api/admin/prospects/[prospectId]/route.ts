@@ -9,10 +9,10 @@ import { createServiceClient } from "@/lib/supabase/service";
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { prospectId: string } }
+  { params }: { params: Promise<{ prospectId: string }> }
 ) {
   try {
-    const prospectId = params.prospectId;
+    const { prospectId } = await params;
     const body = await request.json();
     
     const db = createServiceClient();
