@@ -1277,4 +1277,90 @@ export const PLATFORM_DETAILS: Record<string, PlatformDetail> = {
     ],
     apiImpact: "Fold runs 3 HogQL queries per sync. Each query is a simple COUNT aggregation with a date filter and typically completes in under 500ms. This is negligible relative to PostHog's API limits.",
   },
+
+  // ── Kit (ConvertKit) ──────────────────────────────────────────────────────
+  convertkit: {
+    id: "convertkit",
+    name: "Kit (ConvertKit)",
+    tagline: "Subscriber growth, new signups and email broadcasts — read-only.",
+    color: "#FB6970",
+    icon: "/integrations/convertkit.svg",
+    category: "Email & Marketing",
+    connectMethod: "oauth2-or-api-key",
+    connectSteps: [
+      'Click "Connect Kit" in your Fold Settings tab.',
+      "Choose OAuth (preferred) or API key connection method.",
+      "If OAuth: you're redirected to app.kit.com to authorize Fold. If API key: paste your API secret from Kit's account settings.",
+      "Fold validates access and performs an initial sync of your subscriber and broadcast data.",
+      "You can revoke access from either Fold's Settings tab or Kit's account settings at any time.",
+    ],
+    scopesRequested: [
+      "Analytics — read access to subscriber counts, growth metrics and list statistics.",
+      "Content — read access to broadcast (email campaign) data and send counts.",
+      "No write scopes. Fold cannot send emails, add/remove subscribers, create forms, or modify broadcasts.",
+    ],
+    apiEndpoints: [
+      { label: "GET /v3/subscribers", purpose: "Total subscriber count for the email KPI tile." },
+      { label: "GET /v3/subscribers?from=YYYY-MM-DD", purpose: "New subscriber count for the day (subscribers added after the start of the day)." },
+      { label: "GET /v3/broadcasts", purpose: "Count of email broadcasts sent on the day." },
+      { label: "GET /v3/account", purpose: "Validate API access and confirm account connection during setup." },
+    ],
+    storedFields: [
+      { field: "Total subscribers", example: "3,820 subscribers", purpose: "Email list size KPI tile." },
+      { field: "New subscribers (day)", example: "47 new today", purpose: "Daily growth metric." },
+      { field: "Email broadcasts sent (day)", example: "2 broadcasts sent", purpose: "Email send frequency metric." },
+    ],
+    neverStored: [
+      "Individual subscriber email addresses, names or profile information",
+      "Subscriber tags, segments or custom fields",
+      "Email content, subject lines or broadcast body text",
+      "Individual open or click events per subscriber",
+      "Form configurations or landing page content",
+      "Automation or sequence workflow settings",
+      "Subscriber purchase history or product recommendations",
+    ],
+    neverDoes: [
+      "Send emails or broadcasts on your behalf",
+      "Add, remove or modify subscribers",
+      "Create or edit forms, landing pages or sequences",
+      "Change subscriber tags or segments",
+      "Access your Kit account billing or payment information",
+      "Share your subscriber data with any third party",
+      "Use your email data to train AI models",
+    ],
+    howToRevoke: {
+      fromFold: "Settings → Kit → Disconnect. All synced Kit data is deleted immediately.",
+      fromPlatform: "Kit Dashboard → Account settings → Authorized applications → Revoke Fold's access (OAuth), or regenerate your API secret key to invalidate the old one.",
+      platformRevokeUrl: "https://app.convertkit.com/account_settings/advanced_settings",
+    },
+    dataRetention: "Synced metrics are retained while your Fold account is active and purged within 24 hours of disconnecting or account deletion.",
+    refreshFrequency: "Automatic sync every 24 hours. Manual refresh available from Settings.",
+    privacyNote: "Kit (formerly ConvertKit) is designed for creators who value their subscriber relationships. Fold respects that: we only read aggregate counts (total subscribers, new signups, broadcasts sent) — never individual subscriber details, email content or engagement data.",
+    faq: [
+      {
+        q: "Does Fold read my subscribers' email addresses or names?",
+        a: "No. Fold only reads total subscriber count and new subscriber count for the day. We never access individual subscriber profiles, email addresses, names or custom fields.",
+      },
+      {
+        q: "Can Fold see my email content or broadcast subject lines?",
+        a: "No. We only count how many broadcasts were sent on a given day. The actual email content, subject lines and body text are never accessed.",
+      },
+      {
+        q: "I use Kit forms and landing pages. Does Fold access those?",
+        a: "No. Forms, landing pages, sequences and automation workflows are not accessed. Fold only reads subscriber counts and broadcast send counts from the Kit API v3.",
+      },
+      {
+        q: "Which connection method should I use — OAuth or API key?",
+        a: "OAuth is preferred: it's more secure (scoped permissions) and easier to revoke from Kit's dashboard. API key works if you prefer not to go through the OAuth flow, but it grants broader access than OAuth, so you should regenerate the key when revoking.",
+      },
+    ],
+    whyFoundersConnect: "Kit is purpose-built for creators — simple, clean, subscriber-focused. But checking it every day just to see if your list grew is friction. Fold pulls your subscriber count and new signups into the same dashboard as your revenue and traffic, so you can see if a product launch or content spike actually translated into list growth.",
+    sampleSnapshot: [
+      { label: "date", value: "2025-04-23" },
+      { label: "totalSubscribers", value: "3820" },
+      { label: "newSubscribers", value: "47" },
+      { label: "broadcastsSent", value: "2" },
+    ],
+    apiImpact: "Fold makes 3 read-only API requests per sync (4 during initial setup for account validation). Kit's API v3 has generous rate limits — our daily sync usage is well within normal bounds.",
+  },
 };
