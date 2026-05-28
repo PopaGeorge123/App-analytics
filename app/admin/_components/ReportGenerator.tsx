@@ -7,7 +7,7 @@ const COLD_DM_TEMPLATES = [
     id: 1,
     name: 'Direct Value',
     template: (url: string, domain: string) => 
-      `Hey! 👋 I noticed ${domain} and thought you might find this interesting.\n\nI created a quick analytics preview showing what your business metrics could look like on Fold Analytics:\n${url}\n\nFold is built specifically for founders like you — simple, affordable ($19/mo), and gives you the insights that actually matter.\n\nWould love to hear your thoughts!`
+      `Hey! \n\nI noticed ${domain} and thought you might find this interesting.\n\nI created a quick analytics preview showing what your business metrics could look like on Fold Analytics:\n${url}\n\nFold is built specifically for founders like you — simple, affordable ($19/mo), and gives you the insights that actually matter.\n\nWould love to hear your thoughts!`
   },
   {
     id: 2,
@@ -19,7 +19,7 @@ const COLD_DM_TEMPLATES = [
     id: 3,
     name: 'Founder-to-Founder',
     template: (url: string, domain: string) =>
-      `Hey there! 👋\n\nFellow founder here. Saw ${domain} and thought I'd reach out.\n\nI built Fold Analytics because I was frustrated with expensive, bloated analytics tools. Here's what your business could look like on our platform:\n${url}\n\nIt's $19/mo and specifically designed for solo founders and small teams.\n\nWant to chat about it?`
+      `Hey there! \n\nFellow founder here. Saw ${domain} and thought I'd reach out.\n\nI built Fold Analytics because I was frustrated with expensive, bloated analytics tools. Here's what your business could look like on our platform:\n${url}\n\nIt's $19/mo and specifically designed for solo founders and small teams.\n\nWant to chat about it?`
   },
   {
     id: 4,
@@ -31,7 +31,7 @@ const COLD_DM_TEMPLATES = [
     id: 5,
     name: 'Social Proof',
     template: (url: string, domain: string) =>
-      `Hi! 👋\n\nI help founders like you get better insights without the enterprise price tag.\n\nCheck out what ${domain}'s metrics could look like on Fold:\n${url}\n\nWe're already helping 100+ small businesses track what matters. $19/mo, no BS.\n\nWant to give it a try?`
+      `Hi! \n\nI help founders like you get better insights without the enterprise price tag.\n\nCheck out what ${domain}'s metrics could look like on Fold:\n${url}\n\nWe're already helping 100+ small businesses track what matters. $19/mo, no BS.\n\nWant to give it a try?`
   },
   {
     id: 6,
@@ -55,7 +55,7 @@ const COLD_DM_TEMPLATES = [
     id: 9,
     name: 'Pain Point',
     template: (url: string, domain: string) =>
-      `Hey! 👋\n\nAre you still logging into 3+ different platforms to see your ${domain} metrics?\n\nI built Fold to solve exactly this problem. Here's what it looks like:\n${url}\n\nAll your Stripe, Google Analytics, and ad data in one place. $19/mo.\n\nInterested?`
+      `Hey! \n\nAre you still logging into 3+ different platforms to see your ${domain} metrics?\n\nI built Fold to solve exactly this problem. Here's what it looks like:\n${url}\n\nAll your Stripe, Google Analytics, and ad data in one place. $19/mo.\n\nInterested?`
   },
   {
     id: 10,
@@ -73,7 +73,7 @@ const COLD_DM_TEMPLATES = [
     id: 12,
     name: 'Success Story',
     template: (url: string, domain: string) =>
-      `Hi there! 👋\n\nI help SaaS founders track metrics without breaking the bank.\n\nCreated this demo for ${domain}:\n${url}\n\nOur users save 10+ hours/month by having everything in one dashboard. $19/mo.\n\nCurious to learn more?`
+      `Hi there! \n\nI help SaaS founders track metrics without breaking the bank.\n\nCreated this demo for ${domain}:\n${url}\n\nOur users save 10+ hours/month by having everything in one dashboard. $19/mo.\n\nCurious to learn more?`
   }
 ];
 
@@ -131,7 +131,7 @@ export default function ReportGenerator() {
       const extractedDomain = data.domain || extractDomain(url);
       
       // Generate preview URL with domain parameter
-      const baseUrl = window.location.origin;
+      const baseUrl = "https://usefold.io";
       const previewUrl = `${baseUrl}/preview?d=${encodeURIComponent(extractedDomain)}`;
       
       setReportUrl(previewUrl);

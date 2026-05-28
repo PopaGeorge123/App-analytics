@@ -11,6 +11,35 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
+function randomInt(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function randomFloat(min: number, max: number, decimals = 1): number {
+  return Number((Math.random() * (max - min) + min).toFixed(decimals));
+}
+
+// Generate realistic time series data with overall trend + random fluctuations
+function generateRealisticSeries(length: number, baseStart: number, baseEnd: number, variance = 0.15): number[] {
+  const data: number[] = [];
+  const trendSlope = (baseEnd - baseStart) / (length - 1);
+  
+  for (let i = 0; i < length; i++) {
+    // Base trend value
+    const trendValue = baseStart + (trendSlope * i);
+    
+    // Add random variance (-variance to +variance of trend value)
+    const randomVariance = trendValue * (Math.random() * variance * 2 - variance);
+    
+    // Ensure positive value
+    const value = Math.max(Math.round(trendValue + randomVariance), Math.round(baseStart * 0.5));
+    
+    data.push(value);
+  }
+  
+  return data;
+}
+
 function normalizeDomain(urlStr: string): string {
   try {
     const u = new URL(urlStr.startsWith("http") ? urlStr : `https://${urlStr}`);
@@ -110,49 +139,75 @@ const FALLBACK_PREDICTIONS = {
   businessCategory: "SaaS",
   businessDescription: "A web-based business serving online customers.",
   techStack: [] as string[],
-  mrr: 3247, mrrGrowth: 8.7, monthlyVisitors: 6891, visitorsGrowth: 6.3,
-  bounceRate: 47.2, conversionRate: 2.3, avgSessionDuration: 167,
-  newCustomers: 23, churnRate: 3.4, ltv: 287, adSpend: 920, roas: 2.7,
-  revenueChart: { labels: ["Dec","Jan","Feb","Mar","Apr","May"], data: [2187,2456,2623,2891,3054,3247] },
-  visitorsChart: { labels: ["Dec","Jan","Feb","Mar","Apr","May"], data: [4387,4892,5234,5876,6421,6891] },
-  dailyRevenue:  { labels: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"], data: [437,592,683,671,798,512,394] },
+  mrr: randomInt(2500, 8000),
+  mrrGrowth: randomFloat(3, 18, 1),
+  monthlyVisitors: randomInt(4000, 12000),
+  visitorsGrowth: randomFloat(2, 15, 1),
+  bounceRate: randomFloat(38, 65, 1),
+  conversionRate: randomFloat(1.5, 4.5, 1),
+  avgSessionDuration: randomInt(120, 240),
+  newCustomers: randomInt(15, 45),
+  churnRate: randomFloat(2, 7, 1),
+  ltv: randomInt(200, 500),
+  adSpend: randomInt(500, 2000),
+  roas: randomFloat(1.8, 4.2, 1),
+  revenueChart: {
+    labels: ["Dec", "Jan", "Feb", "Mar", "Apr", "May"],
+    data: generateRealisticSeries(6, randomInt(1800, 2200), randomInt(3500, 4500), 0.12)
+  },
+  visitorsChart: {
+    labels: ["Dec", "Jan", "Feb", "Mar", "Apr", "May"],
+    data: generateRealisticSeries(6, randomInt(3500, 4500), randomInt(7000, 9000), 0.1)
+  },
+  dailyRevenue: {
+    labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+    data: [
+      randomInt(400, 600),   // Mon - business day
+      randomInt(450, 650),   // Tue - peak
+      randomInt(480, 680),   // Wed - peak
+      randomInt(460, 660),   // Thu - business day
+      randomInt(420, 620),   // Fri - tapering
+      randomInt(280, 420),   // Sat - weekend drop
+      randomInt(240, 380)    // Sun - weekend low
+    ]
+  },
   topPages: [
-    { path: "/", views: 3287, bounceRate: 43.8, avgTime: 121 },
-    { path: "/pricing", views: 1143, bounceRate: 31.2, avgTime: 172 },
-    { path: "/about", views: 697, bounceRate: 56.4, avgTime: 94 },
-    { path: "/blog", views: 534, bounceRate: 63.7, avgTime: 87 },
-    { path: "/contact", views: 318, bounceRate: 51.3, avgTime: 76 },
+    { path: "/", views: randomInt(2500, 4000), bounceRate: randomFloat(35, 55, 1), avgTime: randomInt(100, 150) },
+    { path: "/pricing", views: randomInt(800, 1500), bounceRate: randomFloat(25, 40, 1), avgTime: randomInt(140, 200) },
+    { path: "/about", views: randomInt(400, 900), bounceRate: randomFloat(45, 65, 1), avgTime: randomInt(70, 120) },
+    { path: "/blog", views: randomInt(300, 700), bounceRate: randomFloat(55, 70, 1), avgTime: randomInt(60, 110) },
+    { path: "/contact", views: randomInt(200, 500), bounceRate: randomFloat(40, 60, 1), avgTime: randomInt(50, 100) },
   ],
   trafficSources: [
-    { source: "Organic Search", sessions: 2967, pct: 43 },
-    { source: "Direct", sessions: 1723, pct: 25 },
-    { source: "Referral", sessions: 1102, pct: 16 },
-    { source: "Paid Search", sessions: 689, pct: 10 },
-    { source: "Social", sessions: 413, pct: 6 },
+    { source: "Organic Search", sessions: randomInt(2500, 4000), pct: randomInt(38, 48) },
+    { source: "Direct", sessions: randomInt(1200, 2200), pct: randomInt(20, 30) },
+    { source: "Referral", sessions: randomInt(800, 1500), pct: randomInt(12, 20) },
+    { source: "Paid Search", sessions: randomInt(400, 1000), pct: randomInt(8, 15) },
+    { source: "Social", sessions: randomInt(200, 600), pct: randomInt(4, 10) },
   ],
-  devices: { desktop: 61, mobile: 33, tablet: 6 },
+  devices: { desktop: randomInt(55, 70), mobile: randomInt(25, 38), tablet: randomInt(4, 8) },
   countries: [
-    { name: "United States", code: "US", sessions: 2963, pct: 43 },
-    { name: "United Kingdom", code: "GB", sessions: 689, pct: 10 },
-    { name: "Canada", code: "CA", sessions: 482, pct: 7 },
-    { name: "Germany", code: "DE", sessions: 413, pct: 6 },
-    { name: "Australia", code: "AU", sessions: 275, pct: 4 },
+    { name: "United States", code: "US", sessions: randomInt(2500, 4000), pct: randomInt(38, 48) },
+    { name: "United Kingdom", code: "GB", sessions: randomInt(500, 1000), pct: randomInt(8, 14) },
+    { name: "Canada", code: "CA", sessions: randomInt(300, 700), pct: randomInt(5, 10) },
+    { name: "Germany", code: "DE", sessions: randomInt(250, 600), pct: randomInt(4, 9) },
+    { name: "Australia", code: "AU", sessions: randomInt(150, 450), pct: randomInt(3, 7) },
   ],
   recentCustomers: [
-    { name: "Jordan T.", email: "j***@startup.co", plan: "Pro", mrr: 49, joinedDaysAgo: 1 },
-    { name: "Maya R.", email: "m***@business.io", plan: "Growth", mrr: 79, joinedDaysAgo: 3 },
-    { name: "Chris L.", email: "c***@gmail.com", plan: "Starter", mrr: 19, joinedDaysAgo: 5 },
+    { name: "Jordan T.", email: "j***@startup.co", plan: "Pro", mrr: randomInt(39, 99), joinedDaysAgo: randomInt(1, 3) },
+    { name: "Maya R.", email: "m***@business.io", plan: "Growth", mrr: randomInt(59, 149), joinedDaysAgo: randomInt(2, 5) },
+    { name: "Chris L.", email: "c***@gmail.com", plan: "Starter", mrr: randomInt(19, 49), joinedDaysAgo: randomInt(3, 7) },
   ],
   aiInsights: [
     "Connect real integrations to replace these estimates with accurate live metrics.",
     "Your pricing page engagement suggests strong product-market fit worth investigating further.",
-    "Consider adding retargeting campaigns to convert the 43% organic traffic at a lower CAC.",
+    "Consider adding retargeting campaigns to convert the organic traffic at a lower CAC.",
     "Desktop-heavy traffic indicates B2B audience - optimize checkout flow for business buyers.",
   ],
   opportunities: [
-    { title: "Implement exit-intent popup", impact: "high", effort: "low", estimatedRevenue: 340 },
-    { title: "Launch annual billing option", impact: "high", effort: "medium", estimatedRevenue: 980 },
-    { title: "Create affiliate program", impact: "medium", effort: "medium", estimatedRevenue: 520 },
+    { title: "Implement exit-intent popup", impact: "high", effort: "low", estimatedRevenue: randomInt(250, 500) },
+    { title: "Launch annual billing option", impact: "high", effort: "medium", estimatedRevenue: randomInt(700, 1200) },
+    { title: "Create affiliate program", impact: "medium", effort: "medium", estimatedRevenue: randomInt(400, 800) },
   ],
 };
 
@@ -186,21 +241,23 @@ export async function POST(req: Request) {
 
   const domain = normalizeDomain(rawUrl);
 
-  // ── 1. Check domain cache ──────────────────────────────────────────────────
-  const { data: cached } = await db
-    .from("preview_scans")
-    .select("*")
-    .eq("domain", domain)
-    .maybeSingle();
+  // ── 1. Check domain cache (skip for admin to always get fresh data) ──────────────────────────────────────────────────
+  if (!isAdmin) {
+    const { data: cached } = await db
+      .from("preview_scans")
+      .select("*")
+      .eq("domain", domain)
+      .maybeSingle();
 
-  if (cached) {
-    return NextResponse.json({
-      site: { url: cached.site_url, title: cached.site_title, description: cached.site_description, favicon: cached.site_favicon },
-      detectedIntegrations: cached.detected_integrations,
-      predictions: cached.predictions,
-      cached: true,
-      domain,
-    });
+    if (cached) {
+      return NextResponse.json({
+        site: { url: cached.site_url, title: cached.site_title, description: cached.site_description, favicon: cached.site_favicon },
+        detectedIntegrations: cached.detected_integrations,
+        predictions: cached.predictions,
+        cached: true,
+        domain,
+      });
+    }
   }
 
   // ── 2. Rate limit: 1 new analysis per IP (skip for admin) ──────────────────────────────────
@@ -270,10 +327,19 @@ WEBSITE INFORMATION:
 
 IMPORTANT: Generate REALISTIC, VARIED data based on the actual business type and detected tools. Make it look authentic and natural, NOT templated.
 
+CRITICAL RULES FOR TIME SERIES DATA:
+1. NEVER create repeating patterns (like up-down-up-down or identical cycles)
+2. Show GRADUAL OVERALL GROWTH with small random variations (±5-12%)
+3. Each month should generally be higher than the previous, with occasional small dips
+4. Example GOOD revenue trend: [2341, 2587, 2698, 2934, 3156, 3421] - notice upward trajectory with natural variance
+5. Example BAD revenue trend: [3000, 2000, 3000, 2000, 3000, 2000] - this is unrealistic zigzag pattern
+6. Real businesses grow organically, not in perfect waves or cycles
+
 Guidelines for realistic variation:
 - Numbers should be irregular (avoid round numbers like 4800, use 4,762 or 3,891)
 - Growth rates vary significantly by industry (bootstrapped SaaS: 5-15%, VC-backed: 15-40%, ecommerce: varies wildly)
-- Charts should show realistic fluctuations, not smooth linear growth
+- Monthly charts should show UPWARD TREND with small random dips, NOT oscillating patterns
+- Daily charts can show weekday/weekend patterns for B2B (high Mon-Fri, low Sat-Sun)
 - Traffic sources depend on business type (B2B = more direct/organic, B2C = more social/paid)
 - Device split varies (B2B = 65-75% desktop, consumer apps = 60-70% mobile)
 - Bounce rates realistic to page type (landing pages 40-70%, app dashboards 25-40%)
@@ -299,15 +365,15 @@ Respond ONLY with valid JSON (no markdown, no code blocks):
   "roas": "Realistic return on ad spend (1.5-5.0 range, decimals, or null if no ads)",
   "revenueChart": {
     "labels": ["Dec","Jan","Feb","Mar","Apr","May"],
-    "data": [6 realistic, IRREGULAR values showing actual business fluctuations - NOT smooth growth]
+    "data": "6 realistic values showing OVERALL UPWARD TREND with small random fluctuations. Example: [2341, 2587, 2698, 2934, 3156, 3421] - notice gradual increase with natural variance, NOT repeating patterns like [200, 180, 200, 180]. Each value should be slightly higher than previous with ±8% random variation."
   },
   "visitorsChart": {
     "labels": ["Dec","Jan","Feb","Mar","Apr","May"],
-    "data": [6 realistic, VARIED values - include dips, spikes, plateaus]
+    "data": "6 realistic values with OVERALL GROWTH TREND. Example: [4782, 5123, 5487, 5891, 6234, 6789] - gradual increase with small dips allowed. NOT zigzag patterns. Growth should feel organic."
   },
   "dailyRevenue": {
     "labels": ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
-    "data": [7 realistic values - B2B lower on weekends, consumer varies differently]
+    "data": "7 values showing WEEKDAY vs WEEKEND pattern. Example for B2B: [487, 523, 612, 578, 541, 312, 267] - high Mon-Fri, drop Sat-Sun. For consumer: more even distribution. Make it realistic to business type."
   },
   "topPages": [
     {"path": "Actual likely page path based on business type", "views": "irregular number", "bounceRate": "varied %", "avgTime": "varied seconds"},
@@ -350,7 +416,7 @@ Respond ONLY with valid JSON (no markdown, no code blocks):
   ]
 }
 
-Remember: Make every number IRREGULAR and VARIED. No smooth curves. Real businesses have fluctuations, dips, spikes. Make insights SPECIFIC to what you actually detected.`;
+REMEMBER: Time series data MUST show gradual growth trends, NOT repeating up-down-up-down patterns. Real businesses don't oscillate like sine waves!`;
 
   let predictions: typeof FALLBACK_PREDICTIONS = FALLBACK_PREDICTIONS;
   try {
@@ -361,8 +427,96 @@ Remember: Make every number IRREGULAR and VARIED. No smooth curves. Real busines
     });
     const raw = (msg.content[0] as { type: string; text: string }).text.trim();
     const jsonStr = raw.startsWith("```") ? raw.replace(/```json?\n?/g, "").replace(/```/g, "").trim() : raw;
-    predictions = JSON.parse(jsonStr);
-  } catch { /* use fallback */ }
+    const aiPredictions = JSON.parse(jsonStr);
+    
+    // Validate and sanitize AI predictions to avoid NaN values
+    predictions = {
+      businessCategory: aiPredictions.businessCategory || FALLBACK_PREDICTIONS.businessCategory,
+      businessDescription: aiPredictions.businessDescription || FALLBACK_PREDICTIONS.businessDescription,
+      techStack: Array.isArray(aiPredictions.techStack) ? aiPredictions.techStack : FALLBACK_PREDICTIONS.techStack,
+      mrr: Number(aiPredictions.mrr) || randomInt(2500, 8000),
+      mrrGrowth: Number(aiPredictions.mrrGrowth) || randomFloat(3, 18, 1),
+      monthlyVisitors: Number(aiPredictions.monthlyVisitors) || randomInt(4000, 12000),
+      visitorsGrowth: Number(aiPredictions.visitorsGrowth) || randomFloat(2, 15, 1),
+      bounceRate: Number(aiPredictions.bounceRate) || randomFloat(38, 65, 1),
+      conversionRate: Number(aiPredictions.conversionRate) || randomFloat(1.5, 4.5, 1),
+      avgSessionDuration: Number(aiPredictions.avgSessionDuration) || randomInt(120, 240),
+      newCustomers: Number(aiPredictions.newCustomers) || randomInt(15, 45),
+      churnRate: Number(aiPredictions.churnRate) || randomFloat(2, 7, 1),
+      ltv: Number(aiPredictions.ltv) || randomInt(200, 500),
+      adSpend: Number(aiPredictions.adSpend) || randomInt(500, 2000),
+      roas: Number(aiPredictions.roas) || randomFloat(1.8, 4.2, 1),
+      revenueChart: {
+        labels: aiPredictions.revenueChart?.labels || FALLBACK_PREDICTIONS.revenueChart.labels,
+        data: Array.isArray(aiPredictions.revenueChart?.data) && aiPredictions.revenueChart.data.every((v: any) => !isNaN(Number(v)))
+          ? aiPredictions.revenueChart.data.map((v: any) => Number(v))
+          : generateRealisticSeries(6, randomInt(1800, 2200), randomInt(3500, 4500), 0.12)
+      },
+      visitorsChart: {
+        labels: aiPredictions.visitorsChart?.labels || FALLBACK_PREDICTIONS.visitorsChart.labels,
+        data: Array.isArray(aiPredictions.visitorsChart?.data) && aiPredictions.visitorsChart.data.every((v: any) => !isNaN(Number(v)))
+          ? aiPredictions.visitorsChart.data.map((v: any) => Number(v))
+          : generateRealisticSeries(6, randomInt(3500, 4500), randomInt(7000, 9000), 0.1)
+      },
+      dailyRevenue: {
+        labels: aiPredictions.dailyRevenue?.labels || FALLBACK_PREDICTIONS.dailyRevenue.labels,
+        data: Array.isArray(aiPredictions.dailyRevenue?.data) && aiPredictions.dailyRevenue.data.every((v: any) => !isNaN(Number(v)))
+          ? aiPredictions.dailyRevenue.data.map((v: any) => Number(v))
+          : FALLBACK_PREDICTIONS.dailyRevenue.data
+      },
+      topPages: Array.isArray(aiPredictions.topPages) 
+        ? aiPredictions.topPages.map((p: any) => ({
+            path: p.path || "/",
+            views: Number(p.views) || randomInt(500, 2000),
+            bounceRate: Number(p.bounceRate) || randomFloat(35, 65, 1),
+            avgTime: Number(p.avgTime) || randomInt(60, 150)
+          }))
+        : FALLBACK_PREDICTIONS.topPages,
+      trafficSources: Array.isArray(aiPredictions.trafficSources)
+        ? aiPredictions.trafficSources.map((s: any) => ({
+            source: s.source || "Unknown",
+            sessions: Number(s.sessions) || randomInt(500, 2000),
+            pct: Number(s.pct) || randomInt(5, 25)
+          }))
+        : FALLBACK_PREDICTIONS.trafficSources,
+      devices: {
+        desktop: Number(aiPredictions.devices?.desktop) || randomInt(55, 70),
+        mobile: Number(aiPredictions.devices?.mobile) || randomInt(25, 38),
+        tablet: Number(aiPredictions.devices?.tablet) || randomInt(4, 8)
+      },
+      countries: Array.isArray(aiPredictions.countries)
+        ? aiPredictions.countries.map((c: any) => ({
+            name: c.name || "Unknown",
+            code: c.code || "XX",
+            sessions: Number(c.sessions) || randomInt(300, 1500),
+            pct: Number(c.pct) || randomInt(5, 20)
+          }))
+        : FALLBACK_PREDICTIONS.countries,
+      recentCustomers: Array.isArray(aiPredictions.recentCustomers)
+        ? aiPredictions.recentCustomers.map((c: any) => ({
+            name: c.name || "Customer",
+            email: c.email || "user@example.com",
+            plan: c.plan || "Plan",
+            mrr: Number(c.mrr) || randomInt(19, 99),
+            joinedDaysAgo: Number(c.joinedDaysAgo) || randomInt(1, 7)
+          }))
+        : FALLBACK_PREDICTIONS.recentCustomers,
+      aiInsights: Array.isArray(aiPredictions.aiInsights) 
+        ? aiPredictions.aiInsights 
+        : FALLBACK_PREDICTIONS.aiInsights,
+      opportunities: Array.isArray(aiPredictions.opportunities)
+        ? aiPredictions.opportunities.map((o: any) => ({
+            title: o.title || "Opportunity",
+            impact: o.impact || "medium",
+            effort: o.effort || "medium",
+            estimatedRevenue: Number(o.estimatedRevenue) || randomInt(300, 800)
+          }))
+        : FALLBACK_PREDICTIONS.opportunities
+    };
+  } catch (err) {
+    console.error("[preview/analyze] AI prediction failed:", err);
+    // Use randomized fallback
+  }
 
   // ── 5. Persist result ──────────────────────────────────────────────────────
   await db.from("preview_scans").upsert({
