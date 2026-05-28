@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createServiceClient } from "@/lib/supabase/service";
+import { createClient } from "@/lib/supabase/server";
 import { INTEGRATIONS_CATALOG } from "@/lib/integrations/catalog";
 import crypto from "crypto";
 
@@ -158,6 +159,12 @@ const FALLBACK_PREDICTIONS = {
 export async function POST(req: Request) {
   const db = createServiceClient();
 
+  // Check if user is admin (bypass rate limit only for admin)
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const ADMIN_USER_ID = 'bfd5f621-a8f0-4530-ae27-aabbe54491e0';
+  const isAdmin = user?.id === ADMIN_USER_ID;
+
   const ip =
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
     req.headers.get("x-real-ip") ?? "unknown";
@@ -196,18 +203,20 @@ export async function POST(req: Request) {
     });
   }
 
-  // ── 2. Rate limit: 1 new analysis per IP ──────────────────────────────────
-  const { data: ipRecord } = await db
-    .from("preview_ip_log")
-    .select("ip_hash")
-    .eq("ip_hash", ipHash)
-    .maybeSingle();
+  // ── 2. Rate limit: 1 new analysis per IP (skip for admin) ──────────────────────────────────
+  if (!isAdmin) {
+    const { data: ipRecord } = await db
+      .from("preview_ip_log")
+      .select("ip_hash")
+      .eq("ip_hash", ipHash)
+      .maybeSingle();
 
-  if (ipRecord) {
-    return NextResponse.json(
-      { error: "You've already used your free website analysis. Sign up to unlock unlimited insights." },
-      { status: 429 }
-    );
+    if (ipRecord) {
+      return NextResponse.json(
+        { error: "You've already used your free website analysis. Sign up to unlock unlimited insights." },
+        { status: 429 }
+      );
+    }
   }
 
   // ── 3. Fetch website ───────────────────────────────────────────────────────
@@ -363,20 +372,22 @@ Remember: Make every number IRREGULAR and VARIED. No smooth curves. Real busines
     predictions,
   }, { onConflict: "domain" });
 
-  // ── 5b. Schedule outreach email (4-hour delay) ────────────────────────────
-  const outreachEmail = extractContactEmail(html);
-  if (outreachEmail) {
-    const scheduledAt = new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString();
-    await db.from("preview_scans").update({
-      outreach_email: outreachEmail,
-      outreach_scheduled_at: scheduledAt,
-    }).eq("domain", domain).is("outreach_sent_at", null);
-  }
+  // ── 5b. Schedule outreach email (4-hour delay) - skip for admin ────────────────────────────
+  if (!isAdmin) {
+    const outreachEmail = extractContactEmail(html);
+    if (outreachEmail) {
+      const scheduledAt = new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString();
+      await db.from("preview_scans").update({
+        outreach_email: outreachEmail,
+        outreach_scheduled_at: scheduledAt,
+      }).eq("domain", domain).is("outreach_sent_at", null);
+    }
 
-  await db.from("preview_ip_log").upsert(
-    { ip_hash: ipHash, scan_domain: domain },
-    { onConflict: "ip_hash" }
-  );
+    await db.from("preview_ip_log").upsert(
+      { ip_hash: ipHash, scan_domain: domain },
+      { onConflict: "ip_hash" }
+    );
+  }
 
   return NextResponse.json({
     site: { url: finalUrl, title, description, favicon },
