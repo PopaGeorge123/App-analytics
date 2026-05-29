@@ -142,7 +142,7 @@ function PricingCard({
         ))}
       </ul>
       {highlight ? (
-        <CheckoutButton className={`block w-full rounded-xl py-3 text-center font-mono text-sm font-semibold uppercase tracking-wider transition-all bg-[#00d4aa] text-[#fafafa] hover:bg-[#00bfa0]`}>{cta}</CheckoutButton>
+        <Link href="/signup" className={`block w-full rounded-xl py-3 text-center font-mono text-sm font-semibold uppercase tracking-wider transition-all bg-[#00d4aa] text-[#fafafa] hover:bg-[#00bfa0]`}>{cta}</Link>
       ) : (
         <Link href="/signup" className={`block w-full rounded-xl py-3 text-center font-mono text-sm font-semibold uppercase tracking-wider transition-all text-[#6a6a90] hover:text-[#00d4aa] hover:bg-[#00d4aa]/5`}>{cta}</Link>
       )}
