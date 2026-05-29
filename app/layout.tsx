@@ -24,16 +24,16 @@ export const metadata: Metadata = {
     shortcut: "/fold-icon.svg",
     apple: "/fold-icon.svg",
   },
-  title: "Fold — AI Business Intelligence for Founders",
+  title: "Fold — AI Analyst for Your SaaS. Catch Revenue Leaks Automatically.",
   description:
-    "Fold connects to Stripe, Mailchimp, PostHog, and your ad platforms then uses AI to tell you exactly what's happening, what went wrong, and what to do next to grow revenue.",
+    "AI watches your Stripe, GA4, and Meta 24/7 — catches revenue anomalies, audits your site for conversion leaks, and shows true ad ROI. $19/mo, 7-day free trial.",
   metadataBase: new URL(baseUrl),
   openGraph: {
     type: "website",
     url: baseUrl,
-    title: "Fold — AI Business Intelligence for Founders",
+    title: "Stop Losing $5K/mo to Revenue Leaks You Don't See",
     description:
-      "Your entire business, understood in seconds. AI-powered dashboard that connects Stripe, Mailchimp, PostHog, Meta Ads & Google Ads.",
+      "Fold's AI detects anomalies, audits conversions, and shows true ad ROAS before you waste money.",
     siteName: "Fold",
     images: [
       {
@@ -46,7 +46,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Fold — AI Business Intelligence for Founders",
+    title: "Fold — AI Analyst for Your SaaS. Catch Revenue Leaks Automatically.",
     description:
       "Your entire business, understood in seconds. AI-powered dashboard for founders.",
     images: ["/twitter-card.png"],

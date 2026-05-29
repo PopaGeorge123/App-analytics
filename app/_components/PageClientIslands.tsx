@@ -370,6 +370,14 @@ export function DashboardMockup() {
 // FAQ section (accordion items need client state)
 // ─────────────────────────────────────────────────────────────────────────────
 const FAQ_ITEMS = [
+  { 
+    q: "Can't I just build a dashboard myself with API calls?", 
+    a: "Absolutely — the dashboard part takes 5-10 hours with OAuth. But here's what took us 6 months: (1) AI that watches metrics 24/7 and alerts you to revenue anomalies before you lose $5K, (2) Website audit engine that ranks conversion fixes by $$ impact, (3) True ad attribution linking Stripe revenue to Meta/Google campaigns (platforms lie about ROAS), (4) AI growth playbooks tailored to YOUR data. You're paying for the analyst, not the dashboard." 
+  },
+  { 
+    q: "Why is this better than just using Google Analytics + Stripe dashboard?", 
+    a: "GA4 and Stripe show you data. Fold tells you what's WRONG and how to fix it. Example: GA4 says bounce rate is 68%. Fold says 'your pricing page CTA is unclear, here's how to fix it, worth $2,400/mo in lost conversions.' That's the difference between a dashboard and an AI analyst." 
+  },
   { q: "Is my financial data safe?", a: "Yes. Fold connects via official OAuth. We never see or store your Stripe secret key, Google password, Meta credentials, or any other platform password. All data is transmitted over TLS 1.3 and stored encrypted at rest. We use read-only access; we cannot move money or modify your accounts." },
   { q: "What integrations do you support?", a: "Fold has 11 live integrations today: Stripe, Google Analytics 4, Meta Ads, Lemon Squeezy, Gumroad, Paddle, Plausible, Mailchimp, Klaviyo, Beehiiv, Shopify, and WooCommerce. More are being added continuously." },
   { q: "How is Fold different from Stripe Dashboard or GA4?", a: "Stripe Dashboard shows Stripe data. GA4 shows website data. Meta Ads Manager shows ad data. Shopify shows store data. None of them talk to each other. Fold connects all your tools, normalises them into one unified timeline, calculates cross-platform metrics like ROAS and CAC, and adds AI that explains what it all means in plain English." },

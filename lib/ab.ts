@@ -14,7 +14,7 @@
  *   - Tracked via gtag custom event on client mount
  */
 
-export type AbVariant = "a" | "b" | "c" | "d" | "e";
+export type AbVariant = "a" | "b" | "c" | "d" | "e" | "f" | "g";
 
 export interface HeroCopy {
   /** Narrow badge above the headline */
@@ -106,6 +106,34 @@ const VARIANTS: Record<AbVariant, HeroCopy> = {
     sub: `You didn't start a business to live in dashboards. Fold pulls from {integrations}+ live integrations, runs the analysis automatically, and delivers one plain-English summary every morning. No analyst. No guesswork.`,
     cta: "Get my daily business briefing",
   },
+
+  /**
+   * F — REVENUE LEAK DETECTION
+   * Pain: Silent revenue leaks eating profit
+   * Aspirin: AI finds and fixes leaks automatically
+   */
+  f: {
+    badge: "Most founders have a $5K+/mo revenue leak they don't see",
+    badgeColor: "red",
+    headline: "Your business is leaking money. ",
+    headlineAccent: "AI will find it in 2 minutes.",
+    sub: `Connect Stripe, GA4, and Meta. Fold's AI audits your entire funnel, catches revenue anomalies within hours, and gives you a prioritized fix-list ranked by **$$ impact**.`,
+    cta: "Find my revenue leaks",
+  },
+
+  /**
+   * G — AD ATTRIBUTION TRUTH
+   * Pain: Wasting ad budget on unprofitable campaigns
+   * Aspirin: True ROAS linking spend → revenue
+   */
+  g: {
+    badge: "Your ad platforms are lying about which campaigns make money",
+    badgeColor: "orange",
+    headline: "You're scaling ads ",
+    headlineAccent: "that lose money.",
+    sub: `Meta and Google inflate their numbers. Fold links every ad dollar to actual Stripe revenue and shows your **REAL CAC**, **ROAS**, and which campaigns to kill before you waste another $1,000.`,
+    cta: "See my real ad ROI",
+  },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -113,7 +141,7 @@ const VARIANTS: Record<AbVariant, HeroCopy> = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** All valid variant keys — used for random assignment and validation */
-export const AB_VARIANTS: AbVariant[] = ["a", "b", "c", "d", "e"];
+export const AB_VARIANTS: AbVariant[] = ["a", "b", "c", "d", "e", "f", "g"];
 
 /**
  * Returns a random variant key, weighted equally (20% each).

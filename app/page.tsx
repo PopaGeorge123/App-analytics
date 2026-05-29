@@ -76,6 +76,7 @@ function PricingCard({
   price,
   description,
   features,
+  featureIcons,
   cta,
   highlight = false,
 }: {
@@ -83,6 +84,7 @@ function PricingCard({
   price: string;
   description: string;
   features: string[];
+  featureIcons?: React.ReactNode[];
   cta: string;
   highlight?: boolean;
 }) {
@@ -124,11 +126,17 @@ function PricingCard({
         <p className="text-sm text-[#4a4a6a]">{description}</p>
       </div>
       <ul className="flex-1 space-y-3 mb-8">
-        {features.map((f) => (
+        {features.map((f, idx) => (
           <li key={f} className="flex items-start gap-3 text-sm text-[#3a3a58]">
-            <svg className="mt-0.5 h-4 w-4 shrink-0 text-[#00d4aa]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-            </svg>
+            {featureIcons && featureIcons[idx] ? (
+              <div className="mt-0.5 shrink-0 text-[#00d4aa]">
+                {featureIcons[idx]}
+              </div>
+            ) : (
+              <svg className="mt-0.5 h-4 w-4 shrink-0 text-[#00d4aa]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+              </svg>
+            )}
             {f}
           </li>
         ))}
@@ -281,7 +289,7 @@ export default async function Home() {
               </p>
 
               <div className="mb-8 flex flex-wrap gap-3">
-                <a href="/preview" className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-5 py-3 font-mono text-sm font-semibold uppercase tracking-wider text-[#fafafa] transition-all hover:bg-[#00bfa0] hover:shadow-[0_0_30px_rgba(0,212,170,0.3)] sm:px-6 sm:py-3.5">
+                <a href="/signup" className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-5 py-3 font-mono text-sm font-semibold uppercase tracking-wider text-[#fafafa] transition-all hover:bg-[#00bfa0] hover:shadow-[0_0_30px_rgba(0,212,170,0.3)] sm:px-6 sm:py-3.5">
                   See my dashboard free
                   <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
                 </a>
@@ -382,8 +390,8 @@ export default async function Home() {
               description="Link Stripe, Google Analytics, Meta Ads, Shopify, Mailchimp and 30+ more. No code, no CSV exports, no engineers. OAuth only, read-only access, nothing is ever written to your accounts." />
             <Step n={2} title="Fold surfaces what's actually wrong"
               description="One unified view across all your data. Revenue anomalies, traffic drops, ad budget waste, and conversion leaks are flagged automatically with context, not just raw numbers." />
-            <Step n={3} title="AI tells you exactly what to fix"
-              description="Plain-English explanations of every anomaly. A prioritized action list updated daily. Ask follow-up questions about your own data. No analyst needed." />
+            <Step n={3} title="AI finds problems and tells you how to fix them"
+              description="Daily digest: what broke yesterday, why it happened, and step-by-step fixes ranked by revenue impact. Website audits catch conversion leaks worth $2K-10K/mo. Ad attribution shows which campaigns are unprofitable BEFORE you burn $5K." />
           </div>
 
           {/* Platform OAuth trust strip — live integrations only */}
@@ -641,6 +649,66 @@ export default async function Home() {
         </div>
       </section>
 
+      {/* ── VALUE COMPARISON ──────────────────────────────────────────────── */}
+      <section className="px-6 py-16">
+        <div className="mx-auto max-w-4xl">
+          <div className="rounded-2xl bg-linear-to-b from-[#1a1a2e] to-[#2a2a3e] p-8 text-white">
+            <h3 className="mb-6 text-center font-mono text-xl font-bold">
+              What you'd pay separately
+            </h3>
+            
+            <div className="grid gap-4 sm:grid-cols-2 mb-6">
+              <div className="rounded-xl bg-white/5 p-4">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="font-mono text-sm text-[#bcbcd8]">Google Ads consultant</span>
+                  <span className="font-mono text-lg font-bold">$500-2K</span>
+                </div>
+                <p className="text-xs text-[#8585aa]">To get true ROAS and stop wasting ad budget</p>
+              </div>
+              
+              <div className="rounded-xl bg-white/5 p-4">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="font-mono text-sm text-[#bcbcd8]">CRO agency</span>
+                  <span className="font-mono text-lg font-bold">$3K-5K</span>
+                </div>
+                <p className="text-xs text-[#8585aa]">To audit your site for conversion leaks</p>
+              </div>
+              
+              <div className="rounded-xl bg-white/5 p-4">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="font-mono text-sm text-[#bcbcd8]">Baremetrics / ChartMogul</span>
+                  <span className="font-mono text-lg font-bold">$50-100</span>
+                </div>
+                <p className="text-xs text-[#8585aa]">For Stripe-only revenue analytics</p>
+              </div>
+              
+              <div className="rounded-xl bg-white/5 p-4">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="font-mono text-sm text-[#bcbcd8]">Your time checking dashboards</span>
+                  <span className="font-mono text-lg font-bold">$1K-2K</span>
+                </div>
+                <p className="text-xs text-[#8585aa]">10 hrs/mo × $100-200/hr opportunity cost</p>
+              </div>
+            </div>
+
+            <div className="border-t border-white/10 pt-6 text-center">
+              <p className="mb-2 font-mono text-sm text-[#8585aa]">Total monthly cost:</p>
+              <p className="mb-4 font-mono text-3xl font-bold text-[#f87171]">
+                $4,550 - $8,100<span className="text-lg">/mo</span>
+              </p>
+              <div className="mx-auto h-8 w-px bg-linear-to-b from-white/20 to-transparent"></div>
+              <p className="mt-4 mb-2 font-mono text-sm text-[#8585aa]">Fold replaces all of it:</p>
+              <p className="font-mono text-4xl font-bold text-[#00d4aa]">
+                $19<span className="text-lg">/mo</span>
+              </p>
+              <p className="mt-2 text-xs text-[#8585aa]">
+                That's a 99.5% cost reduction
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── PRICING ───────────────────────────────────────────────────────── */}
       <section id="pricing" className="relative px-6 py-24 border-t border-[#f0f0f8]">
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -694,14 +762,27 @@ export default async function Home() {
               price="$19"
               description="Full access to every feature. Starts with a 7-day free trial, no card required. $19/month after the trial, cancel anytime."
               features={[
-                "Unified KPI dashboard with 7-day trends",
-                "Full 30-day analytics per platform",
-                "AI Advisor with multi-conversation history",
-                "Daily AI-generated insight",
-                "Growth Pulse — rolling multi-metric chart",
-                "Anomaly detection & alerts",
+                "AI anomaly alerts — revenue drops caught within minutes",
+                "Website conversion audit — find leaks worth $2K-10K/mo",
+                "True ROAS tracking — know which ads actually make money",
+                "AI growth playbooks — custom plans for YOUR data",
+                "Instant alerts via email, Slack, SMS",
+                "AI chat — ask questions about your own data",
+                "Full 30-day history & trend analysis",
+                "Export & shareable reports",
                 "Priority support",
-                "7-day free trial · cancel before day 8",
+              ]}
+              featureIcons={[
+                <svg key="alert" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>,
+                <svg key="target" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+                <svg key="money" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+                <svg key="book" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>,
+                <svg key="bolt" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>,
+                <svg key="chat" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>,
+                <svg key="link" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>,
+                <svg key="chart" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>,
+                <svg key="export" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>,
+                <svg key="support" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" /></svg>,
               ]}
               cta="Start 7-day free trial"
               highlight
