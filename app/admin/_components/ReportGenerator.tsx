@@ -176,16 +176,17 @@ export default function ReportGenerator() {
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="example.com or https://example.com"
-                className="flex-1 px-4 py-2.5 border border-[#ccccec] rounded-lg font-mono text-sm
-                         focus:outline-none focus:ring-2 focus:ring-[#635bff] focus:border-transparent"
+                className="flex-1 px-4 py-2.5 border border-[#d4d4e8] rounded-lg font-mono text-sm
+                         focus:outline-none focus:ring-2 focus:ring-[#00d4aa] focus:border-transparent
+                         bg-white text-[#1a1a2e] placeholder:text-[#9090b8]"
                 onKeyDown={(e) => e.key === 'Enter' && generateReport()}
               />
               <button
                 onClick={generateReport}
                 disabled={loading || !url.trim()}
-                className="px-6 py-2.5 bg-[#635bff] text-white font-mono text-sm rounded-lg
-                         hover:bg-[#5147e5] transition-colors disabled:opacity-50 disabled:cursor-not-allowed
-                         flex items-center gap-2"
+                className="px-6 py-2.5 bg-[#00d4aa] text-white font-mono text-sm font-semibold rounded-lg
+                         hover:bg-[#00bfa0] transition-colors disabled:opacity-50 disabled:cursor-not-allowed
+                         flex items-center gap-2 shadow-sm"
               >
                 {loading ? (
                   <>
@@ -219,8 +220,9 @@ export default function ReportGenerator() {
                   }
                 }
               }}
-              className="w-full px-4 py-2.5 border border-[#ccccec] rounded-lg font-mono text-sm
-                       focus:outline-none focus:ring-2 focus:ring-[#635bff] focus:border-transparent"
+              className="w-full px-4 py-2.5 border border-[#d4d4e8] rounded-lg font-mono text-sm
+                       focus:outline-none focus:ring-2 focus:ring-[#00d4aa] focus:border-transparent
+                       bg-white text-[#1a1a2e]"
             >
               {COLD_DM_TEMPLATES.map((template) => (
                 <option key={template.id} value={template.id}>
@@ -241,16 +243,16 @@ export default function ReportGenerator() {
                   type="text"
                   value={reportUrl}
                   readOnly
-                  className="flex-1 px-4 py-2.5 border border-[#ccccec] rounded-lg font-mono text-sm
-                           bg-[#f4f4fa] text-[#6a6a90]"
+                  className="flex-1 px-4 py-2.5 border border-[#d4d4e8] rounded-lg font-mono text-sm
+                           bg-[#f8f8fc] text-[#6a6a90]"
                 />
                 <button
                   onClick={() => {
                     navigator.clipboard.writeText(reportUrl);
                     alert('Link copied!');
                   }}
-                  className="px-4 py-2.5 border border-[#ccccec] rounded-lg font-mono text-sm
-                           hover:bg-[#f4f4fa] transition-colors"
+                  className="px-4 py-2.5 border border-[#d4d4e8] rounded-lg font-mono text-sm text-[#1a1a2e]
+                           hover:bg-[#f8f8fc] transition-colors"
                 >
                   📋 Copy
                 </button>
@@ -258,8 +260,8 @@ export default function ReportGenerator() {
                   href={reportUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-4 py-2.5 border border-[#ccccec] rounded-lg font-mono text-sm
-                           hover:bg-[#f4f4fa] transition-colors"
+                  className="px-4 py-2.5 border border-[#d4d4e8] rounded-lg font-mono text-sm text-[#1a1a2e]
+                           hover:bg-[#f8f8fc] transition-colors"
                 >
                   👁️ Preview
                 </a>
@@ -277,10 +279,10 @@ export default function ReportGenerator() {
             {generatedMessage && (
               <button
                 onClick={copyToClipboard}
-                className={`px-4 py-1.5 rounded-lg font-mono text-sm transition-all
+                className={`px-4 py-1.5 rounded-lg font-mono text-sm font-semibold transition-all shadow-sm
                           ${copied 
-                            ? 'bg-green-500 text-white' 
-                            : 'bg-[#635bff] text-white hover:bg-[#5147e5]'
+                            ? 'bg-green-600 text-white' 
+                            : 'bg-[#00d4aa] text-white hover:bg-[#00bfa0]'
                           }`}
               >
                 {copied ? '✓ Copied!' : '📋 Copy Message'}
@@ -293,13 +295,14 @@ export default function ReportGenerator() {
               value={generatedMessage || 'Generate a report to see the message preview...'}
               readOnly
               rows={16}
-              className="w-full px-4 py-3 border border-[#ccccec] rounded-lg font-mono text-sm
-                       bg-white resize-none focus:outline-none focus:ring-2 focus:ring-[#635bff]"
+              className="w-full px-4 py-3 border border-[#d4d4e8] rounded-lg font-mono text-sm
+                       bg-white text-[#1a1a2e] resize-none focus:outline-none focus:ring-2 focus:ring-[#00d4aa]
+                       placeholder:text-[#9090b8]"
             />
           </div>
 
           {generatedMessage && (
-            <div className="bg-[#f4f4fa] border border-[#ccccec] rounded-lg p-4 space-y-2">
+            <div className="bg-[#f8f8fc] border border-[#d4d4e8] rounded-lg p-4 space-y-2">
               <div className="text-xs font-mono font-semibold text-[#1a1a2e]">📊 Message Stats</div>
               <div className="grid grid-cols-2 gap-2 text-xs font-mono text-[#6a6a90]">
                 <div>Characters: {generatedMessage.length}</div>
@@ -311,7 +314,7 @@ export default function ReportGenerator() {
       </div>
 
       {/* Template Preview */}
-      <div className="border-t border-[#ccccec] pt-6 space-y-3">
+      <div className="border-t border-[#d4d4e8] pt-6 space-y-3">
         <h3 className="text-sm font-mono font-semibold text-[#1a1a2e]">
           Available Templates ({COLD_DM_TEMPLATES.length})
         </h3>
@@ -328,8 +331,8 @@ export default function ReportGenerator() {
               }}
               className={`text-left p-3 rounded-lg border transition-all font-mono text-sm
                         ${selectedTemplate.id === template.id
-                          ? 'border-[#635bff] bg-[#635bff]/5'
-                          : 'border-[#ccccec] hover:border-[#635bff]/30 hover:bg-[#f4f4fa]'
+                          ? 'border-[#00d4aa] bg-[#00d4aa]/5 ring-1 ring-[#00d4aa]/20'
+                          : 'border-[#d4d4e8] hover:border-[#00d4aa]/30 hover:bg-[#f8f8fc]'
                         }`}
             >
               <div className="font-semibold text-[#1a1a2e]">{template.name}</div>

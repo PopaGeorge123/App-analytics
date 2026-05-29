@@ -462,42 +462,95 @@ function detectIntegrations(html) {
 }
 
 // ============================================================================
-// Email Sending (same as before, abbreviated for space)
+// Email Template Selection & Sending with Auto-Optimization
 // ============================================================================
+
+// Weighted random selection based on performance score
+async function selectBestEmailTemplate() {
+  try {
+    // Get active templates sorted by performance score
+    const templates = await SB.select('outbound_email_templates', {
+      eq: { is_active: true },
+      order: 'performance_score.desc',
+    });
+    
+    if (!templates || templates.length === 0) {
+      throw new Error('No active email templates found');
+    }
+    
+    // For first 20 emails, distribute evenly across all templates to gather data
+    const totalSent = templates.reduce((sum, t) => sum + (t.times_sent || 0), 0);
+    if (totalSent < 20) {
+      // Round-robin selection for initial data gathering
+      const leastUsed = templates.reduce((min, t) => 
+        (t.times_sent || 0) < (min.times_sent || 0) ? t : min
+      );
+      return leastUsed;
+    }
+    
+    // After initial phase, use weighted selection favoring high-performers
+    // Top 3 templates get 70% of traffic, rest get 30%
+    const top3 = templates.slice(0, 3);
+    const rest = templates.slice(3);
+    
+    const useTop3 = Math.random() < 0.7;
+    
+    if (useTop3 && top3.length > 0) {
+      // Weighted random from top 3
+      const totalScore = top3.reduce((sum, t) => sum + (t.performance_score || 0), 0);
+      let random = Math.random() * totalScore;
+      
+      for (const template of top3) {
+        random -= (template.performance_score || 0);
+        if (random <= 0) return template;
+      }
+      
+      return top3[0]; // Fallback
+    } else if (rest.length > 0) {
+      // Random from rest (exploration)
+      return rest[Math.floor(Math.random() * rest.length)];
+    } else {
+      return templates[0];
+    }
+  } catch (err) {
+    console.error('❌ Template selection failed:', err.message);
+    throw err;
+  }
+}
+
+function renderEmailTemplate(template, prospect) {
+  const firstName = prospect.contact_name?.split(' ')[0] || prospect.business_name?.split(' ')[0] || 'there';
+  const businessName = prospect.business_name || prospect.domain;
+  const trackingLink = `${APP_URL}/api/track/click/${prospect.id}`;
+  
+  let body = template.body_template;
+  body = body.replace(/\{first_name\}/g, firstName);
+  body = body.replace(/\{business_name\}/g, businessName);
+  body = body.replace(/\{tracking_link\}/g, trackingLink);
+  
+  let subject = template.subject_line;
+  subject = subject.replace(/\{first_name\}/g, firstName);
+  subject = subject.replace(/\{business_name\}/g, businessName);
+  
+  return { subject, body };
+}
 
 async function sendProspectEmail(prospect, sendEmails = false) {
   if (!sendEmails || !RESEND_API_KEY || !prospect.contact_email) {
     return { sent: false, reason: 'skipped' };
   }
   
-  const trackingPixelUrl = `${APP_URL}/api/track/open/${prospect.id}`;
-  const ctaUrl = `${APP_URL}/api/track/click/${prospect.id}`;
-  const firstName = prospect.contact_name?.split(' ')[0] || 'there';
-  const subject = `Quick question about ${prospect.business_name || prospect.domain}`;
-  
-  const html = `<!DOCTYPE html>
-<html>
-<body style="font-family:sans-serif;background:#0a0a0f;color:#e8e8f0;padding:40px 20px;">
-  <div style="max-width:600px;margin:0 auto;background:#13131a;border-radius:16px;overflow:hidden;border:1px solid #1f1f2a;">
-    <div style="background:linear-gradient(135deg,#635bff 0%,#00d4aa 100%);padding:32px;text-align:center;">
-      <h1 style="margin:0;color:#fff;">Fold Analytics</h1>
-    </div>
-    <div style="padding:40px;">
-      <p>Hey ${firstName},</p>
-      <p>I noticed <strong>${prospect.business_name || prospect.domain}</strong> — nice setup!</p>
-      <p>Quick question: are you tracking all your key metrics in one place?</p>
-      <p><strong>Fold</strong> connects all your tools in 90 seconds and gives you a unified dashboard with AI insights.</p>
-      <a href="${ctaUrl}" style="display:inline-block;background:#635bff;color:#fff;padding:14px 32px;text-decoration:none;border-radius:8px;margin:20px 0;">See a live demo →</a>
-      <p>— George<br><span style="font-size:13px;color:#6a6a90;">Fold Analytics</span></p>
-    </div>
-  </div>
-  <img src="${trackingPixelUrl}" width="1" height="1" alt="" />
-</body>
-</html>`;
-
-  const text = `Hey ${firstName},\n\nI noticed ${prospect.business_name || prospect.domain} — nice setup!\n\nQuick question: are you tracking all your key metrics in one place?\n\nFold connects all your tools in 90 seconds.\n\nSee demo: ${ctaUrl}\n\n— George`;
-
   try {
+    // Select best performing template
+    const template = await selectBestEmailTemplate();
+    
+    // Render email from template
+    const { subject, body } = renderEmailTemplate(template, prospect);
+    
+    // Plain text only - no tracking pixel (can't track opens in plain text)
+    // We rely on click tracking only
+    
+    // Send plain text email (no HTML, no emoji)
     await fetchRetry('Resend Send', 'https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -505,20 +558,30 @@ async function sendProspectEmail(prospect, sendEmails = false) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'George from Fold <george@usefold.io>',
+        from: 'George from Fold <info@usefold.io>',
         to: [prospect.contact_email],
         subject,
-        html,
-        text,
+        text: body, // Plain text only, no tracking pixel
+        // No HTML version - plain text only for better deliverability
       }),
     });
 
+    // Update prospect with template tracking
     await SB.update('outbound_prospects', {
       email_sent_at: new Date().toISOString(),
+      email_template_id: template.id,
       status: 'email_sent',
     }, { id: prospect.id });
+    
+    // Update template usage stats
+    await SB.update('outbound_email_templates', {
+      times_sent: template.times_sent + 1,
+      last_used_at: new Date().toISOString(),
+    }, { id: template.id });
 
-    return { sent: true };
+    console.log(`    ✉️  Template: ${template.template_name} (#${template.template_number})`);
+
+    return { sent: true, template: template.template_name };
   } catch (err) {
     console.error(`  ❌ Email failed:`, err.message);
     return { sent: false, error: err.message };

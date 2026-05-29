@@ -2,14 +2,16 @@
 
 import { useState } from 'react';
 import ReportGenerator from './ReportGenerator';
+import EmailCampaignTab from './EmailCampaignTab';
 
-type Tab = 'reports' | 'prospects' | 'analytics' | 'settings';
+type Tab = 'reports' | 'email-campaign' | 'prospects' | 'analytics' | 'settings';
 
 export default function AdminTabs() {
   const [activeTab, setActiveTab] = useState<Tab>('reports');
 
   const tabs: { id: Tab; label: string; icon: string }[] = [
     { id: 'reports', label: 'Report Generator', icon: '📊' },
+    { id: 'email-campaign', label: 'Email Campaign', icon: '📧' },
     { id: 'prospects', label: 'Prospect Management', icon: '👥' },
     { id: 'analytics', label: 'Analytics', icon: '📈' },
     { id: 'settings', label: 'Settings', icon: '⚙️' },
@@ -18,18 +20,18 @@ export default function AdminTabs() {
   return (
     <div className="space-y-6">
       {/* Tab Navigation */}
-      <div className="border-b border-[#ccccec] bg-white rounded-t-xl">
+      <div className="border-b border-[#d4d4e8] bg-white rounded-t-xl shadow-[0_1px_3px_rgba(0,0,0,0.04)] ring-1 ring-black/[0.02]">
         <div className="flex gap-1 p-2">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`
-                flex items-center gap-2 px-4 py-2.5 rounded-lg font-mono text-sm
+                flex items-center gap-2 px-4 py-2.5 rounded-lg font-mono text-sm font-medium
                 transition-all duration-200
                 ${activeTab === tab.id
-                  ? 'bg-[#635bff] text-white shadow-sm'
-                  : 'text-[#6a6a90] hover:bg-[#f4f4fa] hover:text-[#1a1a2e]'
+                  ? 'bg-[#00d4aa] text-white shadow-sm'
+                  : 'text-[#6a6a90] hover:bg-[#f8f8fc] hover:text-[#1a1a2e]'
                 }
               `}
             >
@@ -41,8 +43,9 @@ export default function AdminTabs() {
       </div>
 
       {/* Tab Content */}
-      <div className="bg-white rounded-b-xl shadow-sm border border-[#ccccec] p-6">
+      <div className="bg-white rounded-b-xl shadow-[0_1px_4px_rgba(0,0,0,0.05)] ring-1 ring-black/[0.04] p-6">
         {activeTab === 'reports' && <ReportGenerator />}
+        {activeTab === 'email-campaign' && <EmailCampaignTab />}
         {activeTab === 'prospects' && <ProspectManagementTab />}
         {activeTab === 'analytics' && <AnalyticsTab />}
         {activeTab === 'settings' && <SettingsTab />}

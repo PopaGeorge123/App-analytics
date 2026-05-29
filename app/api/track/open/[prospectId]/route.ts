@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 
+export const dynamic = 'force-dynamic';
+
 /**
  * Track email opens via 1x1 tracking pixel
  * GET /api/track/open/[prospectId]
+ * 
+ * Updates prospect record and template performance metrics
  */
 
 export async function GET(
@@ -21,7 +25,26 @@ export async function GET(
   try {
     const db = createServiceClient();
     
-    // Log the open event
+    // Update prospect with opened timestamp (only if not already set)
+    const { data: prospect } = await db
+      .from('outbound_prospects')
+      .select('id, email_opened_at')
+      .eq('id', prospectId)
+      .single();
+    
+    if (prospect && !prospect.email_opened_at) {
+      await db
+        .from('outbound_prospects')
+        .update({ 
+          email_opened_at: new Date().toISOString(),
+          status: 'email_opened'
+        })
+        .eq('id', prospectId);
+      
+      console.log(`📧 Email opened by prospect ${prospectId}`);
+    }
+    
+    // Log the open event for detailed analytics
     await db.from("outbound_email_events").insert({
       prospect_id: prospectId,
       event_type: "open",
@@ -32,8 +55,6 @@ export async function GET(
         timestamp: new Date().toISOString(),
       },
     });
-    
-    console.log(`📧 Email opened by prospect ${prospectId}`);
   } catch (err) {
     console.error("❌ Failed to track email open:", err);
   }
