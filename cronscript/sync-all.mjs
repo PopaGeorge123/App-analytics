@@ -1774,8 +1774,16 @@ async function syncPostHogDay(userId, apiKey, rawAccountId, date) {
 
 async function syncPostHog(userId, integration) {
   const date = yesterday();
-  const r = await syncPostHogDay(userId, integration.access_token, integration.account_id, date);
-  return { date, ...r };
+  try {
+    const r = await syncPostHogDay(userId, integration.access_token, integration.account_id, date);
+    return { date, ...r };
+  } catch (err) {
+    if (err.message.includes('missing required scope')) {
+      logFail(`  [posthog] ✗ API key missing required scope for user ${userId.slice(0, 8)} — go to PostHog → Settings → Personal API Keys → create a new key with "query:read" scope, then reconnect.`);
+      return { date, skipped: true };
+    }
+    throw err;
+  }
 }
 
 async function backfillPostHog(userId, integration, days = 365) {
@@ -1804,12 +1812,28 @@ async function backfillPostHog(userId, integration, days = 365) {
   });
 
   if (!res.ok) {
-    logWarn(`  [posthog backfill] bulk HogQL failed (${res.status}), falling back to per-day`);
+    const errBody = await res.json().catch(() => ({}));
+    const errDetail = errBody?.detail ?? errBody?.code ?? String(res.status);
+    // Scope errors will never succeed on retry — abort immediately with an actionable message
+    if (typeof errDetail === 'string' && errDetail.includes('missing required scope')) {
+      logFail(`  [posthog backfill] ✗ API key is missing required scope — aborting backfill for user ${userId.slice(0, 8)}`);
+      logFail(`  [posthog backfill] → Go to PostHog → Settings → Personal API Keys → create a new key with the "query:read" scope, then reconnect the integration.`);
+      logFail(`  [posthog backfill] PostHog error: ${errDetail}`);
+      return;
+    }
+    logWarn(`  [posthog backfill] bulk HogQL failed (${res.status}: ${errDetail}), falling back to per-day`);
     let ok = 0, skipped = 0;
     for (let offset = days; offset >= 1; offset--) {
       const date = daysAgo(offset);
       try { await syncPostHogDay(userId, apiKey, rawAccountId, date); ok++; }
-      catch (err) { logFail(`  posthog ${date} — ${err.message}`); skipped++; }
+      catch (err) {
+        // Also abort per-day loop on scope errors
+        if (err.message.includes('missing required scope')) {
+          logFail(`  [posthog backfill] ✗ Aborting per-day loop — API key missing required scope. Reconnect with a key that has "query:read".`);
+          break;
+        }
+        logFail(`  posthog ${date} — ${err.message}`); skipped++;
+      }
       await sleep(500);
     }
     log(`  [posthog backfill] done — ${ok} days saved, ${skipped} errors`);

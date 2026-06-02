@@ -66,6 +66,30 @@ export async function validatePostHogApiKey(
         };
       }
 
+      // Verify the key also has query:read scope by running a minimal HogQL query.
+      // /api/users/@me/ succeeds for any key, but the sync uses /api/projects/{id}/query
+      // which requires query:read — catch this at connect time so we never show "Connected"
+      // for a key that can't actually sync.
+      const scopeTest = await fetch(`${host}/api/projects/${resolved}/query`, {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({ query: { kind: "HogQLQuery", query: "SELECT 1" } }),
+      }).catch(() => null);
+
+      if (scopeTest && scopeTest.status === 403) {
+        const scopeErr = await scopeTest.json().catch(() => ({}));
+        const detail = (scopeErr as { detail?: string })?.detail ?? "";
+        if (detail.includes("missing required scope") || detail.includes("query:read")) {
+          return {
+            valid: false,
+            error:
+              "Your API key is missing the required 'query:read' scope. " +
+              "Go to PostHog → Settings → Personal API Keys, delete this key, " +
+              "and create a new one — make sure to enable the 'query:read' (or 'All') scope.",
+          };
+        }
+      }
+
       return { valid: true, resolvedProjectId: resolved, resolvedHost: host };
     }
 

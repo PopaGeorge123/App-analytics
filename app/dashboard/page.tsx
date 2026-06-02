@@ -70,11 +70,14 @@ export default async function DashboardPage({
 
   const db = createServiceClient();
 
-  // Fetch connected integrations
+  // Fetch connected integrations — exclude rows where account_id is empty string
+  // (GA4 saves a row immediately after OAuth before the user picks a property;
+  //  if they cancel the property-selection step the row stays but is not truly connected)
   const { data: integrations } = await db
     .from("integrations")
-    .select("platform, connected_at, currency")
-    .eq("user_id", user.id);
+    .select("platform, connected_at, currency, account_id")
+    .eq("user_id", user.id)
+    .not("account_id", "eq", "");
 
   const connectedPlatforms = (integrations ?? []).map((i) => i.platform);
 

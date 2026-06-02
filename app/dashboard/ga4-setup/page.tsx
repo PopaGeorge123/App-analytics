@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
 interface Property {
@@ -16,6 +16,16 @@ export default function GA4SetupPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  // Cleans up the pending (no property selected) GA4 integration row
+  const cancelAndCleanup = useCallback(async (destination: string) => {
+    try {
+      await fetch("/api/auth/google/cancel", { method: "POST" });
+    } catch {
+      // best-effort — navigate regardless
+    }
+    router.push(destination);
+  }, [router]);
 
   useEffect(() => {
     fetch("/api/auth/google/properties")
@@ -89,7 +99,7 @@ export default function GA4SetupPage() {
           <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-400">
             {error}
             <button
-              onClick={() => router.push("/dashboard?tab=settings")}
+              onClick={() => cancelAndCleanup("/dashboard?tab=settings")}
               className="mt-3 block text-xs text-[#6a6a90] underline hover:text-[#3a3a5a]"
             >
               ← Back to Settings
@@ -100,7 +110,7 @@ export default function GA4SetupPage() {
             <p className="text-sm text-[#6a6a90]">No GA4 properties found on this Google account.</p>
             <p className="mt-1 text-xs text-[#6a6a90]">Make sure Google Analytics 4 is set up at analytics.google.com</p>
             <button
-              onClick={() => router.push("/dashboard?tab=settings")}
+              onClick={() => cancelAndCleanup("/dashboard?tab=settings")}
               className="mt-4 text-xs text-[#6a6a90] underline hover:text-[#3a3a5a]"
             >
               ← Back to Settings
@@ -145,7 +155,7 @@ export default function GA4SetupPage() {
 
             <div className="flex items-center gap-3">
               <button
-                onClick={() => router.push("/dashboard?tab=data-sources")}
+                onClick={() => cancelAndCleanup("/dashboard?tab=data-sources")}
                 className="rounded-xl border border-[#d4d4e8] px-4 py-2.5 text-sm text-[#6a6a90] transition-all hover:text-[#3a3a5a]"
               >
                 Cancel
