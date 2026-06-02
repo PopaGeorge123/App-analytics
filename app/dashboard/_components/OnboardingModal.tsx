@@ -6,8 +6,7 @@
  * Shown to new users who have zero connected platforms.
  *
  * Step 1: Connect Stripe (direct OAuth).
- * "Maybe later" → closes modal, navigates to Settings, and briefly
- * highlights the integrations section so the user knows where to go next.
+ * "Maybe later" → closes modal and stays on the Overview tab.
  *
  * Soft-dismiss (24 h snooze) so it comes back the next day if still empty.
  */
@@ -43,14 +42,6 @@ export default function OnboardingModal({ hasNoConnections, onNavigateToSettings
   function handleLater() {
     snooze();
     onNavigateToSettings();
-    // After the Settings tab renders, scroll to and pulse the integrations section
-    setTimeout(() => {
-      const el = document.getElementById("integrations-section");
-      if (!el) return;
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
-      el.classList.add("integrations-highlight");
-      setTimeout(() => el.classList.remove("integrations-highlight"), 2000);
-    }, 350);
   }
 
   if (!visible) return null;

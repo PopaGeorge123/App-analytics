@@ -102,7 +102,7 @@ export default function GA4SetupPage() {
               onClick={() => cancelAndCleanup("/dashboard?tab=settings")}
               className="mt-3 block text-xs text-[#6a6a90] underline hover:text-[#3a3a5a]"
             >
-              ← Back to Settings
+              ← Back to Integrations
             </button>
           </div>
         ) : properties.length === 0 ? (
@@ -113,7 +113,7 @@ export default function GA4SetupPage() {
               onClick={() => cancelAndCleanup("/dashboard?tab=settings")}
               className="mt-4 text-xs text-[#6a6a90] underline hover:text-[#3a3a5a]"
             >
-              ← Back to Settings
+              ← Back to Integrations
             </button>
           </div>
         ) : (

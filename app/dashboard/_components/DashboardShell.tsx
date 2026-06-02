@@ -604,7 +604,7 @@ function DashboardShellInner({ email, isPremium, trialEndsAt, connectedPlatforms
       {/* ── Onboarding modal (new users with no connections) ─── */}
       <OnboardingModal
         hasNoConnections={connectedPlatforms.length === 0}
-        onNavigateToSettings={() => navigate("settings")}
+        onNavigateToSettings={() => navigate("overview")}
       />
 
       {/* ── Contextual upgrade modal ───────────────────────── */}
