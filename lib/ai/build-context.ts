@@ -5,44 +5,89 @@ import { sum, avg, calcTrend } from "@/lib/utils/math";
 export interface StripeContext {
   connected: boolean;
   current7: {
-    revenue: number;
-    refunds: number;
-    newCustomers: number;
+    grossRevenue: number;   // cents
+    netRevenue: number;     // cents (after refunds)
+    refunds: number;        // cents
+    refundRate: number;     // %
     txCount: number;
-    mrr: number;
-    activeSubscriptions: number;
-    trialingSubscriptions: number;
-    churnedToday: number;
-    arpu: number;
+    avgTransactionValue: number; // cents (AOV)
+    newCustomers: number;
+    disputeCount: number;
+    disputeAmount: number;  // cents
   };
   prev7: {
-    revenue: number;
+    grossRevenue: number;
+    netRevenue: number;
     refunds: number;
-    newCustomers: number;
+    refundRate: number;
     txCount: number;
-    mrr: number;
-    activeSubscriptions: number;
-    trialingSubscriptions: number;
-    churnedToday: number;
-    arpu: number;
+    avgTransactionValue: number;
+    newCustomers: number;
+    disputeCount: number;
+    disputeAmount: number;
   };
   revenueTrend: number;
-  mrrTrend: number;
+  aovTrend: number;
 }
 
 export interface GA4Context {
   connected: boolean;
-  current7: { sessions: number; totalUsers: number; newUsers: number; bounceRate: number; conversions: number };
-  prev7: { sessions: number; totalUsers: number; newUsers: number; bounceRate: number; conversions: number };
+  current7: {
+    sessions: number;
+    totalUsers: number;
+    newUsers: number;
+    bounceRate: number;
+    conversions: number;
+    ecommercePurchases: number;
+    purchaseRevenue: number;
+    addToCarts: number;
+    checkouts: number;
+    cartToCheckoutRate: number;
+    checkoutToPurchaseRate: number;
+  };
+  prev7: {
+    sessions: number;
+    totalUsers: number;
+    newUsers: number;
+    bounceRate: number;
+    conversions: number;
+    ecommercePurchases: number;
+    purchaseRevenue: number;
+    addToCarts: number;
+    checkouts: number;
+  };
   sessionsTrend: number;
+  purchaseRevenueTrend: number;
 }
 
 export interface MetaContext {
   connected: boolean;
   currency: string;
-  current7: { spend: number; impressions: number; clicks: number; reach: number; conversions: number };
-  prev7: { spend: number; impressions: number; clicks: number; reach: number; conversions: number };
+  current7: {
+    spend: number;
+    impressions: number;
+    clicks: number;
+    reach: number;
+    conversions: number;
+    purchaseValue: number;
+    roas: number;
+    cpc: number;
+    cpm: number;
+    ctr: number;
+    costPerPurchase: number;
+    addToCartCount: number;
+  };
+  prev7: {
+    spend: number;
+    impressions: number;
+    clicks: number;
+    reach: number;
+    conversions: number;
+    purchaseValue: number;
+    roas: number;
+  };
   spendTrend: number;
+  roasTrend: number;
 }
 
 export interface EmailContext {
@@ -56,18 +101,37 @@ export interface EmailContext {
 export interface EcommerceContext {
   platform: string;
   connected: boolean;
-  current7: { revenue: number; orders: number; newCustomers: number };
-  prev7: { revenue: number; orders: number; newCustomers: number };
+  current7: {
+    grossRevenue: number;
+    orders: number;
+    newCustomers: number;
+    aov: number;
+    refundRate: number;
+    cartAbandonmentRate: number;
+  };
+  prev7: {
+    grossRevenue: number;
+    orders: number;
+    newCustomers: number;
+    aov: number;
+  };
   revenueTrend: number;
+  aovTrend: number;
 }
 
 export interface AttributionContext {
+  /** Blended ROAS across all ad platforms */
+  blendedROAS: number | null;
   /** Blended CAC across all ad platforms (ad spend / new customers) */
   blendedCAC: number | null;
   /** Total ad spend across all connected ad platforms */
   totalAdSpend: number;
+  /** Total purchase value attributed to ads */
+  totalAdAttributedRevenue: number;
   /** Total new customers from revenue platforms */
   totalNewCustomers: number;
+  /** Ad platforms contributing to spend */
+  adPlatforms: string[];
 }
 
 export interface BusinessProfile {
@@ -83,9 +147,9 @@ export interface DigestContext {
   stripe: StripeContext;
   ga4: GA4Context;
   meta: MetaContext;
-  /** Email marketing platforms (Mailchimp, Klaviyo, Beehiiv) */
+  /** Email marketing platforms (Mailchimp, Klaviyo) */
   emailPlatforms: EmailContext[];
-  /** Ecommerce platforms (Shopify, WooCommerce, Gumroad, Lemon Squeezy, Paddle) */
+  /** E-commerce store platforms (Shopify, WooCommerce, BigCommerce, etc.) */
   ecommercePlatforms: EcommerceContext[];
   /** Cross-channel attribution summary */
   attribution: AttributionContext;
@@ -103,8 +167,9 @@ function pick(rows: any[], key: string): number[] {
 
 // ── Email platform helper ─────────────────────────────────────────────────
 
-const EMAIL_PLATFORMS = ["mailchimp", "klaviyo", "beehiiv", "convertkit", "brevo"];
-const ECOMMERCE_PLATFORMS = ["shopify", "woocommerce", "gumroad", "lemon-squeezy", "paddle"];
+const EMAIL_PLATFORMS = ["mailchimp", "klaviyo", "brevo", "activecampaign"];
+const ECOMMERCE_PLATFORMS = ["shopify", "woocommerce", "bigcommerce", "amazon", "etsy"];
+const ADS_PLATFORMS = ["meta", "google-ads", "tiktok-ads", "pinterest-ads", "snapchat-ads"];
 
 async function buildEmailContexts(
   userId: string,
@@ -160,7 +225,6 @@ async function buildEcommerceContexts(
   hasIntegration: (p: string) => Promise<boolean>,
   getSnapshots: (provider: string, start: string, end: string) => Promise<{ data: Record<string, number> }[]>
 ): Promise<EcommerceContext[]> {
-  // Suppress unused param warning
   void userId; void db;
   const results: EcommerceContext[] = [];
 
@@ -173,16 +237,29 @@ async function buildEcommerceContexts(
 
     const sumOf = (rows: { data: Record<string, number> }[], key: string) =>
       rows.reduce((a, r) => a + (r.data[key] ?? 0), 0);
-
-    const current7 = {
-      revenue: sumOf(curRows, "revenue"),
-      orders: sumOf(curRows, "orders"),
-      newCustomers: sumOf(curRows, "newCustomers"),
+    const avgOf = (rows: { data: Record<string, number> }[], key: string) => {
+      const valid = rows.map(r => r.data[key] ?? 0).filter(v => v > 0);
+      return valid.length > 0 ? valid.reduce((a, b) => a + b, 0) / valid.length : 0;
     };
-    const prev7 = {
-      revenue: sumOf(prevRows, "revenue"),
-      orders: sumOf(prevRows, "orders"),
+
+    const curOrders = sumOf(curRows, "orders");
+    const curRevenue = sumOf(curRows, "grossRevenue") || sumOf(curRows, "revenue");
+    const prevOrders = sumOf(prevRows, "orders");
+    const prevRevenue = sumOf(prevRows, "grossRevenue") || sumOf(prevRows, "revenue");
+
+    const current7: EcommerceContext["current7"] = {
+      grossRevenue: curRevenue,
+      orders: curOrders,
+      newCustomers: sumOf(curRows, "newCustomers"),
+      aov: curOrders > 0 ? curRevenue / curOrders : avgOf(curRows, "aov"),
+      refundRate: avgOf(curRows, "refundRate"),
+      cartAbandonmentRate: avgOf(curRows, "cartAbandonmentRate"),
+    };
+    const prev7: EcommerceContext["prev7"] = {
+      grossRevenue: prevRevenue,
+      orders: prevOrders,
       newCustomers: sumOf(prevRows, "newCustomers"),
+      aov: prevOrders > 0 ? prevRevenue / prevOrders : avgOf(prevRows, "aov"),
     };
 
     results.push({
@@ -190,9 +267,10 @@ async function buildEcommerceContexts(
       connected: true,
       current7,
       prev7,
-      revenueTrend: prev7.revenue > 0
-        ? ((current7.revenue - prev7.revenue) / prev7.revenue) * 100
+      revenueTrend: prev7.grossRevenue > 0
+        ? ((current7.grossRevenue - prev7.grossRevenue) / prev7.grossRevenue) * 100
         : 0,
+      aovTrend: prev7.aov > 0 ? ((current7.aov - prev7.aov) / prev7.aov) * 100 : 0,
     });
   }
 
@@ -200,17 +278,25 @@ async function buildEcommerceContexts(
 }
 
 function buildAttribution(
-  metaConnected: boolean,
-  metaCurrent7: { spend: number; conversions: number },
-  stripeCurrent7: { newCustomers: number }
+  adPlatformData: { platform: string; spend: number; purchaseValue: number }[],
+  totalNewCustomers: number,
 ): AttributionContext {
-  const totalAdSpend = metaConnected ? metaCurrent7.spend : 0;
-  const totalNewCustomers = stripeCurrent7.newCustomers;
+  const connected = adPlatformData.filter(p => p.spend > 0);
+  const totalAdSpend = connected.reduce((a, p) => a + p.spend, 0);
+  const totalAdAttributedRevenue = connected.reduce((a, p) => a + p.purchaseValue, 0);
+  const blendedROAS = totalAdSpend > 0 ? totalAdAttributedRevenue / totalAdSpend : null;
   const blendedCAC = totalAdSpend > 0 && totalNewCustomers > 0
     ? totalAdSpend / totalNewCustomers
     : null;
 
-  return { blendedCAC, totalAdSpend, totalNewCustomers };
+  return {
+    blendedROAS,
+    blendedCAC,
+    totalAdSpend,
+    totalAdAttributedRevenue,
+    totalNewCustomers,
+    adPlatforms: connected.map(p => p.platform),
+  };
 }
 
 export async function buildContext(userId: string): Promise<DigestContext> {
@@ -265,28 +351,35 @@ export async function buildContext(userId: string): Promise<DigestContext> {
   const stripeCurRows = stripeConnected ? await getSnapshots("stripe", current7Start, current7End) : [];
   const stripePrevRows = stripeConnected ? await getSnapshots("stripe", prev7Start, prev7End) : [];
 
-  const stripeCurrent7 = {
-    revenue: sum(pick(stripeCurRows, "revenue")),
-    refunds: sum(pick(stripeCurRows, "refunds")),
-    newCustomers: sum(pick(stripeCurRows, "newCustomers")),
-    txCount: sum(pick(stripeCurRows, "txCount")),
-    // Subscription / SaaS metrics — use latest day's value (point-in-time, not sum)
-    mrr: Math.max(...pick(stripeCurRows, "mrr").filter(v => v > 0), 0),
-    activeSubscriptions: Math.max(...pick(stripeCurRows, "activeSubscriptions").filter(v => v > 0), 0),
-    trialingSubscriptions: Math.max(...pick(stripeCurRows, "trialingSubscriptions").filter(v => v > 0), 0),
-    churnedToday: sum(pick(stripeCurRows, "churnedToday")),
-    arpu: Math.max(...pick(stripeCurRows, "arpu").filter(v => v > 0), 0),
+  const stripeGross7    = sum(pick(stripeCurRows, "grossRevenue"));
+  const stripePrevGross = sum(pick(stripePrevRows, "grossRevenue"));
+  const stripeTxCount7  = sum(pick(stripeCurRows, "txCount"));
+
+  const stripeCurrent7: StripeContext["current7"] = {
+    grossRevenue:        stripeGross7,
+    netRevenue:          sum(pick(stripeCurRows, "netRevenue")),
+    refunds:             sum(pick(stripeCurRows, "refunds")),
+    refundRate:          stripeCurRows.length > 0
+      ? avg(pick(stripeCurRows, "refundRate"))
+      : 0,
+    txCount:             stripeTxCount7,
+    avgTransactionValue: stripeTxCount7 > 0 ? Math.round(stripeGross7 / stripeTxCount7) : 0,
+    newCustomers:        sum(pick(stripeCurRows, "newCustomers")),
+    disputeCount:        sum(pick(stripeCurRows, "disputeCount")),
+    disputeAmount:       sum(pick(stripeCurRows, "disputeAmount")),
   };
-  const stripePrev7 = {
-    revenue: sum(pick(stripePrevRows, "revenue")),
-    refunds: sum(pick(stripePrevRows, "refunds")),
-    newCustomers: sum(pick(stripePrevRows, "newCustomers")),
-    txCount: sum(pick(stripePrevRows, "txCount")),
-    mrr: Math.max(...pick(stripePrevRows, "mrr").filter(v => v > 0), 0),
-    activeSubscriptions: Math.max(...pick(stripePrevRows, "activeSubscriptions").filter(v => v > 0), 0),
-    trialingSubscriptions: Math.max(...pick(stripePrevRows, "trialingSubscriptions").filter(v => v > 0), 0),
-    churnedToday: sum(pick(stripePrevRows, "churnedToday")),
-    arpu: Math.max(...pick(stripePrevRows, "arpu").filter(v => v > 0), 0),
+  const prevTxCount = sum(pick(stripePrevRows, "txCount"));
+  const prevGross   = stripePrevGross;
+  const stripePrev7: StripeContext["prev7"] = {
+    grossRevenue:        prevGross,
+    netRevenue:          sum(pick(stripePrevRows, "netRevenue")),
+    refunds:             sum(pick(stripePrevRows, "refunds")),
+    refundRate:          stripePrevRows.length > 0 ? avg(pick(stripePrevRows, "refundRate")) : 0,
+    txCount:             prevTxCount,
+    avgTransactionValue: prevTxCount > 0 ? Math.round(prevGross / prevTxCount) : 0,
+    newCustomers:        sum(pick(stripePrevRows, "newCustomers")),
+    disputeCount:        sum(pick(stripePrevRows, "disputeCount")),
+    disputeAmount:       sum(pick(stripePrevRows, "disputeAmount")),
   };
 
   // ── GA4 ─────────────────────────────────────────────────────────────────
@@ -294,19 +387,33 @@ export async function buildContext(userId: string): Promise<DigestContext> {
   const ga4CurRows = ga4Connected ? await getSnapshots("ga4", current7Start, current7End) : [];
   const ga4PrevRows = ga4Connected ? await getSnapshots("ga4", prev7Start, prev7End) : [];
 
-  const ga4Current7 = {
-    sessions: sum(pick(ga4CurRows, "sessions")),
-    totalUsers: sum(pick(ga4CurRows, "totalUsers")),
-    newUsers: sum(pick(ga4CurRows, "newUsers")),
-    bounceRate: avg(pick(ga4CurRows, "bounceRate")),
-    conversions: sum(pick(ga4CurRows, "conversions")),
+  const ga4AddToCarts7 = sum(pick(ga4CurRows, "addToCarts"));
+  const ga4Checkouts7  = sum(pick(ga4CurRows, "checkouts"));
+  const ga4Purchases7  = sum(pick(ga4CurRows, "ecommercePurchases"));
+
+  const ga4Current7: GA4Context["current7"] = {
+    sessions:               sum(pick(ga4CurRows, "sessions")),
+    totalUsers:             sum(pick(ga4CurRows, "totalUsers")),
+    newUsers:               sum(pick(ga4CurRows, "newUsers")),
+    bounceRate:             avg(pick(ga4CurRows, "bounceRate")),
+    conversions:            sum(pick(ga4CurRows, "conversions")),
+    ecommercePurchases:     ga4Purchases7,
+    purchaseRevenue:        sum(pick(ga4CurRows, "purchaseRevenue")),
+    addToCarts:             ga4AddToCarts7,
+    checkouts:              ga4Checkouts7,
+    cartToCheckoutRate:     ga4AddToCarts7 > 0 ? (ga4Checkouts7 / ga4AddToCarts7) * 100 : 0,
+    checkoutToPurchaseRate: ga4Checkouts7 > 0 ? (ga4Purchases7 / ga4Checkouts7) * 100 : 0,
   };
-  const ga4Prev7 = {
-    sessions: sum(pick(ga4PrevRows, "sessions")),
-    totalUsers: sum(pick(ga4PrevRows, "totalUsers")),
-    newUsers: sum(pick(ga4PrevRows, "newUsers")),
-    bounceRate: avg(pick(ga4PrevRows, "bounceRate")),
-    conversions: sum(pick(ga4PrevRows, "conversions")),
+  const ga4Prev7: GA4Context["prev7"] = {
+    sessions:           sum(pick(ga4PrevRows, "sessions")),
+    totalUsers:         sum(pick(ga4PrevRows, "totalUsers")),
+    newUsers:           sum(pick(ga4PrevRows, "newUsers")),
+    bounceRate:         avg(pick(ga4PrevRows, "bounceRate")),
+    conversions:        sum(pick(ga4PrevRows, "conversions")),
+    ecommercePurchases: sum(pick(ga4PrevRows, "ecommercePurchases")),
+    purchaseRevenue:    sum(pick(ga4PrevRows, "purchaseRevenue")),
+    addToCarts:         sum(pick(ga4PrevRows, "addToCarts")),
+    checkouts:          sum(pick(ga4PrevRows, "checkouts")),
   };
 
   // ── Meta ─────────────────────────────────────────────────────────────────
@@ -314,9 +421,6 @@ export async function buildContext(userId: string): Promise<DigestContext> {
   const metaCurRows = metaConnected ? await getSnapshots("meta", current7Start, current7End) : [];
   const metaPrevRows = metaConnected ? await getSnapshots("meta", prev7Start, prev7End) : [];
 
-  // Currency: read directly from integrations table (authoritative source —
-  // updated every time the user reconnects Meta). Fall back to snapshot data,
-  // then USD.
   const { data: metaIntegration } = metaConnected
     ? await db
         .from("integrations")
@@ -332,20 +436,57 @@ export async function buildContext(userId: string): Promise<DigestContext> {
       ?.data as Record<string, unknown> | undefined)?.currency as string) ??
     "USD";
 
-  const metaCurrent7 = {
-    spend: sum(pick(metaCurRows, "spend")),
-    impressions: sum(pick(metaCurRows, "impressions")),
-    clicks: sum(pick(metaCurRows, "clicks")),
-    reach: sum(pick(metaCurRows, "reach")),
-    conversions: sum(pick(metaCurRows, "conversions")),
+  const metaSpend7     = sum(pick(metaCurRows, "spend"));
+  const metaClicks7    = sum(pick(metaCurRows, "clicks"));
+  const metaImpr7      = sum(pick(metaCurRows, "impressions"));
+  const metaPurchVal7  = sum(pick(metaCurRows, "purchaseValue"));
+  const metaConv7      = sum(pick(metaCurRows, "conversions"));
+
+  const metaCurrent7: MetaContext["current7"] = {
+    spend:            metaSpend7,
+    impressions:      metaImpr7,
+    clicks:           metaClicks7,
+    reach:            sum(pick(metaCurRows, "reach")),
+    conversions:      metaConv7,
+    purchaseValue:    metaPurchVal7,
+    roas:             metaSpend7 > 0 ? metaPurchVal7 / metaSpend7 : 0,
+    cpc:              metaClicks7 > 0 ? metaSpend7 / metaClicks7 : 0,
+    cpm:              metaImpr7 > 0 ? (metaSpend7 / metaImpr7) * 1000 : 0,
+    ctr:              metaImpr7 > 0 ? (metaClicks7 / metaImpr7) * 100 : 0,
+    costPerPurchase:  metaConv7 > 0 ? metaSpend7 / metaConv7 : 0,
+    addToCartCount:   sum(pick(metaCurRows, "addToCartCount")),
   };
-  const metaPrev7 = {
-    spend: sum(pick(metaPrevRows, "spend")),
-    impressions: sum(pick(metaPrevRows, "impressions")),
-    clicks: sum(pick(metaPrevRows, "clicks")),
-    reach: sum(pick(metaPrevRows, "reach")),
-    conversions: sum(pick(metaPrevRows, "conversions")),
+  const metaPrevSpend = sum(pick(metaPrevRows, "spend"));
+  const metaPrevPurchVal = sum(pick(metaPrevRows, "purchaseValue"));
+  const metaPrev7: MetaContext["prev7"] = {
+    spend:         metaPrevSpend,
+    impressions:   sum(pick(metaPrevRows, "impressions")),
+    clicks:        sum(pick(metaPrevRows, "clicks")),
+    reach:         sum(pick(metaPrevRows, "reach")),
+    conversions:   sum(pick(metaPrevRows, "conversions")),
+    purchaseValue: metaPrevPurchVal,
+    roas:          metaPrevSpend > 0 ? metaPrevPurchVal / metaPrevSpend : 0,
   };
+
+  // ── Additional ad platform spend (Google Ads, TikTok, etc.) ─────────────
+  const adPlatformData: { platform: string; spend: number; purchaseValue: number }[] = [
+    { platform: "meta", spend: metaSpend7, purchaseValue: metaPurchVal7 },
+  ];
+  for (const adPlatform of ADS_PLATFORMS.filter(p => p !== "meta")) {
+    const connected = await hasIntegration(adPlatform);
+    if (!connected) continue;
+    const rows = await getSnapshots(adPlatform, current7Start, current7End);
+    adPlatformData.push({
+      platform: adPlatform,
+      spend: sum(pick(rows, "spend")),
+      purchaseValue: sum(pick(rows, "purchaseValue")),
+    });
+  }
+
+  // ── Total new customers across all store + payment platforms ─────────────
+  const allNewCustomers = stripeCurrent7.newCustomers
+    + (await buildEcommerceContexts(userId, db, current7Start, current7End, prev7Start, prev7End, hasIntegration, getSnapshots))
+        .reduce((a, ec) => a + ec.current7.newCustomers, 0);
 
   return {
     userId,
@@ -353,14 +494,15 @@ export async function buildContext(userId: string): Promise<DigestContext> {
       connected: stripeConnected,
       current7: stripeCurrent7,
       prev7: stripePrev7,
-      revenueTrend: calcTrend(stripeCurrent7.revenue, stripePrev7.revenue),
-      mrrTrend: calcTrend(stripeCurrent7.mrr, stripePrev7.mrr),
+      revenueTrend: calcTrend(stripeCurrent7.grossRevenue, stripePrev7.grossRevenue),
+      aovTrend: calcTrend(stripeCurrent7.avgTransactionValue, stripePrev7.avgTransactionValue),
     },
     ga4: {
       connected: ga4Connected,
       current7: ga4Current7,
       prev7: ga4Prev7,
       sessionsTrend: calcTrend(ga4Current7.sessions, ga4Prev7.sessions),
+      purchaseRevenueTrend: calcTrend(ga4Current7.purchaseRevenue, ga4Prev7.purchaseRevenue),
     },
     meta: {
       connected: metaConnected,
@@ -368,10 +510,11 @@ export async function buildContext(userId: string): Promise<DigestContext> {
       current7: metaCurrent7,
       prev7: metaPrev7,
       spendTrend: calcTrend(metaCurrent7.spend, metaPrev7.spend),
+      roasTrend: calcTrend(metaCurrent7.roas, metaPrev7.roas),
     },
     emailPlatforms: await buildEmailContexts(userId, db, current7Start, current7End, prev7Start, prev7End, hasIntegration, getSnapshots),
     ecommercePlatforms: await buildEcommerceContexts(userId, db, current7Start, current7End, prev7Start, prev7End, hasIntegration, getSnapshots),
-    attribution: buildAttribution(metaConnected, metaCurrent7, stripeCurrent7),
+    attribution: buildAttribution(adPlatformData, allNewCustomers),
     businessProfile,
   };
 }

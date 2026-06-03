@@ -24,31 +24,31 @@ export const metadata: Metadata = {
     shortcut: "/fold-icon.svg",
     apple: "/fold-icon.svg",
   },
-  title: "Fold — AI Analyst for Your SaaS. Catch Revenue Leaks Automatically.",
+  title: "Fold — AI Analytics for Shopify & E-commerce Stores",
   description:
-    "AI watches your Stripe, GA4, and Meta 24/7 — catches revenue anomalies, audits your site for conversion leaks, and shows true ad ROI. $19/mo, 7-day free trial.",
+    "Connect Shopify, Meta Ads, and GA4. Fold's AI catches revenue leaks, tracks true ad profit, and tells you exactly what to fix — every morning. $19/mo, 7-day free trial.",
   metadataBase: new URL(baseUrl),
   openGraph: {
     type: "website",
     url: baseUrl,
-    title: "Stop Losing $5K/mo to Revenue Leaks You Don't See",
+    title: "Do you know which ads are making money — and which are burning your budget?",
     description:
-      "Fold's AI detects anomalies, audits conversions, and shows true ad ROAS before you waste money.",
+      "Fold connects Shopify, Meta Ads, and GA4 and tells you what to stop and what to scale — every morning. $19/mo, 7-day free trial.",
     siteName: "Fold",
     images: [
       {
         url: "/api/og",
         width: 1200,
         height: 630,
-        alt: "Fold — AI Business Intelligence Dashboard",
+        alt: "Fold — AI Analytics for Shopify & E-commerce Stores",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Fold — AI Analyst for Your SaaS. Catch Revenue Leaks Automatically.",
+    title: "Fold — AI Analytics for Shopify & E-commerce Stores",
     description:
-      "Your entire business, understood in seconds. AI-powered dashboard for founders.",
+      "Connect Shopify, Meta Ads, and GA4. Catch revenue leaks, track true ad profit, and know exactly what to fix — every morning. $19/mo.",
     images: ["/twitter-card.png"],
   },
 };

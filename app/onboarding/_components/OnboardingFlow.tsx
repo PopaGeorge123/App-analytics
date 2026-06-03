@@ -80,12 +80,10 @@ const PRIVACY: Record<string, PrivacyInfo> = {
   "lemon-squeezy": {
     reads: [
       "Total revenue & order counts per day",
-      "Subscription MRR",
       "Refund totals",
     ],
     stores: [
       "Daily revenue snapshots",
-      "Subscription counts",
     ],
     never: [
       "Customer personal information",
@@ -112,13 +110,12 @@ const PRIVACY: Record<string, PrivacyInfo> = {
   },
   paddle: {
     reads: [
-      "Total revenue & MRR aggregates",
-      "New subscription counts",
-      "Churn events (count only)",
+      "Total revenue aggregates",
+      "New order counts",
       "Refund totals",
     ],
     stores: [
-      "Daily revenue & subscription snapshots",
+      "Daily revenue snapshots",
       "Currency code",
     ],
     never: [
@@ -276,10 +273,10 @@ const PRIVACY: Record<string, PrivacyInfo> = {
 // ── Dashboard preview metrics per integration ──────────────────────────────
 const PREVIEW_METRICS: Record<string, { label: string; value: string; trend?: string }[]> = {
   stripe: [
-    { label: "MRR", value: "$4,280", trend: "↑ +12% this month" },
-    { label: "New customers", value: "18", trend: "↑ +3 vs last week" },
-    { label: "Churn rate", value: "2.1%", trend: "↓ -0.4%" },
-    { label: "Revenue (30d)", value: "$12,840" },
+    { label: "GMV (30d)", value: "$42,840", trend: "↑ +18% this month" },
+    { label: "Orders", value: "491", trend: "↑ +64 vs last month" },
+    { label: "Avg order value", value: "$87.40", trend: "↑ +$9" },
+    { label: "Refund rate", value: "2.8%" },
   ],
   ga4: [
     { label: "Sessions (7d)", value: "3,240", trend: "↑ +8%" },
@@ -288,10 +285,10 @@ const PREVIEW_METRICS: Record<string, { label: string; value: string; trend?: st
     { label: "Avg session", value: "2m 34s" },
   ],
   shopify: [
-    { label: "Revenue (7d)", value: "$6,120", trend: "↑ +15%" },
+    { label: "GMV (7d)", value: "$6,120", trend: "↑ +15%" },
     { label: "Orders", value: "84" },
     { label: "Avg order value", value: "$72.86" },
-    { label: "Refunds", value: "3" },
+    { label: "Refund rate", value: "1.9%" },
   ],
   mailchimp: [
     { label: "Subscribers", value: "2,840", trend: "↑ +120 this week" },
@@ -301,39 +298,15 @@ const PREVIEW_METRICS: Record<string, { label: string; value: string; trend?: st
   ],
   meta: [
     { label: "Ad spend (7d)", value: "$840", trend: "Budget on track" },
-    { label: "Impressions", value: "48,200" },
-    { label: "Clicks", value: "1,240" },
-    { label: "Conversions", value: "34" },
-  ],
-  "lemon-squeezy": [
-    { label: "Revenue (30d)", value: "$3,640", trend: "↑ +9%" },
-    { label: "New orders", value: "47" },
-    { label: "Active subs", value: "128" },
-    { label: "Refunds", value: "2" },
-  ],
-  gumroad: [
-    { label: "Revenue (30d)", value: "$1,820" },
-    { label: "Sales", value: "62" },
-    { label: "Refunds", value: "1" },
-    { label: "New customers", value: "58" },
-  ],
-  paddle: [
-    { label: "MRR", value: "$5,120", trend: "↑ +7%" },
-    { label: "New subs", value: "22" },
-    { label: "Churn (30d)", value: "4" },
-    { label: "Revenue (30d)", value: "$15,360" },
+    { label: "ROAS", value: "2.4×", trend: "↑ vs last week" },
+    { label: "CPC", value: "$0.68" },
+    { label: "Purchases", value: "34" },
   ],
   plausible: [
     { label: "Pageviews (7d)", value: "12,400", trend: "↑ +18%" },
     { label: "Unique visitors", value: "3,820" },
     { label: "Bounce rate", value: "39%" },
     { label: "Avg duration", value: "1m 52s" },
-  ],
-  beehiiv: [
-    { label: "Subscribers", value: "4,210", trend: "↑ +180 this week" },
-    { label: "Premium subs", value: "312" },
-    { label: "Posts (30d)", value: "8" },
-    { label: "New today", value: "24" },
   ],
   posthog: [
     { label: "Pageviews (7d)", value: "9,840", trend: "↑ +6%" },
@@ -347,6 +320,12 @@ const PREVIEW_METRICS: Record<string, { label: string; value: string; trend?: st
     { label: "Attributed rev.", value: "$2,840", trend: "↑ +12%" },
     { label: "New subscribers", value: "142" },
   ],
+  brevo: [
+    { label: "Emails sent (7d)", value: "14,200" },
+    { label: "Open rate", value: "29.8%" },
+    { label: "Click rate", value: "5.1%" },
+    { label: "New subscribers", value: "98" },
+  ],
   hubspot: [
     { label: "Deals won (30d)", value: "14", trend: "↑ +3 vs last month" },
     { label: "Closed revenue", value: "$42,000" },
@@ -354,38 +333,44 @@ const PREVIEW_METRICS: Record<string, { label: string; value: string; trend?: st
     { label: "New contacts (7d)", value: "38" },
   ],
   woocommerce: [
-    { label: "Revenue (7d)", value: "$3,840", trend: "↑ +11%" },
+    { label: "GMV (7d)", value: "$3,840", trend: "↑ +11%" },
     { label: "Orders", value: "56" },
     { label: "Avg order value", value: "$68.57" },
-    { label: "Refunds", value: "4" },
+    { label: "Refund rate", value: "2.1%" },
+  ],
+  bigcommerce: [
+    { label: "GMV (7d)", value: "$5,240", trend: "↑ +9%" },
+    { label: "Orders", value: "72" },
+    { label: "Avg order value", value: "$72.78" },
+    { label: "Cart abandonment", value: "68%" },
+  ],
+  amazon: [
+    { label: "Revenue (7d)", value: "$8,120", trend: "↑ +14%" },
+    { label: "Units sold", value: "184" },
+    { label: "Buy Box %", value: "94%" },
+    { label: "Return rate", value: "3.2%" },
+  ],
+  etsy: [
+    { label: "Revenue (30d)", value: "$2,410" },
+    { label: "Orders", value: "88" },
+    { label: "Avg order value", value: "$27.39" },
+    { label: "5-star reviews", value: "76" },
   ],
 };
 
 const DEFAULT_PREVIEW_METRICS = [
-  { label: "Revenue (30d)", value: "$8,240", trend: "↑ +11% this month" },
-  { label: "Active users", value: "1,840" },
+  { label: "GMV (30d)", value: "$8,240", trend: "↑ +11% this month" },
+  { label: "Active customers", value: "1,840" },
   { label: "Conversion", value: "3.2%", trend: "↑ +0.4%" },
-  { label: "Churn rate", value: "1.8%" },
+  { label: "Refund rate", value: "2.1%" },
 ];
 
 
 const API_KEY_PLATFORMS: Record<string, { fields: { name: string; label: string; placeholder: string; type?: string; optional?: boolean }[] }> = {
-  "lemon-squeezy": {
-    fields: [{ name: "apiKey", label: "API Key", placeholder: "Your Lemon Squeezy API key" }],
-  },
-  paddle: {
-    fields: [{ name: "apiKey", label: "API Key", placeholder: "Your Paddle API key" }],
-  },
   plausible: {
     fields: [
       { name: "apiKey", label: "API Key", placeholder: "Your Plausible API key" },
       { name: "siteId", label: "Site Hostname", placeholder: "yourdomain.com" },
-    ],
-  },
-  beehiiv: {
-    fields: [
-      { name: "apiKey", label: "API Key", placeholder: "Your Beehiiv API key" },
-      { name: "publicationId", label: "Publication ID", placeholder: "pub_xxxxxxxx" },
     ],
   },
   posthog: {

@@ -6,19 +6,50 @@ import DashboardShell from "./_components/DashboardShell";
 import { Suspense } from "react";
 import ConversionTracker from "@/components/ConversionTracker";
 
+/** A single line-item inside a recent order */
+export interface OrderLineItem {
+  name:        string;
+  qty:         number;
+  price_cents: number;
+  sku:         string | null;
+}
+
+/** One order entry stored in the recent_orders jsonb column */
+export interface RecentOrder {
+  order_id:         string;
+  date:             string;          // YYYY-MM-DD
+  total_cents:      number;
+  currency:         string;
+  status:           string;
+  line_items:       OrderLineItem[];
+  shipping_city:    string | null;
+  shipping_country: string | null;
+}
+
 /** Customer record shape returned from the customers table */
 export interface CustomerRow {
-  id:          string;
-  provider:    string;
-  provider_id: string;
-  email:       string | null;
-  name:        string | null;
-  total_spent: number;   // cents (bigint → number via supabase-js)
-  order_count: number;
-  first_seen:  string | null;  // YYYY-MM-DD
-  last_seen:   string | null;  // YYYY-MM-DD
-  subscribed:  boolean;
-  churned:     boolean;
+  id:                string;
+  provider:          string;
+  provider_id:       string;
+  email:             string | null;
+  name:              string | null;
+  total_spent:       number;   // cents (bigint → number via supabase-js)
+  order_count:       number;
+  first_seen:        string | null;  // YYYY-MM-DD
+  last_seen:         string | null;  // YYYY-MM-DD
+  subscribed:        boolean;
+  churned:           boolean;
+  // Enriched profile fields (added in migration 040)
+  city:              string | null;
+  country:           string | null;
+  country_code:      string | null;
+  phone:             string | null;
+  currency:          string | null;
+  accepts_marketing: boolean;
+  tags:              string[];
+  avg_order_value:   number;   // cents
+  last_order_id:     string | null;
+  recent_orders:     RecentOrder[];
 }
 
 export default async function DashboardPage({
@@ -109,23 +140,33 @@ export default async function DashboardPage({
   // own rows; the Customers tab aggregates across all of them automatically.
   const { data: rawCustomers } = await db
     .from("customers")
-    .select("id, provider, provider_id, email, name, total_spent, order_count, first_seen, last_seen, subscribed, churned")
+    .select("id, provider, provider_id, email, name, total_spent, order_count, first_seen, last_seen, subscribed, churned, city, country, country_code, phone, currency, accepts_marketing, tags, avg_order_value, last_order_id, recent_orders")
     .eq("user_id", user.id)
     .order("total_spent", { ascending: false })
     .limit(500);
 
   const customers: CustomerRow[] = (rawCustomers ?? []).map((c) => ({
-    id:          c.id,
-    provider:    c.provider,
-    provider_id: c.provider_id,
-    email:       c.email       ?? null,
-    name:        c.name        ?? null,
-    total_spent: Number(c.total_spent ?? 0),
-    order_count: Number(c.order_count ?? 0),
-    first_seen:  c.first_seen  ?? null,
-    last_seen:   c.last_seen   ?? null,
-    subscribed:  Boolean(c.subscribed),
-    churned:     Boolean(c.churned),
+    id:                c.id,
+    provider:          c.provider,
+    provider_id:       c.provider_id,
+    email:             c.email              ?? null,
+    name:              c.name               ?? null,
+    total_spent:       Number(c.total_spent ?? 0),
+    order_count:       Number(c.order_count ?? 0),
+    first_seen:        c.first_seen         ?? null,
+    last_seen:         c.last_seen          ?? null,
+    subscribed:        Boolean(c.subscribed),
+    churned:           Boolean(c.churned),
+    city:              c.city               ?? null,
+    country:           c.country            ?? null,
+    country_code:      c.country_code       ?? null,
+    phone:             c.phone              ?? null,
+    currency:          c.currency           ?? null,
+    accepts_marketing: Boolean(c.accepts_marketing),
+    tags:              Array.isArray(c.tags) ? c.tags : [],
+    avg_order_value:   Number(c.avg_order_value ?? 0),
+    last_order_id:     c.last_order_id      ?? null,
+    recent_orders:     Array.isArray(c.recent_orders) ? c.recent_orders : [],
   }));
 
   async function signOut() {

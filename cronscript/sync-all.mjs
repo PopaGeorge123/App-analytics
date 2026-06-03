@@ -255,9 +255,12 @@ const SB = {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ① STRIPE  (Stripe REST API — no SDK)
+// E-commerce focus: grossRevenue, netRevenue, refunds, refundRate,
+// avgTransactionValue (AOV for Stripe), disputeCount, newCustomers.
+// SaaS-specific metrics (MRR, activeSubscriptions, ARPU) removed.
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Fetch + upsert one day of Stripe data (payments + subscriptions + customers) */
+/** Fetch + upsert one day of Stripe e-commerce data */
 async function syncStripeDay(userId, accessToken, date) {
   const gte = Math.floor(new Date(`${date}T00:00:00Z`).getTime() / 1000);
   const lte = gte + 86399;
@@ -277,26 +280,20 @@ async function syncStripeDay(userId, accessToken, date) {
     startingAfter = page.data.at(-1).id;
   }
 
-  const succeeded    = intents.filter(pi => pi.status === 'succeeded');
-  const revenue      = succeeded.reduce((s, pi) => s + (pi.amount_received ?? 0), 0);
-  const txCount      = succeeded.length;
-  // Count unique buyers: use Stripe customer ID if attached, otherwise fall back
-  // to receipt_email (guest checkouts), or treat each transaction as a new customer.
-  // This ensures one-time payments without a Customer object are still counted.
+  const succeeded  = intents.filter(pi => pi.status === 'succeeded');
+  const grossRevenue = succeeded.reduce((s, pi) => s + (pi.amount_received ?? 0), 0); // in cents
+  const txCount    = succeeded.length;
+  const avgTransactionValue = txCount > 0 ? Math.round(grossRevenue / txCount) : 0; // AOV in cents
+
+  // Count unique new customers (unique buyer IDs)
   const newCustomers = new Set(succeeded.map(pi =>
     pi.customer
       ? `cus_${String(pi.customer)}`
       : (pi.receipt_email ?? pi.payment_method ?? pi.id)
   )).size;
 
-  // Subscription gauge metrics (MRR, active subs, ARPU) reflect the CURRENT live state.
-  // Writing them to historical dates would misrepresent when subscriptions started.
-  // Only fetch and store them when syncing today's snapshot.
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const isToday  = date === todayStr;
-
   // ── 2. Refunds for this day ──────────────────────────────────────────────
-  let refunds = 0;
+  let refunds = 0; // in cents
   try {
     const refundItems = [];
     let ra = null;
@@ -313,93 +310,43 @@ async function syncStripeDay(userId, accessToken, date) {
     refunds = refundItems.reduce((s, r) => s + (r.amount ?? 0), 0);
   } catch (_) { /* refunds optional */ }
 
-  // ── 3. Active subscriptions snapshot (current state) ────────────────────
-  // We fetch all active + trialing subscriptions to compute MRR.
-  // Only done for today's snapshot — not backfill — to avoid backfilling
-  // current MRR onto dates before the subscription existed.
-  let activeSubscriptions = 0;
-  let mrr = 0; // in cents
-  let trialingSubscriptions = 0;
-  if (isToday) try {
-    for (const status of ['active', 'trialing']) {
-      let sa = null;
-      while (true) {
-        const p = new URLSearchParams({ status, limit: '100', expand: 'data.items.data.price' });
-        if (sa) p.set('starting_after', sa);
-        const res = await fetchRetry(`Stripe subscriptions(${status})`, `https://api.stripe.com/v1/subscriptions?${p}`, { headers: stripeHeaders });
-        if (!res.ok) break;
-        const page = await res.json();
-        for (const sub of page.data) {
-          if (status === 'active') activeSubscriptions++;
-          if (status === 'trialing') trialingSubscriptions++;
-          // MRR: normalise each item's price to monthly
-          for (const item of (sub.items?.data ?? [])) {
-            const price = item.price ?? {};
-            const unitAmount = price.unit_amount ?? 0;
-            const qty = item.quantity ?? 1;
-            const interval = price.recurring?.interval ?? 'month';
-            const intervalCount = price.recurring?.interval_count ?? 1;
-            // Convert to monthly equivalent
-            let monthlyAmount = 0;
-            if (interval === 'month')  monthlyAmount = (unitAmount * qty) / intervalCount;
-            else if (interval === 'year')  monthlyAmount = (unitAmount * qty) / (intervalCount * 12);
-            else if (interval === 'week')  monthlyAmount = (unitAmount * qty * 52) / (intervalCount * 12);
-            else if (interval === 'day')   monthlyAmount = (unitAmount * qty * 365) / (intervalCount * 12);
-            mrr += Math.round(monthlyAmount);
-          }
-        }
-        if (!page.has_more) break;
-        sa = page.data.at(-1).id;
+  // ── 3. Disputes (chargebacks) for this day ───────────────────────────────
+  let disputeCount = 0;
+  let disputeAmount = 0; // in cents
+  try {
+    const dRes = await fetchRetry('Stripe disputes',
+      `https://api.stripe.com/v1/disputes?created[gte]=${gte}&created[lte]=${lte}&limit=100`,
+      { headers: stripeHeaders });
+    if (dRes.ok) {
+      const dBody = await dRes.json();
+      for (const d of (dBody.data ?? [])) {
+        disputeCount++;
+        disputeAmount += d.amount ?? 0;
       }
     }
-  } catch (_) { /* subscriptions optional */ }
+  } catch (_) { /* disputes optional */ }
 
-  // ── 4. Subscriptions canceled today (churn) ─────────────────────────────
-  let churnedToday = 0;
-  try {
-    let sa = null;
-    while (true) {
-      const p = new URLSearchParams({ status: 'canceled', 'canceled_at[gte]': gte, 'canceled_at[lte]': lte, limit: '100' });
-      if (sa) p.set('starting_after', sa);
-      const res = await fetchRetry('Stripe canceled subs', `https://api.stripe.com/v1/subscriptions?${p}`, { headers: stripeHeaders });
-      if (!res.ok) break;
-      const page = await res.json();
-      churnedToday += page.data.length;
-      if (!page.has_more) break;
-      sa = page.data.at(-1).id;
-    }
-  } catch (_) { /* churn optional */ }
-
-  // ── 5. Total customer count (current state) ──────────────────────────────
-  let totalCustomers = 0;
-  try {
-    const res = await fetchRetry('Stripe customers count', `https://api.stripe.com/v1/customers?limit=1`, { headers: stripeHeaders });
-    if (res.ok) {
-      const page = await res.json();
-      // Stripe doesn't give a total count directly, but we can use list metadata
-      // total_count is not available in list — we store what we have
-      totalCustomers = page.data?.length ?? 0; // fallback: store page count, backfill will aggregate
-    }
-  } catch (_) { /* optional */ }
-
-  // ARPU = MRR / activeSubscriptions (in cents)
-  const arpu = activeSubscriptions > 0 ? Math.round(mrr / activeSubscriptions) : 0;
+  const netRevenue = grossRevenue - refunds;
+  const refundRate = grossRevenue > 0 ? (refunds / grossRevenue) * 100 : 0;
 
   await SB.upsert('daily_snapshots',
     {
       user_id: userId, provider: 'stripe', date,
       data: {
-        revenue, refunds, newCustomers, txCount,
-        mrr, activeSubscriptions, trialingSubscriptions,
-        churnedToday, arpu,
+        grossRevenue,
+        netRevenue,
+        refunds,
+        refundRate,
+        txCount,
+        avgTransactionValue,  // AOV in cents
+        newCustomers,
+        disputeCount,
+        disputeAmount,
       }
     },
     'user_id,provider,date');
 
-  // ── 6. Upsert individual customer records ───────────────────────────────
-  // Collect all unique customer IDs that appear in today's succeeded intents.
-  // Then fetch their full profiles from Stripe and upsert into the customers table.
-  // We also pull their total lifetime charges so the LTV stays accurate.
+  // ── 4. Upsert individual customer records ───────────────────────────────
   try {
     const customerIds = [...new Set(
       succeeded.filter(pi => pi.customer).map(pi => String(pi.customer))
@@ -407,24 +354,17 @@ async function syncStripeDay(userId, accessToken, date) {
 
     for (const cusId of customerIds) {
       try {
-        // Fetch customer profile
         const cusRes = await fetchRetry(`Stripe customer ${cusId}`,
           `https://api.stripe.com/v1/customers/${cusId}`, { headers: stripeHeaders });
         if (!cusRes.ok) continue;
         const cus = await cusRes.json();
 
-        // Compute LTV: sum all succeeded charges for this customer (up to 100)
-        let totalSpent = 0;
-        let orderCount = 0;
-        let firstSeenTs = null;
-        let lastSeenTs  = null;
-
+        let totalSpent = 0, orderCount = 0, firstSeenTs = null, lastSeenTs = null;
         const chargesRes = await fetchRetry(`Stripe charges ${cusId}`,
           `https://api.stripe.com/v1/charges?customer=${cusId}&limit=100&status=succeeded`,
           { headers: stripeHeaders });
         if (chargesRes.ok) {
-          const chargesBody = await chargesRes.json();
-          for (const ch of (chargesBody.data ?? [])) {
+          for (const ch of ((await chargesRes.json()).data ?? [])) {
             totalSpent += ch.amount_captured ?? ch.amount ?? 0;
             orderCount += 1;
             if (!firstSeenTs || ch.created < firstSeenTs) firstSeenTs = ch.created;
@@ -432,44 +372,27 @@ async function syncStripeDay(userId, accessToken, date) {
           }
         }
 
-        // Check if customer has an active subscription
-        const subsRes = await fetchRetry(`Stripe subs ${cusId}`,
-          `https://api.stripe.com/v1/subscriptions?customer=${cusId}&limit=10`,
-          { headers: stripeHeaders });
-        let subscribed = false;
-        let churned    = false;
-        if (subsRes.ok) {
-          const subsBody = await subsRes.json();
-          const subs = subsBody.data ?? [];
-          subscribed = subs.some(s => s.status === 'active' || s.status === 'trialing');
-          churned    = !subscribed && subs.some(s => s.status === 'canceled');
-        }
-
-        const firstSeen = firstSeenTs
-          ? new Date(firstSeenTs * 1000).toISOString().slice(0, 10)
-          : date;
-        const lastSeen  = lastSeenTs
-          ? new Date(lastSeenTs  * 1000).toISOString().slice(0, 10)
-          : date;
+        const firstSeen = firstSeenTs ? new Date(firstSeenTs * 1000).toISOString().slice(0, 10) : date;
+        const lastSeen  = lastSeenTs  ? new Date(lastSeenTs  * 1000).toISOString().slice(0, 10) : date;
 
         await SB.upsert('customers', {
-          user_id:    userId,
-          provider:   'stripe',
+          user_id:     userId,
+          provider:    'stripe',
           provider_id: cusId,
-          email:      cus.email   ?? null,
-          name:       cus.name    ?? null,
+          email:       cus.email ?? null,
+          name:        cus.name  ?? null,
           total_spent: totalSpent,
           order_count: orderCount,
           first_seen:  firstSeen,
           last_seen:   lastSeen,
-          subscribed,
-          churned,
+          subscribed:  false,
+          churned:     false,
         }, 'user_id,provider,provider_id');
       } catch (_) { /* individual customer errors are non-fatal */ }
     }
   } catch (_) { /* customer upsert block is non-fatal */ }
 
-  return { revenue, txCount, newCustomers, mrr, activeSubscriptions, churnedToday };
+  return { grossRevenue, netRevenue, txCount, newCustomers, avgTransactionValue, refundRate };
 }
 
 /** Daily sync — yesterday only */
@@ -544,7 +467,7 @@ async function backfillStripe(userId, accessToken, days = BACKFILL_DAYS.stripe) 
   const stripeHeaders = { Authorization: `Bearer ${accessToken}` };
   const startTs = Math.floor(Date.now() / 1000) - days * 86400;
 
-  // --- Fetch all successful PaymentIntents in range (paginated) ---
+  // --- Fetch all successful charges in range (paginated) ---
   const allCharges = [];
   let chargesUrl = `https://api.stripe.com/v1/charges?limit=100&status=succeeded&created[gte]=${startTs}`;
   while (chargesUrl) {
@@ -552,7 +475,9 @@ async function backfillStripe(userId, accessToken, days = BACKFILL_DAYS.stripe) 
     if (!res.ok) break;
     const body = await res.json();
     allCharges.push(...(body.data ?? []));
-    chargesUrl = body.has_more ? `https://api.stripe.com/v1/charges?limit=100&status=succeeded&created[gte]=${startTs}&starting_after=${body.data.at(-1).id}` : null;
+    chargesUrl = body.has_more
+      ? `https://api.stripe.com/v1/charges?limit=100&status=succeeded&created[gte]=${startTs}&starting_after=${body.data.at(-1).id}`
+      : null;
     if (chargesUrl) await sleep(200);
   }
 
@@ -564,68 +489,68 @@ async function backfillStripe(userId, accessToken, days = BACKFILL_DAYS.stripe) 
     if (!res.ok) break;
     const body = await res.json();
     allRefunds.push(...(body.data ?? []));
-    refundsUrl = body.has_more ? `https://api.stripe.com/v1/refunds?limit=100&created[gte]=${startTs}&starting_after=${body.data.at(-1).id}` : null;
+    refundsUrl = body.has_more
+      ? `https://api.stripe.com/v1/refunds?limit=100&created[gte]=${startTs}&starting_after=${body.data.at(-1).id}`
+      : null;
     if (refundsUrl) await sleep(200);
   }
 
-  // --- Current MRR / active subscriptions (snapshot, not historic) ---
-  let mrr = 0, activeSubscriptions = 0;
+  // --- Fetch disputes in range ---
+  const allDisputes = [];
   try {
-    let subsUrl = `https://api.stripe.com/v1/subscriptions?limit=100&status=active&expand[]=data.items.data.price`;
-    while (subsUrl) {
-      const res = await fetchRetry('Stripe subs page', subsUrl, { headers: stripeHeaders });
+    let disputesUrl = `https://api.stripe.com/v1/disputes?limit=100&created[gte]=${startTs}`;
+    while (disputesUrl) {
+      const res = await fetchRetry('Stripe disputes page', disputesUrl, { headers: stripeHeaders });
       if (!res.ok) break;
       const body = await res.json();
-      for (const s of (body.data ?? [])) {
-        activeSubscriptions++;
-        // Use expanded price (new API) with fallback to deprecated plan
-        for (const item of (s.items?.data ?? [])) {
-          const price = item.price ?? {};
-          const unitAmount = price.unit_amount ?? item.plan?.amount ?? 0;
-          const qty = item.quantity ?? 1;
-          const interval = price.recurring?.interval ?? item.plan?.interval ?? 'month';
-          const intervalCount = price.recurring?.interval_count ?? item.plan?.interval_count ?? 1;
-          let monthlyAmount = 0;
-          if (interval === 'month')  monthlyAmount = (unitAmount * qty) / intervalCount;
-          else if (interval === 'year')  monthlyAmount = (unitAmount * qty) / (intervalCount * 12);
-          else if (interval === 'week')  monthlyAmount = (unitAmount * qty * 52) / (intervalCount * 12);
-          else if (interval === 'day')   monthlyAmount = (unitAmount * qty * 365) / (intervalCount * 12);
-          mrr += Math.round(monthlyAmount);
-        }
-      }
-      subsUrl = body.has_more
-        ? `https://api.stripe.com/v1/subscriptions?limit=100&status=active&expand[]=data.items.data.price&starting_after=${body.data.at(-1).id}`
+      allDisputes.push(...(body.data ?? []));
+      disputesUrl = body.has_more
+        ? `https://api.stripe.com/v1/disputes?limit=100&created[gte]=${startTs}&starting_after=${body.data.at(-1).id}`
         : null;
-      if (subsUrl) await sleep(200);
+      if (disputesUrl) await sleep(200);
     }
-  } catch { /* non-fatal */ }
+  } catch { /* disputes non-fatal */ }
 
-  // --- Group charges by date ---
+  // --- Group by date ---
   const byDate = {};
+  const ensure = (date) => {
+    byDate[date] ??= { grossRevenue: 0, txCount: 0, refunds: 0, newCustomers: 0, disputeCount: 0, disputeAmount: 0 };
+  };
   for (const ch of allCharges) {
     const date = new Date(ch.created * 1000).toISOString().slice(0, 10);
-    byDate[date] ??= { revenue: 0, txCount: 0, refunds: 0, newCustomers: 0 };
-    byDate[date].revenue  += ch.amount_captured ?? ch.amount ?? 0;
-    byDate[date].txCount  += 1;
+    ensure(date);
+    byDate[date].grossRevenue += ch.amount_captured ?? ch.amount ?? 0;
+    byDate[date].txCount      += 1;
   }
   for (const rf of allRefunds) {
     const date = new Date(rf.created * 1000).toISOString().slice(0, 10);
-    byDate[date] ??= { revenue: 0, txCount: 0, refunds: 0, newCustomers: 0 };
+    ensure(date);
     byDate[date].refunds += rf.amount ?? 0;
+  }
+  for (const d of allDisputes) {
+    const date = new Date(d.created * 1000).toISOString().slice(0, 10);
+    ensure(date);
+    byDate[date].disputeCount  += 1;
+    byDate[date].disputeAmount += d.amount ?? 0;
   }
 
   // --- Upsert each day ---
   let ok = 0;
   for (const [date, vals] of Object.entries(byDate)) {
+    const netRevenue  = vals.grossRevenue - vals.refunds;
+    const refundRate  = vals.grossRevenue > 0 ? (vals.refunds / vals.grossRevenue) * 100 : 0;
+    const avgTransactionValue = vals.txCount > 0 ? Math.round(vals.grossRevenue / vals.txCount) : 0;
     await SB.upsert('daily_snapshots',
       { user_id: userId, provider: 'stripe', date, data: {
-        revenue:           vals.revenue,
-        txCount:           vals.txCount,
-        refunds:           vals.refunds,
-        newCustomers:      vals.newCustomers,
-        mrr,
-        activeSubscriptions,
-        churnedToday:      0,
+        grossRevenue:         vals.grossRevenue,
+        netRevenue,
+        refunds:              vals.refunds,
+        refundRate,
+        txCount:              vals.txCount,
+        avgTransactionValue,
+        newCustomers:         vals.newCustomers,
+        disputeCount:         vals.disputeCount,
+        disputeAmount:        vals.disputeAmount,
       }},
       'user_id,provider,date');
     ok++;
@@ -708,6 +633,28 @@ async function backfillStripeCustomers(userId, accessToken, preloadedCharges = n
       const firstSeen  = firstSeenTs ? new Date(firstSeenTs * 1000).toISOString().slice(0, 10) : today;
       const lastSeen   = lastSeenTs  ? new Date(lastSeenTs  * 1000).toISOString().slice(0, 10) : today;
 
+      // Build recent orders (last 20 charges, most recent first)
+      const recentOrders = cusCharges
+        .slice().sort((a, b) => b.created - a.created)
+        .slice(0, 20)
+        .map(ch => ({
+          order_id:         ch.id,
+          date:             new Date(ch.created * 1000).toISOString().slice(0, 10),
+          total_cents:      ch.amount_captured ?? ch.amount ?? 0,
+          currency:         (ch.currency ?? 'usd').toUpperCase(),
+          status:           ch.status ?? 'succeeded',
+          line_items:       [],  // Stripe charges don't carry line items
+          shipping_city:    ch.shipping?.address?.city    ?? null,
+          shipping_country: ch.shipping?.address?.country ?? null,
+        }));
+
+      const avgOrderValue = orderCount > 0 ? Math.round(totalSpent / orderCount) : 0;
+
+      // Derive tags from Stripe metadata keys
+      const metaTags = Object.keys(cus.metadata ?? {}).length > 0
+        ? Object.entries(cus.metadata).filter(([, v]) => v === 'true' || v === '1').map(([k]) => k)
+        : [];
+
       await SB.upsert('customers', {
         user_id:     userId,
         provider:    'stripe',
@@ -720,6 +667,19 @@ async function backfillStripeCustomers(userId, accessToken, preloadedCharges = n
         last_seen:   lastSeen,
         subscribed,
         churned,
+        // Enriched profile fields
+        city:              cus.address?.city    ?? null,
+        country:           cus.address?.country ?? null,
+        country_code:      cus.address?.country ?? null,
+        phone:             cus.phone            ?? null,
+        currency:          (cus.currency ?? 'usd').toUpperCase(),
+        accepts_marketing: false,
+        tags:              metaTags,
+        avg_order_value:   avgOrderValue,
+        last_order_id:     cusCharges.length > 0
+          ? cusCharges.slice().sort((a, b) => b.created - a.created)[0].id
+          : null,
+        recent_orders:     recentOrders,
       }, 'user_id,provider,provider_id');
 
       ok++;
@@ -746,47 +706,160 @@ async function refreshGoogleToken(refreshToken) {
   return (await res.json()).access_token;
 }
 
-/** Daily sync — yesterday only */
+/** Daily sync — yesterday only — with full e-commerce events */
 async function syncGA4(userId, integration) {
   if (!GOOGLE_ID || !GOOGLE_SEC) throw new Error('GA4: missing GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET in .env');
   if (!integration.refresh_token) throw new Error('GA4: no refresh_token stored for this user');
 
   const token  = await refreshGoogleToken(integration.refresh_token);
   const date   = yesterday();
-  // account_id stores the bare numeric property ID (e.g. "123456789")
-  // The GA4 Data API requires the "properties/XXXXXXXXX" prefix in the URL
   const propId = integration.account_id.startsWith('properties/')
     ? integration.account_id
     : `properties/${integration.account_id}`;
 
-  const res = await fetchRetry('GA4 runReport',
+  // ── 1. Main traffic + e-commerce funnel report ────────────────────────────
+  const mainRes = await fetchRetry('GA4 runReport',
     `https://analyticsdata.googleapis.com/v1beta/${propId}:runReport`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         dateRanges: [{ startDate: date, endDate: date }],
-        metrics: [{ name: 'sessions' }, { name: 'totalUsers' }, { name: 'bounceRate' }, { name: 'conversions' }],
+        metrics: [
+          { name: 'sessions' },
+          { name: 'totalUsers' },
+          { name: 'newUsers' },
+          { name: 'bounceRate' },
+          { name: 'conversions' },
+          { name: 'ecommercePurchases' },
+          { name: 'purchaseRevenue' },
+          { name: 'addToCarts' },
+          { name: 'checkouts' },
+          { name: 'cartToViewRate' },
+        ],
       }),
     });
-  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(`GA4 runReport: ${e?.error?.message ?? res.status}`); }
+  if (!mainRes.ok) { const e = await mainRes.json().catch(() => ({})); throw new Error(`GA4 runReport: ${e?.error?.message ?? mainRes.status}`); }
 
-  const body = await res.json();
-  const row  = body.rows?.[0]?.metricValues ?? [];
-  const sessions    = parseInt(row[0]?.value ?? '0', 10);
-  const totalUsers  = parseInt(row[1]?.value ?? '0', 10);
-  const bounceRate  = parseFloat(row[2]?.value ?? '0');
-  const conversions = parseInt(row[3]?.value ?? '0', 10);
+  const mainBody = await mainRes.json();
+  const row  = mainBody.rows?.[0]?.metricValues ?? [];
+  const sessions          = parseInt(row[0]?.value ?? '0', 10);
+  const totalUsers        = parseInt(row[1]?.value ?? '0', 10);
+  const newUsers          = parseInt(row[2]?.value ?? '0', 10);
+  const bounceRate        = parseFloat(row[3]?.value ?? '0');
+  const conversions       = parseInt(row[4]?.value ?? '0', 10);
+  const ecommercePurchases = parseInt(row[5]?.value ?? '0', 10);
+  const purchaseRevenue   = parseFloat(row[6]?.value ?? '0');
+  const addToCarts        = parseInt(row[7]?.value ?? '0', 10);
+  const checkouts         = parseInt(row[8]?.value ?? '0', 10);
+  const cartToViewRate    = parseFloat(row[9]?.value ?? '0');
+
+  // Derived funnel rates
+  const cartToCheckoutRate     = addToCarts > 0 ? (checkouts / addToCarts) * 100 : 0;
+  const checkoutToPurchaseRate = checkouts > 0 ? (ecommercePurchases / checkouts) * 100 : 0;
+  const sessionConversionRate  = sessions > 0 ? (ecommercePurchases / sessions) * 100 : 0;
+
+  // ── 2. Traffic source breakdown ───────────────────────────────────────────
+  const topTrafficSources = [];
+  try {
+    const srcRes = await fetchRetry('GA4 traffic sources',
+      `https://analyticsdata.googleapis.com/v1beta/${propId}:runReport`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dateRanges: [{ startDate: date, endDate: date }],
+          dimensions: [{ name: 'sessionDefaultChannelGrouping' }],
+          metrics: [{ name: 'sessions' }, { name: 'purchaseRevenue' }],
+          orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
+          limit: 8,
+        }),
+      });
+    if (srcRes.ok) {
+      const srcBody = await srcRes.json();
+      for (const r of (srcBody.rows ?? [])) {
+        topTrafficSources.push({
+          channel:  r.dimensionValues?.[0]?.value ?? 'unknown',
+          sessions: parseInt(r.metricValues?.[0]?.value ?? '0', 10),
+          revenue:  parseFloat(r.metricValues?.[1]?.value ?? '0'),
+        });
+      }
+    }
+  } catch { /* non-fatal */ }
+
+  // ── 3. Device breakdown ───────────────────────────────────────────────────
+  const deviceBreakdown = {};
+  try {
+    const devRes = await fetchRetry('GA4 device breakdown',
+      `https://analyticsdata.googleapis.com/v1beta/${propId}:runReport`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dateRanges: [{ startDate: date, endDate: date }],
+          dimensions: [{ name: 'deviceCategory' }],
+          metrics: [{ name: 'sessions' }],
+        }),
+      });
+    if (devRes.ok) {
+      const devBody = await devRes.json();
+      for (const r of (devBody.rows ?? [])) {
+        const device  = r.dimensionValues?.[0]?.value ?? 'unknown';
+        const sessCnt = parseInt(r.metricValues?.[0]?.value ?? '0', 10);
+        deviceBreakdown[device] = sessCnt;
+      }
+    }
+  } catch { /* non-fatal */ }
+
+  // ── 4. Top landing pages ──────────────────────────────────────────────────
+  const topLandingPages = [];
+  try {
+    const lpRes = await fetchRetry('GA4 landing pages',
+      `https://analyticsdata.googleapis.com/v1beta/${propId}:runReport`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dateRanges: [{ startDate: date, endDate: date }],
+          dimensions: [{ name: 'landingPage' }],
+          metrics: [{ name: 'sessions' }, { name: 'bounceRate' }],
+          orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
+          limit: 5,
+        }),
+      });
+    if (lpRes.ok) {
+      const lpBody = await lpRes.json();
+      for (const r of (lpBody.rows ?? [])) {
+        topLandingPages.push({
+          page:       r.dimensionValues?.[0]?.value ?? '/',
+          sessions:   parseInt(r.metricValues?.[0]?.value ?? '0', 10),
+          bounceRate: parseFloat(r.metricValues?.[1]?.value ?? '0'),
+        });
+      }
+    }
+  } catch { /* non-fatal */ }
 
   await SB.upsert('daily_snapshots',
-    { user_id: userId, provider: 'ga4', date, data: { sessions, users: totalUsers, bounceRate, conversions } },
+    {
+      user_id: userId, provider: 'ga4', date,
+      data: {
+        // Traffic
+        sessions, users: totalUsers, newUsers, bounceRate,
+        returningUsers: totalUsers - newUsers,
+        // E-commerce funnel
+        conversions, ecommercePurchases, purchaseRevenue,
+        addToCarts, checkouts,
+        cartToViewRate, cartToCheckoutRate,
+        checkoutToPurchaseRate, sessionConversionRate,
+        // Breakdown
+        topTrafficSources, deviceBreakdown, topLandingPages,
+      }
+    },
     'user_id,provider,date');
 
-  return { date, sessions, totalUsers, bounceRate, conversions };
+  return { date, sessions, totalUsers, bounceRate, conversions, ecommercePurchases, purchaseRevenue };
 }
 
 /**
- * Full GA4 backfill — GA4 supports date ranges in a single request,
- * so we fetch all days in one API call (much faster than day-by-day).
+ * Full GA4 backfill — single request with all e-commerce metrics.
+ * Fetches sessions, users, newUsers, bounceRate, conversions, ecommercePurchases,
+ * purchaseRevenue, addToCarts, checkouts per day.
  */
 async function backfillGA4(userId, integration, days = BACKFILL_DAYS.ga4) {
   if (!GOOGLE_ID || !GOOGLE_SEC) throw new Error('GA4: missing GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET in .env');
@@ -796,8 +869,6 @@ async function backfillGA4(userId, integration, days = BACKFILL_DAYS.ga4) {
   const token     = await refreshGoogleToken(integration.refresh_token);
   const startDate = daysAgo(days);
   const endDate   = yesterday();
-  // account_id stores the bare numeric property ID (e.g. "123456789")
-  // The GA4 Data API requires the "properties/XXXXXXXXX" prefix in the URL
   const propId    = integration.account_id.startsWith('properties/')
     ? integration.account_id
     : `properties/${integration.account_id}`;
@@ -816,6 +887,10 @@ async function backfillGA4(userId, integration, days = BACKFILL_DAYS.ga4) {
           { name: 'bounceRate' },
           { name: 'averageSessionDuration' },
           { name: 'conversions' },
+          { name: 'ecommercePurchases' },
+          { name: 'purchaseRevenue' },
+          { name: 'addToCarts' },
+          { name: 'checkouts' },
         ],
         limit: 100000,
       }),
@@ -827,20 +902,36 @@ async function backfillGA4(userId, integration, days = BACKFILL_DAYS.ga4) {
   log(`  [ga4 backfill] ${rows.length} days returned from GA4`);
 
   for (const row of rows) {
-    // GA4 returns date as YYYYMMDD — convert to YYYY-MM-DD
     const rawDate = row.dimensionValues?.[0]?.value ?? '';
     const date    = rawDate.replace(/^(\d{4})(\d{2})(\d{2})$/, '$1-$2-$3');
     const mv      = row.metricValues ?? [];
-    const data = {
-      sessions:           parseInt(mv[0]?.value ?? '0', 10),
-      users:              parseInt(mv[1]?.value ?? '0', 10),
-      newUsers:           parseInt(mv[2]?.value ?? '0', 10),
-      bounceRate:         parseFloat(mv[3]?.value ?? '0'),
-      avgSessionDuration: parseFloat(mv[4]?.value ?? '0'),
-      conversions:        parseInt(mv[5]?.value ?? '0', 10),
-    };
+    const sessions          = parseInt(mv[0]?.value ?? '0', 10);
+    const totalUsers        = parseInt(mv[1]?.value ?? '0', 10);
+    const newUsers          = parseInt(mv[2]?.value ?? '0', 10);
+    const bounceRate        = parseFloat(mv[3]?.value ?? '0');
+    const avgSessionDuration = parseFloat(mv[4]?.value ?? '0');
+    const conversions       = parseInt(mv[5]?.value ?? '0', 10);
+    const ecommercePurchases = parseInt(mv[6]?.value ?? '0', 10);
+    const purchaseRevenue   = parseFloat(mv[7]?.value ?? '0');
+    const addToCarts        = parseInt(mv[8]?.value ?? '0', 10);
+    const checkouts         = parseInt(mv[9]?.value ?? '0', 10);
+
+    const cartToCheckoutRate     = addToCarts > 0 ? (checkouts / addToCarts) * 100 : 0;
+    const checkoutToPurchaseRate = checkouts > 0 ? (ecommercePurchases / checkouts) * 100 : 0;
+    const sessionConversionRate  = sessions > 0 ? (ecommercePurchases / sessions) * 100 : 0;
+
     await SB.upsert('daily_snapshots',
-      { user_id: userId, provider: 'ga4', date, data },
+      {
+        user_id: userId, provider: 'ga4', date,
+        data: {
+          sessions, users: totalUsers, newUsers, bounceRate, avgSessionDuration,
+          returningUsers: totalUsers - newUsers,
+          conversions, ecommercePurchases, purchaseRevenue,
+          addToCarts, checkouts,
+          cartToCheckoutRate, checkoutToPurchaseRate, sessionConversionRate,
+          topTrafficSources: [], deviceBreakdown: {}, topLandingPages: [],
+        }
+      },
       'user_id,provider,date');
   }
 
@@ -863,22 +954,79 @@ async function extendMetaToken(userId, accessToken) {
   return freshToken;
 }
 
-/** Fetch Meta Ads insights for a single day */
+/**
+ * Fetch Meta Ads insights for a single day — account-level + campaign breakdown.
+ * Returns: spend, reach, clicks, impressions, purchaseValue, roas, cpc, cpm, ctr,
+ * costPerPurchase, addToCartCount, checkoutInitiatedCount, campaignBreakdown[]
+ */
 async function fetchMetaDay(adAccountId, token, date, currency = 'USD') {
+  // ── Account-level summary ──────────────────────────────────────────────────
+  const fields = 'spend,reach,clicks,impressions,actions,action_values,cost_per_action_type';
+  const timeRange = encodeURIComponent(JSON.stringify({ since: date, until: date }));
   const insRes = await fetchRetry('Meta insights',
-    `https://graph.facebook.com/v22.0/${adAccountId}/insights?fields=spend,reach,clicks,actions&time_range=${encodeURIComponent(JSON.stringify({ since: date, until: date }))}&access_token=${encodeURIComponent(token)}`
+    `https://graph.facebook.com/v22.0/${adAccountId}/insights?fields=${fields}&time_range=${timeRange}&access_token=${encodeURIComponent(token)}`
   );
   if (!insRes.ok) { const e = await insRes.json().catch(() => ({})); throw new Error(`Meta insights: ${e?.error?.message ?? insRes.status}`); }
 
   const d = (await insRes.json()).data?.[0] ?? {};
+  const actions      = d.actions      ?? [];
+  const actionValues = d.action_values ?? [];
+  const costPerAction = d.cost_per_action_type ?? [];
+
+  const getAction = (arr, type) =>
+    arr.filter(a => a.action_type === type || a.action_type === `offsite_conversion.fb_pixel_${type}`)
+       .reduce((s, a) => s + parseFloat(a.value ?? '0'), 0);
+
+  const purchases           = getAction(actions, 'purchase');
+  const purchaseValue       = getAction(actionValues, 'purchase');
+  const addToCartCount      = getAction(actions, 'add_to_cart');
+  const checkoutInitiated   = getAction(actions, 'initiate_checkout');
+  const spend               = parseFloat(d.spend ?? '0');
+  const clicks              = parseInt(d.clicks ?? '0', 10);
+  const impressions         = parseInt(d.impressions ?? '0', 10);
+  const reach               = parseInt(d.reach ?? '0', 10);
+
+  const roas              = spend > 0 ? purchaseValue / spend : 0;
+  const cpc               = clicks > 0 ? spend / clicks : 0;
+  const cpm               = impressions > 0 ? (spend / impressions) * 1000 : 0;
+  const ctr               = impressions > 0 ? (clicks / impressions) * 100 : 0;
+  const costPerPurchase   = purchases > 0 ? spend / purchases : 0;
+
+  // ── Campaign-level breakdown (top 10 by spend) ────────────────────────────
+  const campaignBreakdown = [];
+  try {
+    const campFields = 'campaign_name,spend,clicks,impressions,actions,action_values';
+    const campRes = await fetchRetry('Meta campaign insights',
+      `https://graph.facebook.com/v22.0/${adAccountId}/insights?fields=${campFields}&time_range=${timeRange}&level=campaign&sort=spend_descending&limit=10&access_token=${encodeURIComponent(token)}`
+    );
+    if (campRes.ok) {
+      const campBody = await campRes.json();
+      for (const c of (campBody.data ?? [])) {
+        const cSpend     = parseFloat(c.spend ?? '0');
+        const cPurchases = (c.actions ?? []).filter(a => a.action_type.includes('purchase')).reduce((s, a) => s + parseFloat(a.value ?? '0'), 0);
+        const cPurchVal  = (c.action_values ?? []).filter(a => a.action_type.includes('purchase')).reduce((s, a) => s + parseFloat(a.value ?? '0'), 0);
+        campaignBreakdown.push({
+          name:        c.campaign_name,
+          spend:       cSpend,
+          clicks:      parseInt(c.clicks ?? '0', 10),
+          impressions: parseInt(c.impressions ?? '0', 10),
+          purchases:   cPurchases,
+          purchaseValue: cPurchVal,
+          roas:        cSpend > 0 ? cPurchVal / cSpend : 0,
+        });
+      }
+    }
+  } catch { /* campaign breakdown is non-fatal */ }
+
   return {
-    spend:       parseFloat(d.spend ?? '0'),
-    reach:       parseInt(d.reach   ?? '0', 10),
-    clicks:      parseInt(d.clicks  ?? '0', 10),
-    conversions: (d.actions ?? [])
-      .filter(a => ['purchase', 'offsite_conversion.fb_pixel_purchase'].includes(a.action_type))
-      .reduce((s, a) => s + parseInt(a.value ?? '0', 10), 0),
-    currency,   // store the ad account currency so the UI can format spend correctly
+    spend, reach, clicks, impressions,
+    purchaseValue, roas, cpc, cpm, ctr,
+    conversions:         purchases,
+    costPerPurchase,
+    addToCartCount,
+    checkoutInitiatedCount: checkoutInitiated,
+    campaignBreakdown,
+    currency,
   };
 }
 
@@ -894,12 +1042,34 @@ async function syncMeta(userId, integration) {
     { user_id: userId, provider: 'meta', date, data: d },
     'user_id,provider,date');
 
+  // Upsert campaign records to ad_campaigns table
+  try {
+    for (const camp of (d.campaignBreakdown ?? [])) {
+      await SB.upsert('ad_campaigns', {
+        user_id:               userId,
+        provider:              'meta',
+        campaign_id:           camp.name, // use name as ID fallback
+        campaign_name:         camp.name,
+        date,
+        spend_cents:           Math.round(camp.spend * 100),
+        impressions:           camp.impressions,
+        clicks:                camp.clicks,
+        conversions:           camp.purchases,
+        conversion_value_cents: Math.round(camp.purchaseValue * 100),
+        roas:                  camp.roas,
+        currency,
+        synced_at:             new Date().toISOString(),
+      }, 'user_id,provider,campaign_id,date');
+    }
+  } catch { /* non-fatal */ }
+
   return { date, ...d };
 }
 
 /**
  * Full Meta backfill — single Insights API call with time_increment=1.
- * Meta returns one entry per day over the requested date range.
+ * Captures: spend, reach, clicks, impressions, purchaseValue, ROAS, cpc, cpm,
+ * conversions, addToCart, checkoutInitiated per day.
  */
 async function backfillMeta(userId, integration, days = BACKFILL_DAYS.meta) {
   log(`  [meta backfill] ${days} days for user ${userId.slice(0, 8)} — single bulk request`);
@@ -910,8 +1080,9 @@ async function backfillMeta(userId, integration, days = BACKFILL_DAYS.meta) {
   const endDate     = yesterday();
 
   const timeRange = JSON.stringify({ since: startDate, until: endDate });
+  const fields = 'spend,reach,clicks,impressions,actions,action_values,date_start';
   const url = `https://graph.facebook.com/v22.0/${adAccountId}/insights` +
-    `?fields=spend,reach,clicks,actions,date_start` +
+    `?fields=${fields}` +
     `&time_increment=1` +
     `&time_range=${encodeURIComponent(timeRange)}` +
     `&limit=365` +
@@ -924,7 +1095,6 @@ async function backfillMeta(userId, integration, days = BACKFILL_DAYS.meta) {
     const res = await fetchRetry('Meta bulk insights', nextUrl);
     if (!res.ok) {
       logWarn(`  [meta backfill] bulk failed (${res.status}), falling back to per-day batches`);
-      // Fallback: 5-day parallel batches
       const BATCH = 5;
       for (let batchStart = days; batchStart >= 1; batchStart -= BATCH) {
         const offsets = [];
@@ -948,21 +1118,40 @@ async function backfillMeta(userId, integration, days = BACKFILL_DAYS.meta) {
     const body = await res.json();
     const entries = body.data ?? [];
     for (const d of entries) {
-      const date = (d.date_start ?? '').slice(0, 10);
+      const date       = (d.date_start ?? '').slice(0, 10);
       if (!date) continue;
+      const actions      = d.actions      ?? [];
+      const actionValues = d.action_values ?? [];
+      const getAction = (arr, type) =>
+        arr.filter(a => a.action_type === type || a.action_type === `offsite_conversion.fb_pixel_${type}`)
+           .reduce((s, a) => s + parseFloat(a.value ?? '0'), 0);
+      const spend          = parseFloat(d.spend ?? '0');
+      const clicks         = parseInt(d.clicks ?? '0', 10);
+      const impressions    = parseInt(d.impressions ?? '0', 10);
+      const purchases      = getAction(actions, 'purchase');
+      const purchaseValue  = getAction(actionValues, 'purchase');
+      const addToCartCount = getAction(actions, 'add_to_cart');
+      const checkoutInit   = getAction(actions, 'initiate_checkout');
       const data = {
-        spend:       parseFloat(d.spend ?? '0'),
-        reach:       parseInt(d.reach   ?? '0', 10),
-        clicks:      parseInt(d.clicks  ?? '0', 10),
-        conversions: (d.actions ?? [])
-          .filter(a => ['purchase', 'offsite_conversion.fb_pixel_purchase'].includes(a.action_type))
-          .reduce((s, a) => s + parseInt(a.value ?? '0', 10), 0),
+        spend,
+        reach:                  parseInt(d.reach ?? '0', 10),
+        clicks,
+        impressions,
+        conversions:            purchases,
+        purchaseValue,
+        roas:                   spend > 0 ? purchaseValue / spend : 0,
+        cpc:                    clicks > 0 ? spend / clicks : 0,
+        cpm:                    impressions > 0 ? (spend / impressions) * 1000 : 0,
+        ctr:                    impressions > 0 ? (clicks / impressions) * 100 : 0,
+        costPerPurchase:        purchases > 0 ? spend / purchases : 0,
+        addToCartCount,
+        checkoutInitiatedCount: checkoutInit,
+        campaignBreakdown:      [],
         currency,
       };
       await SB.upsert('daily_snapshots', { user_id: userId, provider: 'meta', date, data }, 'user_id,provider,date');
       ok++;
     }
-    // Handle Meta pagination cursors
     nextUrl = body.paging?.next ?? null;
     if (nextUrl) await sleep(500);
   }
@@ -2611,49 +2800,473 @@ async function backfillBeehiiv(userId, integration, days = 365) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ㉕ SHOPIFY
+// ㉕ SHOPIFY  — Full e-commerce metrics
+// Syncs: GMV, AOV, orders, refunds, discounts, shipping, new vs returning
+// customers, cart abandonment rate, top products, inventory alerts,
+// channel breakdown, geography breakdown, fulfillment time.
 // ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Fetch + upsert one day of full Shopify e-commerce data.
+ * Hits 4 Shopify REST endpoints in parallel:
+ *   1. Orders (revenue, AOV, refunds, discounts, channel, geography, customers)
+ *   2. Abandoned checkouts (cart abandonment rate)
+ *   3. Products (top products by revenue, inventory alerts)
+ *   4. Inventory levels (stock counts, below-reorder alerts)
+ */
 async function syncShopifyDay(userId, storeDomain, accessToken, date) {
-  const { syncShopifyDay: fn } = await import('../lib/integrations/shopify/sync.js');
-  return fn(userId, storeDomain, accessToken, date);
+  const headers = { 'X-Shopify-Access-Token': accessToken, 'Content-Type': 'application/json' };
+  const base    = `https://${storeDomain}/admin/api/2024-01`;
+  const dateMin = `${date}T00:00:00-00:00`;
+  const dateMax = `${date}T23:59:59-00:00`;
+
+  // ── 1. Orders ─────────────────────────────────────────────────────────────
+  const allOrders = [];
+  let ordersUrl = `${base}/orders.json?status=any&created_at_min=${encodeURIComponent(dateMin)}&created_at_max=${encodeURIComponent(dateMax)}&limit=250&fields=id,created_at,total_price,subtotal_price,total_discounts,total_shipping_price_set,total_tax,financial_status,fulfillment_status,customer,line_items,refunds,source_name,billing_address,confirmed,closed_at,fulfillments`;
+  while (ordersUrl) {
+    const res = await fetchRetry('Shopify orders', ordersUrl, { headers });
+    if (!res.ok) break;
+    const body = await res.json();
+    allOrders.push(...(body.orders ?? []));
+    const linkHeader = res.headers.get('Link') ?? '';
+    const nextMatch  = linkHeader.match(/<([^>]+)>;\s*rel="next"/);
+    ordersUrl = nextMatch ? nextMatch[1] : null;
+    if (ordersUrl) await sleep(150);
+  }
+
+  // Filter to paid/partially_refunded/refunded — exclude pending/voided
+  const paidOrders = allOrders.filter(o =>
+    ['paid', 'partially_refunded', 'refunded'].includes(o.financial_status)
+  );
+
+  // ── Revenue metrics ────────────────────────────────────────────────────────
+  let grossRevenue    = 0;
+  let discountAmount  = 0;
+  let shippingRevenue = 0;
+  let taxAmount       = 0;
+  let refundAmount    = 0;
+  let orders          = paidOrders.length;
+  const newCustomerIds   = new Set();
+  const returningIds     = new Set();
+  const productRevMap    = {};  // productId → { name, revenue, units }
+  const channelCounts    = {};  // source_name → order count
+  const countryCounts    = {};  // country_code → revenue
+
+  for (const order of paidOrders) {
+    const total    = parseFloat(order.total_price ?? '0');
+    const discount = parseFloat(order.total_discounts ?? '0');
+    const shipping = parseFloat(order.total_shipping_price_set?.shop_money?.amount ?? '0');
+    const tax      = parseFloat(order.total_tax ?? '0');
+
+    grossRevenue   += total;
+    discountAmount += discount;
+    shippingRevenue += shipping;
+    taxAmount      += tax;
+
+    // Refunds
+    for (const refund of (order.refunds ?? [])) {
+      for (const ri of (refund.refund_line_items ?? [])) {
+        refundAmount += parseFloat(ri.subtotal ?? '0');
+      }
+    }
+
+    // New vs returning customers
+    const cid = order.customer?.id;
+    if (cid) {
+      const orderCount = order.customer?.orders_count ?? 1;
+      if (orderCount <= 1) newCustomerIds.add(cid);
+      else returningIds.add(cid);
+    }
+
+    // Top products by revenue
+    for (const li of (order.line_items ?? [])) {
+      const pid     = String(li.product_id ?? li.variant_id ?? li.title);
+      const liTotal = parseFloat(li.price ?? '0') * (li.quantity ?? 1);
+      productRevMap[pid] ??= { name: li.title ?? 'Unknown', revenue: 0, units: 0, productId: pid };
+      productRevMap[pid].revenue += liTotal;
+      productRevMap[pid].units   += li.quantity ?? 1;
+    }
+
+    // Channel breakdown (online_store, pos, draft_orders, etc.)
+    const channel = order.source_name ?? 'unknown';
+    channelCounts[channel] = (channelCounts[channel] ?? 0) + 1;
+
+    // Geography (top countries by revenue)
+    const country = order.billing_address?.country_code ?? 'XX';
+    countryCounts[country] = (countryCounts[country] ?? 0) + total;
+
+    // Fulfillment time (hours from order creation to first fulfillment)
+    if (order.fulfillments?.length > 0) {
+      const createdAt   = new Date(order.created_at).getTime();
+      const fulfilledAt = new Date(order.fulfillments[0].created_at).getTime();
+      const hours       = (fulfilledAt - createdAt) / (1000 * 60 * 60);
+      if (hours >= 0 && hours < 720) { // sanity: < 30 days
+        // Store individual fulfillment hours (averaged later)
+        productRevMap['__fulfillment_hours'] ??= { sum: 0, count: 0 };
+        productRevMap['__fulfillment_hours'].sum += hours;
+        productRevMap['__fulfillment_hours'].count += 1;
+      }
+    }
+  }
+
+  const netRevenue    = grossRevenue - refundAmount;
+  const aov           = orders > 0 ? grossRevenue / orders : 0;
+  const newCustomers  = newCustomerIds.size;
+  const returningCustomers = returningIds.size;
+  const refundRate    = orders > 0 ? (refundAmount / grossRevenue) * 100 : 0;
+  const discountRate  = grossRevenue > 0 ? (discountAmount / grossRevenue) * 100 : 0;
+
+  // Fulfillment time average
+  const fhData  = productRevMap['__fulfillment_hours'];
+  const avgFulfillmentHours = fhData?.count > 0 ? fhData.sum / fhData.count : null;
+  delete productRevMap['__fulfillment_hours'];
+
+  // Top 10 products by revenue
+  const topProductsByRevenue = Object.values(productRevMap)
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 10)
+    .map(p => ({ name: p.name, productId: p.productId, revenue: p.revenue, units: p.units }));
+
+  // Top 5 countries by revenue
+  const topCountries = Object.entries(countryCounts)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 5)
+    .map(([country, revenue]) => ({ country, revenue }));
+
+  // ── 2. Abandoned Checkouts ────────────────────────────────────────────────
+  let abandonedCheckouts = 0;
+  let completedCheckouts = orders; // orders that became paid are completed checkouts
+  try {
+    let abUrl = `${base}/checkouts.json?created_at_min=${encodeURIComponent(dateMin)}&created_at_max=${encodeURIComponent(dateMax)}&limit=250`;
+    while (abUrl) {
+      const res = await fetchRetry('Shopify checkouts', abUrl, { headers });
+      if (!res.ok) break;
+      const body = await res.json();
+      abandonedCheckouts += (body.checkouts ?? []).length;
+      const lh   = res.headers.get('Link') ?? '';
+      const next = lh.match(/<([^>]+)>;\s*rel="next"/);
+      abUrl = next ? next[1] : null;
+      if (abUrl) await sleep(150);
+    }
+  } catch { /* optional */ }
+
+  const totalCheckouts = abandonedCheckouts + completedCheckouts;
+  const cartAbandonmentRate = totalCheckouts > 0
+    ? (abandonedCheckouts / totalCheckouts) * 100
+    : 0;
+
+  // ── 3. Inventory Alerts — products low on stock ───────────────────────────
+  const inventoryAlerts = [];
+  try {
+    // Fetch products with low inventory (< 10 units is a rough threshold)
+    const invRes = await fetchRetry('Shopify inventory',
+      `${base}/products.json?limit=250&fields=id,title,variants,status`,
+      { headers });
+    if (invRes.ok) {
+      const invBody = await invRes.json();
+      for (const product of (invBody.products ?? [])) {
+        for (const variant of (product.variants ?? [])) {
+          const qty = variant.inventory_quantity ?? 0;
+          if (qty < 10) {
+            inventoryAlerts.push({
+              productId:   String(product.id),
+              productName: product.title,
+              variantId:   String(variant.id),
+              sku:         variant.sku ?? null,
+              stock:       qty,
+              outOfStock:  qty <= 0,
+            });
+          }
+        }
+      }
+    }
+  } catch { /* optional */ }
+
+  // ── Upsert daily snapshot with rich e-commerce data ───────────────────────
+  await SB.upsert('daily_snapshots',
+    {
+      user_id: userId, provider: 'shopify', date,
+      data: {
+        // Revenue
+        grossRevenue,
+        netRevenue,
+        refunds:        refundAmount,
+        refundRate,
+        discountAmount,
+        discountRate,
+        shippingRevenue,
+        taxAmount,
+        // Orders
+        orders,
+        aov,
+        // Customers
+        newCustomers,
+        returningCustomers,
+        // Checkout funnel
+        abandonedCheckouts,
+        completedCheckouts,
+        cartAbandonmentRate,
+        // Fulfillment
+        avgFulfillmentHours,
+        // Breakdown
+        topProductsByRevenue,
+        topCountries,
+        channelBreakdown: channelCounts,
+        // Inventory
+        inventoryAlerts: inventoryAlerts.slice(0, 20), // store top 20 alerts
+        inventoryAlertCount: inventoryAlerts.length,
+      }
+    },
+    'user_id,provider,date');
+
+  // ── Upsert product records ────────────────────────────────────────────────
+  try {
+    for (const p of topProductsByRevenue) {
+      await SB.upsert('products', {
+        user_id:            userId,
+        provider:           'shopify',
+        provider_product_id: String(p.productId),
+        name:               p.name,
+        total_revenue_cents: Math.round(p.revenue * 100),
+        units_sold:         p.units,
+        synced_at:          new Date().toISOString(),
+      }, 'user_id,provider,provider_product_id');
+    }
+  } catch { /* non-fatal */ }
+
+  // ── Upsert individual customer records with enriched data ─────────────────
+  try {
+    const shopifyCustomerMap = {};
+    for (const order of paidOrders) {
+      const cid = order.customer?.id ? String(order.customer.id) : null;
+      if (!cid) continue;
+      if (!shopifyCustomerMap[cid]) {
+        shopifyCustomerMap[cid] = {
+          id:                cid,
+          email:             order.customer.email   ?? null,
+          first_name:        order.customer.first_name ?? '',
+          last_name:         order.customer.last_name  ?? '',
+          phone:             order.customer.phone    ?? order.billing_address?.phone  ?? null,
+          city:              order.billing_address?.city            ?? order.shipping_address?.city    ?? null,
+          country:           order.billing_address?.country         ?? null,
+          country_code:      order.billing_address?.country_code    ?? null,
+          accepts_marketing: Boolean(order.customer.accepts_marketing),
+          tags:              order.customer.tags ? order.customer.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
+          totalSpent:        0,
+          orderCount:        0,
+          firstSeen:         null,
+          lastSeen:          null,
+          recentOrders:      [],
+        };
+      }
+      const cm = shopifyCustomerMap[cid];
+      const total = parseFloat(order.total_price ?? '0');
+      cm.totalSpent  += total;
+      cm.orderCount  += 1;
+      const oDate = (order.created_at ?? date).slice(0, 10);
+      if (!cm.firstSeen || oDate < cm.firstSeen) cm.firstSeen = oDate;
+      if (!cm.lastSeen  || oDate > cm.lastSeen)  cm.lastSeen  = oDate;
+      cm.recentOrders.push({
+        order_id:         String(order.id),
+        date:             oDate,
+        total_cents:      Math.round(total * 100),
+        currency:         'USD',
+        status:           order.financial_status ?? 'paid',
+        line_items:       (order.line_items ?? []).slice(0, 10).map(li => ({
+          name:        li.title   ?? 'Product',
+          qty:         li.quantity ?? 1,
+          price_cents: Math.round(parseFloat(li.price ?? '0') * 100),
+          sku:         li.sku     ?? null,
+        })),
+        shipping_city:    order.shipping_address?.city         ?? order.billing_address?.city    ?? null,
+        shipping_country: order.shipping_address?.country_code ?? order.billing_address?.country_code ?? null,
+      });
+    }
+
+    for (const cm of Object.values(shopifyCustomerMap)) {
+      const name = [cm.first_name, cm.last_name].filter(Boolean).join(' ') || null;
+      const orderedByDate = cm.recentOrders.slice().sort((a, b) => b.date.localeCompare(a.date));
+      const avgOV = cm.orderCount > 0 ? Math.round((cm.totalSpent * 100) / cm.orderCount) : 0;
+      await SB.upsert('customers', {
+        user_id:           userId,
+        provider:          'shopify',
+        provider_id:       cm.id,
+        email:             cm.email,
+        name,
+        total_spent:       Math.round(cm.totalSpent * 100),
+        order_count:       cm.orderCount,
+        first_seen:        cm.firstSeen ?? date,
+        last_seen:         cm.lastSeen  ?? date,
+        subscribed:        false,
+        churned:           false,
+        city:              cm.city,
+        country:           cm.country,
+        country_code:      cm.country_code,
+        phone:             cm.phone,
+        currency:          'USD',
+        accepts_marketing: cm.accepts_marketing,
+        tags:              cm.tags,
+        avg_order_value:   avgOV,
+        last_order_id:     orderedByDate[0]?.order_id ?? null,
+        recent_orders:     orderedByDate.slice(0, 20),
+      }, 'user_id,provider,provider_id');
+      await sleep(50);
+    }
+  } catch (err) { logWarn(`  [shopify daily] customer upsert error: ${err.message}`); }
+
+  return { grossRevenue, netRevenue, orders, aov, newCustomers, refundRate, cartAbandonmentRate };
 }
+
 async function syncShopify(userId, integration) {
   const date = yesterday();
   const r = await syncShopifyDay(userId, integration.account_id, integration.access_token, date);
   return { ...r, date };
 }
+
+/**
+ * Full Shopify backfill — bulk paginated fetch across entire date range.
+ * Collects rich e-commerce data: revenue, AOV, discounts, shipping,
+ * refunds, new vs returning customers, top products, channel breakdown,
+ * geography. Also upserts product records.
+ */
 async function backfillShopify(userId, integration, days = 365) {
   log(`  [shopify backfill] ${days} days for user ${userId.slice(0, 8)} — bulk paginated fetch`);
   const storeDomain = integration.account_id;
   const accessToken = integration.access_token;
   const startDate   = `${daysAgo(days)}T00:00:00-00:00`;
   const headers     = { 'X-Shopify-Access-Token': accessToken, 'Content-Type': 'application/json' };
+  const base        = `https://${storeDomain}/admin/api/2024-01`;
 
+  // Accumulator per day
   const byDate = {};
-  let url = `https://${storeDomain}/admin/api/2024-01/orders.json?status=any&created_at_min=${encodeURIComponent(startDate)}&limit=250&fields=id,created_at,total_price,total_tax,financial_status`;
-  while (url) {
-    const res = await fetchRetry('Shopify orders bulk', url, { headers });
-    if (!res.ok) { logWarn(`  [shopify backfill] bulk failed (${res.status}), falling back to per-day`); break; }
-    const body = await res.json();
-    const orders = body.orders ?? [];
-    if (orders.length === 0) break;
-    for (const order of orders) {
-      if (!['paid','partially_refunded','refunded'].includes(order.financial_status)) continue;
-      const date    = (order.created_at ?? '').slice(0, 10);
-      const revenue = parseFloat(order.total_price ?? '0');
-      byDate[date] ??= { revenue: 0, txCount: 0 };
-      byDate[date].revenue  += revenue;
-      byDate[date].txCount  += 1;
+  // Accumulator per customer (for enriched customer profile upserts)
+  const customerMap = {};
+
+  const initDay = (date) => {
+    byDate[date] ??= {
+      grossRevenue: 0, refunds: 0, discountAmount: 0, shippingRevenue: 0,
+      taxAmount: 0, orders: 0, newCustomers: new Set(), returningCustomers: new Set(),
+      channelBreakdown: {}, countryCounts: {}, productRevMap: {},
+    };
+    return byDate[date];
+  };
+
+  const collectCustomer = (order) => {
+    const cid = order.customer?.id ? String(order.customer.id) : null;
+    if (!cid) return;
+    if (!customerMap[cid]) {
+      customerMap[cid] = {
+        id:                cid,
+        email:             order.customer.email      ?? null,
+        first_name:        order.customer.first_name ?? '',
+        last_name:         order.customer.last_name  ?? '',
+        phone:             order.customer.phone      ?? order.billing_address?.phone ?? null,
+        city:              order.billing_address?.city            ?? null,
+        country:           order.billing_address?.country         ?? null,
+        country_code:      order.billing_address?.country_code    ?? null,
+        accepts_marketing: Boolean(order.customer.accepts_marketing),
+        tags:              order.customer.tags ? order.customer.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
+        totalSpent:  0,
+        orderCount:  0,
+        firstSeen:   null,
+        lastSeen:    null,
+        recentOrders: [],
+      };
     }
-    // Shopify pagination via Link header
+    const cm    = customerMap[cid];
+    const total = parseFloat(order.total_price ?? '0');
+    cm.totalSpent  += total;
+    cm.orderCount  += 1;
+    const oDate = (order.created_at ?? '').slice(0, 10);
+    if (oDate && (!cm.firstSeen || oDate < cm.firstSeen)) cm.firstSeen = oDate;
+    if (oDate && (!cm.lastSeen  || oDate > cm.lastSeen))  cm.lastSeen  = oDate;
+    // Keep up to 100 orders in memory; will slice to 20 at upsert time
+    if (cm.recentOrders.length < 100) {
+      cm.recentOrders.push({
+        order_id:         String(order.id),
+        date:             oDate,
+        total_cents:      Math.round(total * 100),
+        currency:         'USD',
+        status:           order.financial_status ?? 'paid',
+        line_items:       (order.line_items ?? []).slice(0, 10).map(li => ({
+          name:        li.title    ?? 'Product',
+          qty:         li.quantity ?? 1,
+          price_cents: Math.round(parseFloat(li.price ?? '0') * 100),
+          sku:         li.sku      ?? null,
+        })),
+        shipping_city:    order.billing_address?.city         ?? null,
+        shipping_country: order.billing_address?.country_code ?? null,
+      });
+    }
+  };
+
+  // ── Fetch all orders in range ──────────────────────────────────────────────
+  let ordersUrl = `${base}/orders.json?status=any&created_at_min=${encodeURIComponent(startDate)}&limit=250&fields=id,created_at,total_price,subtotal_price,total_discounts,total_shipping_price_set,total_tax,financial_status,customer,line_items,refunds,source_name,billing_address`;
+  let totalOrders = 0;
+
+  while (ordersUrl) {
+    const res = await fetchRetry('Shopify bulk orders', ordersUrl, { headers });
+    if (!res.ok) { logWarn(`  [shopify backfill] orders bulk failed (${res.status})`); break; }
+    const body   = await res.json();
+    const orders = body.orders ?? [];
+    totalOrders += orders.length;
+
+    for (const order of orders) {
+      if (!['paid', 'partially_refunded', 'refunded'].includes(order.financial_status)) continue;
+      const date = (order.created_at ?? '').slice(0, 10);
+      if (!date) continue;
+      const d = initDay(date);
+
+      const total    = parseFloat(order.total_price          ?? '0');
+      const discount = parseFloat(order.total_discounts      ?? '0');
+      const shipping = parseFloat(order.total_shipping_price_set?.shop_money?.amount ?? '0');
+      const tax      = parseFloat(order.total_tax            ?? '0');
+
+      d.grossRevenue   += total;
+      d.discountAmount += discount;
+      d.shippingRevenue += shipping;
+      d.taxAmount      += tax;
+      d.orders         += 1;
+
+      for (const refund of (order.refunds ?? [])) {
+        for (const ri of (refund.refund_line_items ?? [])) {
+          d.refunds += parseFloat(ri.subtotal ?? '0');
+        }
+      }
+
+      const cid = order.customer?.id;
+      if (cid) {
+        const orderCount = order.customer?.orders_count ?? 1;
+        if (orderCount <= 1) d.newCustomers.add(cid);
+        else d.returningCustomers.add(cid);
+      }
+
+      for (const li of (order.line_items ?? [])) {
+        const pid   = String(li.product_id ?? li.title);
+        const liAmt = parseFloat(li.price ?? '0') * (li.quantity ?? 1);
+        d.productRevMap[pid] ??= { name: li.title ?? 'Unknown', revenue: 0, units: 0 };
+        d.productRevMap[pid].revenue += liAmt;
+        d.productRevMap[pid].units   += li.quantity ?? 1;
+      }
+
+      const channel = order.source_name ?? 'unknown';
+      d.channelBreakdown[channel] = (d.channelBreakdown[channel] ?? 0) + 1;
+
+      const country = order.billing_address?.country_code ?? 'XX';
+      d.countryCounts[country] = (d.countryCounts[country] ?? 0) + total;
+
+      // Collect per-customer enriched data
+      collectCustomer(order);
+    }
+
     const linkHeader = res.headers.get('Link') ?? '';
     const nextMatch  = linkHeader.match(/<([^>]+)>;\s*rel="next"/);
-    url = nextMatch ? nextMatch[1] : null;
-    if (url) await sleep(200);
+    ordersUrl = nextMatch ? nextMatch[1] : null;
+    if (ordersUrl) await sleep(200);
   }
 
   if (Object.keys(byDate).length === 0) {
-    // Fallback to per-day
+    logWarn(`  [shopify backfill] no orders found — falling back to per-day sync`);
     let ok = 0, skipped = 0;
     for (let offset = days; offset >= 1; offset--) {
       const date = daysAgo(offset);
@@ -2665,14 +3278,115 @@ async function backfillShopify(userId, integration, days = 365) {
     return;
   }
 
+  // ── Upsert each day ────────────────────────────────────────────────────────
   let ok = 0;
-  for (const [date, vals] of Object.entries(byDate)) {
+  for (const [date, d] of Object.entries(byDate)) {
+    const netRevenue = d.grossRevenue - d.refunds;
+    const aov        = d.orders > 0 ? d.grossRevenue / d.orders : 0;
+    const refundRate = d.grossRevenue > 0 ? (d.refunds / d.grossRevenue) * 100 : 0;
+
+    const topProductsByRevenue = Object.entries(d.productRevMap)
+      .sort(([, a], [, b]) => b.revenue - a.revenue)
+      .slice(0, 10)
+      .map(([productId, p]) => ({ productId, name: p.name, revenue: p.revenue, units: p.units }));
+
+    const topCountries = Object.entries(d.countryCounts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5)
+      .map(([country, revenue]) => ({ country, revenue }));
+
     await SB.upsert('daily_snapshots',
-      { user_id: userId, provider: 'shopify', date, data: { revenue: vals.revenue, txCount: vals.txCount, refunds: 0, newCustomers: 0 } },
+      {
+        user_id: userId, provider: 'shopify', date,
+        data: {
+          grossRevenue:     d.grossRevenue,
+          netRevenue,
+          refunds:          d.refunds,
+          refundRate,
+          discountAmount:   d.discountAmount,
+          discountRate:     d.grossRevenue > 0 ? (d.discountAmount / d.grossRevenue) * 100 : 0,
+          shippingRevenue:  d.shippingRevenue,
+          taxAmount:        d.taxAmount,
+          orders:           d.orders,
+          aov,
+          newCustomers:     d.newCustomers.size,
+          returningCustomers: d.returningCustomers.size,
+          topProductsByRevenue,
+          topCountries,
+          channelBreakdown: d.channelBreakdown,
+          // Cart abandonment not available in bulk backfill (too costly)
+          cartAbandonmentRate: null,
+          avgFulfillmentHours: null,
+          inventoryAlerts: [],
+          inventoryAlertCount: 0,
+        }
+      },
       'user_id,provider,date');
     ok++;
   }
-  log(`  [shopify backfill] done — ${ok} days with data (bulk fetch)`);
+
+  // ── Upsert aggregated product records ─────────────────────────────────────
+  try {
+    // Aggregate products across all days
+    const globalProductMap = {};
+    for (const d of Object.values(byDate)) {
+      for (const [pid, p] of Object.entries(d.productRevMap)) {
+        globalProductMap[pid] ??= { name: p.name, revenue: 0, units: 0 };
+        globalProductMap[pid].revenue += p.revenue;
+        globalProductMap[pid].units   += p.units;
+      }
+    }
+    for (const [pid, p] of Object.entries(globalProductMap)) {
+      await SB.upsert('products', {
+        user_id:             userId,
+        provider:            'shopify',
+        provider_product_id: pid,
+        name:                p.name,
+        total_revenue_cents: Math.round(p.revenue * 100),
+        units_sold:          p.units,
+        synced_at:           new Date().toISOString(),
+      }, 'user_id,provider,provider_product_id');
+    }
+    log(`  [shopify backfill] upserted ${Object.keys(globalProductMap).length} product records`);
+  } catch (err) { logWarn(`  [shopify backfill] product upsert error: ${err.message}`); }
+
+  // ── Upsert enriched customer records ──────────────────────────────────────
+  try {
+    const customerEntries = Object.values(customerMap);
+    log(`  [shopify backfill] upserting ${customerEntries.length} customer records`);
+    for (const cm of customerEntries) {
+      const name = [cm.first_name, cm.last_name].filter(Boolean).join(' ') || null;
+      const orderedByDate = cm.recentOrders.slice().sort((a, b) => b.date.localeCompare(a.date));
+      const avgOV = cm.orderCount > 0 ? Math.round((cm.totalSpent * 100) / cm.orderCount) : 0;
+      await SB.upsert('customers', {
+        user_id:           userId,
+        provider:          'shopify',
+        provider_id:       cm.id,
+        email:             cm.email,
+        name,
+        total_spent:       Math.round(cm.totalSpent * 100),
+        order_count:       cm.orderCount,
+        first_seen:        cm.firstSeen ?? daysAgo(1),
+        last_seen:         cm.lastSeen  ?? daysAgo(1),
+        subscribed:        false,
+        churned:           false,
+        city:              cm.city,
+        country:           cm.country,
+        country_code:      cm.country_code,
+        phone:             cm.phone,
+        currency:          'USD',
+        accepts_marketing: cm.accepts_marketing,
+        tags:              cm.tags,
+        avg_order_value:   avgOV,
+        last_order_id:     orderedByDate[0]?.order_id ?? null,
+        recent_orders:     orderedByDate.slice(0, 20),
+      }, 'user_id,provider,provider_id');
+      await sleep(50);
+    }
+    log(`  [shopify backfill] customer upserts done`);
+  } catch (err) { logWarn(`  [shopify backfill] customer upsert error: ${err.message}`); }
+
+  log(`  [shopify backfill] done — ${ok} days with data (${totalOrders} orders fetched)`);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

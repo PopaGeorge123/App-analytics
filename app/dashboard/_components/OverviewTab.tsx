@@ -8,6 +8,7 @@ import {
 import type { Snapshot } from "./DashboardShell";
 import { pushNotification } from "./DashboardShell";
 import type { Tab } from "./DashboardShell";
+import type { CustomerRow } from "../page";
 import { DEMO_SNAPSHOTS, DEMO_CONNECTED_PLATFORMS } from "./demoData";
 import { DEFAULT_ALERTS, type AlertRules } from "./DataSourcesTab";
 import { LIVE_INTEGRATIONS, REVENUE_PROVIDERS, ANALYTICS_PROVIDERS, ADS_PROVIDERS } from "@/lib/integrations/catalog";
@@ -21,6 +22,7 @@ interface OverviewTabProps {
   snapshots: Snapshot[];
   currencies: Record<string, string>;
   onNavigate: (tab: Tab) => void;
+  customers?: CustomerRow[];
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────
@@ -41,6 +43,17 @@ function sumField(snaps: Snapshot[], provider: string, field: string): number {
     }, 0);
 }
 
+/** Sum a field across providers; for revenue, checks both `grossRevenue` (new) and `revenue` (legacy) */
+function sumRevenueProviders(snaps: Snapshot[], providers: string[]): number {
+  return snaps
+    .filter((s) => providers.includes(s.provider))
+    .reduce((acc, s) => {
+      const d = s.data as Record<string, number>;
+      return acc + (d["grossRevenue"] ?? d["revenue"] ?? 0);
+    }, 0);
+}
+
+/** Average a field across all days for a given provider */
 function avgField(snaps: Snapshot[], provider: string, field: string): number {
   const rows = snaps.filter((s) => s.provider === provider);
   if (!rows.length) return 0;
@@ -95,6 +108,7 @@ function sumProviders(snaps: Snapshot[], providers: string[], field: string): nu
     }, 0);
 }
 
+/** Average a field across providers using the primary provider only */
 function avgProviders(snaps: Snapshot[], providers: string[], field: string): number {
   const primary = pickPrimaryAnalyticsProvider(snaps, providers);
   if (!primary) return 0;
@@ -387,7 +401,7 @@ function GoalsWidget({
         <p className="font-mono text-[9px] uppercase tracking-widest text-[#00d4aa] font-semibold">Monthly Goals</p>
         {stripeConn && (
           <div className="flex items-center gap-2">
-            <span className="font-mono text-[10px] text-[#5a5a7a] w-24 shrink-0">Revenue ({currency})</span>
+            <span className="font-mono text-[10px] text-[#5a5a7a] w-24 shrink-0">Store Rev. ({currency})</span>
             <input type="number" placeholder="e.g. 10000" value={draft.revenue}
               onChange={(e) => setDraft((d) => ({ ...d, revenue: e.target.value }))}
               className="flex-1 bg-[#ffffff] border border-black/12 rounded-lg px-3 py-1.5 font-mono text-xs text-[#1a1a2e] placeholder:text-[#ebebf8] focus:outline-none focus:border-[#00d4aa]/40" />
@@ -418,8 +432,8 @@ function GoalsWidget({
       {stripeConn && goals.revenueTarget > 0 && (
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <span className="font-mono text-[10px] text-[#7575a0]">Revenue</span>
-            <span className="font-mono text-[10px] font-bold text-[#1a1a2e] tabular-nums">{fmt(revenueMonth, "currency", currency)} <span className="text-[#eaeaf5] font-normal">/ {fmt(goals.revenueTarget, "currency", currency)}</span></span>
+            <span className="font-mono text-[10px] text-[#7575a0]">Store Revenue</span>
+            <span className="font-mono text-[10px] font-bold text-[#1a1a2e] tabular-nums">{fmt(revenueMonth, "currency", currency)} <span className="text-[#303030] font-bold">/ {fmt(goals.revenueTarget, "currency", currency)}</span></span>
           </div>
           <GoalBar actual={revenueMonth} target={goals.revenueTarget} color="#635bff" />
           <p className={`font-mono text-[9px] font-semibold ${revProjected >= goals.revenueTarget * 0.9 ? "text-emerald-400" : "text-amber-400"}`}>
@@ -431,7 +445,7 @@ function GoalsWidget({
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <span className="font-mono text-[10px] text-[#7575a0]">Sessions</span>
-            <span className="font-mono text-[10px] font-bold text-[#1a1a2e] tabular-nums">{fmt(sessionsMonth)} <span className="text-[#eaeaf5] font-normal">/ {fmt(goals.sessionsTarget)}</span></span>
+            <span className="font-mono text-[10px] font-bold text-[#1a1a2e] tabular-nums">{fmt(sessionsMonth)} <span className="text-[#303030] font-bold">/ {fmt(goals.sessionsTarget)}</span></span>
           </div>
           <GoalBar actual={sessionsMonth} target={goals.sessionsTarget} color="#f59e0b" />
           <p className={`font-mono text-[9px] font-semibold ${sessProjected >= goals.sessionsTarget * 0.9 ? "text-emerald-400" : "text-amber-400"}`}>
@@ -465,7 +479,8 @@ function RevenueOverTimeChart({ snapshots, connectedRevenueProviders, currency =
     for (const snap of snapshots) {
       if (!connectedRevenueProviders.includes(snap.provider)) continue;
       if (snap.date < cutoffStr) continue;
-      dayMap[snap.date] = (dayMap[snap.date] ?? 0) + ((snap.data as Record<string, number>).revenue ?? 0);
+      const d = snap.data as Record<string, number>;
+      dayMap[snap.date] = (dayMap[snap.date] ?? 0) + (d.grossRevenue ?? d.revenue ?? 0);
     }
     const result: { date: string; label: string; revenue: number }[] = [];
     for (let i = days - 1; i >= 0; i--) {
@@ -616,10 +631,11 @@ function OnboardingWizard({ onNavigate, connectedPlatforms }: { onNavigate: (tab
 // ── Main Component ────────────────────────────────────────────────────────
 
 export default function OverviewTab({
-  email, isPremium, connectedPlatforms, snapshots, currencies = {}, onNavigate,
+  email, isPremium, connectedPlatforms, snapshots, currencies = {}, onNavigate, customers = [],
 }: {
   email: string; isPremium: boolean; connectedPlatforms: string[];
   snapshots: Snapshot[]; currencies: Record<string, string>; onNavigate: (tab: Tab) => void;
+  customers?: CustomerRow[];
 }) {
   const router = useRouter();
   const [upgradeLoading, setUpgradeLoading] = useState(false);
@@ -682,10 +698,26 @@ export default function OverviewTab({
     const primaryRevCurrency: string = connRevenue.length > 0 ? (currencies[connRevenue[0]] ?? "USD") : "USD";
     const primaryAnalytics = pickPrimaryAnalyticsProvider(snaps7, connAnalytics) ?? pickPrimaryAnalyticsProvider(effectiveSnapshots, connAnalytics);
 
-    const revenue7     = sumProviders(snaps7, connRevenue, "revenue");
-    const revenuePrev  = sumProviders(snapsPrev7, connRevenue, "revenue");
+    const revenue7     = sumRevenueProviders(snaps7, connRevenue);
+    const revenuePrev  = sumRevenueProviders(snapsPrev7, connRevenue);
     const newCustomers7    = sumProviders(snaps7, connRevenue, "newCustomers");
     const newCustomersPrev = sumProviders(snapsPrev7, connRevenue, "newCustomers");
+    // Orders: Shopify uses "orders", Stripe uses "txCount"
+    const orders7 = sumProviders(snaps7, connRevenue, "orders") || sumProviders(snaps7, connRevenue, "txCount");
+    // AOV: avg from Shopify snapshots (field "aov" in cents), fallback compute
+    const shopifySnaps7 = snaps7.filter((s) => s.provider === "shopify");
+    const aov7 = shopifySnaps7.length > 0
+      ? shopifySnaps7.reduce((acc, s) => acc + ((s.data as Record<string,number>).aov ?? 0), 0) / shopifySnaps7.length
+      : orders7 > 0 ? Math.round(revenue7 / orders7) : 0;
+    // Refund rate: avg from store snapshots
+    const storeSnaps7 = snaps7.filter((s) => connRevenue.includes(s.provider));
+    const refundRate7 = storeSnaps7.length > 0
+      ? storeSnaps7.reduce((acc, s) => acc + ((s.data as Record<string,number>).refundRate ?? 0), 0) / storeSnaps7.length
+      : 0;
+    // Cart abandonment (Shopify)
+    const cartAbanRate7 = shopifySnaps7.length > 0
+      ? shopifySnaps7.reduce((acc, s) => acc + ((s.data as Record<string,number>).cartAbandonmentRate ?? 0), 0) / shopifySnaps7.length
+      : 0;
     const sessions7    = primaryAnalytics ? sumField(snaps7, primaryAnalytics, "sessions") : 0;
     const sessionsPrev = primaryAnalytics ? sumField(snapsPrev7, primaryAnalytics, "sessions") : 0;
     const conversions7 = primaryAnalytics ? sumField(snaps7, primaryAnalytics, "conversions") : 0;
@@ -702,9 +734,9 @@ export default function OverviewTab({
     // Yesterday narrative
     const yesterdayStr = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
     const snapsYday = effectiveSnapshots.filter((s) => s.date === yesterdayStr);
-    const revenueYday  = sumProviders(snapsYday, connRevenue, "revenue");
+    const revenueYday  = sumRevenueProviders(snapsYday, connRevenue);
     const sessionsYday = primaryAnalytics ? sumField(snapsYday, primaryAnalytics, "sessions") : 0;
-    const txYday       = sumField(snapsYday, "stripe", "transactions");
+    const txYday       = sumField(snapsYday, "stripe", "txCount") || sumField(snapsYday, "shopify", "orders");
     const newCxYday    = sumProviders(snapsYday, connRevenue, "newCustomers");
     const spendYday    = sumProviders(snapsYday, connAds, "spend");
     const bounceYday   = primaryAnalytics ? avgField(snapsYday, primaryAnalytics, "bounceRate") : 0;
@@ -717,6 +749,9 @@ export default function OverviewTab({
 
     const crossInsights: { icon: string; color: string; message: string; action: string }[] = [];
     if (hasAnalytics && bounceRate7 > 65) crossInsights.push({ icon: "↑", color: "#f87171", message: `Bounce rate is elevated at ${fmt(bounceRate7, "percent")}. Review landing page copy and load speed.`, action: "View analytics →" });
+    if (hasAds && hasRevenue && spend7 > 0 && revenue7 / spend7 < 2) crossInsights.push({ icon: "⚠", color: "#f59e0b", message: `Blended ROAS is ${(revenue7 / spend7).toFixed(2)}x — below 2× threshold. Review ad targeting and creative performance.`, action: "View analytics →" });
+    if (hasRevenue && refundRate7 > 5) crossInsights.push({ icon: "⚠", color: "#f59e0b", message: `Refund rate is ${refundRate7.toFixed(1)}% this week — above 5% threshold. Review product descriptions and fulfilment.`, action: "View customers →" });
+    if (hasRevenue && cartAbanRate7 > 70) crossInsights.push({ icon: "↑", color: "#a78bfa", message: `Cart abandonment is ${cartAbanRate7.toFixed(1)}% — set up a recovery email flow to recapture lost revenue.`, action: "View analytics →" });
 
     // 7-day sparklines
     function spark(providers: string[], field: string): number[] {
@@ -747,17 +782,23 @@ export default function OverviewTab({
 
     return {
       kpis: {
-        revenue: { value: hasRevenue ? fmt(revenue7, "currency", primaryRevCurrency) : null, trend: hasRevenue ? { current: revenue7, prev: revenuePrev } : null, spark: hasRevenue ? spark(connRevenue, "revenue") : [], connect: "Connect Stripe", connectHref: "/dashboard?tab=data-sources" },
+        revenue: { value: hasRevenue ? fmt(revenue7, "currency", primaryRevCurrency) : null, trend: hasRevenue ? { current: revenue7, prev: revenuePrev } : null, spark: hasRevenue ? spark(connRevenue, "grossRevenue") : [], connect: "Connect Shopify", connectHref: "/dashboard?tab=data-sources" },
         sessions: { value: hasAnalytics ? fmt(sessions7) : null, trend: hasAnalytics ? { current: sessions7, prev: sessionsPrev } : null, spark: hasAnalytics && primaryAnalytics ? spark([primaryAnalytics], "sessions") : [], connect: "Connect GA4", connectHref: "/dashboard?tab=data-sources" },
         adSpend: { value: hasAds ? fmtMetaSpend(spend7, primaryAdCurrency) : null, trend: hasAds ? { current: spend7, prev: spendPrev } : null, spark: hasAds ? spark(connAds, "spend") : [], connect: "Connect Meta Ads", connectHref: "/dashboard?tab=data-sources" },
-        customers: { value: hasRevenue ? fmt(newCustomers7) : null, trend: hasRevenue ? { current: newCustomers7, prev: newCustomersPrev } : null, spark: hasRevenue ? spark(connRevenue, "newCustomers") : [], connect: "Connect Stripe", connectHref: "/dashboard?tab=data-sources" },
-        cac: { value: (hasAds && hasRevenue && cac7 !== null) ? fmtMetaSpend(cac7, primaryAdCurrency) : null, connect: "Needs Ads + Stripe", connectHref: "/dashboard?tab=data-sources" },
+        customers: { value: hasRevenue ? fmt(newCustomers7) : null, trend: hasRevenue ? { current: newCustomers7, prev: newCustomersPrev } : null, spark: hasRevenue ? spark(connRevenue, "newCustomers") : [], connect: "Connect Shopify", connectHref: "/dashboard?tab=data-sources" },
+        orders: { value: hasRevenue && orders7 > 0 ? fmt(orders7) : null, connect: "Connect Shopify", connectHref: "/dashboard?tab=data-sources" },
+        aov: { value: hasRevenue && aov7 > 0 ? fmt(aov7, "currency", primaryRevCurrency) : null, connect: "Connect Shopify", connectHref: "/dashboard?tab=data-sources" },
+        refundRate: { value: hasRevenue && refundRate7 > 0 ? fmt(refundRate7, "percent") : null, connect: "Connect Shopify", connectHref: "/dashboard?tab=data-sources" },
+        cartAbanRate: { value: hasRevenue && cartAbanRate7 > 0 ? fmt(cartAbanRate7, "percent") : null, connect: "Connect Shopify", connectHref: "/dashboard?tab=data-sources" },
+        cac: { value: (hasAds && hasRevenue && cac7 !== null) ? fmtMetaSpend(cac7, primaryAdCurrency) : null, connect: "Needs Ads + Shopify", connectHref: "/dashboard?tab=data-sources" },
         bounce: { value: hasAnalytics ? fmt(bounceRate7, "percent") : null, connect: "Connect GA4", connectHref: "/dashboard?tab=data-sources" },
+        roas: { value: (hasAds && hasRevenue && spend7 > 0) ? `${(revenue7 / spend7).toFixed(2)}x` : null, connect: "Needs Ads + Shopify", connectHref: "/dashboard?tab=data-sources" },
+        convRate: { value: (hasAnalytics && sessions7 > 0 && conversions7 > 0) ? fmt((conversions7 / sessions7) * 100, "percent") : null, connect: "Connect GA4", connectHref: "/dashboard?tab=data-sources" },
         conversions: conversions7,
       },
       narrative,
       crossInsights,
-      metrics7: { revenue7, sessions7, bounceRate7, spend7, revenuePrev },
+      metrics7: { revenue7, sessions7, bounceRate7, spend7, revenuePrev, refundRate7, cartAbanRate7, aov7, orders7 },
       revenueMonth: sumProviders(snapsThisMonth, connRevenue, "revenue"),
       sessionsMonth: primaryAnalytics ? sumField(snapsThisMonth, primaryAnalytics, "sessions") : 0,
       primaryRevCurrency,
@@ -767,6 +808,58 @@ export default function OverviewTab({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveSnapshots, effectivePlatforms, currencies]);
+
+  // ── E-commerce breakdown data ─────────────────────────────────────────
+  const ecommerceData = useMemo(() => {
+    const snaps7 = filterDays(effectiveSnapshots, 7);
+
+    // Top products (aggregate across Shopify snapshots)
+    const productRevMap: Record<string, { name: string; revenue: number; units: number }> = {};
+    for (const snap of snaps7) {
+      const d = snap.data as Record<string, unknown>;
+      for (const p of ((d.topProductsByRevenue as { name: string; productId: string; revenue: number; units: number }[]) ?? [])) {
+        if (!productRevMap[p.productId]) productRevMap[p.productId] = { name: p.name, revenue: 0, units: 0 };
+        productRevMap[p.productId].revenue += p.revenue;
+        productRevMap[p.productId].units += p.units;
+      }
+    }
+    const topProducts = Object.values(productRevMap).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
+
+    // Top countries by revenue
+    const countryRevMap: Record<string, number> = {};
+    for (const snap of snaps7) {
+      for (const c of (((snap.data as Record<string, unknown>).topCountries as { country: string; revenue: number }[]) ?? [])) {
+        countryRevMap[c.country] = (countryRevMap[c.country] ?? 0) + c.revenue;
+      }
+    }
+    const topCountries = Object.entries(countryRevMap).sort(([, a], [, b]) => b - a).slice(0, 5);
+
+    // Channel breakdown
+    const channelMap: Record<string, number> = {};
+    for (const snap of snaps7) {
+      for (const [ch, cnt] of Object.entries(((snap.data as Record<string, unknown>).channelBreakdown as Record<string, number>) ?? {})) {
+        channelMap[ch] = (channelMap[ch] ?? 0) + cnt;
+      }
+    }
+
+    // Inventory alerts
+    const inventoryAlerts = snaps7
+      .flatMap(s => (((s.data as Record<string, unknown>).inventoryAlerts as { productName: string; sku: string; stock: number; outOfStock: boolean }[]) ?? []))
+      .slice(0, 5);
+
+    // Avg fulfillment hours
+    const fhSnaps = snaps7.filter(s => (s.data as Record<string, number>).avgFulfillmentHours != null);
+    const avgFulfillmentHours = fhSnaps.length > 0
+      ? fhSnaps.reduce((a, s) => a + ((s.data as Record<string, number>).avgFulfillmentHours), 0) / fhSnaps.length
+      : null;
+
+    return { topProducts, topCountries, channelMap, inventoryAlerts, avgFulfillmentHours };
+  }, [effectiveSnapshots]);
+
+  const topCustomers = useMemo(
+    () => [...customers].sort((a, b) => (b.total_spent ?? 0) - (a.total_spent ?? 0)).slice(0, 5),
+    [customers],
+  );
 
   const { hasRevenue, hasAnalytics, hasAds, connRevenue, connAnalytics, connAds } = kpis as unknown as {
     hasRevenue: boolean; hasAnalytics: boolean; hasAds: boolean;
@@ -988,7 +1081,7 @@ export default function OverviewTab({
                   <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
                 </svg>
               </div>
-              <span className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#4a4a6a]">Revenue · 7 days</span>
+              <span className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#4a4a6a]">Store Revenue · 7 days</span>
             </div>
 
             {kpis.revenue.value ? (
@@ -999,13 +1092,18 @@ export default function OverviewTab({
                 <div className="flex items-center gap-3 flex-wrap">
                   {kpis.revenue.trend && <TrendBadge current={kpis.revenue.trend.current} prev={kpis.revenue.trend.prev} />}
                   <span className="font-mono text-[10px] text-[#3a3a5a]">vs prev 7 days</span>
+                  {kpis.roas.value && (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[#00d4aa]/20 bg-[#00d4aa]/6 px-2 py-0.5 font-mono text-[9px] font-bold text-[#00d4aa]">
+                      ROAS {kpis.roas.value}
+                    </span>
+                  )}
                 </div>
               </>
             ) : (
               <div>
                 <p className="font-mono text-[52px] font-bold text-[#1a1a2e] leading-none mb-3">—</p>
                 <a href="/dashboard?tab=data-sources" className="inline-flex items-center gap-2 rounded-xl border border-[#635bff]/20 bg-[#635bff]/8 px-4 py-2 font-mono text-[11px] font-semibold text-[#635bff] hover:bg-[#635bff]/14 transition">
-                  Connect Stripe →
+                  Connect Shopify →
                 </a>
               </div>
             )}
@@ -1080,14 +1178,14 @@ export default function OverviewTab({
             )}
           </div>
 
-          {/* New Customers */}
+          {/* New Orders */}
           <div className="rounded-2xl bg-[#ffffff] border border-black/8 p-4 flex flex-col justify-between overflow-hidden min-w-0">
             <div className="flex items-center justify-between mb-3">
-              <span className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#4a4a6a]">New Customers</span>
+              <span className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#4a4a6a]">New Orders</span>
               <div className="flex h-5 w-5 items-center justify-center rounded-lg bg-[#00d4aa]/10">
                 <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="#00d4aa" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" />
-                  <line x1="19" y1="8" x2="19" y2="14" /><line x1="22" y1="11" x2="16" y2="11" />
+                  <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" />
+                  <path d="M16 10a4 4 0 01-8 0" />
                 </svg>
               </div>
             </div>
@@ -1102,17 +1200,17 @@ export default function OverviewTab({
             ) : (
               <>
                 <p className="font-mono text-3xl font-bold text-[#1a1a2e] leading-none mb-2">—</p>
-                <a href="/dashboard?tab=data-sources" className="font-mono text-[9px] text-[#4a4a6a] hover:text-[#00d4aa] transition">+ Connect Stripe</a>
+                <a href="/dashboard?tab=data-sources" className="font-mono text-[9px] text-[#4a4a6a] hover:text-[#00d4aa] transition">+ Connect Shopify</a>
               </>
             )}
           </div>
 
-          {/* CAC + Bounce stacked */}
+          {/* Cost/Order + Conv. Rate stacked */}
           <div className="rounded-2xl bg-[#ffffff] border border-black/8 p-4 flex flex-col gap-0 justify-between overflow-hidden min-w-0">
-            {/* CAC */}
+            {/* Cost/Order */}
             <div className="pb-3 border-b border-black/8">
               <div className="flex items-center justify-between mb-1">
-                <span className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#4a4a6a]">CAC</span>
+                <span className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#4a4a6a]">Cost/Order</span>
               </div>
               {kpis.cac.value ? (
                 <p className="font-mono text-xl font-bold text-[#1a1a2e] tabular-nums break-all">{kpis.cac.value}</p>
@@ -1120,14 +1218,14 @@ export default function OverviewTab({
                 <p className="font-mono text-xl font-bold text-[#1a1a2e]">—</p>
               )}
             </div>
-            {/* Bounce Rate */}
+            {/* Conv. Rate */}
             <div className="pt-3">
               <div className="flex items-center justify-between mb-1">
-                <span className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#4a4a6a]">Bounce</span>
+                <span className="font-mono text-[9px] font-semibold uppercase tracking-widest text-[#4a4a6a]">Conv. Rate</span>
               </div>
-              {kpis.bounce.value ? (
-                <p className={`font-mono text-xl font-bold tabular-nums break-all ${parseFloat(kpis.bounce.value) > 65 ? "text-amber-400" : "text-[#1a1a2e]"}`}>
-                  {kpis.bounce.value}
+              {kpis.convRate.value ? (
+                <p className="font-mono text-xl font-bold text-[#1a1a2e] tabular-nums break-all">
+                  {kpis.convRate.value}
                 </p>
               ) : (
                 <p className="font-mono text-xl font-bold text-[#1a1a2e]">—</p>
@@ -1175,6 +1273,240 @@ export default function OverviewTab({
       )}
 
       {/* ═══════════════════════════════════════════════════════
+          TOP PRODUCTS + TOP CUSTOMERS
+      ═══════════════════════════════════════════════════════ */}
+      {(ecommerceData.topProducts.length > 0 || topCustomers.length > 0) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+
+          {/* Top Products */}
+          <div className="rounded-2xl border border-black/8 bg-white p-5">
+            <div className="flex items-center justify-between mb-4">
+              <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#4a4a6a]">Top Products · 7d</span>
+              <button onClick={() => onNavigate("customers")} className="font-mono text-[9px] text-[#4a4a6a] hover:text-[#635bff] transition">View all →</button>
+            </div>
+            {ecommerceData.topProducts.length > 0 ? (
+              <div className="space-y-3">
+                {ecommerceData.topProducts.map((p, i) => {
+                  const maxRev = ecommerceData.topProducts[0].revenue;
+                  const pct = maxRev > 0 ? (p.revenue / maxRev) * 100 : 0;
+                  return (
+                    <div key={i} className="flex items-center gap-3">
+                      <span className="font-mono text-[10px] font-bold text-[#9a9ab0] w-4 shrink-0 text-center">{i + 1}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="font-mono text-[11px] font-semibold text-[#1a1a2e] truncate pr-2">{p.name}</span>
+                          <span className="font-mono text-[10px] font-bold text-[#1a1a2e] shrink-0">{fmt(p.revenue, "currency", primaryRevCurrency)}</span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-black/6 overflow-hidden mb-1">
+                          <div className="h-full rounded-full bg-linear-to-r from-[#635bff] to-[#00d4aa] transition-all" style={{ width: `${pct}%` }} />
+                        </div>
+                        <span className="font-mono text-[9px] text-[#9a9ab0]">{p.units} units sold</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-28 gap-2">
+                <span className="font-mono text-[10px] text-[#9a9ab0]">No product data yet</span>
+                <a href="/dashboard?tab=data-sources" className="font-mono text-[9px] text-[#635bff] hover:underline">+ Connect Shopify</a>
+              </div>
+            )}
+          </div>
+
+          {/* Top Customers */}
+          <div className="rounded-2xl border border-black/8 bg-white p-5">
+            <div className="flex items-center justify-between mb-4">
+              <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#4a4a6a]">Top Customers · LTV</span>
+              <button onClick={() => onNavigate("customers")} className="font-mono text-[9px] text-[#4a4a6a] hover:text-[#635bff] transition">View all →</button>
+            </div>
+            {topCustomers.length > 0 ? (
+              <div className="space-y-1.5">
+                {topCustomers.map((c, i) => {
+                  const label = c.name ?? c.email ?? "?";
+                  const initials = label.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase();
+                  const avatarColors = ["#635bff", "#00d4aa", "#f59e0b", "#f87171", "#a78bfa"];
+                  const bg = avatarColors[i % avatarColors.length];
+                  // Compute recency-based health proxy
+                  const daysSinceLast = c.last_seen
+                    ? Math.floor((Date.now() - new Date(c.last_seen).getTime()) / 86400000)
+                    : 999;
+                  const health = daysSinceLast < 30 ? "loyal" : daysSinceLast < 60 ? "at-risk" : "churning";
+                  return (
+                    <div key={(c as { id?: string }).id ?? i}
+                      className="flex items-center gap-3 rounded-xl hover:bg-black/3 px-2 py-2 -mx-2 transition cursor-pointer"
+                      onClick={() => onNavigate("customers")}>
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-mono text-[9px] font-bold text-white"
+                        style={{ backgroundColor: bg }}>
+                        {initials}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-mono text-[11px] font-semibold text-[#1a1a2e] truncate">{label}</p>
+                        <p className="font-mono text-[9px] text-[#9a9ab0]">{c.order_count ?? 0} orders · {c.city ?? c.country ?? ""}</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="font-mono text-[12px] font-bold text-[#635bff]">{fmt(c.total_spent ?? 0, "currency", primaryRevCurrency)}</p>
+                        <span className={`font-mono text-[8px] font-semibold ${health === "loyal" ? "text-[#00d4aa]" : health === "at-risk" ? "text-[#f59e0b]" : "text-[#f87171]"}`}>
+                          {health === "loyal" ? "● Loyal" : health === "at-risk" ? "◐ At risk" : "○ Churning"}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-28 gap-2">
+                <span className="font-mono text-[10px] text-[#9a9ab0]">No customer data yet</span>
+                <a href="/dashboard?tab=data-sources" className="font-mono text-[9px] text-[#635bff] hover:underline">+ Connect Shopify</a>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════
+          GEOGRAPHY + CHANNEL BREAKDOWN
+      ═══════════════════════════════════════════════════════ */}
+      {(ecommerceData.topCountries.length > 0 || Object.keys(ecommerceData.channelMap).length > 0) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+
+          {/* Top Markets */}
+          {ecommerceData.topCountries.length > 0 && (
+            <div className="rounded-2xl border border-black/8 bg-white p-5">
+              <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#4a4a6a] block mb-4">Top Markets · 7d</span>
+              <div className="space-y-3">
+                {ecommerceData.topCountries.map(([country, revenue]) => {
+                  const maxRev = ecommerceData.topCountries[0][1];
+                  const pct = maxRev > 0 ? (revenue / maxRev) * 100 : 0;
+                  const flags: Record<string, string> = {
+                    "United States": "🇺🇸", "United Kingdom": "🇬🇧", "Canada": "🇨🇦", "Australia": "🇦🇺",
+                    "Germany": "🇩🇪", "France": "🇫🇷", "Netherlands": "🇳🇱", "Japan": "🇯🇵",
+                    "India": "🇮🇳", "Brazil": "🇧🇷", "Spain": "🇪🇸", "Italy": "🇮🇹", "Mexico": "🇲🇽",
+                  };
+                  return (
+                    <div key={country} className="flex items-center gap-3">
+                      <span className="text-base shrink-0">{flags[country] ?? "🌍"}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="font-mono text-[11px] font-semibold text-[#1a1a2e]">{country}</span>
+                          <span className="font-mono text-[10px] font-bold text-[#1a1a2e]">{fmt(revenue, "currency", primaryRevCurrency)}</span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-black/6 overflow-hidden">
+                          <div className="h-full rounded-full bg-linear-to-r from-[#00d4aa] to-[#635bff]" style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Sales Channels */}
+          {Object.keys(ecommerceData.channelMap).length > 0 && (
+            <div className="rounded-2xl border border-black/8 bg-white p-5">
+              <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#4a4a6a] block mb-4">Sales Channels · 7d</span>
+              <div className="space-y-3">
+                {Object.entries(ecommerceData.channelMap).sort(([, a], [, b]) => b - a).map(([channel, count]) => {
+                  const total = Object.values(ecommerceData.channelMap).reduce((a, b) => a + b, 0);
+                  const pct = total > 0 ? (count / total) * 100 : 0;
+                  const chanColors: Record<string, string> = { online_store: "#635bff", pos: "#00d4aa", draft_order: "#f59e0b", buy_button: "#f87171", mobile_app: "#a78bfa" };
+                  const color = chanColors[channel] ?? "#9a9ab0";
+                  const label = channel.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+                  return (
+                    <div key={channel} className="flex items-center gap-3">
+                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: color + "18" }}>
+                        <div className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="font-mono text-[11px] font-semibold text-[#1a1a2e]">{label}</span>
+                          <span className="font-mono text-[10px] text-[#4a4a6a]">{count} orders · <span className="font-bold text-[#1a1a2e]">{pct.toFixed(0)}%</span></span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-black/6 overflow-hidden">
+                          <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: color }} />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════
+          INVENTORY ALERTS
+      ═══════════════════════════════════════════════════════ */}
+      {ecommerceData.inventoryAlerts.length > 0 && (
+        <div className="mb-3 rounded-2xl border border-[#f59e0b]/20 bg-[#f59e0b]/4 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#f59e0b]">⚠ Inventory Alerts</span>
+            <span className="font-mono text-[9px] text-[#f59e0b]/70">{ecommerceData.inventoryAlerts.length} product{ecommerceData.inventoryAlerts.length !== 1 ? "s" : ""} need attention</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {ecommerceData.inventoryAlerts.map((alert, i) => (
+              <div key={i} className={`flex items-center gap-2 rounded-xl border px-3 py-2 ${alert.outOfStock ? "border-[#f87171]/25 bg-[#f87171]/8" : "border-[#f59e0b]/20 bg-[#f59e0b]/6"}`}>
+                <span className="text-sm">{alert.outOfStock ? "🔴" : "🟡"}</span>
+                <div>
+                  <p className="font-mono text-[10px] font-semibold text-[#1a1a2e]">{alert.productName}</p>
+                  <p className="font-mono text-[9px] text-[#6a6a90]">{alert.outOfStock ? "Out of stock" : `${alert.stock} remaining`}{alert.sku ? ` · ${alert.sku}` : ""}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════
+          FULFILLMENT TIME + E-COMMERCE KPI STRIP
+      ═══════════════════════════════════════════════════════ */}
+      {(ecommerceData.avgFulfillmentHours !== null || kpis.aov.value || kpis.cartAbanRate.value || kpis.refundRate.value || kpis.roas.value) && (
+        <div className="mb-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+          {kpis.aov.value && (
+            <div className="rounded-xl border border-black/8 bg-white px-4 py-3 flex flex-col gap-1">
+              <span className="font-mono text-[8px] font-bold uppercase tracking-widest text-[#9a9ab0]">Avg Order Value</span>
+              <span className="font-mono text-[18px] font-bold text-[#1a1a2e] leading-none">{kpis.aov.value}</span>
+            </div>
+          )}
+          {kpis.orders.value && (
+            <div className="rounded-xl border border-black/8 bg-white px-4 py-3 flex flex-col gap-1">
+              <span className="font-mono text-[8px] font-bold uppercase tracking-widest text-[#9a9ab0]">Orders · 7d</span>
+              <span className="font-mono text-[18px] font-bold text-[#1a1a2e] leading-none">{kpis.orders.value}</span>
+            </div>
+          )}
+          {kpis.refundRate.value && (
+            <div className="rounded-xl border border-[#f87171]/15 bg-[#f87171]/4 px-4 py-3 flex flex-col gap-1">
+              <span className="font-mono text-[8px] font-bold uppercase tracking-widest text-[#f87171]/70">Refund Rate</span>
+              <span className="font-mono text-[18px] font-bold text-[#f87171] leading-none">{kpis.refundRate.value}</span>
+            </div>
+          )}
+          {kpis.cartAbanRate.value && (
+            <div className="rounded-xl border border-[#a78bfa]/15 bg-[#a78bfa]/4 px-4 py-3 flex flex-col gap-1">
+              <span className="font-mono text-[8px] font-bold uppercase tracking-widest text-[#a78bfa]/70">Cart Abandon</span>
+              <span className="font-mono text-[18px] font-bold text-[#a78bfa] leading-none">{kpis.cartAbanRate.value}</span>
+            </div>
+          )}
+          {ecommerceData.avgFulfillmentHours !== null ? (
+            <div className="rounded-xl border border-[#00d4aa]/15 bg-[#00d4aa]/4 px-4 py-3 flex flex-col gap-1">
+              <span className="font-mono text-[8px] font-bold uppercase tracking-widest text-[#00d4aa]/70">Fulfillment</span>
+              <span className="font-mono text-[18px] font-bold text-[#00d4aa] leading-none">
+                {ecommerceData.avgFulfillmentHours < 24
+                  ? `${ecommerceData.avgFulfillmentHours.toFixed(0)}h`
+                  : `${(ecommerceData.avgFulfillmentHours / 24).toFixed(1)}d`}
+              </span>
+            </div>
+          ) : kpis.roas.value ? (
+            <div className="rounded-xl border border-[#00d4aa]/15 bg-[#00d4aa]/4 px-4 py-3 flex flex-col gap-1">
+              <span className="font-mono text-[8px] font-bold uppercase tracking-widest text-[#00d4aa]/70">Blended ROAS</span>
+              <span className="font-mono text-[18px] font-bold text-[#00d4aa] leading-none">{kpis.roas.value}</span>
+            </div>
+          ) : null}
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════
           BOTTOM TRIPTYCH — 3 equal columns
           [Goals & Forecast] [Health Signals] [Quick Access]
       ═══════════════════════════════════════════════════════ */}
@@ -1184,7 +1516,7 @@ export default function OverviewTab({
         <div className="rounded-2xl border border-black/8 bg-[#ffffff] p-4 space-y-4">
           <div className="flex items-center justify-between">
             <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#4a4a6a]">Goals</span>
-            <button onClick={() => onNavigate("analytics")} className="font-mono text-[9px] text-[#eaeaf5] hover:text-[#00d4aa] transition">Details →</button>
+            <button onClick={() => onNavigate("analytics")} className="font-mono text-[9px] text-[#3a3a3a] hover:text-[#00d4aa] transition">Details →</button>
           </div>
           <GoalsWidget
             revenueMonth={revenueMonth} sessionsMonth={sessionsMonth}
@@ -1196,18 +1528,19 @@ export default function OverviewTab({
 
         {/* Health Signals */}
         <div className="rounded-2xl border border-black/8 bg-[#ffffff] p-4 space-y-1">
-          <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#4a4a6a] block mb-3">Health · 7d</span>
+          <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#4a4a6a] block mb-3">Store Health · 7d</span>
           <CompactStat label="Sessions" value={kpis.sessions.value} trend={kpis.sessions.trend} spark={kpis.sessions.spark} accent="#f59e0b" connect="Connect GA4" connectHref="/dashboard?tab=data-sources" />
-          <CompactStat label="Bounce Rate" value={kpis.bounce.value} accent={kpis.bounce.value && parseFloat(kpis.bounce.value) > 65 ? "#f59e0b" : "#00d4aa"} connect="Connect GA4" connectHref="/dashboard?tab=data-sources" border />
-          <CompactStat label="Ad Spend" value={kpis.adSpend.value} trend={kpis.adSpend.trend} spark={kpis.adSpend.spark} accent="#1877f2" connect="Connect Meta Ads" connectHref="/dashboard?tab=data-sources" border />
-          <CompactStat label="CAC" value={kpis.cac.value} accent="#f87171" connect="Needs Ads + Revenue" connectHref="/dashboard?tab=data-sources" border={false} />
+          <CompactStat label="Blended ROAS" value={kpis.roas.value} accent="#00d4aa" connect="Needs Ads + Store" connectHref="/dashboard?tab=data-sources" border />
+          <CompactStat label="AOV" value={kpis.aov.value} accent="#635bff" connect="Connect Shopify" connectHref="/dashboard?tab=data-sources" border />
+          <CompactStat label="Refund Rate" value={kpis.refundRate.value} accent="#f87171" connect="Connect Shopify" connectHref="/dashboard?tab=data-sources" border />
+          <CompactStat label="Cart Abandon" value={kpis.cartAbanRate.value} accent="#a78bfa" connect="Connect Shopify" connectHref="/dashboard?tab=data-sources" border={false} />
         </div>
 
         {/* Quick Access */}
         <div className="rounded-2xl border border-black/8 bg-[#ffffff] p-4 flex flex-col gap-2">
           <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#4a4a6a] block mb-1">Quick Access</span>
           {[
-            { label: "Analytics", desc: "Sessions, conversions, funnel", icon: "M3 17l5-5 4 4 9-9", tab: "analytics" as Tab, color: "#f59e0b" },
+            { label: "Analytics", desc: "Traffic, ROAS, funnel & sessions", icon: "M3 17l5-5 4 4 9-9", tab: "analytics" as Tab, color: "#f59e0b" },
             { label: "Integrations", desc: `${connectedPlatforms.length}/${LIVE_INTEGRATIONS.length} connected`, icon: "M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71", tab: "data-sources" as Tab, color: "#635bff" },
             { label: "Alerts", desc: allAlerts.length > 0 ? `${allAlerts.length} active alert${allAlerts.length !== 1 ? "s" : ""}` : "No active alerts", icon: "M13 10V3L4 14h7v7l9-11h-7z", tab: "settings" as Tab, color: allAlerts.length > 0 ? "#f87171" : "#3a3a5a" },
           ].map((item) => (

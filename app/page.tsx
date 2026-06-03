@@ -329,16 +329,16 @@ export default async function Home() {
           <div className="grid gap-4 sm:grid-cols-3">
             {[
               {
-                bad: "Revenue dropped 18% last Tuesday, you found out Friday",
-                good: "Fold flags the drop within hours. With the exact cause.",
+                bad: "Revenue dropped Monday — you found out Wednesday, after shipping 200 more units",
+                good: "Fold flags the drop within hours. With the exact campaign or product causing it.",
               },
               {
-                bad: "Ad spend is up but you don't know if it's working",
-                good: "See ROAS, CAC, and paid vs. organic side-by-side. Daily.",
+                bad: "Your Meta spend went up 40% last week but revenue didn't follow",
+                good: "Fold shows true ROAS per campaign — and flags unprofitable spend before it compounds.",
               },
               {
-                bad: "A slow page is killing conversions, silently",
-                good: "AI scores your site and ranks every fix by revenue impact.",
+                bad: "Return rate spiked to 22% on one product — silently eating your margin",
+                good: "Fold correlates returns to products and alerts you before you reorder inventory.",
               },
             ].map((item) => (
               <div key={item.bad} className="rounded-2xl bg-white shadow-[0_1px_3px_rgba(0,0,0,0.05)] p-5 space-y-3">
@@ -387,28 +387,28 @@ export default async function Home() {
           </div>
           <div className="mx-auto max-w-2xl">
             <Step n={1} title="Connect your tools in 90 seconds"
-              description="Link Stripe, Google Analytics, Meta Ads, Shopify, Mailchimp and 30+ more. No code, no CSV exports, no engineers. OAuth only, read-only access, nothing is ever written to your accounts." />
+              description="Link Shopify, Meta Ads, GA4, Klaviyo, Google Ads and 30+ more. No code, no CSV exports, no engineers. OAuth only, read-only access — nothing is ever written to your accounts." />
             <Step n={2} title="Fold surfaces what's actually wrong"
-              description="One unified view across all your data. Revenue anomalies, traffic drops, ad budget waste, and conversion leaks are flagged automatically with context, not just raw numbers." />
-            <Step n={3} title="AI finds problems and tells you how to fix them"
-              description="Daily digest: what broke yesterday, why it happened, and step-by-step fixes ranked by revenue impact. Website audits catch conversion leaks worth $2K-10K/mo. Ad attribution shows which campaigns are unprofitable BEFORE you burn $5K." />
+              description="One unified view across all your data. Revenue anomalies, dead stock alerts, unprofitable ad campaigns, and email attribution are flagged automatically — with context, not just raw numbers." />
+            <Step n={3} title="AI tells you exactly what to fix — and what to scale"
+              description="Daily digest every morning: best-selling product yesterday, which campaign generated real revenue, and any anomaly detected. Fix-lists ranked by $ impact so you always work on the highest-leverage problem first." />
           </div>
 
           {/* Platform OAuth trust strip — live integrations only */}
           {(() => {
             const subs: Record<string, string> = {
-              stripe: "Payments & MRR",
+              stripe: "Payments & GMV",
               ga4: "Sessions & conversions",
               meta: "Ad spend & ROAS",
-              "lemon-squeezy": "Digital product revenue",
-              gumroad: "Creator sales & subs",
-              paddle: "SaaS billing & tax",
               plausible: "Privacy-first traffic",
               mailchimp: "Email campaigns",
               klaviyo: "E-commerce email",
-              beehiiv: "Newsletter & subscribers",
               shopify: "Orders & GMV",
               woocommerce: "WordPress store orders",
+              bigcommerce: "Enterprise store orders",
+              amazon: "Marketplace sales",
+              etsy: "Handmade & vintage sales",
+              brevo: "Email & SMS marketing",
             };
             return (
               <div className="mt-12 flex flex-wrap justify-center items-center gap-6 sm:gap-8">
@@ -485,7 +485,7 @@ export default async function Home() {
                   <h3 className="font-mono text-xl font-bold text-[#1a1a2e] mb-3">6 KPIs. One glance.</h3>
                   <p className="text-[#4a4a6a] leading-relaxed mb-4">Revenue, sessions, ad spend, new customers, conversions, and customer acquisition cost all with 7-day trends and comparisons to the prior period.</p>
                   <ul className="space-y-2">
-                    {["Revenue & MRR from Stripe", "Sessions & conversions from GA4", "Ad spend & CAC from Meta Ads", "E-commerce orders from Shopify", "Growth Pulse — rolling 7-day trends", "Quick actions & recent activity feed"].map((f) => (
+                    {["GMV & revenue from Stripe & Shopify", "Sessions & conversions from GA4", "Ad spend & ROAS from Meta Ads", "E-commerce orders from Shopify", "Growth Pulse — rolling 7-day trends", "Quick actions & recent activity feed"].map((f) => (
                       <li key={f} className="flex items-center gap-2 text-sm text-[#3a3a58]">
                         <span className="h-1.5 w-1.5 rounded-full bg-[#00d4aa] shrink-0" />{f}
                       </li>
@@ -527,7 +527,7 @@ export default async function Home() {
                   <h3 className="font-mono text-xl font-bold text-[#1a1a2e] mb-3">Deep-dive into every metric.</h3>
                   <p className="text-[#4a4a6a] leading-relaxed mb-4">Full 30-day daily breakdown per platform. Sparklines, trend percentages, and per-integration deep dives — Stripe, GA4, Meta Ads, Shopify, and all your other connected tools each get their own view.</p>
                   <ul className="space-y-2">
-                    {["30-day daily time-series per integration", "Stripe: MRR, revenue, new customers, refunds", "GA4: sessions, bounce rate, conversions, top pages", "Meta Ads: spend, ROAS, CPC, impressions", "Shopify, Mailchimp & more"].map((f) => (
+                    {["30-day daily time-series per integration", "Stripe: GMV, AOV, refund rate, disputes", "GA4: sessions, bounce rate, conversions, top pages", "Meta Ads: spend, ROAS, CPC, impressions", "Shopify, Klaviyo & more"].map((f) => (
                       <li key={f} className="flex items-center gap-2 text-sm text-[#3a3a58]">
                         <span className="h-1.5 w-1.5 rounded-full bg-[#6366f1] shrink-0" />{f}
                       </li>
@@ -600,7 +600,7 @@ export default async function Home() {
               {
                 icon: <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>,
                 title: "Anomaly Alerts", color: "#f87171",
-                description: "Unusual churn? Sudden drop in sessions? Fold catches it before it costs you and explains why in plain English.",
+                description: "Refund rate spike? ROAS collapse? Sudden drop in orders? Fold catches it before it costs you and explains why in plain English.",
               },
               {
                 icon: <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
@@ -640,7 +640,7 @@ export default async function Home() {
               {
                 icon: <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>,
                 title: "Custom Alert Rules", color: "#60a5fa",
-                description: "Set your own thresholds alert me when CAC exceeds $50, when churn crosses 5%, or when daily revenue drops below $1k. Fold watches your numbers so you don't have to.",
+                description: "Set your own thresholds — alert me when CAC exceeds $50, when refund rate crosses 8%, or when daily revenue drops below $1k. Fold watches your numbers so you don't have to.",
               },
             ].map((f) => (
               <FeatureCard key={f.title} icon={f.icon} title={f.title} description={f.description} color={f.color} />
@@ -660,41 +660,41 @@ export default async function Home() {
             <div className="grid gap-4 sm:grid-cols-2 mb-6">
               <div className="rounded-xl bg-white/5 p-4">
                 <div className="mb-2 flex items-center justify-between">
-                  <span className="font-mono text-sm text-[#bcbcd8]">Google Ads consultant</span>
-                  <span className="font-mono text-lg font-bold">$500-2K</span>
+                  <span className="font-mono text-sm text-[#bcbcd8]">Triple Whale</span>
+                  <span className="font-mono text-lg font-bold">$129/mo</span>
                 </div>
-                <p className="text-xs text-[#8585aa]">To get true ROAS and stop wasting ad budget</p>
+                <p className="text-xs text-[#8585aa]">Shopify attribution only — no GA4, no email, no anomaly alerts</p>
               </div>
               
               <div className="rounded-xl bg-white/5 p-4">
                 <div className="mb-2 flex items-center justify-between">
-                  <span className="font-mono text-sm text-[#bcbcd8]">CRO agency</span>
-                  <span className="font-mono text-lg font-bold">$3K-5K</span>
+                  <span className="font-mono text-sm text-[#bcbcd8]">Meta Ads agency</span>
+                  <span className="font-mono text-lg font-bold">$500–2K/mo</span>
                 </div>
-                <p className="text-xs text-[#8585aa]">To audit your site for conversion leaks</p>
+                <p className="text-xs text-[#8585aa]">To manage campaigns and tell you which ones are actually profitable</p>
               </div>
               
               <div className="rounded-xl bg-white/5 p-4">
                 <div className="mb-2 flex items-center justify-between">
-                  <span className="font-mono text-sm text-[#bcbcd8]">Baremetrics / ChartMogul</span>
-                  <span className="font-mono text-lg font-bold">$50-100</span>
+                  <span className="font-mono text-sm text-[#bcbcd8]">Klaviyo + GA4 analyst</span>
+                  <span className="font-mono text-lg font-bold">$1K–3K/mo</span>
                 </div>
-                <p className="text-xs text-[#8585aa]">For Stripe-only revenue analytics</p>
+                <p className="text-xs text-[#8585aa]">To correlate email campaigns with actual revenue and LTV</p>
               </div>
               
               <div className="rounded-xl bg-white/5 p-4">
                 <div className="mb-2 flex items-center justify-between">
                   <span className="font-mono text-sm text-[#bcbcd8]">Your time checking dashboards</span>
-                  <span className="font-mono text-lg font-bold">$1K-2K</span>
+                  <span className="font-mono text-lg font-bold">$1K–2K/mo</span>
                 </div>
-                <p className="text-xs text-[#8585aa]">10 hrs/mo × $100-200/hr opportunity cost</p>
+                <p className="text-xs text-[#8585aa]">10 hrs/mo across Shopify, Meta, GA4, Klaviyo × $100–200/hr opportunity cost</p>
               </div>
             </div>
 
             <div className="border-t border-white/10 pt-6 text-center">
               <p className="mb-2 font-mono text-sm text-[#8585aa]">Total monthly cost:</p>
               <p className="mb-4 font-mono text-3xl font-bold text-[#f87171]">
-                $4,550 - $8,100<span className="text-lg">/mo</span>
+                $2,629 – $7,129<span className="text-lg">/mo</span>
               </p>
               <div className="mx-auto h-8 w-px bg-linear-to-b from-white/20 to-transparent"></div>
               <p className="mt-4 mb-2 font-mono text-sm text-[#8585aa]">Fold replaces all of it:</p>
@@ -702,7 +702,7 @@ export default async function Home() {
                 $19<span className="text-lg">/mo</span>
               </p>
               <p className="mt-2 text-xs text-[#8585aa]">
-                That's a 99.5% cost reduction
+                That&apos;s a 99%+ cost reduction
               </p>
             </div>
           </div>
@@ -821,15 +821,15 @@ export default async function Home() {
               <div>
                 <p className="mb-2 font-mono text-[10px] font-semibold uppercase tracking-widest text-[#00d4aa]">Why I built Fold</p>
                 <h2 className="font-mono text-2xl font-bold text-[#1a1a2e] sm:text-3xl leading-snug">
-                  Built by a founder,<br className="hidden sm:block" /> for founders.
+                  Built by a store owner,<br className="hidden sm:block" /> for store owners.
                 </h2>
               </div>
 
               <p className="text-[#4a4a6a] leading-relaxed">
-                I ran a small SaaS and every Monday I'd open five browser tabs, Stripe, Google Analytics, Mailchimp, Meta Ads, Shopify, just to piece together what happened last week. It took 40 minutes and I still wasn't sure I had the full picture.
+                I ran a Shopify store and every week I'd open five tabs — Shopify, Meta Ads, Google Analytics, Klaviyo, Stripe — just to piece together what actually happened. It took 40 minutes and I still wasn't confident I had the full picture.
               </p>
               <p className="text-[#4a4a6a] leading-relaxed">
-                Fold is the dashboard I wish existed. Every metric you care about, in one place, with a plain-English summary that tells you <em className="text-[#1a1a2e] not-italic font-medium">why</em> things moved, not just that they did. No data science degree required.
+                Fold is the dashboard I wish existed. Every metric that matters — ad spend, true ROAS, email revenue, product performance — in one place, with a plain-English briefing that tells you <em className="text-[#1a1a2e] not-italic font-medium">why</em> things moved and exactly what to fix. No analyst needed.
               </p>
 
               {/* Credibility bar */}
@@ -916,7 +916,7 @@ export default async function Home() {
             <div>
               <img src="/fold-primary-light.svg" alt="Fold" className="h-9 w-auto mb-3" />
               <p className="text-sm text-[#6a6a90] leading-relaxed max-w-xs">
-                AI-powered business intelligence for small business founders. Know what&apos;s happening. Know what to do.
+                AI-powered analytics for Shopify and e-commerce stores. Know what&apos;s selling, what&apos;s burning budget, and what to fix — every morning.
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 <IntegrationPill name="Stripe" color="#6366f1" />

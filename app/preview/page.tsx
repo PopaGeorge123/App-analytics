@@ -20,10 +20,10 @@ interface Predictions {
   businessCategory: string;
   businessDescription: string;
   techStack: string[];
-  mrr: number; mrrGrowth: number;
+  gmv: number; gmvGrowth: number;
   monthlyVisitors: number; visitorsGrowth: number;
   bounceRate: number; conversionRate: number; avgSessionDuration: number;
-  newCustomers: number; churnRate: number; ltv: number; adSpend: number; roas: number;
+  newCustomers: number; refundRate: number; aov: number; adSpend: number; roas: number;
   revenueChart: { labels: string[]; data: number[] };
   visitorsChart: { labels: string[]; data: number[] };
   dailyRevenue: { labels: string[]; data: number[] };
@@ -31,7 +31,7 @@ interface Predictions {
   trafficSources: Array<{ source: string; sessions: number; pct: number }>;
   devices: { desktop: number; mobile: number; tablet: number };
   countries: Array<{ name: string; code: string; sessions: number; pct: number }>;
-  recentCustomers: Array<{ name: string; email: string; plan: string; mrr: number; joinedDaysAgo: number }>;
+  recentCustomers: Array<{ name: string; email: string; totalSpent: number; orderCount: number; joinedDaysAgo: number }>;
   aiInsights: string[];
   opportunities: Array<{ title: string; impact: string; effort: string; estimatedRevenue: number }>;
 }
@@ -52,11 +52,11 @@ function predictionsToSnapshots(p: Predictions): Snapshot[] {
   let n = 0;
   const uid = () => `prev-${++n}`;
 
-  const dailyRevCents  = (p.mrr * 100) / 30;
+  const gmvDaily       = (p.gmv * 100) / 30;
   const dailySessions  = p.monthlyVisitors / 30;
   const dailyNewCust   = p.newCustomers / 30;
   const dailySpendCents = ((p.adSpend ?? 0) * 100) / 30;
-  const monthGrowth    = (p.mrrGrowth ?? 0) / 100;
+  const monthGrowth    = (p.gmvGrowth ?? 0) / 100;
 
   for (let i = 29; i >= 0; i--) {
     const d = new Date();
@@ -67,13 +67,16 @@ function predictionsToSnapshots(p: Predictions): Snapshot[] {
     const trendMult = 1 + monthGrowth * ((29 - i) / 30);
     const f         = dowMult * trendMult;
 
-    const revenue    = Math.max(0, Math.round(dailyRevCents  * f));
+    const revenue    = Math.max(0, Math.round(gmvDaily * f));
     const sessions   = Math.max(1, Math.round(dailySessions  * f));
     const conversions = Math.max(0, Math.round(sessions * (p.conversionRate / 100)));
     const newCust    = Math.max(0, Math.round(dailyNewCust   * f));
     const spend      = Math.max(0, Math.round(dailySpendCents * f));
+    const aovCents   = Math.round((p.aov ?? 50) * 100);
+    const orders     = revenue > 0 ? Math.max(1, Math.round(revenue / aovCents)) : 0;
+    const refunds    = Math.round(orders * ((p.refundRate ?? 3) / 100));
 
-    snaps.push({ id: uid(), provider: "stripe", date, data: { revenue, transactions: Math.max(1, newCust), newCustomers: newCust, refunds: Math.round(revenue * 0.02) } });
+    snaps.push({ id: uid(), provider: "stripe", date, data: { revenue, transactions: orders, newCustomers: newCust, refunds, avgTransactionValue: aovCents } });
     snaps.push({ id: uid(), provider: "ga4",    date, data: { sessions, users: Math.round(sessions * 0.78), conversions, bounceRate: Math.round(p.bounceRate), avgDuration: p.avgSessionDuration } });
     snaps.push({ id: uid(), provider: "meta",   date, data: { spend, clicks: Math.max(1, Math.round(spend / 80)), impressions: Math.max(10, Math.round(spend * 2.5)), conversions: Math.round(conversions * 0.35), currency: "USD" } });
   }

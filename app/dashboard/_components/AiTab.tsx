@@ -30,13 +30,13 @@ interface AiTabProps {
   onNavigate?: (tab: Tab) => void;
 }
 
-type Goal = "grow_mrr" | "reduce_churn" | "scale_ads" | null;
+type Goal = "grow_revenue" | "improve_roas" | "scale_ads" | null;
 
 // ── Goal helpers ───────────────────────────────────────────────────────────
 const GOAL_OPTIONS: { id: Goal; label: string; icon: React.ReactNode; color: string }[] = [
-  { id: "grow_mrr",      label: "Grow MRR",     color: "#00d4aa", icon: <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
-  { id: "reduce_churn",  label: "Reduce Churn", color: "#f59e0b", icon: <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg> },
-  { id: "scale_ads",     label: "Scale Ads",    color: "#a78bfa", icon: <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" /></svg> },
+  { id: "grow_revenue",  label: "Grow Revenue",  color: "#00d4aa", icon: <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
+  { id: "improve_roas",  label: "Improve ROAS",  color: "#f59e0b", icon: <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg> },
+  { id: "scale_ads",     label: "Scale Ads",     color: "#a78bfa", icon: <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" /></svg> },
 ];
 
 function loadGoal(): Goal {
@@ -60,7 +60,7 @@ function inferInvestigateTabs(content: string): { tab: Tab; label: string; icon:
     tabs.push({ tab: "overview", label: "Overview", icon: <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" /></svg> });
 
   // analytics
-  if (c.includes("revenue") || c.includes("mrr") || c.includes("stripe") || c.includes("arr") || c.includes("ltv") || c.includes("subscription") || c.includes("billing"))
+  if (c.includes("revenue") || c.includes("gmv") || c.includes("stripe") || c.includes("aov") || c.includes("refund") || c.includes("order") || c.includes("billing"))
     tabs.push({ tab: "analytics", label: "Revenue", icon: <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> });
 
   // growth
@@ -1605,40 +1605,40 @@ const DEMO_INSIGHT: Insight = {
   created_at: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
   content: `**Revenue overview — last 30 days**
 
-Your MRR reached **$14,280** this month, up **18.3%** from last month. Net MRR expansion of **+$2,204** with 41 new customers vs. 27 churned.
+Your store generated **$42,840 GMV** this month, up **18.3%** from last month. Average order value climbed to **$87.40** (+$9 vs. last month) — strong upsell signal from your bundle promotion.
 
 **Where growth is coming from**
 
-- Stripe subscriptions — 91% of revenue — healthy SaaS concentration
-- ARPU climbed to **$348**, up from $312 last month — strong upsell signal
-- 3 customers upgraded from Starter to Pro this week
+- Shopify direct — 68% of GMV — top product: "Wireless Pro Charger" ($12,400 revenue)
+- Stripe payment volume confirms 491 successful orders vs. 14 refunds (2.8% refund rate — healthy)
+- Repeat buyers made up **41% of orders** this week, up from 29% last month — retention is improving
 
 **Ad spend efficiency — watch this**
 
-- Meta ROAS dropped to **1.8×** this week, down from 2.6× — CPM up 34% (audience fatigue)
-- Google Ads performing better at **3.1× ROAS** — reallocating 20% of Meta budget could recover ~$620/mo
+- Meta ROAS dropped to **1.8×** this week, down from 2.6× — CPM up 34% (audience fatigue likely)
+- Google Shopping performing better at **3.1× ROAS** — reallocating 20% of Meta budget could recover ~$620/mo
 - Consider rotating ad creative; current hero image has been live 38 days
 
-**Churn signal**
+**Cart abandonment signal**
 
-- 4 accounts on payment retry cycle — dunning email within 48h could recover ~$480
-- Churn rate: **3.1%** (industry median 3.5%) — you are slightly above average
+- Cart abandonment rate jumped to **71%** this week (up from 63%) — correlates with a 400ms page-speed regression on mobile checkout
+- Fixing mobile checkout load time is likely your highest-ROI action this week (~$2,100 recoverable GMV)
 
 **One insight worth knowing**
 
-Your organic search channel is your best-performing acquisition source with zero CAC. Two comparison articles you published 60 days ago now drive 22% of all paid signups. Publishing two more in the next 30 days is likely your highest-ROI action this quarter.`,
+Your organic search channel drives 22% of all orders with zero ad spend. Two product comparison pages published 60 days ago now rank page 1. Publishing two more targeting competitor keywords is your highest-leverage zero-cost growth action this quarter.`,
 };
 
 const DEMO_CONV: Conversation = {
   id: "demo-conv-1",
-  title: "Revenue & churn deep-dive",
+  title: "GMV & cart abandonment deep-dive",
   created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
   updated_at: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
 };
 
 const DEMO_CONV_2: Conversation = {
   id: "demo-conv-2",
-  title: "Ad spend analysis",
+  title: "Ad spend & ROAS analysis",
   created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
   updated_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
 };
@@ -1647,31 +1647,31 @@ const DEMO_MESSAGES: Message[] = [
   {
     id: "dm-1",
     role: "user",
-    content: "Why did churn spike last week?",
+    content: "Why did refund rate spike last week?",
     created_at: new Date(Date.now() - 28 * 60 * 1000).toISOString(),
   },
   {
     id: "dm-2",
     role: "assistant",
-    content: `Looking at your Stripe data from the past 14 days, here's what I found:
+    content: `Looking at your Stripe and Shopify data from the past 14 days, here's what I found:
 
-**Churn breakdown last week**
+**Refund breakdown last week**
 
-- 6 customers cancelled — 4 on monthly Starter ($19/mo), 2 annual Pro downgrades
-- **3 had zero logins in the 14 days prior** — classic disengagement churn, not price-driven
-- 1 left a cancellation reason: "found a cheaper alternative"
+- 22 refunds processed — up from 8 the week before (6.1% refund rate vs. 2.3% baseline)
+- **18 of 22 refunds came from a single SKU**: "Wireless Pro Charger — Black 3-Pack"
+- Average time-to-refund: 2.1 days — suggesting a fulfilment or product quality issue, not buyer's remorse
 
-**Root cause — low activation on Starter plan**
+**Root cause — likely batch quality issue**
 
-Your Starter cohort from 45–60 days ago has a 23% weekly active rate vs. 71% for Pro. Customers who don't reach the "aha moment" (connecting ≥2 integrations) within week 1 are 4× more likely to churn.
+Your fulfilment data shows a new supplier batch was received on May 28. All 18 refunds map to orders shipped from that batch. This is a classic incoming-QC failure pattern.
 
 **Recommended actions**
 
-1. Trigger in-app prompt at day 3 if user hasn't connected a second integration
-2. Set up Stripe dunning — 2 of 6 churns were actually failed payments, not intentional
-3. Send a 30-day check-in email for Starter users with <2 logins/week
+1. Pause the Black 3-Pack listing immediately to prevent further refunds (~$840 at risk in pending orders)
+2. Contact supplier with batch ID — you have grounds for a credit/replacement
+3. Send proactive "we're making it right" email to the 18 affected customers — this recovers ~60% of would-be chargebacks
 
-Want me to draft the dunning email copy?`,
+Want me to draft the customer apology email?`,
     created_at: new Date(Date.now() - 27 * 60 * 1000).toISOString(),
   },
   {

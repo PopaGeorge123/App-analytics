@@ -2,8 +2,12 @@
 
 import { useMemo, useState, useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import {
+  AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip,
+  ResponsiveContainer, CartesianGrid, Legend,
+} from "recharts";
 import type { Snapshot } from "./DashboardShell";
-import type { CustomerRow } from "../page";
+import type { CustomerRow, RecentOrder } from "../page";
 import { REVENUE_PROVIDERS } from "@/lib/integrations/catalog";
 
 // ── Types ─────────────────────────────────────────────────────────────────
@@ -28,6 +32,16 @@ interface CustomerRecord {
   orderCount: number;
   subscribed: boolean;
   churned: boolean;
+  // Enriched profile fields (from migration 040)
+  city:              string | null;
+  country:           string | null;
+  country_code:      string | null;
+  phone:             string | null;
+  currency:          string | null;
+  accepts_marketing: boolean;
+  tags:              string[];
+  avg_order_value:   number;   // cents
+  recent_orders:     RecentOrder[];
 }
 
 interface CohortRow {
@@ -116,15 +130,24 @@ function buildCustomers(snapshots: Snapshot[], connRevenue: string[]): CustomerR
         seen.add(id);
         records.push({
           id,
-          name:        String(c.name ?? c.customer_name ?? "Customer"),
-          email:       String(c.email ?? ""),
-          provider:    snap.provider,
-          totalSpent:  Number(c.total_spent ?? c.ltv ?? c.revenue ?? 0),
-          lastSeen:    String(c.last_seen ?? c.updated_at ?? snap.date).slice(0, 10),
-          firstSeen:   String(c.first_seen ?? c.created_at ?? snap.date).slice(0, 10),
-          orderCount:  Number(c.order_count ?? c.orders ?? 1),
-          subscribed:  Boolean(c.subscribed ?? c.active ?? false),
-          churned:     Boolean(c.churned ?? c.cancelled ?? false),
+          name:              String(c.name ?? c.customer_name ?? "Customer"),
+          email:             String(c.email ?? ""),
+          provider:          snap.provider,
+          totalSpent:        Number(c.total_spent ?? c.ltv ?? c.revenue ?? 0),
+          lastSeen:          String(c.last_seen ?? c.updated_at ?? snap.date).slice(0, 10),
+          firstSeen:         String(c.first_seen ?? c.created_at ?? snap.date).slice(0, 10),
+          orderCount:        Number(c.order_count ?? c.orders ?? 1),
+          subscribed:        Boolean(c.subscribed ?? c.active ?? false),
+          churned:           Boolean(c.churned ?? c.cancelled ?? false),
+          city:              null,
+          country:           null,
+          country_code:      null,
+          phone:             null,
+          currency:          null,
+          accepts_marketing: false,
+          tags:              [],
+          avg_order_value:   0,
+          recent_orders:     [],
         });
       }
     }
@@ -160,6 +183,15 @@ function buildCustomers(snapshots: Snapshot[], connRevenue: string[]): CustomerR
           orderCount: Math.max(1, Math.round(ltvMultiplier)),
           subscribed: d.active_subscriptions ? Math.random() > 0.3 : false,
           churned:    Math.random() > 0.85,
+          city:              null,
+          country:           null,
+          country_code:      null,
+          phone:             null,
+          currency:          null,
+          accepts_marketing: false,
+          tags:              [],
+          avg_order_value:   0,
+          recent_orders:     [],
         });
       }
     }
@@ -294,9 +326,240 @@ function PlatformLogo({ provider }: { provider: string }) {
   );
 }
 
-// ── Email Modal ───────────────────────────────────────────────────────────
+// ── Customer Detail Panel ─────────────────────────────────────────────────
 
 type ScoredCustomer = CustomerRecord & { score: number };
+
+const FLAG_EMOJI: Record<string, string> = {
+  US: "🇺🇸", GB: "🇬🇧", DE: "🇩🇪", FR: "🇫🇷", RO: "🇷🇴", ES: "🇪🇸",
+  IT: "🇮🇹", NL: "🇳🇱", PL: "🇵🇱", CA: "🇨🇦", AU: "🇦🇺", BR: "🇧🇷",
+  MX: "🇲🇽", IN: "🇮🇳", SE: "🇸🇪", NO: "🇳🇴", DK: "🇩🇰", FI: "🇫🇮",
+  AT: "🇦🇹", BE: "🇧🇪", CH: "🇨🇭", PT: "🇵🇹", CZ: "🇨🇿", HU: "🇭🇺",
+};
+
+function CustomerDetailPanel({
+  customer,
+  revCurrency,
+  onClose,
+  onEmail,
+}: {
+  customer: ScoredCustomer;
+  revCurrency: string;
+  onClose: () => void;
+  onEmail: (c: ScoredCustomer) => void;
+}) {
+  const { label, color } = healthLabel(customer.score);
+  const days = daysSince(customer.lastSeen);
+  const recencyColor = days < 30 ? "#10b981" : days < 90 ? "#f59e0b" : "#ef4444";
+  const flag = customer.country_code ? (FLAG_EMOJI[customer.country_code.toUpperCase()] ?? "🌍") : null;
+  const location = [customer.city, customer.country].filter(Boolean).join(", ");
+  const cur = customer.currency ?? revCurrency;
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[2px]"
+        onClick={onClose}
+      />
+      {/* Panel */}
+      <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col bg-white shadow-2xl ring-1 ring-black/[0.08] overflow-hidden">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3 border-b border-[rgba(0,0,0,0.07)] px-5 py-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <Avatar name={customer.name} score={customer.score} size={44} />
+            <div className="min-w-0">
+              <p className="font-mono text-sm font-bold text-[#1a1a2e] truncate">{customer.name}</p>
+              {customer.email && (
+                <p className="font-mono text-[10px] text-[#7575a0] truncate">{customer.email}</p>
+              )}
+              {location && (
+                <p className="font-mono text-[9px] text-[#9090b0] mt-0.5">
+                  {flag && <span className="mr-1">{flag}</span>}{location}
+                </p>
+              )}
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="shrink-0 flex h-7 w-7 items-center justify-center rounded-lg text-[#6a6a90] hover:text-[#1a1a2e] hover:bg-[#e8e8f4] transition-colors"
+          >
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+          {/* Health + tags row */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2 rounded-xl border px-3 py-1.5"
+              style={{ borderColor: color + "40", background: color + "12" }}>
+              <ScoreRing score={customer.score} size={28} />
+              <div>
+                <p className="font-mono text-[9px] uppercase tracking-widest" style={{ color }}>{label}</p>
+                <p className="font-mono text-xs font-bold" style={{ color }}>{customer.score}/100</p>
+              </div>
+            </div>
+            {customer.tags.map((tag) => (
+              <span key={tag} className="rounded-full border border-[#6366f1]/30 bg-[#6366f1]/08 px-2.5 py-0.5 font-mono text-[9px] text-[#a5b4fc]">
+                {tag}
+              </span>
+            ))}
+            {customer.accepts_marketing && (
+              <span className="rounded-full border border-[#10b981]/30 bg-[#10b981]/08 px-2.5 py-0.5 font-mono text-[9px] text-[#10b981]">
+                ✉ Marketing opt-in
+              </span>
+            )}
+          </div>
+
+          {/* KPI grid */}
+          <div className="grid grid-cols-2 gap-2.5">
+            {[
+              { label: "Lifetime value",    value: fmtCents(customer.totalSpent, cur) },
+              { label: "Avg order value",   value: fmtCents(customer.avg_order_value > 0 ? customer.avg_order_value : (customer.orderCount > 0 ? Math.round(customer.totalSpent / customer.orderCount) : 0), cur) },
+              { label: "Total orders",      value: customer.orderCount.toString() },
+              { label: "Last seen",         value: days === 0 ? "Today" : `${days}d ago` },
+              { label: "First purchase",    value: customer.firstSeen },
+              { label: "Source",            value: customer.provider.charAt(0).toUpperCase() + customer.provider.slice(1) },
+            ].map(({ label, value }) => (
+              <div key={label} className="rounded-xl border border-[rgba(0,0,0,0.07)] bg-[#f8f8fc] px-3 py-2.5">
+                <p className="font-mono text-[9px] uppercase tracking-widest text-[#6a6a90] mb-0.5">{label}</p>
+                <p className="font-mono text-sm font-bold text-[#1a1a2e]">{value}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Contact info */}
+          {(customer.phone || customer.email) && (
+            <div className="rounded-xl border border-[rgba(0,0,0,0.07)] bg-[#f8f8fc] p-3 space-y-1.5">
+              <p className="font-mono text-[9px] uppercase tracking-widest text-[#6a6a90]">Contact</p>
+              {customer.email && (
+                <div className="flex items-center gap-2">
+                  <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="#6a6a90" strokeWidth={1.8}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+                  </svg>
+                  <p className="font-mono text-[11px] text-[#3a3a58]">{customer.email}</p>
+                </div>
+              )}
+              {customer.phone && (
+                <div className="flex items-center gap-2">
+                  <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="#6a6a90" strokeWidth={1.8}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
+                  </svg>
+                  <p className="font-mono text-[11px] text-[#3a3a58]">{customer.phone}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Recency bar */}
+          <div className="rounded-xl border border-[rgba(0,0,0,0.07)] bg-[#f8f8fc] px-3 py-2.5">
+            <div className="flex items-center justify-between mb-1.5">
+              <p className="font-mono text-[9px] uppercase tracking-widest text-[#6a6a90]">Recency</p>
+              <span className="font-mono text-[10px] font-bold" style={{ color: recencyColor }}>
+                {days === 0 ? "Active today" : days < 30 ? "Active" : days < 90 ? "Cooling off" : "Dormant"}
+              </span>
+            </div>
+            <div className="h-1.5 rounded-full bg-[#e8e8f4] overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-700"
+                style={{ width: `${Math.max(2, 100 - Math.min(days, 180) / 1.8)}%`, backgroundColor: recencyColor }}
+              />
+            </div>
+            <p className="font-mono text-[9px] text-[#9090b0] mt-1">Last seen {days === 0 ? "today" : `${days} days ago`} · First seen {customer.firstSeen}</p>
+          </div>
+
+          {/* Order history */}
+          {customer.recent_orders.length > 0 && (
+            <div>
+              <p className="font-mono text-[10px] font-bold text-[#1a1a2e] uppercase tracking-widest mb-2.5">
+                Order History <span className="text-[#6a6a90] font-normal">({customer.recent_orders.length})</span>
+              </p>
+              <div className="space-y-2">
+                {customer.recent_orders.slice(0, 10).map((order, i) => (
+                  <div key={order.order_id ?? i} className="rounded-xl border border-[rgba(0,0,0,0.07)] bg-[#f8f8fc] p-3">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="rounded-full px-2 py-0.5 font-mono text-[8px] font-bold"
+                          style={{
+                            background: order.status === "paid" || order.status === "succeeded" ? "#10b981" + "20" : order.status === "refunded" ? "#ef4444" + "20" : "#f59e0b" + "20",
+                            color:      order.status === "paid" || order.status === "succeeded" ? "#10b981"       : order.status === "refunded" ? "#ef4444"       : "#f59e0b",
+                          }}
+                        >
+                          {order.status ?? "paid"}
+                        </span>
+                        <p className="font-mono text-[10px] text-[#6a6a90]">{order.date}</p>
+                        {(order.shipping_city || order.shipping_country) && (
+                          <p className="font-mono text-[9px] text-[#9090b0]">
+                            {[order.shipping_city, order.shipping_country].filter(Boolean).join(", ")}
+                          </p>
+                        )}
+                      </div>
+                      <p className="font-mono text-[11px] font-bold text-[#1a1a2e]">
+                        {fmtCents(order.total_cents, order.currency || cur)}
+                      </p>
+                    </div>
+                    {order.line_items && order.line_items.length > 0 && (
+                      <div className="space-y-0.5 pl-1">
+                        {order.line_items.slice(0, 5).map((li, j) => (
+                          <div key={j} className="flex items-center justify-between">
+                            <p className="font-mono text-[9px] text-[#7575a0] truncate max-w-52">
+                              {li.qty > 1 && <span className="font-bold text-[#4a4a6a]">{li.qty}× </span>}
+                              {li.name}
+                            </p>
+                            <p className="font-mono text-[9px] text-[#4a4a6a] shrink-0 ml-2">
+                              {fmtCents(li.price_cents * li.qty, cur)}
+                            </p>
+                          </div>
+                        ))}
+                        {order.line_items.length > 5 && (
+                          <p className="font-mono text-[9px] text-[#9090b0]">+{order.line_items.length - 5} more items</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {customer.recent_orders.length > 10 && (
+                  <p className="font-mono text-[9px] text-[#9090b0] text-center">
+                    Showing last 10 of {customer.recent_orders.length} orders
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {customer.recent_orders.length === 0 && (
+            <div className="rounded-xl border border-dashed border-[rgba(0,0,0,0.1)] p-4 text-center">
+              <p className="font-mono text-[10px] text-[#9090b0]">No order history available yet.</p>
+              <p className="font-mono text-[9px] text-[#9090b0] mt-0.5">Run a backfill to populate order data.</p>
+            </div>
+          )}
+        </div>
+
+        {/* Footer actions */}
+        <div className="border-t border-[rgba(0,0,0,0.07)] px-5 py-3 flex gap-2">
+          <button
+            onClick={() => { onEmail(customer); onClose(); }}
+            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-[#f59e0b]/40 py-2 font-mono text-[10px] text-[#f59e0b] hover:border-[#f59e0b] hover:bg-[#f59e0b]/05 transition-colors"
+          >
+            <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /></svg>
+            Send re-engagement
+          </button>
+          <button
+            onClick={onClose}
+            className="rounded-xl border border-[rgba(0,0,0,0.08)] px-4 py-2 font-mono text-[10px] text-[#6a6a90] hover:border-[#6366f1]/40 transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ── Email Modal ───────────────────────────────────────────────────────────
 
 function EmailModal({ customer, onClose }: { customer: ScoredCustomer; onClose: () => void }) {
   const firstName = customer.name.split(/\s+/)[0];
@@ -489,6 +752,7 @@ export default function CustomersTab({
   const [customerFilter, setCustomerFilter] = useState("All");
   const [customerSearch, setCustomerSearch] = useState("");
   const [selectedAtRisk, setSelectedAtRisk] = useState<Set<string>>(new Set());
+  const [detailCustomer, setDetailCustomer] = useState<ScoredCustomer | null>(null);
 
   // ── Compute everything ─────────────────────────────────────────────────
   const { customers, cohorts, stats, isSynthetic } = useMemo(() => {
@@ -496,16 +760,25 @@ export default function CustomersTab({
 
     const rawCustomers: CustomerRecord[] = realCustomers.length > 0
       ? realCustomers.map((r) => ({
-          id:         r.provider_id,
-          name:       r.name    ?? "Customer",
-          email:      r.email   ?? "",
-          provider:   r.provider,
-          totalSpent: r.total_spent,
-          lastSeen:   r.last_seen  ?? new Date().toISOString().slice(0, 10),
-          firstSeen:  r.first_seen ?? new Date().toISOString().slice(0, 10),
-          orderCount: r.order_count,
-          subscribed: r.subscribed,
-          churned:    r.churned,
+          id:                r.provider_id,
+          name:              r.name    ?? "Customer",
+          email:             r.email   ?? "",
+          provider:          r.provider,
+          totalSpent:        r.total_spent,
+          lastSeen:          r.last_seen  ?? new Date().toISOString().slice(0, 10),
+          firstSeen:         r.first_seen ?? new Date().toISOString().slice(0, 10),
+          orderCount:        r.order_count,
+          subscribed:        r.subscribed,
+          churned:           r.churned,
+          city:              r.city              ?? null,
+          country:           r.country           ?? null,
+          country_code:      r.country_code      ?? null,
+          phone:             r.phone             ?? null,
+          currency:          r.currency          ?? null,
+          accepts_marketing: r.accepts_marketing ?? false,
+          tags:              r.tags              ?? [],
+          avg_order_value:   r.avg_order_value   ?? 0,
+          recent_orders:     r.recent_orders     ?? [],
         }))
       : buildCustomers(snapshots, connRevenue);
 
@@ -576,6 +849,59 @@ export default function CustomersTab({
       return { label: d.toLocaleDateString("en-US", { month: "short" }), count: Math.round(map[key] ?? 0) };
     });
   }, [snapshots, connRevenue]);
+
+  // ── Repeat vs New buyers by month ─────────────────────────────────────
+  const repeatVsNewByMonth = useMemo(() => {
+    // Build a set of customer IDs first seen before each month — those are "repeat" buyers
+    const firstSeenByCustomer: Record<string, string> = {};
+    for (const c of customers) {
+      firstSeenByCustomer[c.id] = c.firstSeen.slice(0, 7);
+    }
+    const today = new Date();
+    return Array.from({ length: 6 }, (_, i) => {
+      const d = new Date(today.getFullYear(), today.getMonth() - (5 - i), 1);
+      const key = d.toISOString().slice(0, 7);
+      // "new" = first purchase in this month
+      const newCount = Object.values(firstSeenByCustomer).filter(fs => fs === key).length;
+      // "repeat" = bought again after their first month
+      const repeatCount = customers.filter(c => {
+        return c.firstSeen.slice(0, 7) < key
+          && c.lastSeen.slice(0, 7) >= key
+          && c.orderCount > 1;
+      }).length;
+      return {
+        label: d.toLocaleDateString("en-US", { month: "short" }),
+        new: newCount,
+        repeat: repeatCount,
+      };
+    });
+  }, [customers]);
+
+  // ── RFM breakdown for top 10 customers ───────────────────────────────
+  const rfmData = useMemo(() => {
+    return customers.slice(0, 10).map(c => {
+      const recencyScore = Math.max(0, Math.round(40 - daysSince(c.lastSeen) * 0.5));
+      const freqScore    = Math.min(30, c.orderCount * 5);
+      const moneyScore   = Math.min(30, (Math.log10(Math.max(1, c.totalSpent / 100)) / 4) * 30);
+      return {
+        name:  c.name.length > 14 ? c.name.slice(0, 12) + "…" : c.name,
+        R: Math.round(recencyScore),
+        F: Math.round(freqScore),
+        M: Math.round(moneyScore),
+      };
+    });
+  }, [customers]);
+
+  // ── LTV cohort bar data ───────────────────────────────────────────────
+  const cohortBarData = useMemo(() => {
+    return cohorts.map(row => ({
+      month: row.month,
+      acquired: row.newCustomers,
+      m1: row.retained[1] ?? 0,
+      m2: row.retained[2] ?? 0,
+      m3: row.retained[3] ?? 0,
+    }));
+  }, [cohorts]);
 
   // ── Empty state ────────────────────────────────────────────────────────
   if (!hasRevenue) {
@@ -920,107 +1246,134 @@ export default function CustomersTab({
                   {filteredCustomers.map((c, i) => {
                     const days = daysSince(c.lastSeen);
                     const recencyColor = days < 30 ? "#10b981" : days < 90 ? "#f59e0b" : "#ef4444";
-                    const isExpanded = expandedId === c.id;
-                    const avgOrder = c.orderCount > 0 ? c.totalSpent / c.orderCount : 0;
                     return (
-                      <>
-                        <tr
-                          key={c.id}
-                          className="group hover:bg-[rgba(0,0,0,0.02)] transition-colors cursor-pointer"
-                          onClick={() => setExpandedId(isExpanded ? null : c.id)}
-                        >
-                          <td className="py-3 pr-4">
-                            <div className="flex items-center gap-3">
-                              <Avatar name={c.name} score={c.score} />
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <p className="font-mono text-[11px] font-semibold text-[#3a3a58] truncate max-w-35">{c.name}</p>
-                                  {i < 3 && (
-                                    <span className="font-mono text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#f59e0b]/20 text-[#f59e0b]">#{i + 1}</span>
-                                  )}
-                                </div>
-                                {c.email && (
-                                  <p className="font-mono text-[9px] text-[#7575a0] truncate max-w-35">{c.email}</p>
+                      <tr
+                        key={c.id}
+                        className="group hover:bg-[rgba(0,0,0,0.02)] transition-colors cursor-pointer"
+                        onClick={() => setDetailCustomer(c)}
+                      >
+                        <td className="py-3 pr-4">
+                          <div className="flex items-center gap-3">
+                            <Avatar name={c.name} score={c.score} />
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="font-mono text-[11px] font-semibold text-[#3a3a58] truncate max-w-35">{c.name}</p>
+                                {i < 3 && (
+                                  <span className="font-mono text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#f59e0b]/20 text-[#f59e0b]">#{i + 1}</span>
                                 )}
                               </div>
+                              {c.email && (
+                                <p className="font-mono text-[9px] text-[#7575a0] truncate max-w-35">{c.email}</p>
+                              )}
                             </div>
-                          </td>
-                          <td className="py-3 text-right font-mono text-[11px] font-bold text-[#1a1a2e]">
-                            {fmtCents(c.totalSpent, revCurrency)}
-                          </td>
-                          <td className="py-3 text-right font-mono text-[11px] text-[#4a4a6a]">{c.orderCount}</td>
-                          <td className="py-3 text-center">
-                            <HealthBadge score={c.score} />
-                          </td>
-                          <td className="py-3 text-right">
-                            <span className="font-mono text-[10px] font-semibold" style={{ color: recencyColor }}>
-                              {days === 0 ? "today" : `${days}d ago`}
-                            </span>
-                          </td>
-                          <td className="py-3 text-center">
-                            <PlatformLogo provider={c.provider} />
-                          </td>
-                          <td className="py-3 text-center">
-                            <div className="flex items-center justify-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                              <button
-                                onClick={() => setEmailCustomer(c)}
-                                title="Send re-engagement email"
-                                className="flex h-7 w-7 items-center justify-center rounded-lg border border-[rgba(0,0,0,0.08)] text-[#6a6a90] hover:border-[#f59e0b] hover:text-[#f59e0b] transition-colors"
-                              >
-                                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /></svg>
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                        {isExpanded && (
-                          <tr key={c.id + "-expanded"}>
-                            <td colSpan={7} className="pb-3 pt-0">
-                              <div className="mx-3 rounded-xl border border-[rgba(0,0,0,0.07)] bg-[#f5f5f7] p-4">
-                                <div className="flex flex-wrap gap-6 mb-3">
-                                  <div>
-                                    <p className="font-mono text-[9px] uppercase tracking-widest text-[#6a6a90]">LTV</p>
-                                    <p className="font-mono text-sm font-bold text-[#1a1a2e]">{fmtCents(c.totalSpent, revCurrency)}</p>
-                                  </div>
-                                  <div>
-                                    <p className="font-mono text-[9px] uppercase tracking-widest text-[#6a6a90]">Orders</p>
-                                    <p className="font-mono text-sm font-bold text-[#1a1a2e]">{c.orderCount}</p>
-                                  </div>
-                                  <div>
-                                    <p className="font-mono text-[9px] uppercase tracking-widest text-[#6a6a90]">Avg order</p>
-                                    <p className="font-mono text-sm font-bold text-[#1a1a2e]">{fmtCents(avgOrder, revCurrency)}</p>
-                                  </div>
-                                  <div>
-                                    <p className="font-mono text-[9px] uppercase tracking-widest text-[#6a6a90]">First seen</p>
-                                    <p className="font-mono text-sm font-bold text-[#1a1a2e]">{c.firstSeen}</p>
-                                  </div>
-                                  <div>
-                                    <p className="font-mono text-[9px] uppercase tracking-widest text-[#6a6a90]">Source</p>
-                                    <p className="font-mono text-sm font-bold text-[#1a1a2e] capitalize">{c.provider}</p>
-                                  </div>
-                                </div>
-                                <div className="flex gap-2">
-                                  <button
-                                    onClick={() => setEmailCustomer(c)}
-                                    className="rounded-xl border border-[#f59e0b]/40 px-3 py-1.5 font-mono text-[10px] text-[#f59e0b] hover:border-[#f59e0b] transition-colors flex items-center gap-1.5"
-                                  >
-                                    <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /></svg>
-                                    Send re-engagement
-                                  </button>
-                                  <button className="rounded-xl border border-[#6366f1]/40 px-3 py-1.5 font-mono text-[10px] text-[#a5b4fc] hover:border-[#6366f1] transition-colors">
-                                    → AI Advisor
-                                  </button>
-                                </div>
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </>
+                          </div>
+                        </td>
+                        <td className="py-3 text-right font-mono text-[11px] font-bold text-[#1a1a2e]">
+                          {fmtCents(c.totalSpent, revCurrency)}
+                        </td>
+                        <td className="py-3 text-right font-mono text-[11px] text-[#4a4a6a]">{c.orderCount}</td>
+                        <td className="py-3 text-center">
+                          <HealthBadge score={c.score} />
+                        </td>
+                        <td className="py-3 text-right">
+                          <span className="font-mono text-[10px] font-semibold" style={{ color: recencyColor }}>
+                            {days === 0 ? "today" : `${days}d ago`}
+                          </span>
+                        </td>
+                        <td className="py-3 text-center">
+                          <PlatformLogo provider={c.provider} />
+                        </td>
+                        <td className="py-3 text-center">
+                          <div className="flex items-center justify-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              onClick={() => setEmailCustomer(c)}
+                              title="Send re-engagement email"
+                              className="flex h-7 w-7 items-center justify-center rounded-lg border border-[rgba(0,0,0,0.08)] text-[#6a6a90] hover:border-[#f59e0b] hover:text-[#f59e0b] transition-colors"
+                            >
+                              <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /></svg>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
                     );
                   })}
                 </tbody>
               </table>
             </div>
           )}
+        </div>
+      </section>
+
+      {/* ══ §2a — Repeat vs New Buyers ════════════════════════════════════ */}
+      <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {/* Repeat vs New stacked area */}
+        <div className="rounded-2xl bg-white ring-1 ring-black/[0.06] shadow-[0_1px_4px_rgba(0,0,0,0.05)] p-5">
+          <h3 className="font-mono text-xs font-bold text-[#1a1a2e] mb-1">Repeat vs New Buyers</h3>
+          <p className="font-mono text-[10px] text-[#6a6a90] mb-4">Last 6 months — stacked by buyer type</p>
+          <ResponsiveContainer width="100%" height={180}>
+            <AreaChart data={repeatVsNewByMonth} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f4" />
+              <XAxis dataKey="label" tick={{ fontSize: 10, fontFamily: "monospace", fill: "#6a6a90" }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 10, fontFamily: "monospace", fill: "#6a6a90" }} axisLine={false} tickLine={false} />
+              <Tooltip
+                contentStyle={{ fontSize: 11, fontFamily: "monospace", borderRadius: 8, border: "1px solid #e5e7eb" }}
+                labelStyle={{ fontWeight: 700 }}
+              />
+              <Legend wrapperStyle={{ fontSize: 10, fontFamily: "monospace", paddingTop: 8 }} />
+              <Area type="monotone" dataKey="new" stackId="1" stroke="#6366f1" fill="#ede9fe" name="New" strokeWidth={2} />
+              <Area type="monotone" dataKey="repeat" stackId="1" stroke="#14b8a6" fill="#ccfbf1" name="Repeat" strokeWidth={2} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* RFM bar chart — top 10 customers */}
+        <div className="rounded-2xl bg-white ring-1 ring-black/[0.06] shadow-[0_1px_4px_rgba(0,0,0,0.05)] p-5">
+          <h3 className="font-mono text-xs font-bold text-[#1a1a2e] mb-1">RFM Scores — Top 10</h3>
+          <p className="font-mono text-[10px] text-[#6a6a90] mb-4">Recency · Frequency · Monetary (0–100)</p>
+          {rfmData.length === 0 ? (
+            <div className="flex h-[180px] items-center justify-center">
+              <p className="font-mono text-[11px] text-[#6a6a90]">No customer data</p>
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart data={rfmData} layout="vertical" margin={{ top: 0, right: 8, bottom: 0, left: 4 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f4" horizontal={false} />
+                <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10, fontFamily: "monospace", fill: "#6a6a90" }} axisLine={false} tickLine={false} />
+                <YAxis type="category" dataKey="name" width={72} tick={{ fontSize: 9, fontFamily: "monospace", fill: "#6a6a90" }} axisLine={false} tickLine={false} />
+                <Tooltip
+                  contentStyle={{ fontSize: 11, fontFamily: "monospace", borderRadius: 8, border: "1px solid #e5e7eb" }}
+                />
+                <Legend wrapperStyle={{ fontSize: 10, fontFamily: "monospace", paddingTop: 4 }} />
+                <Bar dataKey="R" fill="#6366f1" name="Recency" radius={[0, 2, 2, 0]} barSize={4} />
+                <Bar dataKey="F" fill="#14b8a6" name="Frequency" radius={[0, 2, 2, 0]} barSize={4} />
+                <Bar dataKey="M" fill="#10b981" name="Monetary" radius={[0, 2, 2, 0]} barSize={4} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </section>
+
+      {/* ══ §2b — RFM Segment Table ════════════════════════════════════════ */}
+      <section className="rounded-2xl bg-white ring-1 ring-black/[0.06] shadow-[0_1px_4px_rgba(0,0,0,0.05)] p-5">
+        <h3 className="font-mono text-xs font-bold text-[#1a1a2e] mb-1">RFM Segmentation</h3>
+        <p className="font-mono text-[10px] text-[#6a6a90] mb-4">Customers grouped by Recency, Frequency &amp; Monetary value</p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          {[
+            { label: "Champions",       color: "#10b981", bg: "#f0fdf4", count: stats.champions,    desc: "Recent, frequent, high-value" },
+            { label: "Loyal",           color: "#14b8a6", bg: "#f0fdfa", count: stats.loyal,        desc: "Regular buyers, solid LTV" },
+            { label: "Potential",       color: "#6366f1", bg: "#ede9fe", count: stats.potential,    desc: "Recent buyers, growing habit" },
+            { label: "At Risk",         color: "#f59e0b", bg: "#fffbeb", count: stats.atRiskSegment,desc: "Were great — haven't returned" },
+            { label: "Lost",            color: "#ef4444", bg: "#fef2f2", count: stats.dormant,      desc: "Lowest recency & frequency" },
+          ].map(seg => (
+            <div key={seg.label} className="flex flex-col gap-1 rounded-xl p-3" style={{ background: seg.bg }}>
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full" style={{ background: seg.color }} />
+                <span className="font-mono text-[11px] font-bold" style={{ color: seg.color }}>{seg.label}</span>
+              </div>
+              <p className="font-mono text-2xl font-bold text-[#1a1a2e]">{seg.count}</p>
+              <p className="font-mono text-[10px] text-[#6a6a90] leading-snug">{seg.desc}</p>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -1359,6 +1712,16 @@ export default function CustomersTab({
 
       {/* Email modal */}
       {emailCustomer && <EmailModal customer={emailCustomer} onClose={() => setEmailCustomer(null)} />}
+
+      {/* Customer detail slide-over panel */}
+      {detailCustomer && (
+        <CustomerDetailPanel
+          customer={detailCustomer}
+          revCurrency={revCurrency}
+          onClose={() => setDetailCustomer(null)}
+          onEmail={(c) => setEmailCustomer(c)}
+        />
+      )}
 
     </div>
   );

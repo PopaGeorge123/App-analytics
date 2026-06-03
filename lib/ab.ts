@@ -1,9 +1,11 @@
 /**
  * A/B Testing — Hero section variants
  *
- * ICP: Solo / small-team founders running SaaS or e-commerce.
- * They manually check 5 tabs every Monday, miss revenue drops until Friday,
- * and waste ad budget they can't attribute to real revenue.
+ * ICP: Shopify / WooCommerce store owners doing $5K–$100K/month.
+ * They run Meta Ads, have GA4 connected, use Klaviyo or Mailchimp,
+ * and manually check 5 separate dashboards to piece together what happened.
+ * They can't tell which ads are actually profitable vs. which are burning budget.
+ * Revenue drops go unnoticed for days. Dead stock piles up silently.
  *
  * Strategy: Aspirin over vitamin — lead with the acute, bleeding pain.
  * Each variant attacks a different pain point to surface the best-performing angle.
@@ -14,7 +16,7 @@
  *   - Tracked via gtag custom event on client mount
  */
 
-export type AbVariant = "a" | "b" | "c" | "d" | "e" | "f" | "g";
+export type AbVariant = "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i";
 
 export interface HeroCopy {
   /** Narrow badge above the headline */
@@ -134,6 +136,34 @@ const VARIANTS: Record<AbVariant, HeroCopy> = {
     sub: `Meta and Google inflate their numbers. Fold links every ad dollar to actual Stripe revenue and shows your **REAL CAC**, **ROAS**, and which campaigns to kill before you waste another $1,000.`,
     cta: "See my real ad ROI",
   },
+
+  /**
+   * H — ECOMMERCE: AD PROFIT QUESTION
+   * Pain: Running Meta/Google ads but no clear picture of profit per campaign
+   * Aspirin: Fold answers the exact question e-commerce owners care about most
+   */
+  h: {
+    badge: "Most Shopify stores can't tell which ads are actually profitable",
+    badgeColor: "orange",
+    headline: "Do you know which ads are making money — ",
+    headlineAccent: "and which are burning your budget?",
+    sub: `Fold connects Shopify, Meta Ads, and GA4 and shows your true ROAS, profit per campaign, and which products are driving returns — every morning. Stop guessing. Start scaling what works.`,
+    cta: "Show me my real ad profit",
+  },
+
+  /**
+   * I — ECOMMERCE: MORNING BRIEFING
+   * Pain: Scattered data across Shopify, Meta, Klaviyo — no unified morning view
+   * Aspirin: One daily briefing with the 3 things that matter
+   */
+  i: {
+    badge: "Know your store's health in 30 seconds every morning",
+    badgeColor: "teal",
+    headline: "Your Shopify store, Meta Ads, and email — ",
+    headlineAccent: "finally in one place.",
+    sub: `Every morning, Fold tells you: what sold yesterday, which campaigns made money, and what broke — so you spend your day fixing problems, not finding them. Connect in 90 seconds.`,
+    cta: "Get my morning store briefing",
+  },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -141,7 +171,7 @@ const VARIANTS: Record<AbVariant, HeroCopy> = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** All valid variant keys — used for random assignment and validation */
-export const AB_VARIANTS: AbVariant[] = ["a", "b", "c", "d", "e", "f", "g"];
+export const AB_VARIANTS: AbVariant[] = ["a", "b", "c", "d", "e", "f", "g", "h", "i"];
 
 /**
  * Returns a random variant key, weighted equally (20% each).

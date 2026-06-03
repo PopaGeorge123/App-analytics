@@ -8,6 +8,7 @@ import {
 } from "recharts";
 import type { Snapshot } from "./DashboardShell";
 import OverviewSection from "./OverviewSection";
+import CustomDashboard from "./CustomDashboard";
 import { REVENUE_PROVIDERS, ANALYTICS_PROVIDERS, ADS_PROVIDERS } from "@/lib/integrations/catalog";
 
 interface AnalyticsTabProps {
@@ -3788,65 +3789,360 @@ function BeehiivSection({ snapshots, granularity }: { snapshots: Snapshot[]; gra
 }
 
 // ── Shopify ───────────────────────────────────────────────────────────────────
+// ── E-commerce Benchmarks ─────────────────────────────────────────────────
+
+const ECOMMERCE_BENCHMARKS = {
+  aovMedian:          6500,   // cents — $65 median AOV (Shopify 2024 report)
+  aovTop25:           12000,  // cents — $120 top quartile
+  refundRateGood:     2,      // % refund rate — good
+  refundRateBad:      5,      // % refund rate — bad
+  cartAbanGood:       65,     // % cart abandon — good (lower = better)
+  cartAbanBad:        80,     // % cart abandon — alarming
+  fulfillHoursGood:   24,     // hours fulfillment — excellent
+  fulfillHoursBad:    72,     // hours fulfillment — concerning
+};
+
+function EcommerceBenchmarks({
+  aov, refundRate, cartAbanRate, fulfillHours, currency,
+}: {
+  aov: number; refundRate: number; cartAbanRate: number; fulfillHours: number | null; currency: string;
+}) {
+  type BItem = { label: string; yours: string; benchmark: string; status: "good" | "ok" | "bad"; note: string };
+  const items: BItem[] = [];
+
+  if (aov > 0) {
+    const status = aov >= ECOMMERCE_BENCHMARKS.aovTop25 ? "good" : aov >= ECOMMERCE_BENCHMARKS.aovMedian ? "ok" : "bad";
+    items.push({
+      label: "Avg Order Value",
+      yours: fmt(aov, "currency", currency),
+      benchmark: `${fmt(ECOMMERCE_BENCHMARKS.aovMedian, "currency", currency)} median`,
+      status,
+      note: status === "good" ? "Above top quartile 🏆" : status === "ok" ? "At or above median" : "Below median — consider bundles or upsells",
+    });
+  }
+  if (refundRate > 0) {
+    const status = refundRate <= ECOMMERCE_BENCHMARKS.refundRateGood ? "good" : refundRate <= ECOMMERCE_BENCHMARKS.refundRateBad ? "ok" : "bad";
+    items.push({
+      label: "Refund Rate",
+      yours: `${refundRate.toFixed(1)}%`,
+      benchmark: `${ECOMMERCE_BENCHMARKS.refundRateGood}% – ${ECOMMERCE_BENCHMARKS.refundRateBad}% range`,
+      status,
+      note: status === "good" ? "Excellent — below 2% 🎯" : status === "ok" ? "Acceptable, monitor for increases" : "Above 5% — review product quality & descriptions",
+    });
+  }
+  if (cartAbanRate > 0) {
+    const status = cartAbanRate <= ECOMMERCE_BENCHMARKS.cartAbanGood ? "good" : cartAbanRate <= ECOMMERCE_BENCHMARKS.cartAbanBad ? "ok" : "bad";
+    items.push({
+      label: "Cart Abandonment",
+      yours: `${cartAbanRate.toFixed(1)}%`,
+      benchmark: `${ECOMMERCE_BENCHMARKS.cartAbanGood}%–${ECOMMERCE_BENCHMARKS.cartAbanBad}% industry range`,
+      status,
+      note: status === "good" ? "Below industry average 🎯" : status === "ok" ? "Industry average — set up recovery flows" : "High — implement abandoned cart emails immediately",
+    });
+  }
+  if (fulfillHours !== null && fulfillHours > 0) {
+    const status = fulfillHours <= ECOMMERCE_BENCHMARKS.fulfillHoursGood ? "good" : fulfillHours <= ECOMMERCE_BENCHMARKS.fulfillHoursBad ? "ok" : "bad";
+    const display = fulfillHours < 24 ? `${fulfillHours.toFixed(0)}h` : `${(fulfillHours / 24).toFixed(1)}d`;
+    items.push({
+      label: "Avg Fulfillment",
+      yours: display,
+      benchmark: `<${ECOMMERCE_BENCHMARKS.fulfillHoursGood}h same-day / <${ECOMMERCE_BENCHMARKS.fulfillHoursBad / 24}d standard`,
+      status,
+      note: status === "good" ? "Same-day / next-day speed 🚀" : status === "ok" ? "Standard range — consider faster options" : "Slow — customers expect <3 days",
+    });
+  }
+
+  if (items.length === 0) return null;
+  const c = (s: BItem["status"]) => s === "good" ? "#00d4aa" : s === "ok" ? "#f59e0b" : "#f87171";
+
+  return (
+    <div className="rounded-2xl border border-[#d4d4e8] bg-[#f2f2f8]/60 p-5 space-y-4">
+      <div className="flex items-center gap-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#96bf48]/10 text-[#96bf48]">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/>
+          </svg>
+        </div>
+        <div>
+          <h4 className="font-mono text-sm font-semibold text-[#1a1a2e]">E-commerce Benchmarks</h4>
+          <p className="font-mono text-[10px] text-[#6a6a90]">Your store vs industry averages (Shopify, BigCommerce 2024 data)</p>
+        </div>
+      </div>
+      <div className="overflow-x-auto rounded-xl border border-[#d4d4e8]">
+        <table className="w-full text-left">
+          <thead>
+            <tr className="border-b border-[#d4d4e8] bg-[#e8e8f4]">
+              {["Metric", "Your Store", "Benchmark", "Status"].map((h) => (
+                <th key={h} className="px-4 py-2.5 font-mono text-[9px] uppercase tracking-widest text-[#6a6a90]">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item) => (
+              <tr key={item.label} className="border-b border-[#d4d4e8]/50">
+                <td className="px-4 py-2.5 font-mono text-[11px] text-[#4a4a6a]">{item.label}</td>
+                <td className="px-4 py-2.5 font-mono text-[12px] font-bold" style={{ color: c(item.status) }}>{item.yours}</td>
+                <td className="px-4 py-2.5 font-mono text-[11px] text-[#6a6a90]">{item.benchmark}</td>
+                <td className="px-4 py-2.5">
+                  <span className="inline-block rounded-md px-2 py-0.5 font-mono text-[9px] font-semibold"
+                    style={{ backgroundColor: c(item.status) + "15", color: c(item.status) }}>
+                    {item.note}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 function ShopifySection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
-  const grouped   = useGroupedSnapshots(snapshots, granularity, ["revenue", "orders", "refunds", "newCustomers"], []);
-  const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
-  const revenue   = grouped.map((r) => r.data.revenue);
+  // Core flow metrics (summed per period)
+  const grouped = useGroupedSnapshots(
+    snapshots, granularity,
+    ["revenue", "grossRevenue", "orders", "refunds", "newCustomers"],
+    ["aov", "cartAbandonmentRate", "refundRate", "avgFulfillmentHours"],
+  );
+  const periods   = grouped.map((r) => fmtPeriod(r.period, granularity));
+  const revenue   = grouped.map((r) => r.data.revenue || r.data.grossRevenue);
   const orders    = grouped.map((r) => r.data.orders);
   const refunds   = grouped.map((r) => r.data.refunds);
   const customers = grouped.map((r) => r.data.newCustomers);
+  const aovSeries       = grouped.map((r) => r.data.aov);
+  const cartAbanSeries  = grouped.map((r) => r.data.cartAbandonmentRate);
+  const refundRateSeries= grouped.map((r) => r.data.refundRate);
+  const fulfillSeries   = grouped.map((r) => r.data.avgFulfillmentHours);
+
+  const totalRevenue  = revenue.reduce((a, b) => a + b, 0);
+  const totalOrders   = orders.reduce((a, b) => a + b, 0);
+  const totalRefunds  = refunds.reduce((a, b) => a + b, 0);
+  const totalCustomers= customers.reduce((a, b) => a + b, 0);
+  const avgAov        = aovSeries.filter((v) => v > 0).length > 0
+    ? aovSeries.filter((v) => v > 0).reduce((a, b) => a + b, 0) / aovSeries.filter((v) => v > 0).length
+    : totalOrders > 0 ? totalRevenue / totalOrders : 0;
+  const avgCartAban   = cartAbanSeries.filter((v) => v > 0).length > 0
+    ? cartAbanSeries.filter((v) => v > 0).reduce((a, b) => a + b, 0) / cartAbanSeries.filter((v) => v > 0).length : 0;
+  const avgRefundRate = refundRateSeries.filter((v) => v > 0).length > 0
+    ? refundRateSeries.filter((v) => v > 0).reduce((a, b) => a + b, 0) / refundRateSeries.filter((v) => v > 0).length : 0;
+  const avgFulfill    = fulfillSeries.filter((v) => v > 0).length > 0
+    ? fulfillSeries.filter((v) => v > 0).reduce((a, b) => a + b, 0) / fulfillSeries.filter((v) => v > 0).length : null;
+
+  // Top products from snapshot data (aggregate across filtered snapshots)
+  const productMap: Record<string, { name: string; revenue: number; units: number }> = {};
+  for (const snap of snapshots) {
+    const d = snap.data as Record<string, unknown>;
+    for (const p of ((d.topProductsByRevenue as { name: string; productId: string; revenue: number; units: number }[]) ?? [])) {
+      if (!productMap[p.productId]) productMap[p.productId] = { name: p.name, revenue: 0, units: 0 };
+      productMap[p.productId].revenue += p.revenue;
+      productMap[p.productId].units   += p.units;
+    }
+  }
+  const topProducts = Object.values(productMap).sort((a, b) => b.revenue - a.revenue).slice(0, 8);
+
+  // Channel breakdown
+  const channelMap: Record<string, number> = {};
+  for (const snap of snapshots) {
+    const d = snap.data as Record<string, unknown>;
+    for (const [ch, cnt] of Object.entries((d.channelBreakdown as Record<string, number>) ?? {})) {
+      channelMap[ch] = (channelMap[ch] ?? 0) + cnt;
+    }
+  }
+  const channelTotal = Object.values(channelMap).reduce((a, b) => a + b, 0);
+
+  const shopTrend = trend(revenue);
+
+  const heroMetrics: HeroMetric[] = [
+    { label: "Revenue",      value: fmt(totalRevenue,  "currency", currency), trend: shopTrend ? { up: shopTrend.up, pct: shopTrend.pct } : null, status: shopTrend ? (shopTrend.up ? "positive" : "warning") : "neutral" },
+    { label: "Orders",       value: fmt(totalOrders),                         trend: null, status: totalOrders > 0 ? "positive" : "neutral" },
+    { label: "AOV",          value: fmt(avgAov, "currency", currency),        trend: null, status: "neutral" },
+    { label: "New Customers",value: fmt(totalCustomers),                      trend: null, status: totalCustomers > 0 ? "positive" : "neutral" },
+    ...(avgCartAban > 0 ? [{ label: "Cart Abandon", value: `${avgCartAban.toFixed(1)}%`, trend: null, status: (avgCartAban > 80 ? "critical" : avgCartAban > 65 ? "warning" : "positive") as HeroMetric["status"] }] : []),
+    ...(avgRefundRate > 0 ? [{ label: "Refund Rate", value: `${avgRefundRate.toFixed(1)}%`, trend: null, status: (avgRefundRate > 5 ? "critical" : avgRefundRate > 2 ? "warning" : "positive") as HeroMetric["status"] }] : []),
+  ];
+
+  const heroSummary = `${shopTrend ? `Revenue ${shopTrend.up ? "up" : "down"} ${shopTrend.pct.toFixed(1)}% vs prior half.` : ""} ${totalOrders > 0 ? `${totalOrders} orders · ${fmt(avgAov, "currency", currency)} AOV.` : ""}${avgCartAban > 0 ? ` ${avgCartAban.toFixed(0)}% cart abandonment.` : ""}`.trim();
+
+  const mainChartSeries: ChartSeries[] = [
+    { key: "revenue",   label: "Revenue",   values: revenue,   color: "#96bf48", chartType: "area", yAxis: "left",  formatter: (v) => fmt(v, "currency", currency) },
+    { key: "orders",    label: "Orders",    values: orders,    color: "#a3e635", chartType: "area", yAxis: "left" },
+    { key: "customers", label: "New Cust.", values: customers, color: "#00d4aa", chartType: "bar",  yAxis: "right" },
+  ];
+
+  const rateChartSeries: ChartSeries[] = [
+    ...(cartAbanSeries.some((v) => v > 0) ? [{ key: "cartAban", label: "Cart Abandonment %", values: cartAbanSeries, color: "#a78bfa", chartType: "area" as const, yAxis: "left" as const, formatter: (v: number) => `${v.toFixed(1)}%` }] : []),
+    ...(refundRateSeries.some((v) => v > 0) ? [{ key: "refundRate", label: "Refund Rate %", values: refundRateSeries, color: "#f87171", chartType: "area" as const, yAxis: "left" as const, formatter: (v: number) => `${v.toFixed(1)}%` }] : []),
+  ];
+
+  const aovChartSeries: ChartSeries[] = aovSeries.some((v) => v > 0) ? [
+    { key: "aov", label: "Avg Order Value", values: aovSeries, color: "#f59e0b", chartType: "area", yAxis: "left", formatter: (v) => fmt(v, "currency", currency) },
+  ] : [];
+
   const tableRows = grouped.map((r) => ({
     period: fmtPeriod(r.period, granularity),
     cells: [
-      { label: "Revenue",       value: fmt(r.data.revenue, "currency", currency),  raw: r.data.revenue },
-      { label: "Orders",        value: fmt(r.data.orders),                          raw: r.data.orders },
-      { label: "Refunds",       value: fmt(r.data.refunds),                         raw: r.data.refunds },
-      { label: "New Customers", value: fmt(r.data.newCustomers),                    raw: r.data.newCustomers },
+      { label: "Revenue",       value: fmt(r.data.revenue || r.data.grossRevenue, "currency", currency), raw: r.data.revenue || r.data.grossRevenue },
+      { label: "Orders",        value: fmt(r.data.orders),                raw: r.data.orders },
+      { label: "AOV",           value: r.data.aov > 0 ? fmt(r.data.aov, "currency", currency) : "—", raw: r.data.aov },
+      { label: "Refunds",       value: fmt(r.data.refunds),               raw: r.data.refunds },
+      { label: "New Customers", value: fmt(r.data.newCustomers),          raw: r.data.newCustomers },
     ],
   }));
-  const totalRevenue  = revenue.reduce((a, b) => a + b, 0);
-  const totalRefunds  = refunds.reduce((a, b) => a + b, 0);
+
   const shopifyInsights = buildInsights({
     primary: { label: "Revenue", values: revenue, isCurrency: true, currency },
     secondary: [{ label: "Orders", values: orders }, { label: "New Customers", values: customers }],
-    rateMetrics: totalRevenue > 0 ? [{ label: "Refund rate", numerator: totalRefunds, denominator: totalRevenue, suffix: "%", goodThreshold: 2, badThreshold: 5, lowerIsBetter: true }] : [],
+    rateMetrics: totalRevenue > 0 && totalRefunds > 0 ? [{ label: "Refund rate", numerator: totalRefunds, denominator: totalRevenue, suffix: "%", goodThreshold: 2, badThreshold: 5, lowerIsBetter: true }] : [],
+    customInsights: [
+      ...(avgCartAban > 80 ? [{ severity: "negative" as const, headline: `Cart abandonment is ${avgCartAban.toFixed(1)}% — critically high`, detail: "Implement abandoned cart email sequences. A 10% recovery at your AOV can meaningfully impact revenue." }] : []),
+      ...(avgCartAban > 65 && avgCartAban <= 80 ? [{ severity: "warning" as const, headline: `Cart abandonment at ${avgCartAban.toFixed(1)}%`, detail: "Industry average is 65–70%. Consider exit-intent popups, streamlined checkout, and abandonment email flows." }] : []),
+      ...(avgRefundRate > 5 ? [{ severity: "negative" as const, headline: `Refund rate ${avgRefundRate.toFixed(1)}% exceeds 5% threshold`, detail: "Review product descriptions, sizing guides, and packaging quality. High refunds signal expectation gaps." }] : []),
+      ...(avgFulfill !== null && avgFulfill > 72 ? [{ severity: "warning" as const, headline: `Avg fulfillment is ${(avgFulfill / 24).toFixed(1)} days`, detail: "Customers increasingly expect <3-day fulfillment. Consider 3PL partners or warehousing closer to demand centres." }] : []),
+    ],
   });
-  const shopTotalRev  = revenue.reduce((a,b)=>a+b,0);
-  const shopTotalOrd  = orders.reduce((a,b)=>a+b,0);
-  const shopTotalRef  = refunds.reduce((a,b)=>a+b,0);
-  const shopTotalCust = customers.reduce((a,b)=>a+b,0);
-  const shopAvgOrder  = shopTotalOrd > 0 ? shopTotalRev / shopTotalOrd : 0;
-  const shopTrend     = trend(revenue);
-  const heroMetrics: HeroMetric[] = [
-    { label: "Revenue",       value: fmt(shopTotalRev,  "currency", currency), trend: shopTrend ? { up: shopTrend.up, pct: shopTrend.pct } : null, status: shopTrend ? (shopTrend.up ? "positive" : "warning") : "neutral" },
-    { label: "Orders",        value: fmt(shopTotalOrd),                        trend: null, status: shopTotalOrd > 0 ? "positive" : "neutral" },
-    { label: "New Customers", value: fmt(shopTotalCust),                       trend: null, status: shopTotalCust > 0 ? "positive" : "neutral" },
-    { label: "Avg Order",     value: fmt(shopAvgOrder,  "currency", currency), trend: null, status: "neutral" },
-  ];
-  const heroSummary = `${shopTrend ? `Revenue is ${shopTrend.up ? "up" : "down"} ${shopTrend.pct.toFixed(1)}% vs the prior half.` : ""} ${shopTotalOrd > 0 ? `${shopTotalOrd} orders averaging ${fmt(shopAvgOrder, "currency", currency)}.` : ""}`.trim();
-  const chartSeries: ChartSeries[] = [
-    { key: "revenue",   label: "Revenue",   values: revenue,   color: "#96bf48", chartType: "area", yAxis: "left",  formatter: (v) => fmt(v, "currency", currency) },
-    { key: "orders",    label: "Orders",    values: orders,    color: "#a3e635", chartType: "area", yAxis: "left" },
-    { key: "customers", label: "Customers", values: customers, color: "#00d4aa", chartType: "bar",  yAxis: "right" },
-  ];
+
+  const chanColors: Record<string, string> = { online_store: "#96bf48", pos: "#00d4aa", draft_order: "#f59e0b", buy_button: "#f87171", mobile_app: "#a78bfa" };
+
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
+      {/* Header */}
       <div className="flex items-center gap-3 rounded-xl border border-[#96bf48]/15 bg-[#96bf48]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#96bf48]/15 font-mono text-[10px] font-bold text-[#96bf48]">SH</div>
-        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">Shopify</h3>
+        <div className="flex-1">
+          <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">Shopify</h3>
+          <p className="font-mono text-[9px] text-[#6a6a90]">Revenue · Orders · AOV · Cart Abandonment · Fulfillment</p>
+        </div>
+        {avgFulfill !== null && (
+          <div className="flex items-center gap-2 rounded-lg border border-[#00d4aa]/20 bg-[#00d4aa]/8 px-3 py-1.5">
+            <span className="font-mono text-[9px] text-[#00d4aa] font-semibold">⚡ Fulfillment</span>
+            <span className="font-mono text-[11px] font-bold text-[#1a1a2e]">
+              {avgFulfill < 24 ? `${avgFulfill.toFixed(0)}h` : `${(avgFulfill / 24).toFixed(1)}d`}
+            </span>
+          </div>
+        )}
       </div>
+
+      {/* Hero strip */}
       <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#96bf48" />
-      {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
+
+      {/* Main revenue + orders chart */}
+      {periods.length >= 2 && <PlatformAreaChart periods={periods} series={mainChartSeries} />}
+
+      {/* Run-rate + period compare */}
       <RunRateStrip snapshots={snapshots} field="revenue" currency={currency} label="Revenue" />
       <PeriodCompare values={revenue} label="Revenue" isCurrency currency={currency} />
+
+      {/* ── AOV + Rate charts side by side ────────────────────────────── */}
+      {(aovChartSeries.length > 0 || rateChartSeries.length > 0) && (
+        <div className={`grid gap-4 ${aovChartSeries.length > 0 && rateChartSeries.length > 0 ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1"}`}>
+          {aovChartSeries.length > 0 && (
+            <div>
+              <p className="font-mono text-[9px] uppercase tracking-widest text-[#6a6a90] mb-2 px-1">Avg Order Value Trend</p>
+              <PlatformAreaChart periods={periods} series={aovChartSeries} height={180} />
+            </div>
+          )}
+          {rateChartSeries.length > 0 && (
+            <div>
+              <p className="font-mono text-[9px] uppercase tracking-widest text-[#6a6a90] mb-2 px-1">Cart Abandon & Refund Rate</p>
+              <PlatformAreaChart periods={periods} series={rateChartSeries} height={180} />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Core KPI stat cards ────────────────────────────────────────── */}
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard label="Revenue"       value={fmt(revenue.reduce((a,b)=>a+b,0), "currency", currency)}   values={revenue}   color="#96bf48" />
-        <StatCard label="Orders"        value={fmt(orders.reduce((a,b)=>a+b,0))}          values={orders}    color="#a3e635" />
-        <StatCard label="Refunds"       value={fmt(refunds.reduce((a,b)=>a+b,0))}         values={refunds}   color="#f87171" />
-        <StatCard label="New Customers" value={fmt(customers.reduce((a,b)=>a+b,0))}       values={customers} color="#00d4aa" />
+        <StatCard label="Revenue"       value={fmt(totalRevenue, "currency", currency)}          values={revenue}    color="#96bf48" sparkFormatter={(v) => fmt(v, "currency", currency)} />
+        <StatCard label="Orders"        value={fmt(totalOrders)}                                  values={orders}     color="#a3e635" />
+        <StatCard label="AOV"           value={fmt(avgAov, "currency", currency)}                 values={aovSeries}  color="#f59e0b" sparkFormatter={(v) => fmt(v, "currency", currency)} />
+        <StatCard label="New Customers" value={fmt(totalCustomers)}                               values={customers}  color="#00d4aa" />
+        {avgCartAban > 0 && (
+          <StatCard label="Cart Abandonment" value={`${avgCartAban.toFixed(1)}%`} values={cartAbanSeries} color="#a78bfa" sparkFormatter={(v) => `${v.toFixed(1)}%`} />
+        )}
+        {avgRefundRate > 0 && (
+          <StatCard label="Refund Rate" value={`${avgRefundRate.toFixed(1)}%`} values={refundRateSeries} color="#f87171" sparkFormatter={(v) => `${v.toFixed(1)}%`} />
+        )}
+        <StatCard label="Refunds (amt)" value={fmt(totalRefunds, "currency", currency)} values={refunds} color="#f87171" sparkFormatter={(v) => fmt(v, "currency", currency)} />
       </StatCardGroup>
+
+      {/* ── Top Products ──────────────────────────────────────────────── */}
+      {topProducts.length > 0 && (
+        <div className="rounded-2xl border border-[#d4d4e8] bg-[#f2f2f8]/60 p-5 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#96bf48]/10 text-[#96bf48]">
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/>
+              </svg>
+            </div>
+            <h4 className="font-mono text-sm font-semibold text-[#1a1a2e]">Top Products by Revenue</h4>
+            <span className="ml-auto font-mono text-[9px] text-[#6a6a90]">Selected period</span>
+          </div>
+          <div className="space-y-3">
+            {topProducts.map((p, i) => {
+              const maxRev = topProducts[0].revenue;
+              const pct = maxRev > 0 ? (p.revenue / maxRev) * 100 : 0;
+              const rankColors = ["#f59e0b", "#9ca3af", "#cd7f32"];
+              const rankColor = i < 3 ? rankColors[i] : "#6a6a90";
+              return (
+                <div key={i} className="flex items-center gap-3">
+                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md font-mono text-[10px] font-bold"
+                    style={{ backgroundColor: rankColor + "20", color: rankColor }}>
+                    {i + 1}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="font-mono text-[11px] font-semibold text-[#1a1a2e] truncate pr-3">{p.name}</span>
+                      <span className="font-mono text-[10px] font-bold text-[#1a1a2e] shrink-0">{fmt(p.revenue, "currency", currency)}</span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-[#d4d4e8] overflow-hidden mb-1">
+                      <div className="h-full rounded-full bg-[#96bf48] transition-all" style={{ width: `${pct}%` }} />
+                    </div>
+                    <span className="font-mono text-[9px] text-[#9a9ab0]">{p.units} units · {totalRevenue > 0 ? `${((p.revenue / totalRevenue) * 100).toFixed(1)}% of revenue` : ""}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── Channel Breakdown ─────────────────────────────────────────── */}
+      {channelTotal > 0 && (
+        <div className="rounded-2xl border border-[#d4d4e8] bg-[#f2f2f8]/60 p-5 space-y-4">
+          <h4 className="font-mono text-[9px] uppercase tracking-widest text-[#4a4a6a] font-bold">Sales Channel Breakdown</h4>
+          <div className="space-y-3">
+            {Object.entries(channelMap).sort(([, a], [, b]) => b - a).map(([ch, cnt]) => {
+              const pct = channelTotal > 0 ? (cnt / channelTotal) * 100 : 0;
+              const color = chanColors[ch] ?? "#9a9ab0";
+              const label = ch.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+              return (
+                <div key={ch} className="flex items-center gap-3">
+                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: color + "18" }}>
+                    <div className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="font-mono text-[11px] font-semibold text-[#1a1a2e]">{label}</span>
+                      <span className="font-mono text-[10px] text-[#6a6a90]">
+                        {cnt} orders · <span className="font-bold text-[#1a1a2e]">{pct.toFixed(0)}%</span>
+                      </span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-[#d4d4e8] overflow-hidden">
+                      <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: color }} />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Data table + insights + benchmarks */}
       <DataTable rows={tableRows} />
+      <EcommerceBenchmarks aov={avgAov} refundRate={avgRefundRate} cartAbanRate={avgCartAban} fulfillHours={avgFulfill} currency={currency} />
       <PlatformInsights insights={shopifyInsights} />
     </div>
     </PeriodsCtx.Provider>
@@ -3855,34 +4151,47 @@ function ShopifySection({ snapshots, granularity, currency = "USD" }: { snapshot
 
 // ── WooCommerce ───────────────────────────────────────────────────────────────
 function WooCommerceSection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
-  const grouped   = useGroupedSnapshots(snapshots, granularity, ["revenue", "orders", "refunds", "newCustomers"], []);
+  const grouped   = useGroupedSnapshots(snapshots, granularity, ["revenue", "orders", "refunds", "newCustomers"], ["aov", "cartAbandonmentRate", "refundRate"]);
   const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const revenue   = grouped.map((r) => r.data.revenue);
   const orders    = grouped.map((r) => r.data.orders);
   const refunds   = grouped.map((r) => r.data.refunds);
   const customers = grouped.map((r) => r.data.newCustomers);
-  const tableRows = grouped.map((r) => ({
-    period: fmtPeriod(r.period, granularity),
-    cells: [
-      { label: "Revenue",       value: fmt(r.data.revenue, "currency", currency) },
-      { label: "Orders",        value: fmt(r.data.orders) },
-      { label: "Refunds",       value: fmt(r.data.refunds) },
-      { label: "New Customers", value: fmt(r.data.newCustomers) },
-    ],
-  }));
+  const aovSeries = grouped.map((r) => r.data.aov);
+  const cartAbanSeries = grouped.map((r) => r.data.cartAbandonmentRate);
+  const refundRateSeries = grouped.map((r) => r.data.refundRate);
+
   const wooTotalRev  = revenue.reduce((a,b)=>a+b,0);
   const wooTotalOrd  = orders.reduce((a,b)=>a+b,0);
   const wooTotalRef  = refunds.reduce((a,b)=>a+b,0);
   const wooTotalCust = customers.reduce((a,b)=>a+b,0);
-  const wooAvgOrder  = wooTotalOrd > 0 ? wooTotalRev / wooTotalOrd : 0;
+  const wooAvgOrder  = aovSeries.filter(v=>v>0).length > 0
+    ? aovSeries.filter(v=>v>0).reduce((a,b)=>a+b,0)/aovSeries.filter(v=>v>0).length
+    : wooTotalOrd > 0 ? wooTotalRev / wooTotalOrd : 0;
+  const avgCartAban  = cartAbanSeries.filter(v=>v>0).length > 0
+    ? cartAbanSeries.filter(v=>v>0).reduce((a,b)=>a+b,0)/cartAbanSeries.filter(v=>v>0).length : 0;
+  const avgRefundRate= refundRateSeries.filter(v=>v>0).length > 0
+    ? refundRateSeries.filter(v=>v>0).reduce((a,b)=>a+b,0)/refundRateSeries.filter(v=>v>0).length : 0;
   const wooTrend     = trend(revenue);
+
+  const tableRows = grouped.map((r) => ({
+    period: fmtPeriod(r.period, granularity),
+    cells: [
+      { label: "Revenue",       value: fmt(r.data.revenue, "currency", currency), raw: r.data.revenue },
+      { label: "Orders",        value: fmt(r.data.orders),                         raw: r.data.orders },
+      { label: "AOV",           value: r.data.aov > 0 ? fmt(r.data.aov, "currency", currency) : "—", raw: r.data.aov },
+      { label: "Refunds",       value: fmt(r.data.refunds),                        raw: r.data.refunds },
+      { label: "New Customers", value: fmt(r.data.newCustomers),                   raw: r.data.newCustomers },
+    ],
+  }));
   const heroMetrics: HeroMetric[] = [
     { label: "Revenue",       value: fmt(wooTotalRev,  "currency", currency), trend: wooTrend ? { up: wooTrend.up, pct: wooTrend.pct } : null, status: wooTrend ? (wooTrend.up ? "positive" : "warning") : "neutral" },
     { label: "Orders",        value: fmt(wooTotalOrd),                        trend: null, status: wooTotalOrd > 0 ? "positive" : "neutral" },
+    { label: "AOV",           value: fmt(wooAvgOrder,  "currency", currency), trend: null, status: "neutral" },
     { label: "New Customers", value: fmt(wooTotalCust),                       trend: null, status: wooTotalCust > 0 ? "positive" : "neutral" },
-    { label: "Avg Order",     value: fmt(wooAvgOrder,  "currency", currency), trend: null, status: "neutral" },
+    ...(avgCartAban > 0 ? [{ label: "Cart Abandon", value: `${avgCartAban.toFixed(1)}%`, trend: null, status: (avgCartAban > 80 ? "critical" : avgCartAban > 65 ? "warning" : "positive") as HeroMetric["status"] }] : []),
   ];
-  const heroSummary = `${wooTrend ? `Revenue is ${wooTrend.up ? "up" : "down"} ${wooTrend.pct.toFixed(1)}% vs the prior half.` : ""} ${wooTotalOrd > 0 ? `${wooTotalOrd} orders averaging ${fmt(wooAvgOrder, "currency", currency)}.` : ""}`.trim();
+  const heroSummary = `${wooTrend ? `Revenue ${wooTrend.up ? "up" : "down"} ${wooTrend.pct.toFixed(1)}% vs prior half.` : ""} ${wooTotalOrd > 0 ? `${wooTotalOrd} orders · ${fmt(wooAvgOrder, "currency", currency)} AOV.` : ""}`.trim();
   const chartSeries: ChartSeries[] = [
     { key: "revenue",   label: "Revenue",   values: revenue,   color: "#7f54b3", chartType: "area", yAxis: "left",  formatter: (v) => fmt(v, "currency", currency) },
     { key: "orders",    label: "Orders",    values: orders,    color: "#a78bfa", chartType: "area", yAxis: "left" },
@@ -3891,86 +4200,115 @@ function WooCommerceSection({ snapshots, granularity, currency = "USD" }: { snap
   const wooInsights = buildInsights({
     primary: { label: "Revenue", values: revenue, isCurrency: true, currency },
     secondary: [{ label: "Orders", values: orders }, { label: "New Customers", values: customers }],
-    rateMetrics: wooTotalRev > 0 ? [{ label: "Refund rate", numerator: wooTotalRef, denominator: wooTotalRev, suffix: "%", goodThreshold: 2, badThreshold: 5, lowerIsBetter: true }] : [],
+    rateMetrics: wooTotalRev > 0 && wooTotalRef > 0 ? [{ label: "Refund rate", numerator: wooTotalRef, denominator: wooTotalRev, suffix: "%", goodThreshold: 2, badThreshold: 5, lowerIsBetter: true }] : [],
   });
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
       <div className="flex items-center gap-3 rounded-xl border border-[#7f54b3]/15 bg-[#7f54b3]/5 px-4 py-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#7f54b3]/15 font-mono text-[10px] font-bold text-[#7f54b3]">WC</div>
-        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">WooCommerce</h3>
+        <div className="flex-1">
+          <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">WooCommerce</h3>
+          <p className="font-mono text-[9px] text-[#6a6a90]">Revenue · Orders · AOV · Cart Abandonment</p>
+        </div>
       </div>
       <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#7f54b3" />
       {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
       <RunRateStrip snapshots={snapshots} field="revenue" currency={currency} label="Revenue" />
       <PeriodCompare values={revenue} label="Revenue" isCurrency currency={currency} />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard label="Revenue"       value={fmt(revenue.reduce((a,b)=>a+b,0), "currency", currency)}   values={revenue}   color="#7f54b3" />
-        <StatCard label="Orders"        value={fmt(orders.reduce((a,b)=>a+b,0))}          values={orders}    color="#a78bfa" />
-        <StatCard label="Refunds"       value={fmt(refunds.reduce((a,b)=>a+b,0))}         values={refunds}   color="#f87171" />
-        <StatCard label="New Customers" value={fmt(customers.reduce((a,b)=>a+b,0))}       values={customers} color="#00d4aa" />
+        <StatCard label="Revenue"       value={fmt(wooTotalRev, "currency", currency)} values={revenue}   color="#7f54b3" sparkFormatter={(v) => fmt(v, "currency", currency)} />
+        <StatCard label="Orders"        value={fmt(wooTotalOrd)}                        values={orders}    color="#a78bfa" />
+        <StatCard label="AOV"           value={fmt(wooAvgOrder, "currency", currency)} values={aovSeries} color="#f59e0b" sparkFormatter={(v) => fmt(v, "currency", currency)} />
+        <StatCard label="New Customers" value={fmt(wooTotalCust)}                       values={customers} color="#00d4aa" />
+        {avgCartAban > 0 && <StatCard label="Cart Abandon" value={`${avgCartAban.toFixed(1)}%`} values={cartAbanSeries} color="#a78bfa" sparkFormatter={(v) => `${v.toFixed(1)}%`} />}
+        {avgRefundRate > 0 && <StatCard label="Refund Rate" value={`${avgRefundRate.toFixed(1)}%`} values={refundRateSeries} color="#f87171" sparkFormatter={(v) => `${v.toFixed(1)}%`} />}
+        <StatCard label="Refunds (amt)" value={fmt(wooTotalRef, "currency", currency)} values={refunds}   color="#f87171" sparkFormatter={(v) => fmt(v, "currency", currency)} />
       </StatCardGroup>
       <DataTable rows={tableRows} />
+      <EcommerceBenchmarks aov={wooAvgOrder} refundRate={avgRefundRate} cartAbanRate={avgCartAban} fulfillHours={null} currency={currency} />
       <PlatformInsights insights={wooInsights} />
     </div>
     </PeriodsCtx.Provider>
   );
 }
 function BigCommerceSection({ snapshots, granularity, currency = "USD" }: { snapshots: Snapshot[]; granularity: Granularity; currency?: string }) {
-  const grouped   = useGroupedSnapshots(snapshots, granularity, ["revenue", "orders", "refunds", "newCustomers"], []);
+  const grouped   = useGroupedSnapshots(snapshots, granularity, ["revenue", "orders", "refunds", "newCustomers"], ["aov", "cartAbandonmentRate", "refundRate"]);
   const periods = grouped.map((r) => fmtPeriod(r.period, granularity));
   const revenue   = grouped.map((r) => r.data.revenue);
   const orders    = grouped.map((r) => r.data.orders);
   const refunds   = grouped.map((r) => r.data.refunds);
   const customers = grouped.map((r) => r.data.newCustomers);
+  const aovSeries = grouped.map((r) => r.data.aov);
+  const cartAbanSeries   = grouped.map((r) => r.data.cartAbandonmentRate);
+  const refundRateSeries = grouped.map((r) => r.data.refundRate);
+
+  const bcTotalRev  = revenue.reduce((a,b)=>a+b,0);
+  const bcTotalOrd  = orders.reduce((a,b)=>a+b,0);
+  const bcTotalRef  = refunds.reduce((a,b)=>a+b,0);
+  const bcTotalCust = customers.reduce((a,b)=>a+b,0);
+  const bcAvgOrder  = aovSeries.filter(v=>v>0).length > 0
+    ? aovSeries.filter(v=>v>0).reduce((a,b)=>a+b,0)/aovSeries.filter(v=>v>0).length
+    : bcTotalOrd > 0 ? bcTotalRev / bcTotalOrd : 0;
+  const avgCartAban    = cartAbanSeries.filter(v=>v>0).length > 0
+    ? cartAbanSeries.filter(v=>v>0).reduce((a,b)=>a+b,0)/cartAbanSeries.filter(v=>v>0).length : 0;
+  const avgRefundRate  = refundRateSeries.filter(v=>v>0).length > 0
+    ? refundRateSeries.filter(v=>v>0).reduce((a,b)=>a+b,0)/refundRateSeries.filter(v=>v>0).length : 0;
+  const bcTrend = trend(revenue);
+
   const tableRows = grouped.map((r) => ({
     period: fmtPeriod(r.period, granularity),
     cells: [
-      { label: "Revenue",       value: fmt(r.data.revenue, "currency", currency) },
-      { label: "Orders",        value: fmt(r.data.orders) },
-      { label: "Refunds",       value: fmt(r.data.refunds) },
-      { label: "New Customers", value: fmt(r.data.newCustomers) },
+      { label: "Revenue",       value: fmt(r.data.revenue, "currency", currency), raw: r.data.revenue },
+      { label: "Orders",        value: fmt(r.data.orders),                         raw: r.data.orders },
+      { label: "AOV",           value: r.data.aov > 0 ? fmt(r.data.aov, "currency", currency) : "—", raw: r.data.aov },
+      { label: "Refunds",       value: fmt(r.data.refunds),                        raw: r.data.refunds },
+      { label: "New Customers", value: fmt(r.data.newCustomers),                   raw: r.data.newCustomers },
     ],
   }));
-  const bcTotalRev  = revenue.reduce((a,b)=>a+b,0);
-  const bcTotalOrd  = orders.reduce((a,b)=>a+b,0);
-  const bcTotalCust = customers.reduce((a,b)=>a+b,0);
-  const bcAvgOrder  = bcTotalOrd > 0 ? bcTotalRev / bcTotalOrd : 0;
-  const bcTrend     = trend(revenue);
   const heroMetrics: HeroMetric[] = [
-    { label: "Revenue",       value: fmt(bcTotalRev,  "currency", currency), trend: bcTrend ? { up: bcTrend.up, pct: bcTrend.pct } : null, status: bcTrend ? (bcTrend.up ? "positive" : "warning") : "neutral" },
+    { label: "Revenue",       value: fmt(bcTotalRev, "currency", currency), trend: bcTrend ? { up: bcTrend.up, pct: bcTrend.pct } : null, status: bcTrend ? (bcTrend.up ? "positive" : "warning") : "neutral" },
     { label: "Orders",        value: fmt(bcTotalOrd),                        trend: null, status: bcTotalOrd > 0 ? "positive" : "neutral" },
+    { label: "AOV",           value: fmt(bcAvgOrder, "currency", currency),  trend: null, status: "neutral" },
     { label: "New Customers", value: fmt(bcTotalCust),                       trend: null, status: bcTotalCust > 0 ? "positive" : "neutral" },
-    { label: "Avg Order",     value: fmt(bcAvgOrder,  "currency", currency), trend: null, status: "neutral" },
+    ...(avgCartAban > 0 ? [{ label: "Cart Abandon", value: `${avgCartAban.toFixed(1)}%`, trend: null, status: (avgCartAban > 80 ? "critical" : avgCartAban > 65 ? "warning" : "positive") as HeroMetric["status"] }] : []),
   ];
-  const heroSummary = `${bcTrend ? `Revenue is ${bcTrend.up ? "up" : "down"} ${bcTrend.pct.toFixed(1)}% vs the prior half.` : ""} ${bcTotalOrd > 0 ? `${bcTotalOrd} orders averaging ${fmt(bcAvgOrder, "currency", currency)}.` : ""}`.trim();
+  const heroSummary = `${bcTrend ? `Revenue ${bcTrend.up ? "up" : "down"} ${bcTrend.pct.toFixed(1)}% vs prior half.` : ""} ${bcTotalOrd > 0 ? `${bcTotalOrd} orders · ${fmt(bcAvgOrder, "currency", currency)} AOV.` : ""}`.trim();
   const chartSeries: ChartSeries[] = [
-    { key: "revenue",   label: "Revenue",   values: revenue,   color: "#4a4a6a", chartType: "area", yAxis: "left",  formatter: (v) => fmt(v, "currency", currency) },
-    { key: "orders",    label: "Orders",    values: orders,    color: "#a78bfa", chartType: "area", yAxis: "left" },
+    { key: "revenue",   label: "Revenue",   values: revenue,   color: "#34334a", chartType: "area", yAxis: "left",  formatter: (v) => fmt(v, "currency", currency) },
+    { key: "orders",    label: "Orders",    values: orders,    color: "#6b6b9a", chartType: "area", yAxis: "left" },
     { key: "customers", label: "Customers", values: customers, color: "#00d4aa", chartType: "bar",  yAxis: "right" },
   ];
   const bcInsights = buildInsights({
     primary: { label: "Revenue", values: revenue, isCurrency: true, currency },
     secondary: [{ label: "Orders", values: orders }, { label: "New Customers", values: customers }],
+    rateMetrics: bcTotalRev > 0 && bcTotalRef > 0 ? [{ label: "Refund rate", numerator: bcTotalRef, denominator: bcTotalRev, suffix: "%", goodThreshold: 2, badThreshold: 5, lowerIsBetter: true }] : [],
   });
   return (
     <PeriodsCtx.Provider value={periods}>
     <div className="space-y-5">
-      <div className="flex items-center gap-3 rounded-xl border border-[#efeff5]/40 bg-[#efeff5]/10 px-4 py-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#efeff5]/30 font-mono text-[10px] font-bold text-[#4a4a6a]">BC</div>
-        <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">BigCommerce</h3>
+      <div className="flex items-center gap-3 rounded-xl border border-[#34334a]/15 bg-[#34334a]/5 px-4 py-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#34334a]/15 font-mono text-[10px] font-bold text-[#34334a]">BC</div>
+        <div className="flex-1">
+          <h3 className="font-mono text-sm font-semibold text-[#1a1a2e]">BigCommerce</h3>
+          <p className="font-mono text-[9px] text-[#6a6a90]">Revenue · Orders · AOV · Cart Abandonment</p>
+        </div>
       </div>
-      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#4a4a6a" />
+      <HeroStrip metrics={heroMetrics} summary={heroSummary} accentColor="#34334a" />
       {periods.length >= 2 && <PlatformAreaChart periods={periods} series={chartSeries} />}
       <RunRateStrip snapshots={snapshots} field="revenue" currency={currency} label="Revenue" />
       <PeriodCompare values={revenue} label="Revenue" isCurrency currency={currency} />
       <StatCardGroup className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard label="Revenue"       value={fmt(revenue.reduce((a,b)=>a+b,0), "currency", currency)}   values={revenue}   color="#4a4a6a" />
-        <StatCard label="Orders"        value={fmt(orders.reduce((a,b)=>a+b,0))}          values={orders}    color="#a78bfa" />
-        <StatCard label="Refunds"       value={fmt(refunds.reduce((a,b)=>a+b,0))}         values={refunds}   color="#f87171" />
-        <StatCard label="New Customers" value={fmt(customers.reduce((a,b)=>a+b,0))}       values={customers} color="#00d4aa" />
+        <StatCard label="Revenue"       value={fmt(bcTotalRev, "currency", currency)} values={revenue}          color="#34334a" sparkFormatter={(v) => fmt(v, "currency", currency)} />
+        <StatCard label="Orders"        value={fmt(bcTotalOrd)}                        values={orders}           color="#6b6b9a" />
+        <StatCard label="AOV"           value={fmt(bcAvgOrder, "currency", currency)} values={aovSeries}        color="#f59e0b" sparkFormatter={(v) => fmt(v, "currency", currency)} />
+        <StatCard label="New Customers" value={fmt(bcTotalCust)}                       values={customers}        color="#00d4aa" />
+        {avgCartAban > 0 && <StatCard label="Cart Abandon" value={`${avgCartAban.toFixed(1)}%`} values={cartAbanSeries}   color="#a78bfa" sparkFormatter={(v) => `${v.toFixed(1)}%`} />}
+        {avgRefundRate > 0 && <StatCard label="Refund Rate"  value={`${avgRefundRate.toFixed(1)}%`} values={refundRateSeries} color="#f87171" sparkFormatter={(v) => `${v.toFixed(1)}%`} />}
+        <StatCard label="Refunds (amt)" value={fmt(bcTotalRef, "currency", currency)} values={refunds}          color="#f87171" sparkFormatter={(v) => fmt(v, "currency", currency)} />
       </StatCardGroup>
       <DataTable rows={tableRows} />
+      <EcommerceBenchmarks aov={bcAvgOrder} refundRate={avgRefundRate} cartAbanRate={avgCartAban} fulfillHours={null} currency={currency} />
       <PlatformInsights insights={bcInsights} />
     </div>
     </PeriodsCtx.Provider>
@@ -4886,79 +5224,48 @@ const PLATFORM_LABELS: Record<PlatformTab, string> = {
 };
 
 export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots, currencies = {} }: AnalyticsTabProps) {
-  const availablePlatforms = (["stripe", "ga4", "meta", "paypal", "paddle", "lemon-squeezy", "gumroad", "plausible", "mixpanel", "amplitude", "posthog", "fathom", "google-ads", "tiktok-ads", "twitter-ads", "linkedin-ads", "snapchat-ads", "pinterest-ads", "mailchimp", "klaviyo", "convertkit", "activecampaign", "brevo", "beehiiv", "shopify", "woocommerce", "bigcommerce", "amazon-seller", "etsy", "hubspot", "salesforce", "pipedrive", "notion", "intercom", "zendesk", "freshdesk", "segment", "heap", "fullstory", "hotjar", "instagram", "youtube", "twitter-organic"] as Exclude<PlatformTab, "overview">[]).filter(
-    (p) => connectedPlatforms.includes(p)
-  );
+  type MainTab = "overview" | "custom";
+  const [activeTab, setActiveTab] = useState<MainTab>("overview");
 
-  const [activeSection, setActiveSection] = useState<PlatformTab>("overview");
-
-  // ── Persisted filter state (survives tab switches) ──────────────────────
+  // ── Persisted filter state ───────────────────────────────────────────────
   const [timeRange, setTimeRange] = useState<TimeRange>(() => {
     if (typeof window === "undefined") return "30d";
-    const saved = localStorage.getItem("analytics_timeRange");
-    return (saved as TimeRange | null) ?? "30d";
+    return (localStorage.getItem("analytics_timeRange") as TimeRange | null) ?? "30d";
   });
   const [granularity, setGranularity] = useState<Granularity>(() => {
     if (typeof window === "undefined") return "day";
-    const saved = localStorage.getItem("analytics_granularity");
-    return (saved as Granularity | null) ?? "day";
+    return (localStorage.getItem("analytics_granularity") as Granularity | null) ?? "day";
   });
   const [customRange, setCustomRange] = useState<CustomRange | null>(() => {
     if (typeof window === "undefined") return null;
-    try {
-      const saved = localStorage.getItem("analytics_customRange");
-      return saved ? (JSON.parse(saved) as CustomRange) : null;
-    } catch {
-      return null;
-    }
+    try { const s = localStorage.getItem("analytics_customRange"); return s ? JSON.parse(s) as CustomRange : null; } catch { return null; }
   });
 
-  // Persist whenever any filter changes
+  useEffect(() => { localStorage.setItem("analytics_timeRange",   timeRange);    }, [timeRange]);
+  useEffect(() => { localStorage.setItem("analytics_granularity", granularity);  }, [granularity]);
   useEffect(() => {
-    localStorage.setItem("analytics_timeRange", timeRange);
-  }, [timeRange]);
-  useEffect(() => {
-    localStorage.setItem("analytics_granularity", granularity);
-  }, [granularity]);
-  useEffect(() => {
-    if (customRange) {
-      localStorage.setItem("analytics_customRange", JSON.stringify(customRange));
-    } else {
-      localStorage.removeItem("analytics_customRange");
-    }
+    if (customRange) localStorage.setItem("analytics_customRange", JSON.stringify(customRange));
+    else localStorage.removeItem("analytics_customRange");
   }, [customRange]);
 
-  // Share report state
-  const [shareState, setShareState] = useState<"idle" | "loading" | "copied" | "error">("idle");
-  const shareTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Refresh (sync now) state
+  // ── Refresh / share ──────────────────────────────────────────────────────
   const router = useRouter();
   const [refreshState, setRefreshState] = useState<"idle" | "loading" | "done" | "error">("idle");
   const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isRouterRefreshing, startRouterRefresh] = useTransition();
+  const [shareState, setShareState] = useState<"idle" | "loading" | "copied" | "error">("idle");
+  const shareTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   async function handleRefresh() {
     if (refreshState === "loading" || isRouterRefreshing) return;
     setRefreshState("loading");
     try {
       const res = await fetch("/api/sync/now", { method: "POST" });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        console.warn("Sync daemon:", d.error);
-      }
-      // startTransition wraps router.refresh() so React tracks when the
-      // re-render caused by the refresh is fully complete before we mark "done"
-      await new Promise<void>((resolve) => {
-        startRouterRefresh(() => {
-          router.refresh();
-          resolve();
-        });
-      });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); console.warn("Sync:", d.error); }
+      await new Promise<void>((resolve) => { startRouterRefresh(() => { router.refresh(); resolve(); }); });
       setRefreshState("done");
-    } catch {
-      setRefreshState("error");
-    } finally {
+    } catch { setRefreshState("error"); }
+    finally {
       if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current);
       refreshTimeoutRef.current = setTimeout(() => setRefreshState("idle"), 3000);
     }
@@ -4968,58 +5275,30 @@ export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots,
     if (shareState === "loading") return;
     setShareState("loading");
     try {
-      const res = await fetch("/api/report/share", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          dateFrom: cutoff,
-          dateTo: ceilDate,
-          label: `Analytics ${cutoff} → ${ceilDate}`,
-        }),
-      });
+      const res = await fetch("/api/report/share", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dateFrom: cutoff, dateTo: ceilDate, label: `Analytics ${cutoff} → ${ceilDate}` }) });
       if (!res.ok) throw new Error("Failed");
       const { url } = await res.json();
       await navigator.clipboard.writeText(url);
       setShareState("copied");
-      if (shareTimeoutRef.current) clearTimeout(shareTimeoutRef.current);
-      shareTimeoutRef.current = setTimeout(() => setShareState("idle"), 3000);
-    } catch {
-      setShareState("error");
+    } catch { setShareState("error"); }
+    finally {
       if (shareTimeoutRef.current) clearTimeout(shareTimeoutRef.current);
       shareTimeoutRef.current = setTimeout(() => setShareState("idle"), 3000);
     }
   }
 
-  // Filter snapshots — custom range takes priority over preset
+  // ── Filtered snapshots ───────────────────────────────────────────────────
   const cutoff = useMemo(() => {
     if (customRange) return customRange.from;
     const days = TIME_RANGES.find((t) => t.id === timeRange)?.days ?? 30;
     return daysAgoStr(days);
   }, [timeRange, customRange]);
 
-  const ceilDate = useMemo(() => {
-    if (customRange) return customRange.to;
-    return new Date().toISOString().slice(0, 10);
-  }, [customRange]);
+  const ceilDate = useMemo(() => customRange ? customRange.to : new Date().toISOString().slice(0, 10), [customRange]);
 
   const filteredSnapshots = useMemo(
     () => snapshots.filter((s) => s.date >= cutoff && s.date <= ceilDate),
-    [snapshots, cutoff, ceilDate]
-  );
-
-  const snapshotsByPlatform = useMemo(() => {
-    const map: Record<string, Snapshot[]> = { stripe: [], ga4: [], meta: [], paypal: [], paddle: [], "lemon-squeezy": [], gumroad: [], plausible: [], mixpanel: [], amplitude: [], posthog: [], fathom: [], "google-ads": [], "tiktok-ads": [], "twitter-ads": [], "linkedin-ads": [], "snapchat-ads": [], "pinterest-ads": [], mailchimp: [], klaviyo: [], convertkit: [], activecampaign: [], brevo: [], beehiiv: [], shopify: [], woocommerce: [], bigcommerce: [], "amazon-seller": [], etsy: [], hubspot: [], salesforce: [], pipedrive: [], notion: [], intercom: [], zendesk: [], freshdesk: [], segment: [], heap: [], fullstory: [], hotjar: [], instagram: [], youtube: [], "twitter-organic": [] };
-    for (const s of filteredSnapshots) {
-      if (map[s.provider]) map[s.provider].push(s);
-    }
-    return map;
-  }, [filteredSnapshots]);
-
-  // Providers that have ANY snapshot in the DB (ignoring date filter).
-  // Used to distinguish "syncing for the first time" vs "data exists outside range".
-  const providersWithAnyData = useMemo(
-    () => new Set(snapshots.map((s) => s.provider)),
-    [snapshots],
+    [snapshots, cutoff, ceilDate],
   );
 
   if (!isPremium) {
@@ -5036,119 +5315,91 @@ export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots,
 
   return (
     <div className="w-full">
+      {/* ── Page header ── */}
       <div className="mb-5 sm:mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="font-mono text-xl sm:text-2xl font-bold text-[#1a1a2e]">Analytics</h1>
-          <p className="mt-1 text-sm text-[#4a4a6a]">Daily breakdown per integration.</p>
+          <p className="mt-1 text-sm text-[#4a4a6a]">Unified metrics across all your integrations.</p>
         </div>
-        {availablePlatforms.length > 0 && (
-          <div className="flex items-center gap-2 shrink-0">
-            {/* Refresh button */}
-            <button
-              onClick={handleRefresh}
-              disabled={refreshState === "loading" || isRouterRefreshing}
-              title="Sync latest data now"
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-[#d4d4e8] bg-[#f2f2f8] px-3 py-2.5 font-mono text-xs font-semibold transition-all hover:border-[#00d4aa]/40 hover:text-[#00d4aa] disabled:opacity-50"
-              style={{
-                color: refreshState === "done" ? "#00d4aa" : refreshState === "error" ? "#f87171" : "#4a4a6a",
-                borderColor: refreshState === "done" ? "#00d4aa40" : refreshState === "error" ? "#f8717140" : undefined,
-              }}
-            >
-              {(refreshState === "loading" || isRouterRefreshing) ? (
-                <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
-              ) : refreshState === "done" ? (
-                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-              ) : refreshState === "error" ? (
-                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-              ) : (
-                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                  <path d="M3 3v5h5" />
-                  <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
-                  <path d="M16 16h5v5" />
-                </svg>
-              )}
-            </button>
-
-            {/* Share report button */}
-            <button
-              onClick={handleShare}
-              disabled={shareState === "loading"}
-              className="flex shrink-0 items-center gap-2 rounded-xl border border-[#d4d4e8] bg-[#f2f2f8] px-4 py-2.5 font-mono text-xs font-semibold transition-all hover:border-[#00d4aa]/40 hover:text-[#00d4aa] disabled:opacity-50"
-              style={{
-                color: shareState === "copied" ? "#00d4aa" : shareState === "error" ? "#f87171" : "#4a4a6a",
-                borderColor: shareState === "copied" ? "#00d4aa40" : shareState === "error" ? "#f8717140" : undefined,
-              }}
-            >
-              {shareState === "loading" ? (
-                <>
-                  <svg className="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
-                  Generating…
-                </>
-              ) : shareState === "copied" ? (
-                <>
-                  <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-                  Link copied!
-                </>
-              ) : shareState === "error" ? (
-                <>
-                  <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                  Error — retry
-                </>
-              ) : (
-                <>
-                  <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
-                  Share report
-                </>
-              )}
-            </button>
-          </div>
-        )}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Refresh */}
+          <button
+            onClick={handleRefresh}
+            disabled={refreshState === "loading" || isRouterRefreshing}
+            title="Sync latest data"
+            className="flex items-center justify-center gap-1.5 rounded-xl border border-[#d4d4e8] bg-[#f2f2f8] px-3 py-2.5 font-mono text-xs font-semibold transition-all hover:border-[#00d4aa]/40 hover:text-[#00d4aa] disabled:opacity-50"
+            style={{ color: refreshState === "done" ? "#00d4aa" : refreshState === "error" ? "#f87171" : "#4a4a6a" }}
+          >
+            {(refreshState === "loading" || isRouterRefreshing) ? (
+              <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+            ) : refreshState === "done" ? (
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            ) : (
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
+                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/>
+              </svg>
+            )}
+          </button>
+          {/* Share */}
+          <button
+            onClick={handleShare}
+            disabled={shareState === "loading"}
+            className="flex shrink-0 items-center gap-2 rounded-xl border border-[#d4d4e8] bg-[#f2f2f8] px-4 py-2.5 font-mono text-xs font-semibold transition-all hover:border-[#00d4aa]/40 hover:text-[#00d4aa] disabled:opacity-50"
+            style={{ color: shareState === "copied" ? "#00d4aa" : shareState === "error" ? "#f87171" : "#4a4a6a" }}
+          >
+            {shareState === "loading" ? (
+              <><svg className="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>Generating…</>
+            ) : shareState === "copied" ? (
+              <><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Copied!</>
+            ) : (
+              <><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>Share</>
+            )}
+          </button>
+        </div>
       </div>
 
-      {availablePlatforms.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-[#d4d4e8] p-12 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl border border-[#d4d4e8] bg-[#e8e8f4] text-[#6a6a90]">
-            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" /></svg>
-          </div>
-          <p className="font-mono text-xs font-semibold uppercase tracking-widest text-[#6a6a90] mb-2">No data yet</p>
-          <p className="text-sm text-[#4a4a6a]">Connect at least one integration from the Overview tab to see analytics.</p>
+      {/* ── Two-tab nav ── */}
+      <div className="relative mb-5 -mx-3 sm:-mx-6 lg:-mx-8">
+        <div className="pointer-events-none absolute right-0 top-0 z-10 h-full w-12 bg-gradient-to-l from-[#fafafa] to-transparent" />
+        <div className="flex gap-1 border-b border-[#d4d4e8] overflow-x-auto scrollbar-none px-3 sm:px-6 lg:px-8">
+          {(["overview", "custom"] as MainTab[]).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={[
+                "shrink-0 whitespace-nowrap pb-3 px-4 font-mono text-xs font-semibold uppercase tracking-widest border-b-2 -mb-px transition-colors flex items-center gap-2",
+                activeTab === tab
+                  ? "border-[#00d4aa] text-[#00d4aa]"
+                  : "border-transparent text-[#6a6a90] hover:text-[#4a4a6a]",
+              ].join(" ")}
+            >
+              {tab === "overview" ? (
+                <>
+                  <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                  Overview
+                </>
+              ) : (
+                <>
+                  <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                  Custom Dashboard
+                </>
+              )}
+            </button>
+          ))}
         </div>
-      ) : (
-        <>
-          {/* ── Platform tabs ─────────────────────────────────── */}
-          {/* Full-bleed: negative margin cancels the parent p-3/p-6/p-8, then we re-add px so tabs stay inset */}
-          <div className="relative mb-4 -mx-3 sm:-mx-6 lg:-mx-8">
-            {/* Scroll fade — right edge hint */}
-            <div className="pointer-events-none absolute right-0 top-0 z-10 h-full w-16 bg-linear-to-l from-[#fafafa] to-transparent" />
-            <div className="flex gap-2 border-b border-[#d4d4e8] overflow-x-auto scrollbar-none px-3 sm:px-6 lg:px-8">
-              {(["overview", ...availablePlatforms] as PlatformTab[]).map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setActiveSection(p)}
-                  className={`shrink-0 whitespace-nowrap pb-3 px-1 font-mono text-xs font-semibold uppercase tracking-widest transition-colors border-b-2 -mb-px ${
-                    activeSection === p
-                      ? "border-[#00d4aa] text-[#00d4aa]"
-                      : "border-transparent text-[#6a6a90] hover:text-[#4a4a6a]"
-                  }`}
-                >
-                  {PLATFORM_LABELS[p]}
-                </button>
-              ))}
-            </div>
-          </div>
+      </div>
 
-          {/* ── Controls (time range + view by) ──────────────── */}
+      {/* ── Overview tab ── */}
+      {activeTab === "overview" && (
+        <>
           <AnalyticsControls
             timeRange={timeRange} setTimeRange={(t) => { setTimeRange(t); setCustomRange(null); }}
             granularity={granularity} setGranularity={setGranularity}
             customRange={customRange} setCustomRange={setCustomRange}
-            snapshots={filteredSnapshots} activeSection={activeSection}
+            snapshots={filteredSnapshots} activeSection="overview"
           />
-
-          {/* ── Sections ──────────────────────────────────────── */}
           <DateRangeCtx.Provider value={{ from: cutoff, to: ceilDate }}>
-          {activeSection === "overview" && (
             <OverviewSection
               snapshots={filteredSnapshots}
               connectedPlatforms={connectedPlatforms}
@@ -5156,232 +5407,17 @@ export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots,
               granularity={granularity}
               currencies={currencies}
             />
-          )}
-          {activeSection === "stripe" && connectedPlatforms.includes("stripe") && (
-            snapshotsByPlatform.stripe.length > 0
-              ? (
-                <div className="space-y-6">
-                  <StripeSection snapshots={snapshotsByPlatform.stripe} granularity={granularity} currency={currencies["stripe"] ?? "USD"} />
-                  <ProductBreakdownSection snapshots={snapshotsByPlatform.stripe} currency={currencies["stripe"] ?? "USD"} />
-                  <CohortSection snapshots={snapshotsByPlatform.stripe} />
-                </div>
-              )
-              : <EmptySection platform="Stripe" />
-          )}
-          {activeSection === "ga4" && connectedPlatforms.includes("ga4") && (
-            snapshotsByPlatform.ga4.length > 0
-              ? <GA4Section snapshots={snapshotsByPlatform.ga4} granularity={granularity} />
-              : <EmptySection platform="Google Analytics" />
-          )}
-          {activeSection === "meta" && connectedPlatforms.includes("meta") && (
-            snapshotsByPlatform.meta.length > 0
-              ? <MetaSection snapshots={snapshotsByPlatform.meta} granularity={granularity} />
-              : <EmptySection platform="Meta Ads" />
-          )}
-          {activeSection === "paypal" && connectedPlatforms.includes("paypal") && (
-            snapshotsByPlatform.paypal.length > 0
-              ? <PayPalSection snapshots={snapshotsByPlatform.paypal} granularity={granularity} currency={currencies["paypal"] ?? "USD"} />
-              : <EmptySection platform="PayPal" />
-          )}
-          {activeSection === "paddle" && connectedPlatforms.includes("paddle") && (
-            snapshotsByPlatform.paddle.length > 0
-              ? <PaddleSection snapshots={snapshotsByPlatform.paddle} granularity={granularity} currency={currencies["paddle"] ?? "USD"} />
-              : <EmptySection platform="Paddle" />
-          )}
-          {activeSection === "lemon-squeezy" && connectedPlatforms.includes("lemon-squeezy") && (
-            snapshotsByPlatform["lemon-squeezy"].length > 0
-              ? <LemonSqueezySection snapshots={snapshotsByPlatform["lemon-squeezy"]} granularity={granularity} currency={currencies["lemon-squeezy"] ?? "USD"} />
-              : <EmptySection platform="Lemon Squeezy" />
-          )}
-          {activeSection === "gumroad" && connectedPlatforms.includes("gumroad") && (
-            snapshotsByPlatform.gumroad.length > 0
-              ? <GumroadSection snapshots={snapshotsByPlatform.gumroad} granularity={granularity} currency={currencies["gumroad"] ?? "USD"} />
-              : <EmptySection platform="Gumroad" />
-          )}
-          {activeSection === "plausible" && connectedPlatforms.includes("plausible") && (
-            snapshotsByPlatform.plausible.length > 0
-              ? <PlausibleSection snapshots={snapshotsByPlatform.plausible} granularity={granularity} />
-              : <EmptySection platform="Plausible" />
-          )}
-          {activeSection === "mixpanel" && connectedPlatforms.includes("mixpanel") && (
-            snapshotsByPlatform.mixpanel.length > 0
-              ? <MixpanelSection snapshots={snapshotsByPlatform.mixpanel} granularity={granularity} />
-              : <EmptySection platform="Mixpanel" />
-          )}
-          {activeSection === "amplitude" && connectedPlatforms.includes("amplitude") && (
-            snapshotsByPlatform.amplitude.length > 0
-              ? <AmplitudeSection snapshots={snapshotsByPlatform.amplitude} granularity={granularity} />
-              : <EmptySection platform="Amplitude" />
-          )}
-          {activeSection === "posthog" && connectedPlatforms.includes("posthog") && (
-            snapshotsByPlatform.posthog.length > 0
-              ? <PostHogSection snapshots={snapshotsByPlatform.posthog} granularity={granularity} />
-              : <EmptySection platform="PostHog" />
-          )}
-          {activeSection === "fathom" && connectedPlatforms.includes("fathom") && (
-            snapshotsByPlatform.fathom.length > 0
-              ? <FathomSection snapshots={snapshotsByPlatform.fathom} granularity={granularity} />
-              : <EmptySection platform="Fathom" />
-          )}
-          {activeSection === "google-ads" && connectedPlatforms.includes("google-ads") && (
-            snapshotsByPlatform["google-ads"].length > 0
-              ? <GoogleAdsSection snapshots={snapshotsByPlatform["google-ads"]} granularity={granularity} />
-              : <EmptySection platform="Google Ads" />
-          )}
-          {activeSection === "tiktok-ads" && connectedPlatforms.includes("tiktok-ads") && (
-            snapshotsByPlatform["tiktok-ads"].length > 0
-              ? <TikTokAdsSection snapshots={snapshotsByPlatform["tiktok-ads"]} granularity={granularity} />
-              : <EmptySection platform="TikTok Ads" />
-          )}
-          {activeSection === "twitter-ads" && connectedPlatforms.includes("twitter-ads") && (
-            snapshotsByPlatform["twitter-ads"].length > 0
-              ? <TwitterAdsSection snapshots={snapshotsByPlatform["twitter-ads"]} granularity={granularity} />
-              : <EmptySection platform="X (Twitter) Ads" />
-          )}
-          {activeSection === "linkedin-ads" && connectedPlatforms.includes("linkedin-ads") && (
-            snapshotsByPlatform["linkedin-ads"].length > 0
-              ? <LinkedInAdsSection snapshots={snapshotsByPlatform["linkedin-ads"]} granularity={granularity} />
-              : <EmptySection platform="LinkedIn Ads" />
-          )}
-          {activeSection === "snapchat-ads" && connectedPlatforms.includes("snapchat-ads") && (
-            snapshotsByPlatform["snapchat-ads"].length > 0
-              ? <SnapchatAdsSection snapshots={snapshotsByPlatform["snapchat-ads"]} granularity={granularity} />
-              : <EmptySection platform="Snapchat Ads" />
-          )}
-          {activeSection === "pinterest-ads" && connectedPlatforms.includes("pinterest-ads") && (
-            snapshotsByPlatform["pinterest-ads"].length > 0
-              ? <PinterestAdsSection snapshots={snapshotsByPlatform["pinterest-ads"]} granularity={granularity} />
-              : <EmptySection platform="Pinterest Ads" />
-          )}
-          {activeSection === "mailchimp" && connectedPlatforms.includes("mailchimp") && (
-            snapshotsByPlatform.mailchimp.length > 0
-              ? <MailchimpSection snapshots={snapshotsByPlatform.mailchimp} granularity={granularity} />
-              : <EmptySection platform="Mailchimp" />
-          )}
-          {activeSection === "klaviyo" && connectedPlatforms.includes("klaviyo") && (
-            snapshotsByPlatform.klaviyo.length > 0
-              ? <KlaviyoSection snapshots={snapshotsByPlatform.klaviyo} granularity={granularity} />
-              : <EmptySection platform="Klaviyo" />
-          )}
-          {activeSection === "convertkit" && connectedPlatforms.includes("convertkit") && (
-            snapshotsByPlatform.convertkit.length > 0
-              ? <ConvertKitSection snapshots={snapshotsByPlatform.convertkit} granularity={granularity} />
-              : <EmptySection platform="ConvertKit" />
-          )}
-          {activeSection === "activecampaign" && connectedPlatforms.includes("activecampaign") && (
-            snapshotsByPlatform.activecampaign.length > 0
-              ? <ActiveCampaignSection snapshots={snapshotsByPlatform.activecampaign} granularity={granularity} />
-              : <EmptySection platform="ActiveCampaign" />
-          )}
-          {activeSection === "brevo" && connectedPlatforms.includes("brevo") && (
-            snapshotsByPlatform.brevo.length > 0
-              ? <BrevoSection snapshots={snapshotsByPlatform.brevo} granularity={granularity} />
-              : <EmptySection platform="Brevo" />
-          )}
-          {activeSection === "beehiiv" && connectedPlatforms.includes("beehiiv") && (
-            snapshotsByPlatform.beehiiv.length > 0
-              ? <BeehiivSection snapshots={snapshotsByPlatform.beehiiv} granularity={granularity} />
-              : <EmptySection platform="Beehiiv" />
-          )}
-          {activeSection === "shopify" && connectedPlatforms.includes("shopify") && (
-            snapshotsByPlatform.shopify.length > 0
-              ? <ShopifySection snapshots={snapshotsByPlatform.shopify} granularity={granularity} currency={currencies["shopify"] ?? "USD"} />
-              : <EmptySection platform="Shopify" />
-          )}
-          {activeSection === "woocommerce" && connectedPlatforms.includes("woocommerce") && (
-            snapshotsByPlatform.woocommerce.length > 0
-              ? <WooCommerceSection snapshots={snapshotsByPlatform.woocommerce} granularity={granularity} currency={currencies["woocommerce"] ?? "USD"} />
-              : <EmptySection platform="WooCommerce" />
-          )}
-          {activeSection === "bigcommerce" && connectedPlatforms.includes("bigcommerce") && (
-            snapshotsByPlatform.bigcommerce.length > 0
-              ? <BigCommerceSection snapshots={snapshotsByPlatform.bigcommerce} granularity={granularity} currency={currencies["bigcommerce"] ?? "USD"} />
-              : <EmptySection platform="BigCommerce" />
-          )}
-          {activeSection === "amazon-seller" && connectedPlatforms.includes("amazon-seller") && (
-            snapshotsByPlatform["amazon-seller"].length > 0
-              ? <AmazonSellerSection snapshots={snapshotsByPlatform["amazon-seller"]} granularity={granularity} currency={currencies["amazon-seller"] ?? "USD"} />
-              : <EmptySection platform="Amazon Seller" />
-          )}
-          {activeSection === "etsy" && connectedPlatforms.includes("etsy") && (
-            snapshotsByPlatform.etsy.length > 0
-              ? <EtsySection snapshots={snapshotsByPlatform.etsy} granularity={granularity} currency={currencies["etsy"] ?? "USD"} />
-              : <EmptySection platform="Etsy" />
-          )}
-          {activeSection === "hubspot" && connectedPlatforms.includes("hubspot") && (
-            snapshotsByPlatform.hubspot.length > 0
-              ? <HubSpotSection snapshots={snapshotsByPlatform.hubspot} granularity={granularity} currency={currencies["hubspot"] ?? "USD"} />
-              : <EmptySection platform="HubSpot" />
-          )}
-          {activeSection === "salesforce" && connectedPlatforms.includes("salesforce") && (
-            snapshotsByPlatform.salesforce.length > 0
-              ? <SalesforceSection snapshots={snapshotsByPlatform.salesforce} granularity={granularity} currency={currencies["salesforce"] ?? "USD"} />
-              : <EmptySection platform="Salesforce" />
-          )}
-          {activeSection === "pipedrive" && connectedPlatforms.includes("pipedrive") && (
-            snapshotsByPlatform.pipedrive.length > 0
-              ? <PipedriveSection snapshots={snapshotsByPlatform.pipedrive} granularity={granularity} currency={currencies["pipedrive"] ?? "USD"} />
-              : <EmptySection platform="Pipedrive" />
-          )}
-          {activeSection === "notion" && connectedPlatforms.includes("notion") && (
-            snapshotsByPlatform.notion.length > 0
-              ? <NotionSection snapshots={snapshotsByPlatform.notion} granularity={granularity} />
-              : <EmptySection platform="Notion" />
-          )}
-          {activeSection === "intercom" && connectedPlatforms.includes("intercom") && (
-            snapshotsByPlatform.intercom.length > 0
-              ? <IntercomSection snapshots={snapshotsByPlatform.intercom} granularity={granularity} />
-              : <EmptySection platform="Intercom" />
-          )}
-          {activeSection === "zendesk" && connectedPlatforms.includes("zendesk") && (
-            snapshotsByPlatform.zendesk.length > 0
-              ? <ZendeskSection snapshots={snapshotsByPlatform.zendesk} granularity={granularity} />
-              : <EmptySection platform="Zendesk" />
-          )}
-          {activeSection === "freshdesk" && connectedPlatforms.includes("freshdesk") && (
-            snapshotsByPlatform.freshdesk.length > 0
-              ? <FreshdeskSection snapshots={snapshotsByPlatform.freshdesk} granularity={granularity} />
-              : <EmptySection platform="Freshdesk" />
-          )}
-          {activeSection === "segment" && connectedPlatforms.includes("segment") && (
-            snapshotsByPlatform.segment.length > 0
-              ? <SegmentSection snapshots={snapshotsByPlatform.segment} granularity={granularity} />
-              : <EmptySection platform="Segment" />
-          )}
-          {activeSection === "heap" && connectedPlatforms.includes("heap") && (
-            snapshotsByPlatform.heap.length > 0
-              ? <HeapSection snapshots={snapshotsByPlatform.heap} granularity={granularity} />
-              : <EmptySection platform="Heap" />
-          )}
-          {activeSection === "fullstory" && connectedPlatforms.includes("fullstory") && (
-            snapshotsByPlatform.fullstory.length > 0
-              ? <FullStorySection snapshots={snapshotsByPlatform.fullstory} granularity={granularity} />
-              : <EmptySection platform="FullStory" />
-          )}
-          {activeSection === "hotjar" && connectedPlatforms.includes("hotjar") && (
-            snapshotsByPlatform.hotjar.length > 0
-              ? <HotjarSection snapshots={snapshotsByPlatform.hotjar} granularity={granularity} />
-              : <EmptySection platform="Hotjar" />
-          )}
-          {activeSection === "instagram" && connectedPlatforms.includes("instagram") && (
-            snapshotsByPlatform.instagram.length > 0
-              ? <InstagramSection snapshots={snapshotsByPlatform.instagram} granularity={granularity} />
-              : <EmptySection platform="Instagram" />
-          )}
-          {activeSection === "youtube" && connectedPlatforms.includes("youtube") && (
-            snapshotsByPlatform.youtube.length > 0
-              ? <YouTubeSection snapshots={snapshotsByPlatform.youtube} granularity={granularity} />
-              : <EmptySection platform="YouTube" />
-          )}
-          {activeSection === "twitter-organic" && connectedPlatforms.includes("twitter-organic") && (
-            snapshotsByPlatform["twitter-organic"].length > 0
-              ? <TwitterOrganicSection snapshots={snapshotsByPlatform["twitter-organic"]} granularity={granularity} />
-              : <EmptySection platform="X (Twitter)" />
-          )}
           </DateRangeCtx.Provider>
         </>
+      )}
+
+      {/* ── Custom Dashboard tab ── */}
+      {activeTab === "custom" && (
+        <CustomDashboard
+          snapshots={snapshots}
+          connectedPlatforms={connectedPlatforms}
+        />
       )}
     </div>
   );
 }
-
