@@ -9,6 +9,8 @@ import {
 import type { Snapshot } from "./DashboardShell";
 import OverviewSection from "./OverviewSection";
 import CustomDashboard from "./CustomDashboard";
+import { DateRangeButton } from "./DateRangePicker";
+import type { DateRange as PickerDateRange } from "./DateRangePicker";
 import { REVENUE_PROVIDERS, ANALYTICS_PROVIDERS, ADS_PROVIDERS } from "@/lib/integrations/catalog";
 
 interface AnalyticsTabProps {
@@ -5227,6 +5229,17 @@ export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots,
   type MainTab = "overview" | "custom";
   const [activeTab, setActiveTab] = useState<MainTab>("overview");
 
+  // ── Overview date range (shared picker) ─────────────────────────────────
+  const [overviewRange, setOverviewRange] = useState<PickerDateRange>(() => {
+    if (typeof window === "undefined") return { from: daysAgoStr(30), to: new Date().toISOString().slice(0, 10) };
+    try {
+      const s = localStorage.getItem("analytics_overviewRange");
+      return s ? JSON.parse(s) as PickerDateRange : { from: daysAgoStr(30), to: new Date().toISOString().slice(0, 10) };
+    } catch { return { from: daysAgoStr(30), to: new Date().toISOString().slice(0, 10) }; }
+  });
+
+  useEffect(() => { localStorage.setItem("analytics_overviewRange", JSON.stringify(overviewRange)); }, [overviewRange]);
+
   // ── Persisted filter state ───────────────────────────────────────────────
   const [timeRange, setTimeRange] = useState<TimeRange>(() => {
     if (typeof window === "undefined") return "30d";
@@ -5393,15 +5406,14 @@ export default function AnalyticsTab({ isPremium, connectedPlatforms, snapshots,
       {/* ── Overview tab ── */}
       {activeTab === "overview" && (
         <>
-          <AnalyticsControls
-            timeRange={timeRange} setTimeRange={(t) => { setTimeRange(t); setCustomRange(null); }}
-            granularity={granularity} setGranularity={setGranularity}
-            customRange={customRange} setCustomRange={setCustomRange}
-            snapshots={filteredSnapshots} activeSection="overview"
-          />
-          <DateRangeCtx.Provider value={{ from: cutoff, to: ceilDate }}>
+          {/* Date range picker bar */}
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
+            <span className="font-mono text-[11px] font-semibold text-[#6a6a90] uppercase tracking-widest">Showing</span>
+            <DateRangeButton range={overviewRange} onChange={setOverviewRange} align="right" />
+          </div>
+          <DateRangeCtx.Provider value={{ from: overviewRange.from, to: overviewRange.to }}>
             <OverviewSection
-              snapshots={filteredSnapshots}
+              snapshots={snapshots.filter(s => s.date >= overviewRange.from && s.date <= overviewRange.to)}
               connectedPlatforms={connectedPlatforms}
               timeRange="all"
               granularity={granularity}

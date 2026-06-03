@@ -12,6 +12,8 @@ import type { CustomerRow } from "../page";
 import { DEMO_SNAPSHOTS, DEMO_CONNECTED_PLATFORMS } from "./demoData";
 import { DEFAULT_ALERTS, type AlertRules } from "./DataSourcesTab";
 import { LIVE_INTEGRATIONS, REVENUE_PROVIDERS, ANALYTICS_PROVIDERS, ADS_PROVIDERS } from "@/lib/integrations/catalog";
+import { DateRangeButton, daysAgo } from "./DateRangePicker";
+import type { DateRange } from "./DateRangePicker";
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -459,42 +461,36 @@ function GoalsWidget({
 
 // ── Revenue Over Time Chart ───────────────────────────────────────────────
 
-type RevRange = "7d" | "30d" | "90d";
-const REV_RANGES: { id: RevRange; label: string; days: number }[] = [
-  { id: "7d",  label: "7D",  days: 7  },
-  { id: "30d", label: "30D", days: 30 },
-  { id: "90d", label: "90D", days: 90 },
-];
-
 function RevenueOverTimeChart({ snapshots, connectedRevenueProviders, currency = "USD", onNavigate }: {
   snapshots: Snapshot[]; connectedRevenueProviders: string[]; currency?: string; onNavigate: (tab: Tab) => void;
 }) {
-  const [range, setRange] = useState<RevRange>("30d");
+  const [dateRange, setDateRange] = useState<DateRange>(() => ({ from: daysAgo(30), to: new Date().toISOString().slice(0, 10) }));
 
   const chartData = useMemo(() => {
-    const days = REV_RANGES.find((r) => r.id === range)!.days;
-    const cutoff = new Date(); cutoff.setUTCDate(cutoff.getUTCDate() - days);
-    const cutoffStr = cutoff.toISOString().slice(0, 10);
     const dayMap: Record<string, number> = {};
     for (const snap of snapshots) {
       if (!connectedRevenueProviders.includes(snap.provider)) continue;
-      if (snap.date < cutoffStr) continue;
+      if (snap.date < dateRange.from || snap.date > dateRange.to) continue;
       const d = snap.data as Record<string, number>;
       dayMap[snap.date] = (dayMap[snap.date] ?? 0) + (d.grossRevenue ?? d.revenue ?? 0);
     }
+    // Build a full contiguous series from → to
     const result: { date: string; label: string; revenue: number }[] = [];
-    for (let i = days - 1; i >= 0; i--) {
-      const d = new Date(); d.setUTCDate(d.getUTCDate() - i);
-      const key = d.toISOString().slice(0, 10);
-      const label = d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+    const cur = new Date(dateRange.from + "T12:00:00");
+    const end = new Date(dateRange.to   + "T12:00:00");
+    while (cur <= end) {
+      const key = cur.toISOString().slice(0, 10);
+      const label = cur.toLocaleDateString("en-US", { month: "short", day: "numeric" });
       result.push({ date: key, label, revenue: dayMap[key] ?? 0 });
+      cur.setDate(cur.getDate() + 1);
     }
     return result;
-  }, [snapshots, connectedRevenueProviders, range]);
+  }, [snapshots, connectedRevenueProviders, dateRange]);
 
   const total = chartData.reduce((a, d) => a + d.revenue, 0);
   const hasData = chartData.some((d) => d.revenue > 0);
-  const tickInterval = range === "7d" ? 0 : range === "30d" ? 4 : 13;
+  const days = Math.round((new Date(dateRange.to).getTime() - new Date(dateRange.from).getTime()) / 86_400_000) + 1;
+  const tickInterval = days <= 7 ? 0 : days <= 30 ? 4 : days <= 90 ? 13 : Math.floor(days / 12);
   const fmtTick = (v: number) => {
     const d = v / 100;
     if (d >= 1000) return new Intl.NumberFormat("en-US", { style: "currency", currency, notation: "compact", maximumFractionDigits: 0 }).format(d);
@@ -513,15 +509,7 @@ function RevenueOverTimeChart({ snapshots, connectedRevenueProviders, currency =
             </span>
           )}
         </div>
-        <div className="flex items-center gap-1">
-          <div className="flex rounded-lg border border-black/8 bg-black/4 p-0.5">
-            {REV_RANGES.map((r) => (
-              <button key={r.id} onClick={() => setRange(r.id)}
-                className={`rounded-md px-2.5 py-1 font-mono text-[10px] font-semibold transition-all ${range === r.id ? "bg-black/15 text-[#1a1a2e]" : "text-[#4a4a6a] hover:text-[#5a5a7a]"}`}
-              >{r.label}</button>
-            ))}
-          </div>
-        </div>
+        <DateRangeButton range={dateRange} onChange={setDateRange} align="right" />
       </div>
 
       {!hasData ? (

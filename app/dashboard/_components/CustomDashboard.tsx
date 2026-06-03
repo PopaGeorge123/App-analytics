@@ -7,9 +7,11 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 import type { Snapshot } from "./DashboardShell";
+import { DateRangeButton, PRESETS, today, daysAgo } from "./DateRangePicker";
+import type { DateRange } from "./DateRangePicker";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
-type ChartType = "area" | "bar" | "line" | "pie";
+type ChartType = "area" | "bar" | "line";
 type FieldType = "currency" | "number" | "percent";
 
 interface Widget {
@@ -21,48 +23,6 @@ interface Widget {
   color: string;
   width: 1 | 2;
 }
-
-interface DateRange {
-  from: string; // YYYY-MM-DD
-  to: string;
-}
-
-// ─── Constants ─────────────────────────────────────────────────────────────────
-function today(): string { return new Date().toISOString().slice(0, 10); }
-function daysAgo(n: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0, 10);
-}
-function startOfWeek(): string {
-  const now = new Date();
-  const day = now.getDay();
-  const mon = new Date(now);
-  mon.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
-  return mon.toISOString().slice(0, 10);
-}
-function startOfMonth(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
-}
-function startOfYear(): string {
-  return `${new Date().getFullYear()}-01-01`;
-}
-
-const PRESETS: { label: string; getRange: () => DateRange }[] = [
-  { label: "Today",           getRange: () => { const d = today(); return { from: d, to: d }; } },
-  { label: "Yesterday",       getRange: () => { const d = daysAgo(1); return { from: d, to: d }; } },
-  { label: "This week",       getRange: () => ({ from: startOfWeek(),  to: today() }) },
-  { label: "Last 7 days",     getRange: () => ({ from: daysAgo(7),    to: today() }) },
-  { label: "Last 14 days",    getRange: () => ({ from: daysAgo(14),   to: today() }) },
-  { label: "This month",      getRange: () => ({ from: startOfMonth(), to: today() }) },
-  { label: "Last 30 days",    getRange: () => ({ from: daysAgo(30),   to: today() }) },
-  { label: "Last 90 days",    getRange: () => ({ from: daysAgo(90),   to: today() }) },
-  { label: "Last quarter",    getRange: () => ({ from: daysAgo(91),   to: today() }) },
-  { label: "This year",       getRange: () => ({ from: startOfYear(),  to: today() }) },
-  { label: "Last 12 months",  getRange: () => ({ from: daysAgo(365),  to: today() }) },
-  { label: "All time",        getRange: () => ({ from: "2000-01-01",   to: today() }) },
-];
 
 const PLATFORM_LABELS: Record<string, string> = {
   shopify: "Shopify", woocommerce: "WooCommerce", bigcommerce: "BigCommerce",
@@ -178,257 +138,7 @@ function extractSeries(
     .map(([date, vals]) => ({ date, value: vals.reduce((a, b) => a + b, 0) }));
 }
 
-// ─── Mini Calendar ─────────────────────────────────────────────────────────────
-const WEEKDAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
-const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
-interface MiniCalendarProps {
-  rangeFrom: string | null;
-  rangeTo: string | null;
-  selecting: "from" | "to";
-  hovered: string | null;
-  onSetHovered: (d: string | null) => void;
-  onSelectDate: (d: string) => void;
-}
-
-function MiniCalendar({ rangeFrom, rangeTo, selecting, hovered, onSetHovered, onSelectDate }: MiniCalendarProps) {
-  const [viewYear, setViewYear]   = useState(() => new Date().getFullYear());
-  const [viewMonth, setViewMonth] = useState(() => new Date().getMonth());
-
-  function prevMonth() {
-    if (viewMonth === 0) { setViewYear(y => y - 1); setViewMonth(11); }
-    else setViewMonth(m => m - 1);
-  }
-  function nextMonth() {
-    if (viewMonth === 11) { setViewYear(y => y + 1); setViewMonth(0); }
-    else setViewMonth(m => m + 1);
-  }
-
-  const firstDayOfWeek = new Date(viewYear, viewMonth, 1).getDay(); // 0=Sun
-  const daysInMonth    = new Date(viewYear, viewMonth + 1, 0).getDate();
-  const startOffset    = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1; // Monday-first
-
-  const cells: (string | null)[] = [];
-  for (let i = 0; i < startOffset; i++) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) {
-    cells.push(`${viewYear}-${String(viewMonth + 1).padStart(2,"0")}-${String(d).padStart(2,"0")}`);
-  }
-  while (cells.length % 7 !== 0) cells.push(null);
-
-  const todayStr = today();
-
-  function isInRange(d: string) {
-    const lo = rangeFrom;
-    const hi = selecting === "to" ? (hovered ?? rangeTo) : rangeTo;
-    if (!lo || !hi) return false;
-    const [a, b] = lo <= hi ? [lo, hi] : [hi, lo];
-    return d > a && d < b;
-  }
-
-  return (
-    <div className="w-64">
-      <div className="flex items-center justify-between mb-3">
-        <button
-          onClick={prevMonth}
-          className="flex h-6 w-6 items-center justify-center rounded-lg text-[#6a6a90] hover:bg-[#f2f2f8] transition-colors"
-        >
-          <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path d="M15 18l-6-6 6-6"/></svg>
-        </button>
-        <span className="font-mono text-[11px] font-bold text-[#1a1a2e]">
-          {MONTH_NAMES[viewMonth]} {viewYear}
-        </span>
-        <button
-          onClick={nextMonth}
-          className="flex h-6 w-6 items-center justify-center rounded-lg text-[#6a6a90] hover:bg-[#f2f2f8] transition-colors"
-        >
-          <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path d="M9 18l6-6-6-6"/></svg>
-        </button>
-      </div>
-      {/* Day headers */}
-      <div className="grid grid-cols-7 mb-1">
-        {WEEKDAYS.map(d => (
-          <div key={d} className="text-center font-mono text-[8px] font-semibold text-[#9a9ab8] py-0.5">{d}</div>
-        ))}
-      </div>
-      {/* Cells */}
-      <div className="grid grid-cols-7 gap-y-0.5">
-        {cells.map((d, i) => {
-          if (!d) return <div key={`e-${i}`} />;
-          const isFuture   = d > todayStr;
-          const isFrom     = d === rangeFrom;
-          const isTo       = d === (selecting === "to" ? (hovered ?? rangeTo) : rangeTo);
-          const inRange    = isInRange(d);
-          const isT        = d === todayStr;
-          return (
-            <button
-              key={d}
-              disabled={isFuture}
-              onMouseEnter={() => !isFuture && onSetHovered(d)}
-              onMouseLeave={() => onSetHovered(null)}
-              onClick={() => !isFuture && onSelectDate(d)}
-              className={[
-                "relative h-7 w-full rounded-lg font-mono text-[10px] transition-colors",
-                isFuture ? "opacity-20 cursor-default" : "cursor-pointer",
-                isFrom || isTo ? "bg-[#00d4aa] text-white font-bold" : "",
-                inRange && !isFrom && !isTo ? "bg-[#00d4aa]/15 text-[#1a1a2e] rounded-none" : "",
-                !isFrom && !isTo && !inRange ? "hover:bg-[#f2f2f8] text-[#1a1a2e]" : "",
-                isT && !isFrom && !isTo ? "font-bold text-[#00d4aa]" : "",
-              ].join(" ")}
-            >
-              {parseInt(d.split("-")[2])}
-              {isT && !isFrom && !isTo && (
-                <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 h-0.5 w-2 rounded-full bg-[#00d4aa]" />
-              )}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// ─── Date Range Picker Button ──────────────────────────────────────────────────
-function DateRangeButton({ range, onChange }: { range: DateRange; onChange: (r: DateRange) => void }) {
-  const [open, setOpen]       = useState(false);
-  const [tempFrom, setTempFrom] = useState<string | null>(null);
-  const [selecting, setSelecting] = useState<"from" | "to">("from");
-  const [hovered, setHovered] = useState<string | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  // Close on outside click
-  useEffect(() => {
-    function handler(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
-  function applyPreset(p: typeof PRESETS[0]) {
-    onChange(p.getRange());
-    setOpen(false);
-    setTempFrom(null);
-    setSelecting("from");
-  }
-
-  function handleDateSelect(d: string) {
-    if (selecting === "from") {
-      setTempFrom(d);
-      setSelecting("to");
-    } else {
-      if (!tempFrom) return;
-      const from = d < tempFrom ? d : tempFrom;
-      const to   = d < tempFrom ? tempFrom : d;
-      onChange({ from, to });
-      setOpen(false);
-      setTempFrom(null);
-      setSelecting("from");
-    }
-  }
-
-  function fmtLabel(d: string) {
-    return new Date(d + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-  }
-
-  const isPresetActive = (p: typeof PRESETS[0]) => {
-    const r = p.getRange();
-    return r.from === range.from && r.to === range.to;
-  };
-
-  const displayLabel =
-    range.from === "2000-01-01" ? "All time" :
-    range.from === range.to ? fmtLabel(range.from) :
-    `${fmtLabel(range.from)} – ${fmtLabel(range.to)}`;
-
-  return (
-    <div ref={containerRef} className="relative">
-      <button
-        onClick={() => setOpen(o => !o)}
-        className={[
-          "flex items-center gap-2 rounded-xl border px-4 py-2.5 font-mono text-xs font-semibold transition-all",
-          open
-            ? "border-[#00d4aa]/60 bg-white text-[#00d4aa] shadow-md"
-            : "border-[#d4d4e8] bg-[#f2f2f8] text-[#4a4a6a] hover:border-[#00d4aa]/40 hover:bg-white hover:text-[#1a1a2e]",
-        ].join(" ")}
-      >
-        {/* Calendar icon */}
-        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-          <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-        </svg>
-        <span>{displayLabel}</span>
-        <svg width="9" height="9" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} className={`transition-transform duration-150 ${open ? "rotate-180" : ""}`}>
-          <path d="M6 9l6 6 6-6"/>
-        </svg>
-      </button>
-
-      {open && (
-        <div
-          className="absolute left-0 top-[calc(100%+8px)] z-50 flex overflow-hidden rounded-2xl border border-[#d4d4e8] bg-white shadow-2xl shadow-black/10"
-          style={{ minWidth: 520 }}
-        >
-          {/* Preset list */}
-          <div className="w-44 flex-shrink-0 border-r border-[#ebebf5] bg-[#fafafa] p-3">
-            <p className="px-2 mb-2 font-mono text-[8px] font-semibold uppercase tracking-widest text-[#b0b0c8]">Quick select</p>
-            <div className="space-y-0.5">
-              {PRESETS.map(p => (
-                <button
-                  key={p.label}
-                  onClick={() => applyPreset(p)}
-                  className={[
-                    "w-full text-left rounded-lg px-2.5 py-1.5 font-mono text-[10px] transition-colors",
-                    isPresetActive(p)
-                      ? "bg-[#00d4aa]/12 text-[#00d4aa] font-semibold"
-                      : "text-[#4a4a6a] hover:bg-[#ececf4]",
-                  ].join(" ")}
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Calendar */}
-          <div className="flex-1 p-5">
-            {/* Instruction */}
-            <p className="mb-3 font-mono text-[9px] font-semibold uppercase tracking-widest text-[#9a9ab8]">
-              {selecting === "from" ? "Select start date" : (
-                <>Select end date <span className="text-[#00d4aa] normal-case">from: {tempFrom ? fmtLabel(tempFrom) : ""}</span></>
-              )}
-            </p>
-
-            <MiniCalendar
-              rangeFrom={tempFrom ?? range.from}
-              rangeTo={range.to}
-              selecting={selecting}
-              hovered={hovered}
-              onSetHovered={setHovered}
-              onSelectDate={handleDateSelect}
-            />
-
-            {/* Selected range footer */}
-            <div className="mt-4 flex items-center justify-between border-t border-[#ebebf5] pt-3">
-              <div className="flex items-center gap-2 font-mono text-[10px]">
-                <span className="rounded-md bg-[#f2f2f8] px-2 py-1 text-[#1a1a2e] font-semibold">{fmtLabel(range.from)}</span>
-                <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="#9a9ab8" strokeWidth={2}><path d="M5 12h14m-7-7l7 7-7 7"/></svg>
-                <span className="rounded-md bg-[#f2f2f8] px-2 py-1 text-[#1a1a2e] font-semibold">{fmtLabel(range.to)}</span>
-              </div>
-              {selecting === "to" && tempFrom && (
-                <button
-                  onClick={() => { setTempFrom(null); setSelecting("from"); }}
-                  className="font-mono text-[9px] text-[#9a9ab8] hover:text-[#f87171] transition-colors"
-                >
-                  Reset
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ─── Widget Config Panel ────────────────────────────────────────────────────────
 function ConfigPanel({ widget, connectedPlatforms, onUpdate, onClose }: {
@@ -512,9 +222,12 @@ function ConfigPanel({ widget, connectedPlatforms, onUpdate, onClose }: {
           {/* Chart type */}
           <div>
             <label className="mb-1.5 block font-mono text-[9px] font-semibold uppercase tracking-widest text-[#6a6a90]">Chart type</label>
-            <div className="grid grid-cols-4 gap-2">
-              {(["area", "bar", "line", "pie"] as ChartType[]).map(t => {
-                const icon = t === "area" ? "〜" : t === "bar" ? "▬" : t === "line" ? "∕" : "◍";
+            <div className="grid grid-cols-3 gap-2">
+              {(["area", "bar", "line"] as ChartType[]).map(t => {
+                const icon = t === "area" ? 
+                  (<svg className="w-5" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M0.5 14.5H0V15H0.5V14.5ZM2 11.5V12H3V11.5H2ZM15 2.5V2H14V2.5H15ZM0 0V14.5H1V0H0ZM0.5 15H15V14H0.5V15ZM3 11.5C3 10.0456 3.24378 8.6201 3.70691 7.57807C4.17757 6.51908 4.79814 6 5.5 6V5C4.20186 5 3.32243 5.98092 2.79309 7.17193C2.25622 8.3799 2 9.95441 2 11.5H3ZM5.5 6C5.82076 6 6.14191 6.15761 6.50461 6.4924C6.87081 6.83043 7.21786 7.29048 7.6 7.8C7.96786 8.29048 8.37081 8.83043 8.81711 9.2424C9.26691 9.65761 9.82076 10 10.5 10V9C10.1792 9 9.85809 8.84239 9.49539 8.5076C9.12919 8.16957 8.78214 7.70952 8.4 7.2C8.03214 6.70952 7.62919 6.16957 7.18289 5.7576C6.73309 5.34239 6.17924 5 5.5 5V6ZM10.5 10C11.7232 10 12.8626 9.23726 13.6727 7.9545C14.4853 6.66802 15 4.8191 15 2.5H14C14 4.6809 13.5147 6.33198 12.8273 7.4205C12.1374 8.51274 11.2768 9 10.5 9V10Z" fill="#000000"></path> </g></svg>) : t === "bar" ? 
+                  (<svg className="w-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M8 13V17M16 11V17M12 7V17M7.8 21H16.2C17.8802 21 18.7202 21 19.362 20.673C19.9265 20.3854 20.3854 19.9265 20.673 19.362C21 18.7202 21 17.8802 21 16.2V7.8C21 6.11984 21 5.27976 20.673 4.63803C20.3854 4.07354 19.9265 3.6146 19.362 3.32698C18.7202 3 17.8802 3 16.2 3H7.8C6.11984 3 5.27976 3 4.63803 3.32698C4.07354 3.6146 3.6146 4.07354 3.32698 4.63803C3 5.27976 3 6.11984 3 7.8V16.2C3 17.8802 3 18.7202 3.32698 19.362C3.6146 19.9265 4.07354 20.3854 4.63803 20.673C5.27976 21 6.11984 21 7.8 21Z" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g></svg>) 
+                  : t === "line" ? (<svg className="w-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M3 16.5L9 10L13 16L21 6.5" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g></svg>) : "◍";
                 return (
                   <button
                     key={t}
@@ -549,7 +262,7 @@ function ConfigPanel({ widget, connectedPlatforms, onUpdate, onClose }: {
                       : "border-[#d4d4e8] text-[#6a6a90] hover:border-[#c4c4d8]",
                   ].join(" ")}
                 >
-                  {w === 1 ? "½ Half width" : "⬛ Full width"}
+                  {w === 1 ? "Half width" : "Full width"}
                 </button>
               ))}
             </div>
@@ -653,25 +366,7 @@ function WidgetChart({ data, chartType, color, fieldDef }: {
     );
   }
 
-  if (chartType === "pie") {
-    const slices    = chartData.slice(-8);
-    const pieColors = [color, ...COLOR_PALETTE.filter(c => c !== color)];
-    return (
-      <ResponsiveContainer width="100%" height={220}>
-        <PieChart>
-          <Pie
-            data={slices} dataKey="value" nameKey="name"
-            cx="50%" cy="50%" outerRadius="72%"
-            label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
-            labelLine={false}
-          >
-            {slices.map((_, i) => <Cell key={i} fill={pieColors[i % pieColors.length]} />)}
-          </Pie>
-          <Tooltip formatter={(v) => [fmt(Number(v ?? 0)), ""]} content={CustomTooltip} />
-        </PieChart>
-      </ResponsiveContainer>
-    );
-  }
+  
 
   if (chartType === "bar") {
     return (
@@ -980,6 +675,40 @@ export default function CustomDashboard({ snapshots, connectedPlatforms }: {
   const editingWidget = editingId ? widgets.find(w => w.id === editingId) ?? null : null;
   const supportedPlatforms = connectedPlatforms.filter(p => PLATFORM_FIELDS[p]?.length);
 
+  // Adaugă un ref care ține minte dacă widget-ul curent e "nou"
+const isNewWidgetRef = useRef(false);
+
+function addWidget() {
+  const platform = connectedPlatforms.find(p => PLATFORM_FIELDS[p]?.length) ?? connectedPlatforms[0] ?? "";
+  const fields   = PLATFORM_FIELDS[platform] ?? [];
+  const newW: Widget = {
+    id: `w-${Date.now()}`,
+    title: `${PLATFORM_LABELS[platform] ?? platform} — ${fields[0]?.label ?? "Metric"}`,
+    chartType: "area",
+    platform,
+    field: fields[0]?.key ?? "revenue",
+    color: COLOR_PALETTE[widgets.length % COLOR_PALETTE.length],
+    width: 1,
+  };
+  setWidgets(ws => [...ws, newW]);
+  isNewWidgetRef.current = true; // <-- marchează ca nou
+  setEditingId(newW.id);
+}
+
+function handleClosePanel() {
+  // Dacă era widget nou și s-a dat cancel, șterge-l
+  if (isNewWidgetRef.current && editingId) {
+    removeWidget(editingId);
+  }
+  isNewWidgetRef.current = false;
+  setEditingId(null);
+}
+
+function handleUpdateWidget(updated: Widget) {
+  updateWidget(updated);
+  isNewWidgetRef.current = false; // s-a salvat, nu mai e "nou"
+}
+
   if (supportedPlatforms.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#d4d4e8] py-16 text-center">
@@ -1064,7 +793,7 @@ export default function CustomDashboard({ snapshots, connectedPlatforms }: {
                 widget={w}
                 snapshots={snapshots}
                 dateRange={dateRange}
-                onEdit={() => setEditingId(w.id)}
+                onEdit={() => { isNewWidgetRef.current = false; setEditingId(w.id); }}
                 onRemove={() => removeWidget(w.id)}
                 onDragStart={e => handleDragStart(e, i)}
                 onDragOver={e => handleDragOver(e, i)}
@@ -1081,8 +810,8 @@ export default function CustomDashboard({ snapshots, connectedPlatforms }: {
         <ConfigPanel
           widget={editingWidget}
           connectedPlatforms={supportedPlatforms}
-          onUpdate={updateWidget}
-          onClose={() => setEditingId(null)}
+          onUpdate={handleUpdateWidget}
+          onClose={handleClosePanel}
         />
       )}
     </div>
