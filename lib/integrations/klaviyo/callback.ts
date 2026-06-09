@@ -33,6 +33,18 @@ export async function handleKlaviyoOAuthCallback(
     },
     { onConflict: "user_id,platform" },
   );
+
+  //add the klaviyo node to reactflow_nodes table
+  const { error: nodeError } = await supabase.from("reactflow_nodes").insert({
+    user_id: userId,
+    node_type: "integration",
+    data: {
+      platform: "klaviyo",
+    },
+  });
+
+  if (nodeError) throw new Error(`Failed to save Klaviyo node: ${nodeError.message}`);
+
   triggerRemoteBackfill(userId, "klaviyo");
 }
 

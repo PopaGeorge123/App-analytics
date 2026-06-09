@@ -370,22 +370,22 @@ export function DashboardMockup() {
 // FAQ section (accordion items need client state)
 // ─────────────────────────────────────────────────────────────────────────────
 const FAQ_ITEMS = [
-  { 
-    q: "Can't I just build a dashboard myself with API calls?", 
-    a: "Absolutely — the dashboard part takes 5-10 hours with OAuth. But here's what took us 6 months: (1) AI that watches metrics 24/7 and alerts you to revenue anomalies before you lose $5K, (2) Website audit engine that ranks conversion fixes by $$ impact, (3) True ad attribution linking Stripe revenue to Meta/Google campaigns (platforms lie about ROAS), (4) AI growth playbooks tailored to YOUR data. You're paying for the analyst, not the dashboard." 
-  },
-  { 
-    q: "Why is this better than just using Google Analytics + Stripe dashboard?", 
-    a: "GA4 and Stripe show you data. Fold tells you what's WRONG and how to fix it. Example: GA4 says bounce rate is 68%. Fold says 'your pricing page CTA is unclear, here's how to fix it, worth $2,400/mo in lost conversions.' That's the difference between a dashboard and an AI analyst." 
-  },
+  // { 
+  //   q: "Can't I just build a dashboard myself with API calls?", 
+  //   a: "Absolutely — the dashboard part takes 5-10 hours with OAuth. But here's what took us 6 months: (1) AI that watches metrics 24/7 and alerts you to revenue anomalies before you lose $5K, (2) Website audit engine that ranks conversion fixes by $$ impact, (3) True ad attribution linking Stripe revenue to Meta/Google campaigns (platforms lie about ROAS), (4) AI growth playbooks tailored to YOUR data. You're paying for the analyst, not the dashboard." 
+  // },
+  // { 
+  //   q: "Why is this better than just using Google Analytics + Stripe dashboard?", 
+  //   a: "GA4 and Stripe show you data. Fold tells you what's WRONG and how to fix it. Example: GA4 says bounce rate is 68%. Fold says 'your pricing page CTA is unclear, here's how to fix it, worth $2,400/mo in lost conversions.' That's the difference between a dashboard and an AI analyst." 
+  // },
   { q: "Is my financial data safe?", a: "Yes. Fold connects via official OAuth. We never see or store your Stripe secret key, Google password, Meta credentials, or any other platform password. All data is transmitted over TLS 1.3 and stored encrypted at rest. We use read-only access; we cannot move money or modify your accounts." },
-  { q: "What integrations do you support?", a: "Fold has 11 live integrations today: Stripe, Google Analytics 4, Meta Ads, Lemon Squeezy, Gumroad, Paddle, Plausible, Mailchimp, Klaviyo, Beehiiv, Shopify, and WooCommerce. More are being added continuously." },
-  { q: "How is Fold different from Stripe Dashboard or GA4?", a: "Stripe Dashboard shows Stripe data. GA4 shows website data. Meta Ads Manager shows ad data. Shopify shows store data. None of them talk to each other. Fold connects all your tools, normalises them into one unified timeline, calculates cross-platform metrics like ROAS and CAC, and adds AI that explains what it all means in plain English." },
+  //{ q: "What integrations do you support?", a: "Fold has 11 live integrations today: Stripe, Google Analytics 4, Meta Ads, Lemon Squeezy, Gumroad, Paddle, Plausible, Mailchimp, Klaviyo, Beehiiv, Shopify, and WooCommerce. More are being added continuously." },
+  //{ q: "How is Fold different from Stripe Dashboard or GA4?", a: "Stripe Dashboard shows Stripe data. GA4 shows website data. Meta Ads Manager shows ad data. Shopify shows store data. None of them talk to each other. Fold connects all your tools, normalises them into one unified timeline, calculates cross-platform metrics like ROAS and CAC, and adds AI that explains what it all means in plain English." },
   { q: "Do I need to know how to code?", a: "No. Setup is a few OAuth clicks, one for each integration. There are no API keys, no webhooks to configure, and no developer required. If you can log in to Stripe or Shopify, you can set up Fold." },
   { q: "Is there a free plan?", a: "There's no ongoing free tier. The full dashboard requires Premium. However, you can create a free account and get 7 days of full access completely free. No card required at any point during the trial. Upgrade to $19/month when you're ready." },
   { q: "How much does Premium cost?", a: "Premium is $19/month with no annual lock-in, cancel any time. New accounts get a 7-day free trial with full access to all premium features. No credit card required to start. Just sign up and you're in." },
   { q: "Can I cancel my subscription at any time?", a: "Yes. Cancel with one click from your account settings. You keep access until the end of your billing period. No questions, no retention loops." },
-  { q: "How often does my data update?", a: "Fold syncs your connected integrations automatically every day. The overview dashboard reflects yesterday's numbers by default. You can also trigger a manual sync at any time from the Data Sources tab." },
+  { q: "How often does my data update?", a: "Fold syncs your connected integrations automatically every day. The overview dashboard reflects yesterday's numbers by default. You can also trigger a manual sync at any time." },
 ];
 
 function FaqItem({ q, a }: { q: string; a: string }) {

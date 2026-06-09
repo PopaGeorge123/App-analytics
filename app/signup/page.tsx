@@ -35,7 +35,7 @@ function LiveUserBadge() {
       .then((r) => r.json())
       .then((d) => {
         if (typeof d.count === "number" && d.count > 0) {
-          setLabel(`${d.count}+ founders`);
+          setLabel(`${d.count}+ shop owners`);
         }
       })
       .catch(() => {});
@@ -201,8 +201,8 @@ export default function SignupPage() {
         {/* Above-card hook */}
         <div className="mb-5 text-center">
           <h1 className="font-mono text-2xl font-bold leading-snug text-[#1a1a2e]">
-            Your whole business,<br />
-            <span className="text-[#00d4aa]">understood in seconds.</span>
+            Fix your conversion funnel,<br />
+            <span className="text-[#00d4aa]"> in seconds.</span>
           </h1>
         </div>
 
@@ -366,7 +366,7 @@ export default function SignupPage() {
             </button>
 
             {/* Legal consent */}
-            <p className="text-center font-mono text-[10px] leading-relaxed text-[#cecece]">
+            <p className="text-center font-mono text-[10px] leading-relaxed text-[#636363]">
               By creating an account you agree to our{" "}
               <Link href="/terms" className="text-[#58588a] underline underline-offset-2 hover:text-[#6a6a90]">Terms of Service</Link>
               {" "}and{" "}

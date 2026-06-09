@@ -77,6 +77,18 @@ export async function handleMetaCallback(
     { onConflict: "user_id,platform" }
   );
 
+  //add the meta node to reactflow_nodes table
+  const { error: nodeError } = await db.from("reactflow_nodes").insert({
+    user_id: userId,
+    node_type: "integration",
+    data: {
+      platform: "meta",
+      accountId,
+      currency,
+    },
+  });
+  if (nodeError) throw new Error(`Failed to save Meta node: ${nodeError.message}`);
+
   // Trigger remote backfill — pass newAccountId so the daemon clears stale data
   // if the account changed. All data population happens on the remote sync server.
   triggerRemoteBackfill(userId, "meta", existing?.account_id !== accountId ? accountId : undefined);

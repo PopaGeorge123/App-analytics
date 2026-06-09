@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Integration } from "@/lib/integrations/catalog";
 
-const POPULAR_IDS = new Set(["stripe", "ga4", "shopify", "mailchimp"]);
+const POPULAR_IDS = new Set(["shopify"]);
 
 // ── Privacy data per integration ──────────────────────────────────────────────
 // Addresses the Reddit comment: "what gets sent, what gets stored, who has access"
@@ -18,406 +18,69 @@ interface PrivacyInfo {
 }
 
 const PRIVACY: Record<string, PrivacyInfo> = {
-  stripe: {
-    reads: [
-      "Total revenue per day (sum of succeeded PaymentIntents)",
-      "New customer count per day (unique customer IDs only)",
-      "Transaction count per day",
-      "Refund totals",
-    ],
-    stores: [
-      "Daily revenue snapshot (aggregate number only)",
-      "New customer count (number, not identities)",
-      "Currency code",
-    ],
-    never: [
-      "Card numbers, CVVs or bank details",
-      "Customer names, emails or addresses",
-      "Individual transaction IDs",
-      "Subscription details or billing schedules",
-    ],
-    docsUrl: "https://stripe.com/docs/security",
-  },
-  ga4: {
-    reads: [
-      "Session count per day",
-      "Total & new user counts",
-      "Bounce rate & average session duration",
-      "Conversion event totals",
-    ],
-    stores: [
-      "Daily aggregated traffic metrics (counts only)",
-    ],
-    never: [
-      "Individual user identifiers or User IDs",
-      "IP addresses",
-      "Raw event streams or page-level data",
-      "Traffic source or referrer breakdown",
-      "Cookie data",
-    ],
-    docsUrl: "https://support.google.com/analytics/answer/6004245",
-  },
-  meta: {
-    reads: [
-      "Total ad spend per day (account level)",
-      "Impressions & reach (aggregate)",
-      "Clicks",
-      "Purchase conversions (count only)",
-    ],
-    stores: [
-      "Daily spend & performance snapshot",
-      "Currency code",
-    ],
-    never: [
-      "Audience demographics or personal data",
-      "Custom audience lists",
-      "Pixel data or retargeting data",
-      "Individual ad account billing info",
-      "ROAS (not calculated — divide spend/revenue yourself)",
-    ],
-    docsUrl: "https://www.facebook.com/privacy/policy",
-  },
-  "lemon-squeezy": {
-    reads: [
-      "Total revenue & order counts per day",
-      "Refund totals",
-    ],
-    stores: [
-      "Daily revenue snapshots",
-    ],
-    never: [
-      "Customer personal information",
-      "Payment method details",
-      "Your API key (stored encrypted, never logged)",
-    ],
-    docsUrl: "https://www.lemonsqueezy.com/privacy",
-  },
-  gumroad: {
-    reads: [
-      "Total sales revenue per day",
-      "Product sale counts",
-      "Refund amounts",
-    ],
-    stores: [
-      "Daily revenue snapshots (aggregate totals only)",
-    ],
-    never: [
-      "Customer names or emails",
-      "Payment details",
-      "Individual purchase records",
-    ],
-    docsUrl: "https://gumroad.com/privacy",
-  },
-  paddle: {
-    reads: [
-      "Total revenue aggregates",
-      "New order counts",
-      "Refund totals",
-    ],
-    stores: [
-      "Daily revenue snapshots",
-      "Currency code",
-    ],
-    never: [
-      "Customer billing addresses",
-      "VAT / tax IDs",
-      "Individual customer records",
-      "Your API key (stored encrypted)",
-    ],
-    docsUrl: "https://www.paddle.com/legal/privacy",
-  },
-  plausible: {
-    reads: [
-      "Total pageviews per day",
-      "Unique visitor count",
-      "Bounce rate",
-      "Average visit duration",
-    ],
-    stores: [
-      "Daily traffic metric snapshot (4 numbers per day)",
-    ],
-    never: [
-      "Individual visitor data (Plausible itself doesn't collect this)",
-      "Top pages or referrer breakdown",
-      "Traffic sources",
-      "Cookies or user tracking identifiers",
-      "Your site content",
-    ],
-    docsUrl: "https://plausible.io/privacy",
-  },
-  mailchimp: {
-    reads: [
-      "Emails sent, opens & clicks per campaign (aggregate)",
-      "New subscribers & unsubscribes per list per day",
-    ],
-    stores: [
-      "Daily campaign performance snapshot",
-      "Daily subscriber growth counts",
-    ],
-    never: [
-      "Individual subscriber emails or names",
-      "Subscriber tags or merge fields",
-      "Email content or templates",
-      "Your audience list data",
-    ],
-    docsUrl: "https://mailchimp.com/legal/privacy/",
-  },
-  klaviyo: {
-    reads: [
-      "Emails sent, opens & clicks per day (aggregate event counts)",
-      "Placed Order revenue attributed to Klaviyo events",
-    ],
-    stores: [
-      "Daily email engagement snapshot",
-      "Daily attributed revenue total",
-    ],
-    never: [
-      "Individual subscriber profiles or emails",
-      "Customer purchase history",
-      "Segment membership data",
-      "Flow or automation configurations",
-    ],
-    docsUrl: "https://www.klaviyo.com/legal/privacy-notice",
-  },
-  posthog: {
-    reads: [
-      "Total pageview event count per day",
-      "Distinct person count (unique visitors)",
-      "Session count per day",
-    ],
-    stores: [
-      "Daily aggregated snapshot (3 numbers: pageviews, unique users, sessions)",
-    ],
-    never: [
-      "Individual user identifiers or Person IDs",
-      "Feature flag configurations",
-      "Raw event streams or custom event properties",
-      "Session recordings",
-      "A/B test results or experiment data",
-    ],
-    docsUrl: "https://posthog.com/privacy",
-  },
-  beehiiv: {
-    reads: [
-      "Total active subscriber count",
-      "Total premium subscriber count",
-      "New subscribers created on a given day",
-      "Posts published on a given day (count only)",
-    ],
-    stores: [
-      "Daily newsletter snapshot (subscriber counts, posts published)",
-    ],
-    never: [
-      "Individual subscriber emails or names",
-      "Email content",
-      "Payment details of paid subscribers",
-      "Open rate (not fetched from the API)",
-    ],
-    docsUrl: "https://www.beehiiv.com/privacy",
-  },
   shopify: {
     reads: [
-      "Total orders & revenue per day",
-      "Refund count per day",
-      "Unique customer IDs per day (count only)",
+      "Orders per day — gross & net revenue, AOV, refunds, discounts, shipping & tax",
+      "New vs. returning customer counts",
+      "Abandoned checkouts & cart-abandonment rate",
+      "Fulfillment time (order → first shipment)",
+      "Top products by revenue & units sold",
+      "Top countries by revenue & sales-channel breakdown",
+      "Inventory levels (low-stock & out-of-stock alerts)",
+      "Customer contact details (name, email, phone, city/country) for the Customers tab",
     ],
     stores: [
-      "Daily revenue & order snapshot",
-      "New customer count (number, not identities)",
+      "Daily snapshot: gross & net revenue, refunds, discounts, shipping, tax, orders, AOV, new/returning customers, cart-abandonment rate, avg. fulfillment time, top products, top countries, channel breakdown & low-stock alerts",
+      "Product records: name, revenue & units sold",
+      "Customer records: name, email, phone, city/country, lifetime spend, order count, recent orders (with line items), marketing consent & tags — in your Fold account only",
     ],
     never: [
-      "Customer addresses",
-      "Credit card or payment details",
-      "Individual order line items",
-      "Inventory or supplier data",
+      "Credit-card numbers or payment-method details",
+      "Your Shopify admin password (the access token is stored encrypted and never logged)",
     ],
     docsUrl: "https://www.shopify.com/legal/privacy",
-  },
-  woocommerce: {
-    reads: [
-      "Total orders & revenue per day",
-      "Refund count per day",
-      "Customer billing email & name (for LTV tracking in the Customers tab)",
-    ],
-    stores: [
-      "Daily revenue & order snapshot",
-      "Customer records: email, name, lifetime spend (in your Fold account only)",
-    ],
-    never: [
-      "Credit card or payment method details",
-      "WordPress admin credentials",
-      "Individual order line items or product details",
-      "Shipping addresses",
-    ],
-    docsUrl: "https://automattic.com/privacy/",
-  },
-  hubspot: {
-    reads: [
-      "Deals closed (won) per day — count & revenue amount",
-      "Active pipeline value (open deals, aggregate)",
-      "New contacts created per day (count only)",
-    ],
-    stores: [
-      "Daily CRM snapshot: deals won, closed revenue, pipeline value, new contacts",
-    ],
-    never: [
-      "Individual contact names, emails or phone numbers",
-      "Deal notes or activity history",
-      "Company or association data",
-      "Your HubSpot access token is stored encrypted and never logged",
-    ],
-    docsUrl: "https://legal.hubspot.com/privacy-policy",
   },
 };
 
 // ── Dashboard preview metrics per integration ──────────────────────────────
+// Shopify-only — every metric below maps to a field synced into `daily_snapshots.data`
+// by syncShopifyDay() in cronscript/sync-all.mjs.
 const PREVIEW_METRICS: Record<string, { label: string; value: string; trend?: string }[]> = {
-  stripe: [
-    { label: "GMV (30d)", value: "$42,840", trend: "↑ +18% this month" },
-    { label: "Orders", value: "491", trend: "↑ +64 vs last month" },
-    { label: "Avg order value", value: "$87.40", trend: "↑ +$9" },
-    { label: "Refund rate", value: "2.8%" },
-  ],
-  ga4: [
-    { label: "Sessions (7d)", value: "3,240", trend: "↑ +8%" },
-    { label: "Unique visitors", value: "1,890" },
-    { label: "Bounce rate", value: "42%", trend: "↓ -3%" },
-    { label: "Avg session", value: "2m 34s" },
-  ],
   shopify: [
     { label: "GMV (7d)", value: "$6,120", trend: "↑ +15%" },
     { label: "Orders", value: "84" },
     { label: "Avg order value", value: "$72.86" },
     { label: "Refund rate", value: "1.9%" },
-  ],
-  mailchimp: [
-    { label: "Subscribers", value: "2,840", trend: "↑ +120 this week" },
-    { label: "Open rate", value: "28.4%" },
-    { label: "Click rate", value: "4.2%" },
-    { label: "Unsubscribes (7d)", value: "12" },
-  ],
-  meta: [
-    { label: "Ad spend (7d)", value: "$840", trend: "Budget on track" },
-    { label: "ROAS", value: "2.4×", trend: "↑ vs last week" },
-    { label: "CPC", value: "$0.68" },
-    { label: "Purchases", value: "34" },
-  ],
-  plausible: [
-    { label: "Pageviews (7d)", value: "12,400", trend: "↑ +18%" },
-    { label: "Unique visitors", value: "3,820" },
-    { label: "Bounce rate", value: "39%" },
-    { label: "Avg duration", value: "1m 52s" },
-  ],
-  posthog: [
-    { label: "Pageviews (7d)", value: "9,840", trend: "↑ +6%" },
-    { label: "Unique users", value: "2,140" },
-    { label: "Sessions (7d)", value: "3,680" },
-    { label: "Avg session", value: "3m 12s" },
-  ],
-  klaviyo: [
-    { label: "Emails sent (7d)", value: "18,400" },
-    { label: "Open rate", value: "31.2%" },
-    { label: "Attributed rev.", value: "$2,840", trend: "↑ +12%" },
-    { label: "New subscribers", value: "142" },
-  ],
-  brevo: [
-    { label: "Emails sent (7d)", value: "14,200" },
-    { label: "Open rate", value: "29.8%" },
-    { label: "Click rate", value: "5.1%" },
-    { label: "New subscribers", value: "98" },
-  ],
-  hubspot: [
-    { label: "Deals won (30d)", value: "14", trend: "↑ +3 vs last month" },
-    { label: "Closed revenue", value: "$42,000" },
-    { label: "Pipeline value", value: "$128,000" },
-    { label: "New contacts (7d)", value: "38" },
-  ],
-  woocommerce: [
-    { label: "GMV (7d)", value: "$3,840", trend: "↑ +11%" },
-    { label: "Orders", value: "56" },
-    { label: "Avg order value", value: "$68.57" },
-    { label: "Refund rate", value: "2.1%" },
-  ],
-  bigcommerce: [
-    { label: "GMV (7d)", value: "$5,240", trend: "↑ +9%" },
-    { label: "Orders", value: "72" },
-    { label: "Avg order value", value: "$72.78" },
-    { label: "Cart abandonment", value: "68%" },
-  ],
-  amazon: [
-    { label: "Revenue (7d)", value: "$8,120", trend: "↑ +14%" },
-    { label: "Units sold", value: "184" },
-    { label: "Buy Box %", value: "94%" },
-    { label: "Return rate", value: "3.2%" },
-  ],
-  etsy: [
-    { label: "Revenue (30d)", value: "$2,410" },
-    { label: "Orders", value: "88" },
-    { label: "Avg order value", value: "$27.39" },
-    { label: "5-star reviews", value: "76" },
+    { label: "New customers", value: "61" },
+    { label: "Cart abandonment", value: "64%" },
   ],
 };
 
 const DEFAULT_PREVIEW_METRICS = [
-  { label: "GMV (30d)", value: "$8,240", trend: "↑ +11% this month" },
-  { label: "Active customers", value: "1,840" },
-  { label: "Conversion", value: "3.2%", trend: "↑ +0.4%" },
-  { label: "Refund rate", value: "2.1%" },
+  { label: "GMV (7d)", value: "$6,120", trend: "↑ +15%" },
+  { label: "Orders", value: "84" },
+  { label: "Avg order value", value: "$72.86" },
+  { label: "Refund rate", value: "1.9%" },
 ];
 
 
-const API_KEY_PLATFORMS: Record<string, { fields: { name: string; label: string; placeholder: string; type?: string; optional?: boolean }[] }> = {
-  plausible: {
-    fields: [
-      { name: "apiKey", label: "API Key", placeholder: "Your Plausible API key" },
-      { name: "siteId", label: "Site Hostname", placeholder: "yourdomain.com" },
-    ],
-  },
-  posthog: {
-    fields: [
-      { name: "apiKey", label: "Personal API Key", placeholder: "phx_…" },
-      { name: "projectId", label: "Project ID ", placeholder: "123456" },
-    ],
-  },
-};
+// Shopify connects via OAuth after the store-domain prompt (see PARAM_REQUIRED),
+// so there are no API-key platforms in this onboarding flow.
+const API_KEY_PLATFORMS: Record<string, { fields: { name: string; label: string; placeholder: string; type?: string; optional?: boolean }[] }> = {};
 
 // Platforms that need an extra param (shop domain) before OAuth redirect
 const PARAM_REQUIRED: Record<string, { param: string; label: string; placeholder: string }> = {
   shopify: { param: "shop", label: "Store domain", placeholder: "yourstore.myshopify.com" },
 };
 
-// Category display order
+// Category display order — Shopify only (matches the catalog category id)
 const CATEGORY_ORDER = [
-  "Payments & Revenue",
-  "Web Analytics",
-  "Advertising",
-  "Email & Marketing",
-  "E-commerce",
+  "E-commerce Stores",
 ];
 
 // SVG icons per category (inline, no emoji)
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
-  "Payments & Revenue": (
-    <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
-    </svg>
-  ),
-  "Web Analytics": (
-    <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
-    </svg>
-  ),
-  "Advertising": (
-    <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 110-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.962.584 1.892.985 2.783.247.55.06 1.21-.463 1.511l-.657.38c-.551.318-1.26.117-1.527-.461a20.845 20.845 0 01-1.44-4.282m3.102.069a18.03 18.03 0 01-.59-4.59c0-1.586.205-3.124.59-4.59m0 9.18a23.848 23.848 0 018.835 2.535M10.34 6.66a23.847 23.847 0 008.835-2.535m0 0A23.74 23.74 0 0018.795 3m.38 1.125a23.91 23.91 0 011.014 5.395m-1.014 8.855c-.118.38-.245.754-.38 1.125m.38-1.125a23.91 23.91 0 001.014-5.395m0-3.46c.495.413.811 1.035.811 1.73 0 .695-.316 1.317-.811 1.73m0-3.46a24.347 24.347 0 010 3.46" />
-    </svg>
-  ),
-  "Email & Marketing": (
-    <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
-    </svg>
-  ),
-  "E-commerce": (
+  "E-commerce Stores": (
     <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
     </svg>
@@ -436,8 +99,12 @@ interface OnboardingFlowProps {
 export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError, hideHeader = false }: OnboardingFlowProps) {
   const router = useRouter();
 
-  // Auto-select Stripe (or first available) so the connect CTA is visible on load
-  const defaultIntegration = liveIntegrations.find((i) => i.id === "stripe") ?? liveIntegrations[0] ?? null;
+  // Shopify is the only supported integration in this flow — ignore anything else
+  // that might be passed in so the page never offers a connection we don't sync.
+  const shopifyIntegrations = liveIntegrations.filter((i) => i.id === "shopify");
+
+  // Auto-select Shopify so the connect CTA is visible on load
+  const defaultIntegration = shopifyIntegrations[0] ?? null;
 
   const [selected, setSelected] = useState<Integration | null>(defaultIntegration);
   const [apiKeyFields, setApiKeyFields] = useState<Record<string, string>>({});
@@ -460,6 +127,20 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
     }
     return () => { document.body.style.overflow = ""; };
   }, [sheetOpen]);
+
+  useEffect(() => {
+    //get the store url of user
+    async function fetchStoreUrl() {
+      try {
+        const res = await fetch("/api/onboarding/profile");
+        const data = await res.json();
+        setShopDomain(data.storeUrl || "");
+      } catch (error) {
+        console.error("Error fetching store URL:", error);
+      }
+    }
+    fetchStoreUrl();
+  }, []);
 
   // Set a short-lived cookie so the middleware lets the user through to /dashboard
   // even if they have 0 integrations (explicit skip — expires after 24 hours)
@@ -487,7 +168,7 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
   // Group integrations by category
   const grouped = CATEGORY_ORDER.map((cat) => ({
     category: cat,
-    integrations: liveIntegrations.filter((i) => i.category === cat),
+    integrations: shopifyIntegrations.filter((i) => i.category === cat),
   })).filter((g) => g.integrations.length > 0);
 
   const isApiKey = selected ? !!API_KEY_PLATFORMS[selected.id] : false;
@@ -628,23 +309,23 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
         <div className="mb-6 text-center">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#00d4aa]/20 bg-[#00d4aa]/5 px-3 py-1.5">
             <span className="h-1.5 w-1.5 rounded-full bg-[#00d4aa] animate-pulse" />
-            <span className="font-mono text-[10px] text-[#00d4aa]/80">142 founders connected Stripe this week</span>
+            <span className="font-mono text-[10px] text-[#00d4aa]/80">142 founders connected Shopify this week</span>
           </div>
           <h1 className="mb-2 font-mono text-2xl font-bold text-[#1a1a2e] sm:text-3xl">
-            See your business in 30 seconds
+            Find your store bottlenecks in 30 seconds
           </h1>
           <p className="mx-auto max-w-lg text-sm text-[#6070a0] leading-relaxed">
-            Connect one integration and your dashboard fills up instantly — add the rest later from Settings.
+            Connect Shopify and your store data will be analyzed instantly.
           </p>
         </div>
 
         {/* ── Quick-start strip ─────────────────────────────────────────── */}
-        <div className="mb-7">
+        {/* <div className="mb-7">
           <p className="mb-2.5 font-mono text-[10px] font-semibold uppercase tracking-widest text-[#7878a8]">
             Most popular starting points
           </p>
           <div className="flex flex-wrap gap-2">
-            {liveIntegrations.filter((i) => POPULAR_IDS.has(i.id)).map((integration) => {
+            {shopifyIntegrations.filter((i) => POPULAR_IDS.has(i.id)).map((integration) => {
               const isSelected = selected?.id === integration.id;
               return (
                 <button
@@ -668,10 +349,10 @@ export default function OnboardingFlow({ liveIntegrations, userEmail, oauthError
             })}
             <span className="flex items-center px-1 font-mono text-[10px] text-[#6868a0]">or pick any below ↓</span>
           </div>
-        </div>
+        </div> */}
 
         {/* ── Two-column layout ─────────────────────────────────────────── */}
-        <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
+        <div className="grid gap-6 lg:grid-cols-[1fr_480px]">
 
           {/* LEFT — integration grid */}
           <div className="space-y-7">

@@ -70,7 +70,7 @@ function LoginForm() {
         {/* Logo */}
         <div className="mb-10 text-center w-full flex items-center justify-center">
           <Link href="/">
-            <img src="/fold-primary-light.svg" alt="Fold Logo" className="mx-auto h-12 w-auto" />
+            <img src="/fold-mono-teal.svg" alt="Fold Logo" className="mx-auto h-12 w-auto" />
           </Link>
         </div>
 
@@ -198,7 +198,7 @@ function LoginForm() {
             </button>
 
             {/* Legal consent */}
-            <p className="text-center font-mono text-[10px] leading-relaxed text-[#cecece]">
+            <p className="text-center font-mono text-[10px] leading-relaxed text-[#5e5e5e]">
               By signing in you agree to our{" "}
               <Link href="/terms" className="text-[#58588a] underline underline-offset-2 hover:text-[#6a6a90]">Terms of Service</Link>
               {" "}and{" "}

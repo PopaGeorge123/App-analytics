@@ -80,7 +80,19 @@ export async function handleShopifyConnect(
     { onConflict: "user_id,platform" }
   );
 
+  //add the shopify node to reactflow_nodes table
+  const { error: nodeError } = await supabase.from("reactflow_nodes").insert({
+    user_id: userId,
+    node_type: "integration",
+    data: {
+      platform: "shopify",
+      accountId: domain,
+      currency,
+    },
+  });
+
   if (dbError) throw new Error(`Failed to save Shopify integration: ${dbError.message}`);
+  if (nodeError) throw new Error(`Failed to save Shopify node: ${nodeError.message}`);
 
   await triggerRemoteBackfill(userId, "shopify");
 }

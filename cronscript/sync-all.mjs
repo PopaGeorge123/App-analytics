@@ -2921,10 +2921,10 @@ async function syncShopifyDay(userId, storeDomain, accessToken, date) {
   const avgFulfillmentHours = fhData?.count > 0 ? fhData.sum / fhData.count : null;
   delete productRevMap['__fulfillment_hours'];
 
-  // Top 10 products by revenue
+  // Top 20 products by revenue
   const topProductsByRevenue = Object.values(productRevMap)
     .sort((a, b) => b.revenue - a.revenue)
-    .slice(0, 10)
+    .slice(0, 20)
     .map(p => ({ name: p.name, productId: p.productId, revenue: p.revenue, units: p.units }));
 
   // Top 5 countries by revenue

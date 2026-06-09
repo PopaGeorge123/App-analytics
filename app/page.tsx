@@ -89,11 +89,10 @@ function PricingCard({
   highlight?: boolean;
 }) {
   return (
-    <div className={`relative flex flex-col rounded-2xl p-8 transition-all ${
-      highlight
-        ? "ring-1 ring-[#00d4aa]/30 bg-white shadow-[0_2px_20px_rgba(0,212,170,0.10)]"
-        : "bg-white shadow-[0_1px_4px_rgba(0,0,0,0.05)] ring-1 ring-black/[0.04]"
-    }`}>
+    <div className={`relative flex flex-col rounded-2xl p-8 transition-all ${highlight
+      ? "ring-1 ring-[#00d4aa]/30 bg-white shadow-[0_2px_20px_rgba(0,212,170,0.10)]"
+      : "bg-white shadow-[0_1px_4px_rgba(0,0,0,0.05)] ring-1 ring-black/[0.04]"
+      }`}>
       {highlight && (
         <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-[#00d4aa] px-4 py-1 font-mono text-[9px] font-semibold uppercase tracking-widest text-white shadow-[0_2px_8px_rgba(0,212,170,0.4)]">
           Most Popular
@@ -238,9 +237,9 @@ export default async function Home() {
 
   // Badge / accent color per variant
   const badgePalette: Record<typeof hero.badgeColor, { border: string; bg: string; dot: string; text: string }> = {
-    red:    { border: "#f87171", bg: "#f8717114", dot: "#f87171", text: "#f87171" },
-    amber:  { border: "#f59e0b", bg: "#f59e0b14", dot: "#f59e0b", text: "#f59e0b" },
-    teal:   { border: "#00d4aa", bg: "#00d4aa14", dot: "#00d4aa", text: "#00d4aa" },
+    red: { border: "#f87171", bg: "#f8717114", dot: "#f87171", text: "#f87171" },
+    amber: { border: "#f59e0b", bg: "#f59e0b14", dot: "#f59e0b", text: "#f59e0b" },
+    teal: { border: "#00d4aa", bg: "#00d4aa14", dot: "#00d4aa", text: "#00d4aa" },
     violet: { border: "#a78bfa", bg: "#a78bfa14", dot: "#a78bfa", text: "#a78bfa" },
     orange: { border: "#fb923c", bg: "#fb923c14", dot: "#fb923c", text: "#fb923c" },
   };
@@ -261,15 +260,6 @@ export default async function Home() {
           <div data-ab-variant={hero.variant} className="hidden" aria-hidden="true" />
           <div className="grid gap-16 lg:grid-cols-2 lg:items-center">
             <div>
-              <div
-                className="mb-6 inline-flex items-center gap-2 rounded-full border px-3 py-1.5"
-                style={{ borderColor: `${palette.border}40`, backgroundColor: palette.bg }}
-              >
-                <span className="h-1.5 w-1.5 rounded-full animate-pulse" style={{ backgroundColor: palette.dot }} />
-                <span className="font-mono text-[10px] font-semibold uppercase tracking-widest" style={{ color: palette.text }}>
-                  {hero.badge}
-                </span>
-              </div>
 
               <h1 className="mb-6 font-mono text-[1.75rem] leading-snug font-bold tracking-tight text-[#1a1a2e] sm:text-4xl lg:text-[3.4rem] lg:leading-tight">
                 {hero.headline}
@@ -305,7 +295,6 @@ export default async function Home() {
                   { icon: "✓", text: "Free 7-day trial" },
                   { icon: "✓", text: "No card required" },
                   { icon: "✓", text: "Live in 90 seconds" },
-                  { icon: "✓", text: "Read-only — we never touch your data" },
                 ].map((pill) => (
                   <span key={pill.text} className="inline-flex items-center gap-1.5 px-1 font-mono text-[10px] font-semibold text-[#6a6a90]">
                     <span className="text-[#00d4aa]">{pill.icon}</span>
@@ -329,16 +318,28 @@ export default async function Home() {
           <div className="grid gap-4 sm:grid-cols-3">
             {[
               {
-                bad: "Revenue dropped Monday — you found out Wednesday, after shipping 200 more units",
-                good: "Fold flags the drop within hours. With the exact campaign or product causing it.",
+                bad: "Your store gets traffic every day. Sales don't.",
+                good: "Know exactly where customers abandon and what to fix first.",
               },
               {
-                bad: "Your Meta spend went up 40% last week but revenue didn't follow",
-                good: "Fold shows true ROAS per campaign — and flags unprofitable spend before it compounds.",
+                bad: "You're staring at Shopify analytics trying to guess the problem.",
+                good: "AI translates customer behavior into clear, actionable recommendations.",
               },
               {
-                bad: "Return rate spiked to 22% on one product — silently eating your margin",
-                good: "Fold correlates returns to products and alerts you before you reorder inventory.",
+                bad: "1,000 visitors. Zero purchases. No explanation.",
+                good: "See the biggest conversion blockers ranked by estimated revenue impact.",
+              },
+              {
+                bad: "You watch session recordings one by one hoping to find clues.",
+                good: "AI reviews thousands of sessions and surfaces recurring patterns automatically.",
+              },
+              {
+                bad: "Every optimization feels like a shot in the dark.",
+                good: "Prioritized fixes tell you exactly what to test next.",
+              },
+              {
+                bad: "More traffic just means more lost customers.",
+                good: "Turn existing visitors into buyers before spending another dollar on ads.",
               },
             ].map((item) => (
               <div key={item.bad} className="rounded-2xl bg-white shadow-[0_1px_3px_rgba(0,0,0,0.05)] p-5 space-y-3">
@@ -362,9 +363,9 @@ export default async function Home() {
           <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
             {[
               { label: "Live integrations", value: <AnimatedCounter target={LIVE_INTEGRATIONS.length} />, color: "#00d4aa" },
-              { label: "Founders using Fold", value: <LiveUserCount  />, color: "#00d4aa" },
+              { label: "Founders using Fold", value: <LiveUserCount />, color: "#00d4aa" },
               { label: "Avg. time to first insight", value: "< 2 min", color: "#00d4aa" },
-              { label: "Revenue leaks found", value: "Daily", color: "#f87171" },
+              { label: "Revenue leaks found", value: "Daily", color: "#f87171" }, //
             ].map((s, i) => (
               <div key={i} className="text-center">
                 <p className="font-mono text-3xl font-bold" style={{ color: s.color }}>{s.value}</p>
@@ -386,12 +387,23 @@ export default async function Home() {
             </p>
           </div>
           <div className="mx-auto max-w-2xl">
-            <Step n={1} title="Connect your tools in 90 seconds"
-              description="Link Shopify, Meta Ads, GA4, Klaviyo, Google Ads and 30+ more. No code, no CSV exports, no engineers. OAuth only, read-only access — nothing is ever written to your accounts." />
-            <Step n={2} title="Fold surfaces what's actually wrong"
-              description="One unified view across all your data. Revenue anomalies, dead stock alerts, unprofitable ad campaigns, and email attribution are flagged automatically — with context, not just raw numbers." />
-            <Step n={3} title="AI tells you exactly what to fix — and what to scale"
-              description="Daily digest every morning: best-selling product yesterday, which campaign generated real revenue, and any anomaly detected. Fix-lists ranked by $ impact so you always work on the highest-leverage problem first." />
+            <Step
+              n={1}
+              title="Connect your data sources"
+              description="Link Shopify, WooCommerce, Meta Ads, GA4, PostHog, Klaviyo, Mailchimp, and Stripe in minutes. Secure OAuth connections with read-only access."
+            />
+
+            <Step
+              n={2}
+              title="Unify revenue, marketing, and customer data"
+              description="Fold automatically combines store, advertising, analytics, subscription, and lifecycle marketing data into a single source of truth."
+            />
+
+            <Step
+              n={3}
+              title="Turn insights into action"
+              description="AI identifies revenue opportunities, wasted ad spend, retention risks, and performance anomalies, then recommends the highest-impact actions to take next."
+            />
           </div>
 
           {/* Platform OAuth trust strip — live integrations only */}
@@ -536,8 +548,8 @@ export default async function Home() {
                 </div>
                 <div className="md:w-56 shrink-0 space-y-2">
                   {[{ n: "Stripe", c: "#6366f1", bars: [40, 55, 48, 70, 65, 80, 88] },
-                    { n: "GA4", c: "#f59e0b", bars: [30, 45, 42, 58, 52, 68, 76] },
-                    { n: "Meta", c: "#f87171", bars: [20, 30, 25, 38, 32, 28, 35] }].map((pl) => (
+                  { n: "GA4", c: "#f59e0b", bars: [30, 45, 42, 58, 52, 68, 76] },
+                  { n: "Meta", c: "#f87171", bars: [20, 30, 25, 38, 32, 28, 35] }].map((pl) => (
                     <div key={pl.n} className="rounded-xl bg-[#f5f5fb] p-3">
                       <div className="flex justify-between mb-1.5">
                         <span className="font-mono text-[9px] uppercase tracking-widest" style={{ color: pl.c }}>{pl.n}</span>
@@ -656,7 +668,7 @@ export default async function Home() {
             <h3 className="mb-6 text-center font-mono text-xl font-bold">
               What you'd pay separately
             </h3>
-            
+
             <div className="grid gap-4 sm:grid-cols-2 mb-6">
               <div className="rounded-xl bg-white/5 p-4">
                 <div className="mb-2 flex items-center justify-between">
@@ -665,7 +677,7 @@ export default async function Home() {
                 </div>
                 <p className="text-xs text-[#8585aa]">Shopify attribution only — no GA4, no email, no anomaly alerts</p>
               </div>
-              
+
               <div className="rounded-xl bg-white/5 p-4">
                 <div className="mb-2 flex items-center justify-between">
                   <span className="font-mono text-sm text-[#bcbcd8]">Meta Ads agency</span>
@@ -673,7 +685,7 @@ export default async function Home() {
                 </div>
                 <p className="text-xs text-[#8585aa]">To manage campaigns and tell you which ones are actually profitable</p>
               </div>
-              
+
               <div className="rounded-xl bg-white/5 p-4">
                 <div className="mb-2 flex items-center justify-between">
                   <span className="font-mono text-sm text-[#bcbcd8]">Klaviyo + GA4 analyst</span>
@@ -681,7 +693,7 @@ export default async function Home() {
                 </div>
                 <p className="text-xs text-[#8585aa]">To correlate email campaigns with actual revenue and LTV</p>
               </div>
-              
+
               <div className="rounded-xl bg-white/5 p-4">
                 <div className="mb-2 flex items-center justify-between">
                   <span className="font-mono text-sm text-[#bcbcd8]">Your time checking dashboards</span>
@@ -819,25 +831,34 @@ export default async function Home() {
             {/* Text */}
             <div className="flex-1 space-y-5">
               <div>
-                <p className="mb-2 font-mono text-[10px] font-semibold uppercase tracking-widest text-[#00d4aa]">Why I built Fold</p>
+                <p className="mb-2 font-mono text-[10px] font-semibold uppercase tracking-widest text-[#00d4aa]">
+                  Why I built Fold
+                </p>
                 <h2 className="font-mono text-2xl font-bold text-[#1a1a2e] sm:text-3xl leading-snug">
-                  Built by a store owner,<br className="hidden sm:block" /> for store owners.
+                  Built by an ecommerce operator,<br className="hidden sm:block" />
+                  for ecommerce operators.
                 </h2>
               </div>
 
               <p className="text-[#4a4a6a] leading-relaxed">
-                I ran a Shopify store and every week I'd open five tabs — Shopify, Meta Ads, Google Analytics, Klaviyo, Stripe — just to piece together what actually happened. It took 40 minutes and I still wasn't confident I had the full picture.
+                Running an online business means data is everywhere. Thousands of visitors browse your store but only a few convert. Made a lot of changes to the store but no real conversion lift.
               </p>
+
               <p className="text-[#4a4a6a] leading-relaxed">
-                Fold is the dashboard I wish existed. Every metric that matters — ad spend, true ROAS, email revenue, product performance — in one place, with a plain-English briefing that tells you <em className="text-[#1a1a2e] not-italic font-medium">why</em> things moved and exactly what to fix. No analyst needed.
+                I built Fold to solve that problem. Connect your store, marketing,
+                analytics, email, and payment data in one place, then let AI surface the
+                insights that matter most. Instead of digging through dashboards, you get a
+                clear understanding of what's working, what's underperforming, and where
+                the biggest opportunities are.
               </p>
 
               {/* Credibility bar */}
+
               <div className="flex flex-wrap gap-3 pt-1">
                 {[
                   { label: "Bootstrapped" },
-                  { label: "No VC pressure" },
-                  { label: "Built in public" }
+                  { label: "Founder-led" },
+                  { label: "Built with merchants" }
                 ].map(({ label }) => (
                   <span
                     key={label}
@@ -850,11 +871,15 @@ export default async function Home() {
 
               <p className="font-mono text-sm text-[#58588a] pt-1">
                 Questions? I personally reply to every email —{" "}
-                <a href="mailto:info@usefold.io" className="text-[#00d4aa] hover:underline underline-offset-2">
+                <a
+                  href="mailto:info@usefold.io"
+                  className="text-[#00d4aa] hover:underline underline-offset-2"
+                >
                   info@usefold.io
                 </a>
               </p>
             </div>
+
           </div>
         </div>
       </section>
@@ -894,7 +919,7 @@ export default async function Home() {
             <span className="text-[#00d4aa]">Start knowing.</span>
           </h2>
           <p className="mb-10 text-lg text-[#4a4a6a] max-w-lg mx-auto">
-            Connect your live integrations in minutes. Get a unified dashboard, AI-generated daily insights, and anomaly alerts, all your data, all in one place.
+            Connect your live integrations in minutes. Get a unified dashboard, AI-generated proven funnel fixes, and anomaly alerts, all your data, all in one place.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <a href="/signup" className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-8 py-4 font-mono text-sm font-bold uppercase tracking-wider text-[#fafafa] transition-all hover:bg-[#00bfa0] hover:shadow-[0_0_40px_rgba(0,212,170,0.35)]">
@@ -916,7 +941,7 @@ export default async function Home() {
             <div>
               <img src="/fold-primary-light.svg" alt="Fold" className="h-9 w-auto mb-3" />
               <p className="text-sm text-[#6a6a90] leading-relaxed max-w-xs">
-                AI-powered analytics for Shopify and e-commerce stores. Know what&apos;s selling, what&apos;s burning budget, and what to fix — every morning.
+                AI-powered analytics for Shopify and e-commerce stores. Know what&apos;s selling, what&apos;s burning budget, and what to fix.
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 <IntegrationPill name="Stripe" color="#6366f1" />
@@ -941,6 +966,7 @@ export default async function Home() {
                 {[{ l: "Privacy Policy", h: "/privacy" }, { l: "Terms of Service", h: "/terms" }].map((item) => (
                   <li key={item.l}><a href={item.h} className="text-sm text-[#6a6a90] hover:text-[#1a1a2e] transition-colors">{item.l}</a></li>
                 ))}
+
               </ul>
             </div>
           </div>

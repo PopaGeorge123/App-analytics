@@ -57,18 +57,18 @@ export async function POST(req: NextRequest) {
   }
 
   // Ask Claude to extract business context
-  const prompt = `You are analyzing a business website to extract key information that will help an AI analytics assistant understand what the business does.
+  const prompt = `You are analyzing a business store to extract key information that will help an AI analytics assistant understand what the business does.
 
-Website URL: ${url}
+Store URL: ${url}
 
 ${pageText ? `Page content (extracted text):\n${pageText}` : "Could not fetch page content — use the URL domain and structure to infer."}
 
 Extract the following and respond ONLY with valid JSON (no markdown, no explanation):
 {
   "businessName": "Company name (from the page or domain)",
-  "description": "2-3 sentence description of what this business does, who their customers are, and what problem they solve. Write in second person (e.g. 'Your business...'). Keep it concise and factual.",
-  "industry": "One of: SaaS, E-commerce, Agency, Media & Content, Marketplace, Consumer App, Fintech, Healthcare, Education, Other",
-  "keywords": ["3-5 relevant keywords about the business"]
+  "description": "2-3 sentence description of what this business sells, who their customers are, and what problem they solve. Write in second person (e.g. 'Your store...'). Keep it concise and factual.",
+  "industry": "One of: Health and Wellness , Beauty and Cosmetics , Pet Supplies, Home and Kitchen, Apparel and Fashion Accessories, Gadgets and Technology Accessories, Gaming and Electronics, Hobbies and Crafts, Baby and Maternity Products, Other",
+  "keywords": ["3-5 relevant keywords about the store"]
 }`;
 
   try {

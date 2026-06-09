@@ -173,10 +173,10 @@ function Step1({
             </svg>
           </div>
           <h1 className="mb-3 text-2xl font-semibold tracking-tight text-[#464646]">
-            Start with your website
+            Start with your Store
           </h1>
           <p className="text-[15px] leading-relaxed text-[#8888b0]">
-            Paste your URL and our AI will read your site in seconds — extracting your business name, what you do, and your industry.
+            Paste your URL and our AI will read your site in seconds extracting your store name, what you sell, and your niche.
           </p>
 
           <div className="mt-10 space-y-5">
@@ -212,7 +212,7 @@ function Step1({
           {/* URL card */}
           <div className="rounded-2xl border border-[#d0d0ec] bg-[#f4f4fc] p-6">
             <label className="mb-3 block text-[11px] font-semibold uppercase tracking-widest text-[#7878a8]">
-              Website URL
+              Store URL
             </label>
             <div className="flex gap-2.5">
               <div className="relative flex-1">
@@ -227,7 +227,7 @@ function Step1({
                   onChange={(e) => { setUrl(e.target.value); setExtracted(false); setExtractError(""); }}
                   onKeyDown={(e) => e.key === "Enter" && !extracting && handleExtract()}
                   placeholder="https://yourwebsite.com"
-                  className="w-full rounded-xl border border-[#c8c8ec] bg-[#f2f2fc] pl-10 pr-4 py-3 text-sm text-[#6d6d6d] placeholder-[#54547a] outline-none transition focus:border-[#00d4aa]/40 focus:ring-2 focus:ring-[#00d4aa]/10"
+                  className="w-full rounded-xl border border-[#c8c8ec] bg-[#f2f2fc] pl-10 pr-4 py-3 text-sm text-[#6d6d6d] placeholder-[#9d9d9d] outline-none transition focus:border-[#00d4aa]/40 focus:ring-2 focus:ring-[#00d4aa]/10"
                 />
               </div>
               <button
@@ -300,32 +300,32 @@ function Step1({
                     type="text"
                     value={businessName}
                     onChange={(e) => setBusinessName(e.target.value)}
-                    className="w-full rounded-xl border border-[#eaf8f8] bg-[#f0f8f6] px-4 py-2.5 text-sm text-[#d8d8f0] placeholder-[#4a7a74] outline-none transition focus:border-[#00d4aa]/35 focus:ring-2 focus:ring-[#00d4aa]/8"
+                    className="w-full rounded-xl border border-[#4e4e4e] bg-[#f0f8f6] px-4 py-2.5 text-sm text-[#4c4c4c] placeholder-[#4a7a74] outline-none transition focus:border-[#00d4aa]/35 focus:ring-2 focus:ring-[#00d4aa]/8"
                   />
                 </div>
               )}
 
               <div>
                 <div className="mb-1.5 flex items-center justify-between">
-                  <label className="text-[11px] font-medium text-[#5aafa8]">Business description</label>
+                  <label className="text-[13px] font-medium text-[#5aafa8]">Business description</label>
                   <span className="text-[10px] text-[#4a9090]">{description.length} chars</span>
                 </div>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={4}
-                  className="w-full resize-none rounded-xl border border-[#eaf8f8] bg-[#f0f8f6] px-4 py-3 text-sm text-[#d8d8f0] placeholder-[#4a7a74] outline-none transition focus:border-[#00d4aa]/35 focus:ring-2 focus:ring-[#00d4aa]/8 leading-relaxed"
+                  className="w-full resize-none rounded-xl border border-[#4e4e4e] bg-[#f0f8f6] px-4 py-3 text-sm text-[#4c4c4c] placeholder-[#4a7a74] outline-none transition focus:border-[#00d4aa]/35 focus:ring-2 focus:ring-[#00d4aa]/8 leading-relaxed"
                   placeholder="Describe what your business does, who your customers are, and what problem you solve…"
                 />
-                <p className="mt-1.5 text-[11px] text-[#4a9090]">
+                {/* <p className="mt-1.5 text-[11px] text-[#4a9090]">
                   Used privately by the AI advisor. Never shared or sold.
-                </p>
+                </p> */}
               </div>
 
               <div>
-                <label className="mb-2 block text-[11px] font-medium text-[#5aafa8]">Industry</label>
+                <label className="mb-2 block text-[13px] font-medium text-[#5aafa8]">Niche</label>
                 <div className="flex flex-wrap gap-1.5">
-                  {["SaaS", "E-commerce", "Agency", "Media & Content", "Marketplace", "Consumer App", "Fintech", "Healthcare", "Education", "Other"].map((opt) => (
+                  {["Health and Wellness", "Beauty and Cosmetics", "Pet Supplies", "Home and Kitchen", "Apparel and Fashion Accessories", " Gadgets and Technology Accessories", "Gaming and Electronics", "Hobbies and Crafts", " Baby and Maternity Products", "Other"].map((opt) => (
                     <button
                       key={opt}
                       type="button"
@@ -435,8 +435,16 @@ const REFERRAL_OPTIONS = [
 ];
 
 const INDUSTRY_OPTIONS = [
-  "SaaS", "E-commerce", "Agency", "Media & Content",
-  "Marketplace", "Consumer App", "Fintech", "Healthcare", "Education", "Other",
+  "Health and Wellness",
+  "Beauty and Cosmetics",
+  "Pet Supplies",
+  "Home and Kitchen",
+  "Apparel and Fashion Accessories",
+  "Gadgets and Technology Accessories",
+  "Gaming and Electronics",
+  "Hobbies and Crafts",
+  "Baby and Maternity Products",
+  "Other",
 ];
 
 function Step2({
@@ -613,7 +621,7 @@ function Step2({
             </div>
 
             {/* Referral source */}
-            <div className="rounded-2xl border border-[#d0d0ec] bg-[#f4f4fc] p-5">
+            {/* <div className="rounded-2xl border border-[#d0d0ec] bg-[#f4f4fc] p-5">
               <div className="mb-3 flex items-center gap-2">
                 <label className="text-[11px] font-semibold uppercase tracking-widest text-[#7878a8]">How did you hear about Fold?</label>
                 <span className="text-[10px] text-[#5858a0]">optional</span>
@@ -635,7 +643,7 @@ function Step2({
                   </button>
                 ))}
               </div>
-            </div>
+            </div> */}
           </div>
 
           {/* Action row */}
@@ -671,9 +679,9 @@ function Step2({
               )}
             </button>
           </div>
-          <p className="mt-3 text-center text-[11px] text-[#7070a0]">
+          {/* <p className="mt-3 text-center text-[11px] text-[#7070a0]">
             This data is private — never shared or used for ads
-          </p>
+          </p> */}
         </div>
       </div>
     </div>
@@ -793,7 +801,7 @@ export default function OnboardingWizard({
       <header className="border-b border-[#3a3a58] bg-[#f2f2f8]/90 backdrop-blur-sm px-6 py-3.5 sticky top-0 z-30">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
           <a href="/">
-            <img src="/fold-primary-light.svg" alt="Fold" className="h-7 w-auto" />
+            <img src="/fold-mono-teal.svg" alt="Fold" className="h-7 w-auto" />
           </a>
           <StepBar current={step} onGoTo={(n) => setStep(n)} />
           <div className="flex items-center gap-3">

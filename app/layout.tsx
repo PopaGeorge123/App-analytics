@@ -26,14 +26,14 @@ export const metadata: Metadata = {
   },
   title: "Fold — AI Analytics for Shopify & E-commerce Stores",
   description:
-    "Connect Shopify, Meta Ads, and GA4. Fold's AI catches revenue leaks, tracks true ad profit, and tells you exactly what to fix — every morning. $19/mo, 7-day free trial.",
+    "Have visitors but no sales ? Fix your conversion funnel now before it's too late. $19/mo, 7-day free trial.",
   metadataBase: new URL(baseUrl),
   openGraph: {
     type: "website",
     url: baseUrl,
-    title: "Do you know which ads are making money — and which are burning your budget?",
+    title: "Visitors but no sales?",
     description:
-      "Fold connects Shopify, Meta Ads, and GA4 and tells you what to stop and what to scale — every morning. $19/mo, 7-day free trial.",
+      "Have visitors but no sales ? Fix your conversion funnel now before it's too late. $19/mo, 7-day free trial.",
     siteName: "Fold",
     images: [
       {
@@ -46,9 +46,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Fold — AI Analytics for Shopify & E-commerce Stores",
+    title: "Visitors but no sales?",
     description:
-      "Connect Shopify, Meta Ads, and GA4. Catch revenue leaks, track true ad profit, and know exactly what to fix — every morning. $19/mo.",
+      "Have visitors but no sales ? Fix your conversion funnel now before it's too late. $19/mo, 7-day free trial.",
     images: ["/twitter-card.png"],
   },
 };
