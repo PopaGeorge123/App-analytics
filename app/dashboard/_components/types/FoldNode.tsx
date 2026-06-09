@@ -5,8 +5,8 @@ import { Handle, Position } from '@xyflow/react';
 
 
 
-export default function FoldNode(props) {
-    const onChange = useCallback((evt) => {
+export default function FoldNode(props: any) {
+    const onChange = useCallback((evt: React.ChangeEvent<HTMLInputElement>) => {
       console.log(evt.target.value);
     }, []);
   

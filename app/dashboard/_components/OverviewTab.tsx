@@ -22,6 +22,9 @@ import {
   MiniMap,
   Handle,
   Position,
+   Node, Edge,
+   EdgeChange,
+   NodeChange,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -76,10 +79,10 @@ export default function OverviewTab({
 
   
 
-  const initialNodes = [
+  const initialNodes: Node[] = [
     {
       id: 'n1',
-      //data: { label: 'Node 1' },
+      data: { label: 'Node 1' },
       position: { x: 0, y: 0 },
       type: 'integrationNode',
     },
@@ -90,24 +93,24 @@ export default function OverviewTab({
     }
   ];
 
-  const initialEdges: any[] = [
+  const initialEdges: Edge[] = [
     { id: 'e1-2', source: 'n1', target: 'n2', animated: true },
   ];
 
-  const [nodes, setNodes] = useState(initialNodes);
-  const [edges, setEdges] = useState(initialEdges);
+  const [nodes, setNodes] = useState<Node[]>(initialNodes);
+  const [edges, setEdges] = useState<Edge[]>(initialEdges);
 
   const onNodesChange = useCallback(
-    (changes: any) => setNodes((nds ) => applyNodeChanges(changes, nds)),
+    (changes: NodeChange[]) => setNodes((nds: Node[]) => applyNodeChanges(changes, nds)),
     [],
   );
    //vreau ca edgeuri le sa fie animate  animated: true
   const onEdgesChange = useCallback(
-    (changes: any) => setEdges((eds) => applyEdgeChanges(changes, eds.map(e => ({ ...e, animated: true })))),
+    (changes: EdgeChange[]) => setEdges((eds: Edge[]) => applyEdgeChanges(changes, eds.map((e: Edge) => ({ ...e, animated: true })))),
     [],
   );
   const onConnect = useCallback(
-    (params: any) => setEdges((eds) => addEdge(params, eds)),
+    (params: any) => setEdges((eds: Edge[]) => addEdge(params, eds)),
     [],
   );
 
