@@ -4,6 +4,8 @@ import { AB_COOKIE, AB_COOKIE_MAX_AGE, randomVariant } from "@/lib/ab";
 
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
+  
+
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -32,6 +34,7 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
+  console.log("→ MIDDLEWARE pathname:", pathname);
 
   // Protected routes — redirect to /login if not authenticated
   const protectedRoutes = ["/dashboard", "/onboarding"];

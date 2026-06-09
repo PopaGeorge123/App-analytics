@@ -91,7 +91,7 @@ export async function handleStripeCallback(
       accountId,
       currency: stripeCurrency,
     },
-  });
+  }).eq("user_id", userId).eq("node_type", "integration").eq("data->>platform", "stripe");
   
   if (nodeError) throw new Error(`Failed to save Stripe node: ${nodeError.message}`);
 

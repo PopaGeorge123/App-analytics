@@ -108,10 +108,10 @@ export default async function DashboardPage({
     .from("integrations")
     .select("platform, connected_at, currency, account_id")
     .eq("user_id", user.id)
-    .not("account_id", "eq", "");
+    //.not("account_id", "eq", "");
 
   const connectedPlatforms = (integrations ?? []).map((i) => i.platform);
-
+  console.log("→ Connected platforms:", connectedPlatforms);
   // Currency map: platform → ISO currency code (e.g. { stripe: "EUR", meta: "USD", "lemon-squeezy": "USD" })
   // Populated at connect time by each integration's callback. Defaults to "USD" when absent.
   const currencies: Record<string, string> = Object.fromEntries(

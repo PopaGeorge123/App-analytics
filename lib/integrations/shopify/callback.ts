@@ -89,7 +89,7 @@ export async function handleShopifyConnect(
       accountId: domain,
       currency,
     },
-  });
+  }).eq("user_id", userId).eq("node_type", "integration").eq("data->>platform", "shopify");
 
   if (dbError) throw new Error(`Failed to save Shopify integration: ${dbError.message}`);
   if (nodeError) throw new Error(`Failed to save Shopify node: ${nodeError.message}`);

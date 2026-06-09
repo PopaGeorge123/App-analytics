@@ -106,7 +106,8 @@ export async function selectGA4Property(
       platform: "ga4",
       accountId: propertyId,
     },
-  });
+  }).eq("user_id", userId).eq("node_type", "integration").eq("data->>platform", "ga4");
+  
   if (nodeError) throw new Error(`Failed to save GA4 node: ${nodeError.message}`);
 
   // Trigger remote backfill — pass newAccountId so the daemon clears stale data

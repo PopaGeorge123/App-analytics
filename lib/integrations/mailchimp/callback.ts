@@ -36,7 +36,8 @@ export async function handleMailchimpOAuthCallback(
       connected_at: new Date().toISOString(),
     },
     { onConflict: "user_id,platform" },
-  );
+  ).eq("user_id", userId).eq("platform", "mailchimp");
+  
 
   //add the mailchimp node to reactflow_nodes table
   const { error: nodeError } = await supabase.from("reactflow_nodes").insert({

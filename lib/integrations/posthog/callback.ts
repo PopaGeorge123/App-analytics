@@ -38,7 +38,8 @@ export async function handlePostHogConnect(
       projectId: resolvedProjectId ?? projectId,
       host: resolvedHost,
     },
-  });
+  }).eq("user_id", userId).eq("node_type", "integration").eq("data->>platform", "posthog");
+  
   
   if (nodeError) throw new Error(`Failed to save PostHog node: ${nodeError.message}`);
   if (dbError) throw new Error(`Failed to save PostHog integration: ${dbError.message}`);

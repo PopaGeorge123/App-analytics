@@ -64,7 +64,9 @@ export async function handleKlaviyoConnect(
       connected_at: new Date().toISOString(),
     },
     { onConflict: "user_id,platform" }
-  );
+  ).eq("user_id", userId).eq("platform", "klaviyo");
+   
+  //what if one already exists? we should update it instead of inserting a new one. upsert with onConflict should handle this, but we need to make sure to specify the conflict target correctly.
 
   if (dbError) throw new Error(`Failed to save Klaviyo integration: ${dbError.message}`);
 

@@ -86,7 +86,8 @@ export async function handleMetaCallback(
       accountId,
       currency,
     },
-  });
+  }).eq("user_id", userId).eq("node_type", "integration").eq("data->>platform", "meta");
+  
   if (nodeError) throw new Error(`Failed to save Meta node: ${nodeError.message}`);
 
   // Trigger remote backfill — pass newAccountId so the daemon clears stale data

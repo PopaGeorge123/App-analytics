@@ -16,7 +16,7 @@ export async function GET() {
   response.cookies.set("klaviyo_cv", codeVerifier, {
     httpOnly: true,
     secure: true,
-    sameSite: "lax",
+    sameSite: "none", // ← era "lax", asta cauzează problema
     maxAge: 600,
     path: "/",
   });
