@@ -86,8 +86,6 @@ export async function handleShopifyConnect(
     node_type: "integration",
     data: {
       platform: "shopify",
-      accountId: domain,
-      currency,
     },
   }).eq("user_id", userId).eq("node_type", "integration").eq("data->>platform", "shopify");
 
