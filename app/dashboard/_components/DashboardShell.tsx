@@ -19,8 +19,8 @@ import DangerZoneTab from "./DangerZoneTab";
 import PlaybooksTab from "./PlaybooksTab";
 import type { CustomerRow } from "../page";
 
-export type Tab = "overview" | "analytics" | "growth" | "customers" | "data-sources" | "settings" | "danger";
-//export type Tab = "overview" | "analytics" | "products" | "ads" | "orders" | "growth" | "customers" | "ai" | "playbooks" | "data-sources" | "settings" | "danger";
+//export type Tab = "overview" | "analytics" | "growth" | "customers" | "data-sources" | "settings" | "danger";
+export type Tab = "overview" | "analytics" | "products" | "ads" | "orders" | "growth" | "customers" | "ai" | "playbooks" | "data-sources" | "settings" | "danger";
 
 
 export interface Snapshot {

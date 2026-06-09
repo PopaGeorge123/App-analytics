@@ -73,22 +73,6 @@ export default function OverviewTab({
   const hasAllIntegrations = LIVE_INTEGRATIONS.every((i) => connectedPlatforms.includes(i.id));
   const missingIntegrations = LIVE_INTEGRATIONS.filter((i) => !connectedPlatforms.includes(i.id));
 
-  function integrationNode(props) {
-    const onChange = useCallback((evt) => {
-      console.log(evt.target.value);
-    }, []);
-  
-    return (
-      <div className=" bg-green-400 rounded-lg p-4 w-48">
-        <div>
-          <label htmlFor="text">Text:</label>
-          <input id="text" name="text" onChange={onChange} className="nodrag border w-full" />
-        </div>
-         <Handle type="source" position={Position.Bottom} />
-         <Handle type="target" position={Position.Top} />
-      </div>
-    );
-  }
 
   
 
@@ -106,10 +90,6 @@ export default function OverviewTab({
     }
   ];
 
-  const nodeTypes = { 
-    integrationNode: integrationNode 
-  };
-
   const initialEdges: any[] = [
     { id: 'e1-2', source: 'n1', target: 'n2', animated: true },
   ];
@@ -118,16 +98,16 @@ export default function OverviewTab({
   const [edges, setEdges] = useState(initialEdges);
 
   const onNodesChange = useCallback(
-    (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
+    (changes: any) => setNodes((nds ) => applyNodeChanges(changes, nds)),
     [],
   );
    //vreau ca edgeuri le sa fie animate  animated: true
   const onEdgesChange = useCallback(
-    (changes) => setEdges((eds) => applyEdgeChanges(changes, eds.map(e => ({ ...e, animated: true })))),
+    (changes: any) => setEdges((eds) => applyEdgeChanges(changes, eds.map(e => ({ ...e, animated: true })))),
     [],
   );
   const onConnect = useCallback(
-    (params) => setEdges((eds) => addEdge(params, eds)),
+    (params: any) => setEdges((eds) => addEdge(params, eds)),
     [],
   );
 
@@ -152,7 +132,7 @@ export default function OverviewTab({
           onEdgesChange={onEdgesChange}
           proOptions={proOptions}
           onConnect={onConnect}
-          nodeTypes={nodeTypes}
+          //nodeTypes={nodeTypes}
           fitView
         >
           

@@ -648,22 +648,6 @@ export default function CustomDashboard({ snapshots, connectedPlatforms }: {
     setDragOverIdx(null);
   }
 
-  function addWidget() {
-    const platform = connectedPlatforms.find(p => PLATFORM_FIELDS[p]?.length) ?? connectedPlatforms[0] ?? "";
-    const fields   = PLATFORM_FIELDS[platform] ?? [];
-    const newW: Widget = {
-      id: `w-${Date.now()}`,
-      title: `${PLATFORM_LABELS[platform] ?? platform} — ${fields[0]?.label ?? "Metric"}`,
-      chartType: "area",
-      platform,
-      field: fields[0]?.key ?? "revenue",
-      color: COLOR_PALETTE[widgets.length % COLOR_PALETTE.length],
-      width: 1,
-    };
-    setWidgets(ws => [...ws, newW]);
-    setEditingId(newW.id);
-  }
-
   function updateWidget(updated: Widget) {
     setWidgets(ws => ws.map(w => w.id === updated.id ? updated : w));
   }
