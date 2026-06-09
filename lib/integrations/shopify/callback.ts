@@ -70,10 +70,10 @@ export async function handleShopifyConnect(
   const supabase = createServiceClient();
   const { error: dbError } = await supabase.from("integrations").upsert(
     {
-      user_id: userId,
-      platform: "shopify",
+      user_id:      userId,
+      platform:     "shopify",
       access_token: accessToken,
-      account_id: domain,
+      account_id:   domain,
       currency,
       connected_at: new Date().toISOString(),
     },
@@ -81,7 +81,7 @@ export async function handleShopifyConnect(
   );
 
   //add the shopify node to reactflow_nodes table if it doesn't already exist. We should only have one node per integration, so we can identify it by user_id + node_type + platform
-  const { error } = await supabase.from("reactflow_nodes").upsert(
+  const { error: nodeError } = await supabase.from("reactflow_nodes").upsert(
     {
       user_id: userId,
       node_type: "integration",
@@ -94,7 +94,7 @@ export async function handleShopifyConnect(
   );
 
   if (dbError) throw new Error(`Failed to save Shopify integration: ${dbError.message}`);
-  if (error) throw new Error(`Failed to save Shopify node: ${error.message}`);
-  
+  if (nodeError) throw new Error(`Failed to save Shopify node: ${nodeError.message}`);
+
   await triggerRemoteBackfill(userId, "shopify");
 }
