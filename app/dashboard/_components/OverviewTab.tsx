@@ -98,7 +98,7 @@ export default function OverviewTab({
     { id: 'meta', position: { x: -52.52062196894961, y: 760.6827730151331 } },
   ]
 
-  
+
   useEffect(() => {
     const allPlatforms = LIVE_INTEGRATIONS.map((i) => i.id); // ← toate, nu doar connectedPlatforms
 
@@ -165,18 +165,14 @@ export default function OverviewTab({
   const [nodes, setNodes] = useState<Node[]>();
   const [edges, setEdges] = useState<Edge[]>();
 
-  const onNodesChange = useCallback(
-    //can i console log nds here to see the current nodes with their positions after dragging? --- yes, but be careful as it can log a lot of times during dragging
-    (changes: NodeChange[]) => setNodes((nds: Node[]) => {
-      const updatedNodes = applyNodeChanges(changes, nds);
-      console.log("Current nodes after change:", updatedNodes);
-
-      //await updateNodePosition();
-
-      return updatedNodes;
-    }),
-    [],
-  );
+//   const onNodesChange = useCallback(
+//   (changes: NodeChange[]) => setNodes((nds) => {
+//     const updatedNodes = applyNodeChanges(changes, nds);
+//     console.log("Current nodes after change:", updatedNodes);
+//     return updatedNodes;
+//   }),
+//   [],
+// );
 
   const proOptions = { hideAttribution: true };
 
@@ -188,7 +184,7 @@ export default function OverviewTab({
         <ReactFlow
           nodes={nodes}
           edges={edges}
-          onNodesChange={onNodesChange}
+          //onNodesChange={onNodesChange}
           proOptions={proOptions}
           nodeTypes={nodeTypes}
           fitView
