@@ -27,6 +27,7 @@ export async function handleMailchimpOAuthCallback(
   const dc: string = meta.dc ?? "us1";
 
   const supabase = createServiceClient();
+  
   await supabase.from("integrations").upsert(
     {
       user_id: userId,
@@ -36,20 +37,20 @@ export async function handleMailchimpOAuthCallback(
       connected_at: new Date().toISOString(),
     },
     { onConflict: "user_id,platform" },
-  ).eq("user_id", userId).eq("platform", "mailchimp");
-  
+  );
+
 
   //add the mailchimp node to reactflow_nodes table
-  const { error: nodeError } = await supabase.from("reactflow_nodes").insert({
-    user_id: userId,
-    node_type: "integration",
-    data: {
-      platform: "mailchimp",
-      account_id: dc,
-    },
-  });
+  // const { error: nodeError } = await supabase.from("reactflow_nodes").insert({
+  //   user_id: userId,
+  //   node_type: "integration",
+  //   data: {
+  //     platform: "mailchimp",
+  //     account_id: dc,
+  //   },
+  // });
 
-  if (nodeError) throw new Error(`Failed to save Mailchimp node: ${nodeError.message}`);
+  // if (nodeError) throw new Error(`Failed to save Mailchimp node: ${nodeError.message}`);
 
   await triggerRemoteBackfill(userId, "mailchimp");
 }

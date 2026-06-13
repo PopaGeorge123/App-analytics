@@ -1,57 +1,62 @@
 "use client";
 
+import { useCallback } from 'react';
 import { Handle, Position } from '@xyflow/react';
 
-export default function ShopifyNode({ isConnected = false }: { isConnected?: boolean }) {
-  return (
+
+
+export default function MetaNode(props: any) {
+    const onChange = useCallback((evt: React.ChangeEvent<HTMLInputElement>) => {
+      console.log(evt.target.value);
+    }, []);
+  
+    return (
     <div style={{ width: 220, fontFamily: 'sans-serif' }}
-      className="border border-[#96BF48] rounded-2xl bg-white overflow-hidden"
+      className="border border-[#2e5cff] rounded-2xl bg-white overflow-hidden"
     >
       {/* Header */}
       <div className="p-4 border-b border-gray-100">
         <div className="flex items-center gap-2.5 mb-3">
           <div className="w-9 h-9 rounded-lg bg-[#F4F6F0] flex items-center justify-center">
-            <img src="/integrations/shopify.svg" alt="Shopify" className="w-5 h-5" />
+            <img src="/integrations/meta.svg" alt="Meta" className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-900 m-0">Shopify</p>
+            <p className="text-sm font-medium text-gray-900 m-0">Meta</p>
             <span className="text-[11px] bg-green-50 text-green-700 px-2 py-0.5 rounded font-medium">
               Not connected
             </span>
           </div>
         </div>
         <p className="text-[12px] text-gray-500 leading-relaxed m-0">
-          Sync your store's orders, revenue, products, and customer data in real time.
+          Sync your Meta data to track ad performance, audience engagement, and conversion metrics in real time.
         </p>
       </div>
-
+      
       {/* Features */}
       {/* <div className="px-4 py-3 border-b border-gray-100">
+
         <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wide mb-1.5">
           What you'll get
         </p>
         <div className="flex flex-col gap-1.5">
           {[
-            { icon: "🛒", label: "Orders & revenue" },
-            { icon: "👥", label: "Customer segments" },
-            { icon: "📦", label: "Product performance" },
-            { icon: "🔄", label: "Real-time sync" },
-          ].map(({ icon, label }) => (
+            { icon: "📈", label: "Real-time ad performance data" },
+            { icon: "👥", label: "Audience insights" }  
+             ].map(({ icon, label }) => (
             <div key={label} className="flex items-center gap-2 text-[12px] text-gray-500">
               <span>{icon}</span> {label}
             </div>
           ))}
         </div>
-      </div> */}
-
+      </div> */ }
+      
       {/* CTA */}
       <div className="p-3">
-        <button className="w-full py-2 bg-[#96BF48] text-white text-[13px] font-medium rounded-lg">
-          {isConnected ? "Disconnect Shopify" : "Connect Shopify"}
+        <button className="w-full py-2 bg-[#2e5cff] text-white text-[13px] font-medium rounded-lg">
+          Connect Meta
         </button>
       </div>
-
-      <Handle type="source" position={Position.Bottom} />
+        <Handle type="source" position={Position.Top} />
     </div>
   );
 }

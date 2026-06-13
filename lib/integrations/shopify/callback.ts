@@ -81,20 +81,23 @@ export async function handleShopifyConnect(
   );
 
   //add the shopify node to reactflow_nodes table if it doesn't already exist. We should only have one node per integration, so we can identify it by user_id + node_type + platform
-  const { error: nodeError } = await supabase.from("reactflow_nodes").upsert(
-    {
-      user_id: userId,
-      node_type: "integration",
-      data: { platform: "shopify" },
-    },
-    {
-      onConflict: "user_id, node_type", // ← doar dacă ai unique constraint pe acestea
-      ignoreDuplicates: true,
-    }
-  );
+  // const { error: nodeError } = await supabase.from("reactflow_nodes").upsert(
+  //   {
+  //     user_id: userId,
+  //     node_type: "integration",
+  //     data: { platform: "shopify" },
+  //   },
+  //   {
+  //     onConflict: "user_id, node_type", // ← doar dacă ai unique constraint pe acestea
+  //     ignoreDuplicates: true,
+  //   }
+  // );
+
+  //if (nodeError) throw new Error(`Failed to save Shopify node: ${nodeError.message}`);
+
+  
 
   if (dbError) throw new Error(`Failed to save Shopify integration: ${dbError.message}`);
-  if (nodeError) throw new Error(`Failed to save Shopify node: ${nodeError.message}`);
-
+  
   await triggerRemoteBackfill(userId, "shopify");
 }

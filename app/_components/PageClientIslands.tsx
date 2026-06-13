@@ -294,74 +294,14 @@ function AiMockup() {
 }
 
 export function DashboardMockup() {
-  const [activeTab, setActiveTab] = useState<"overview" | "analytics" | "website" | "ai">("overview");
-
-  const tabs: { id: "overview" | "analytics" | "website" | "ai"; label: string; premium: boolean }[] = [
-    { id: "overview",  label: "Overview",    premium: false },
-    { id: "analytics", label: "Analytics",   premium: true  },
-    { id: "website",   label: "Website",     premium: true  },
-    { id: "ai",        label: "AI Advisor",  premium: true  },
-  ];
-
-  const activePremium = tabs.find((t) => t.id === activeTab)?.premium ?? false;
-
+  
   return (
-    <div className="relative w-11/12 md:w-full max-w-xl mx-auto select-none">
-      <div className="pointer-events-none absolute -inset-6 rounded-3xl bg-[#00d4aa]/6 blur-3xl" />
-      <div className="relative rounded-2xl border border-[#d4d4e8] bg-[#f0f0f8]/95 shadow-2xl overflow-hidden">
-        <div className="flex items-center gap-1.5 px-4 pt-3 pb-0">
-          <div className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
-          <div className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
-          <div className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
-          <span className="ml-3 font-mono text-[9px] tracking-widest text-[#8585aa] uppercase">fold / dashboard</span>
-          <div className="ml-auto flex items-center gap-1 mr-1">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#00d4aa] animate-pulse" />
-            <span className="font-mono text-[9px] text-[#00d4aa] tracking-widest">LIVE</span>
-          </div>
-        </div>
-        <div className="flex border-b border-[#d4d4e8] px-4 mt-3">
-          {tabs.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setActiveTab(t.id)}
-              className={`relative flex items-center gap-1 px-3 pb-2.5 font-mono text-[10px] uppercase tracking-widest transition-colors border-b-2 -mb-px ${
-                activeTab === t.id
-                  ? "border-[#00d4aa] text-[#00d4aa]"
-                  : t.premium
-                  ? "border-transparent text-[#3a3a5a] hover:text-[#6a6a8a]"
-                  : "border-transparent text-[#8585aa] hover:text-[#5a5a7a]"
-              }`}
-            >
-              {t.label}
-              {t.premium && (
-                <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" className="opacity-60 mb-0.5">
-                  <path d="M12 1a5 5 0 00-5 5v3H5a2 2 0 00-2 2v10a2 2 0 002 2h14a2 2 0 002-2V11a2 2 0 00-2-2h-2V6a5 5 0 00-5-5zm3 8H9V6a3 3 0 116 0v3z"/>
-                </svg>
-              )}
-            </button>
-          ))}
-        </div>
-        <div className="relative p-4">
-          {activeTab === "overview" && <OverviewMockup />}
-          {activeTab === "analytics" && <AnalyticsMockup />}
-          {activeTab === "website"   && <WebsiteMockup />}
-          {activeTab === "ai"        && <AiMockup />}
-          {activePremium && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center rounded-b-2xl backdrop-blur-sm bg-[#f0f0f8]/80">
-              <div className="flex h-11 w-11 items-center justify-center rounded-full border border-[#a78bfa]/30 bg-[#a78bfa]/10 mb-3">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-[#a78bfa]">
-                  <path d="M12 1a5 5 0 00-5 5v3H5a2 2 0 00-2 2v10a2 2 0 002 2h14a2 2 0 002-2V11a2 2 0 00-2-2h-2V6a5 5 0 00-5-5zm3 8H9V6a3 3 0 116 0v3z"/>
-                </svg>
-              </div>
-              <p className="font-mono text-xs font-bold uppercase tracking-widest text-[#1a1a2e] mb-1">Premium feature</p>
-              <p className="font-mono text-[10px] text-[#8585aa] mb-4 text-center px-6">Upgrade to unlock Analytics, Website Optimizer &amp; AI Advisor.</p>
-              <a href="/signup" className="rounded-xl bg-[#a78bfa] px-5 py-2 font-mono text-[10px] font-bold uppercase tracking-wider text-[#3a3a4e] transition-all hover:bg-[#9674f5]">
-                Upgrade to Premium
-              </a>
-            </div>
-          )}
-        </div>
-      </div>
+    <div className="flex flex-col md:flex-row gap-6">
+      <img 
+        src="/Screenshot1.png" 
+        alt="Dashboard Screenshot" 
+        className="w-full rounded-2xl shadow-2xl border border-gray-200/50 transition-transform duration-500 hover:scale-[1.02]"
+      />
     </div>
   );
 }
@@ -448,7 +388,7 @@ export function Nav() {
     }`}>
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         <a href="/">
-          <img src="/fold-primary-light.svg" alt="Fold" className="h-9 w-auto" />
+          <img src="/fold-mono-teal.svg" alt="Fold" className="h-9 w-auto" />
         </a>
         <div className="hidden md:flex items-center gap-8">
           {links.map((l) => (

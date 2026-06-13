@@ -34,7 +34,7 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
-  console.log("→ MIDDLEWARE pathname:", pathname);
+  //console.log("→ MIDDLEWARE pathname:", pathname);
 
   // Protected routes — redirect to /login if not authenticated
   const protectedRoutes = ["/dashboard", "/onboarding"];

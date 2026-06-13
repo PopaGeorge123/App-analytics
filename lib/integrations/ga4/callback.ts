@@ -99,16 +99,19 @@ export async function selectGA4Property(
     .eq("platform", "ga4");
 
   //add the ga4 node to reactflow_nodes table
-  const { error: nodeError } = await db.from("reactflow_nodes").insert({
-    user_id: userId,
-    node_type: "integration",
-    data: {
-      platform: "ga4",
-      accountId: propertyId,
-    },
-  }).eq("user_id", userId).eq("node_type", "integration").eq("data->>platform", "ga4");
-  
-  if (nodeError) throw new Error(`Failed to save GA4 node: ${nodeError.message}`);
+  // const { error: nodeError } = await db.from("reactflow_nodes").insert({
+  //   user_id: userId,
+  //   node_type: "integration",
+  //   data: {
+  //     platform: "ga4",
+  //     accountId: propertyId,
+  //   },
+  //   {
+  //     onConflict: "user_id, node_type", // ← doar dacă ai unique constraint pe acestea
+  //     ignoreDuplicates: true,
+  //   }
+  // });
+  // if (nodeError) throw new Error(`Failed to save GA4 node: ${nodeError.message}`);
 
   // Trigger remote backfill — pass newAccountId so the daemon clears stale data
   // if the property changed. All data population happens on the remote sync server.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback , useMemo, useEffect, useRef, useTransition } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { Snapshot } from "./DashboardShell";
 import type { Tab } from "./DashboardShell";
@@ -10,6 +10,14 @@ import { DEFAULT_ALERTS, type AlertRules } from "./DataSourcesTab";
 import { LIVE_INTEGRATIONS, REVENUE_PROVIDERS, ANALYTICS_PROVIDERS, ADS_PROVIDERS } from "@/lib/integrations/catalog";
 import { DateRangeButton, daysAgo } from "./DateRangePicker";
 import type { DateRange } from "./DateRangePicker";
+import ShopifyNode from "./types/ShopifyNode";
+import GoogleAnalyticsNode from "./types/GoogleAnalytics";
+import KlaviyoNode from "./types/KlaviyoNode";
+import MailchimpNode from "./types/MailchimpNode";
+import StripeNode from "./types/StripeNode";
+import PostHogNode from "./types/PostHogNode";
+import MetaNode from "./types/MetaNode";
+import FoldNode from "./types/FoldNode";
 
 import {
   ReactFlow,
@@ -22,9 +30,9 @@ import {
   MiniMap,
   Handle,
   Position,
-   Node, Edge,
-   EdgeChange,
-   NodeChange,
+  Node, Edge,
+  EdgeChange,
+  NodeChange,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -45,8 +53,12 @@ interface OverviewTabProps {
 export default function OverviewTab({
   email, isPremium, connectedPlatforms, snapshots, currencies = {}, onNavigate, customers = [],
 }: {
-  email: string; isPremium: boolean; connectedPlatforms: string[];
-  snapshots: Snapshot[]; currencies: Record<string, string>; onNavigate: (tab: Tab) => void;
+  email: string;
+  isPremium: boolean;
+  connectedPlatforms: string[];
+  snapshots: Snapshot[];
+  currencies: Record<string, string>;
+  onNavigate: (tab: Tab) => void;
   customers?: CustomerRow[];
 }) {
   const router = useRouter();
@@ -73,58 +85,103 @@ export default function OverviewTab({
     } catch { setUpgradeError("Network error. Please try again."); setUpgradeLoading(false); }
   }
 
-  const hasAllIntegrations = LIVE_INTEGRATIONS.every((i) => connectedPlatforms.includes(i.id));
-  const missingIntegrations = LIVE_INTEGRATIONS.filter((i) => !connectedPlatforms.includes(i.id));
+  //const hasAllIntegrations = LIVE_INTEGRATIONS.every((i) => connectedPlatforms.includes(i.id));
+  //const missingIntegrations = LIVE_INTEGRATIONS.filter((i) => !connectedPlatforms.includes(i.id));
 
+  const DEFAULT_NODE_POSITIONS = [
+    { id: 'shopify', position: { x: 376.218168911252, y: -14.96440063050342 } },
+    { id: 'ga4', position: { x: -121.95655656504769, y: -15.577218599665036 } },
+    { id: 'klaviyo', position: { x: -127.25149804750473, y: 243.6626920035916 } },
+    { id: 'mailchimp', position: { x: 127.57883201745136, y: -18.304484252033262 } },
+    { id: 'stripe', position: { x: -131.96641401110992, y: 507.8627852261113 } },
+    { id: 'posthog', position: { x: 207.33319414466763, y: 825.4861165538454 } },
+    { id: 'meta', position: { x: -52.52062196894961, y: 760.6827730151331 } },
+  ]
 
   
+  useEffect(() => {
+    const allPlatforms = LIVE_INTEGRATIONS.map((i) => i.id); // ← toate, nu doar connectedPlatforms
 
-  const initialNodes: Node[] = [
-    {
-      id: 'n1',
-      data: { label: 'Node 1' },
-      position: { x: 0, y: 0 },
-      type: 'integrationNode',
+    const nodes: Node[] = allPlatforms.map((platform) => {
+      const nodeDef = LIVE_INTEGRATIONS.find((i) => i.id === platform);
+      let NodeComponent;
+      switch (platform) {
+        case "shopify": NodeComponent = ShopifyNode; break;
+        case "ga4": NodeComponent = GoogleAnalyticsNode; break;
+        case "klaviyo": NodeComponent = KlaviyoNode; break;
+        case "mailchimp": NodeComponent = MailchimpNode; break;
+        case "stripe": NodeComponent = StripeNode; break;
+        case "posthog": NodeComponent = PostHogNode; break;
+        case "meta": NodeComponent = MetaNode; break;
+        default: NodeComponent = () => <div>{platform}</div>;
+      }
+
+      return {
+        id: platform,
+        type: 'integration',
+        data: {
+          label: nodeDef?.name ?? platform,
+          component: NodeComponent,
+          isConnected: connectedPlatforms.includes(platform), // ← trimite statusul
+        },
+        position: DEFAULT_NODE_POSITIONS.find((n) => n.id === platform)?.position || { x: 0, y: 0 },
+      };
+    });
+
+    const foldNode: Node = {
+      id: 'fold',
+      type: 'fold',
+      data: {
+        component: FoldNode,
+        connectedCount: connectedPlatforms.length,
+      },
+      position: { x: 200, y: 300 },
+    };
+
+    // edges DOAR pentru cele conectate
+    const edges: Edge[] = connectedPlatforms.map((platform) => ({
+      id: `edge-${platform}-fold`,
+      source: platform,
+      targetHandle: `input${connectedPlatforms.indexOf(platform) + 1}`, // asigură-te că handle-urile din FoldNode sunt input1, input2, etc.
+      target: 'fold',
+      animated: true,
+    }));
+
+    setEdges(edges);
+    setNodes([...nodes, foldNode]);
+  }, [connectedPlatforms]);
+
+  const nodeTypes = useMemo(() => ({
+    integration: ({ data }: { data: any }) => {
+      const Component = data.component;
+      return <Component isConnected={data.isConnected} />;  // ← pasează prop
     },
-    {
-      id: 'n2',
-      data: { label: 'Node 2' },
-      position: { x: 100, y: 100 },
-    }
-  ];
+    fold: ({ data }: { data: any }) => {
+      const Component = data.component;
+      return <Component connectedCount={data.connectedCount} />;
+    },
+  }), []); // ← useMemo cu [] ca să fie stabilă
 
-  const initialEdges: Edge[] = [
-    { id: 'e1-2', source: 'n1', target: 'n2', animated: true },
-  ];
-
-  const [nodes, setNodes] = useState<Node[]>(initialNodes);
-  const [edges, setEdges] = useState<Edge[]>(initialEdges);
+  const [nodes, setNodes] = useState<Node[]>();
+  const [edges, setEdges] = useState<Edge[]>();
 
   const onNodesChange = useCallback(
-    (changes: NodeChange[]) => setNodes((nds: Node[]) => applyNodeChanges(changes, nds)),
-    [],
-  );
-   //vreau ca edgeuri le sa fie animate  animated: true
-  const onEdgesChange = useCallback(
-    (changes: EdgeChange[]) => setEdges((eds: Edge[]) => applyEdgeChanges(changes, eds.map((e: Edge) => ({ ...e, animated: true })))),
-    [],
-  );
-  const onConnect = useCallback(
-    (params: any) => setEdges((eds: Edge[]) => addEdge(params, eds)),
+    //can i console log nds here to see the current nodes with their positions after dragging? --- yes, but be careful as it can log a lot of times during dragging
+    (changes: NodeChange[]) => setNodes((nds: Node[]) => {
+      const updatedNodes = applyNodeChanges(changes, nds);
+      console.log("Current nodes after change:", updatedNodes);
+
+      //await updateNodePosition();
+
+      return updatedNodes;
+    }),
     [],
   );
 
   const proOptions = { hideAttribution: true };
 
-  // ── RENDER ────────────────────────────────────────────────────────────
   return (
     <div className="w-full h-svh flex flex-col">
-
-      {/* ═══════════════════════════════════════════════════════
-          PULSE BAR — slim inline status line, no card
-      ═══════════════════════════════════════════════════════ */}
-
-
       {upgradeError && <p className="font-mono text-xs text-red-400 pb-4">{upgradeError}</p>}
 
       <div className="flex-1 min-h-0 w-full  rounded-xl ">
@@ -132,13 +189,11 @@ export default function OverviewTab({
           nodes={nodes}
           edges={edges}
           onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
           proOptions={proOptions}
-          onConnect={onConnect}
-          //nodeTypes={nodeTypes}
+          nodeTypes={nodeTypes}
           fitView
         >
-          
+
           <Controls />
         </ReactFlow>
       </div>

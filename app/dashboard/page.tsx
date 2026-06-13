@@ -106,9 +106,11 @@ export default async function DashboardPage({
   //  if they cancel the property-selection step the row stays but is not truly connected)
   const { data: integrations } = await db
     .from("integrations")
-    .select("platform, connected_at, currency, account_id")
+    .select("id, platform, connected_at, currency, account_id")
     .eq("user_id", user.id)
     //.not("account_id", "eq", "");
+
+  console.log("→ Integrations raw data:", integrations);
 
   const connectedPlatforms = (integrations ?? []).map((i) => i.platform);
   console.log("→ Connected platforms:", connectedPlatforms);

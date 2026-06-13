@@ -35,15 +35,15 @@ export async function handleKlaviyoOAuthCallback(
   );
 
   //add the klaviyo node to reactflow_nodes table
-  const { error: nodeError } = await supabase.from("reactflow_nodes").insert({
-    user_id: userId,
-    node_type: "integration",
-    data: {
-      platform: "klaviyo",
-    },
-  });
+  // const { error: nodeError } = await supabase.from("reactflow_nodes").insert({
+  //   user_id: userId,
+  //   node_type: "integration",
+  //   data: {
+  //     platform: "klaviyo",
+  //   },
+  // });
 
-  if (nodeError) throw new Error(`Failed to save Klaviyo node: ${nodeError.message}`);
+  // if (nodeError) throw new Error(`Failed to save Klaviyo node: ${nodeError.message}`);
 
   triggerRemoteBackfill(userId, "klaviyo");
 }
@@ -64,9 +64,7 @@ export async function handleKlaviyoConnect(
       connected_at: new Date().toISOString(),
     },
     { onConflict: "user_id,platform" }
-  ).eq("user_id", userId).eq("platform", "klaviyo");
-   
-  //what if one already exists? we should update it instead of inserting a new one. upsert with onConflict should handle this, but we need to make sure to specify the conflict target correctly.
+  );
 
   if (dbError) throw new Error(`Failed to save Klaviyo integration: ${dbError.message}`);
 

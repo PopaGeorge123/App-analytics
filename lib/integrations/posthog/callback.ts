@@ -30,18 +30,19 @@ export async function handlePostHogConnect(
   );
 
   //add the posthog node to reactflow_nodes table
-  const { error: nodeError } = await supabase.from("reactflow_nodes").insert({
-    user_id: userId,
-    node_type: "integration",
-    data: {
-      platform: "posthog",
-      projectId: resolvedProjectId ?? projectId,
-      host: resolvedHost,
-    },
-  }).eq("user_id", userId).eq("node_type", "integration").eq("data->>platform", "posthog");
+  // const { error: nodeError } = await supabase.from("reactflow_nodes").insert({
+  //   user_id: userId,
+  //   node_type: "integration",
+  //   data: {
+  //     platform: "posthog",
+  //     projectId: resolvedProjectId ?? projectId,
+  //     host: resolvedHost,
+  //   },
+  // }).eq("user_id", userId).eq("node_type", "integration").eq("data->>platform", "posthog");
+
+  //if (nodeError) throw new Error(`Failed to save PostHog node: ${nodeError.message}`);
   
   
-  if (nodeError) throw new Error(`Failed to save PostHog node: ${nodeError.message}`);
   if (dbError) throw new Error(`Failed to save PostHog integration: ${dbError.message}`);
 
   await triggerRemoteBackfill(userId, "posthog");

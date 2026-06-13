@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { getHeroCopy, AB_COOKIE } from "@/lib/ab";
+import EmailForm from "@/components/EmailForm";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Integration pill
@@ -140,11 +141,11 @@ function PricingCard({
           </li>
         ))}
       </ul>
-      {highlight ? (
+      {/* {highlight ? (
         <Link href="/signup" className={`block w-full rounded-xl py-3 text-center font-mono text-sm font-semibold uppercase tracking-wider transition-all bg-[#00d4aa] text-[#fafafa] hover:bg-[#00bfa0]`}>{cta}</Link>
       ) : (
         <Link href="/signup" className={`block w-full rounded-xl py-3 text-center font-mono text-sm font-semibold uppercase tracking-wider transition-all text-[#6a6a90] hover:text-[#00d4aa] hover:bg-[#00d4aa]/5`}>{cta}</Link>
-      )}
+      )} */}
     </div>
   );
 }
@@ -279,14 +280,15 @@ export default async function Home() {
               </p>
 
               <div className="mb-8 flex flex-wrap gap-3">
-                <a href="/signup" className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-5 py-3 font-mono text-sm font-semibold uppercase tracking-wider text-[#fafafa] transition-all hover:bg-[#00bfa0] hover:shadow-[0_0_30px_rgba(0,212,170,0.3)] sm:px-6 sm:py-3.5">
+                {/* <a href="/signup" className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-5 py-3 font-mono text-sm font-semibold uppercase tracking-wider text-[#fafafa] transition-all hover:bg-[#00bfa0] hover:shadow-[0_0_30px_rgba(0,212,170,0.3)] sm:px-6 sm:py-3.5">
                   See my dashboard free
                   <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
-                </a>
-                <a href="/preview" className="inline-flex items-center gap-2 rounded-xl border border-[#a78bfa]/40 bg-[#a78bfa]/8 px-5 py-3 font-mono text-sm font-semibold uppercase tracking-wider text-[#a78bfa] transition-all hover:border-[#a78bfa]/70 hover:bg-[#a78bfa]/15 sm:px-6 sm:py-3.5">
+                </a> */}
+                <EmailForm />
+                {/* <a href="/preview" className="inline-flex items-center gap-2 rounded-xl border border-[#a78bfa]/40 bg-[#a78bfa]/8 px-5 py-3 font-mono text-sm font-semibold uppercase tracking-wider text-[#a78bfa] transition-all hover:border-[#a78bfa]/70 hover:bg-[#a78bfa]/15 sm:px-6 sm:py-3.5">
                   <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" /></svg>
                   See live demo
-                </a>
+                </a> */}
               </div>
 
               {/* Risk-zero pills */}
@@ -390,7 +392,7 @@ export default async function Home() {
             <Step
               n={1}
               title="Connect your data sources"
-              description="Link Shopify, WooCommerce, Meta Ads, GA4, PostHog, Klaviyo, Mailchimp, and Stripe in minutes. Secure OAuth connections with read-only access."
+              description="Link Shopify, Meta Ads, GA4, PostHog, Klaviyo, Mailchimp, and Stripe in minutes. Secure OAuth connections with read-only access."
             />
 
             <Step
@@ -663,63 +665,63 @@ export default async function Home() {
 
       {/* ── VALUE COMPARISON ──────────────────────────────────────────────── */}
       <section className="px-6 py-16">
-        <div className="mx-auto max-w-4xl">
-          <div className="rounded-2xl bg-linear-to-b from-[#1a1a2e] to-[#2a2a3e] p-8 text-white">
-            <h3 className="mb-6 text-center font-mono text-xl font-bold">
-              What you'd pay separately
-            </h3>
+  <div className="mx-auto max-w-4xl">
+    <div className="rounded-2xl bg-linear-to-b from-[#1a1a2e] to-[#2a2a3e] p-8 text-white">
+      <h3 className="mb-6 text-center font-mono text-xl font-bold">
+        What you'd pay to find the same leaks
+      </h3>
 
-            <div className="grid gap-4 sm:grid-cols-2 mb-6">
-              <div className="rounded-xl bg-white/5 p-4">
-                <div className="mb-2 flex items-center justify-between">
-                  <span className="font-mono text-sm text-[#bcbcd8]">Triple Whale</span>
-                  <span className="font-mono text-lg font-bold">$129/mo</span>
-                </div>
-                <p className="text-xs text-[#8585aa]">Shopify attribution only — no GA4, no email, no anomaly alerts</p>
-              </div>
-
-              <div className="rounded-xl bg-white/5 p-4">
-                <div className="mb-2 flex items-center justify-between">
-                  <span className="font-mono text-sm text-[#bcbcd8]">Meta Ads agency</span>
-                  <span className="font-mono text-lg font-bold">$500–2K/mo</span>
-                </div>
-                <p className="text-xs text-[#8585aa]">To manage campaigns and tell you which ones are actually profitable</p>
-              </div>
-
-              <div className="rounded-xl bg-white/5 p-4">
-                <div className="mb-2 flex items-center justify-between">
-                  <span className="font-mono text-sm text-[#bcbcd8]">Klaviyo + GA4 analyst</span>
-                  <span className="font-mono text-lg font-bold">$1K–3K/mo</span>
-                </div>
-                <p className="text-xs text-[#8585aa]">To correlate email campaigns with actual revenue and LTV</p>
-              </div>
-
-              <div className="rounded-xl bg-white/5 p-4">
-                <div className="mb-2 flex items-center justify-between">
-                  <span className="font-mono text-sm text-[#bcbcd8]">Your time checking dashboards</span>
-                  <span className="font-mono text-lg font-bold">$1K–2K/mo</span>
-                </div>
-                <p className="text-xs text-[#8585aa]">10 hrs/mo across Shopify, Meta, GA4, Klaviyo × $100–200/hr opportunity cost</p>
-              </div>
-            </div>
-
-            <div className="border-t border-white/10 pt-6 text-center">
-              <p className="mb-2 font-mono text-sm text-[#8585aa]">Total monthly cost:</p>
-              <p className="mb-4 font-mono text-3xl font-bold text-[#f87171]">
-                $2,629 – $7,129<span className="text-lg">/mo</span>
-              </p>
-              <div className="mx-auto h-8 w-px bg-linear-to-b from-white/20 to-transparent"></div>
-              <p className="mt-4 mb-2 font-mono text-sm text-[#8585aa]">Fold replaces all of it:</p>
-              <p className="font-mono text-4xl font-bold text-[#00d4aa]">
-                $19<span className="text-lg">/mo</span>
-              </p>
-              <p className="mt-2 text-xs text-[#8585aa]">
-                That&apos;s a 99%+ cost reduction
-              </p>
-            </div>
+      <div className="grid gap-4 sm:grid-cols-2 mb-6">
+        <div className="rounded-xl bg-white/5 p-4">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="font-mono text-sm text-[#bcbcd8]">CRO agency audit</span>
+            <span className="font-mono text-lg font-bold">$2K–5K</span>
           </div>
+          <p className="text-xs text-[#8585aa]">One-time funnel audit — no ongoing monitoring, leaks come back next week</p>
         </div>
-      </section>
+
+        <div className="rounded-xl bg-white/5 p-4">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="font-mono text-sm text-[#bcbcd8]">FullStory / Hotjar</span>
+            <span className="font-mono text-lg font-bold">$250–500/mo</span>
+          </div>
+          <p className="text-xs text-[#8585aa]">Session recordings you have to watch yourself — no automatic leak detection</p>
+        </div>
+
+        <div className="rounded-xl bg-white/5 p-4">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="font-mono text-sm text-[#bcbcd8]">GA4 + in-house analyst</span>
+            <span className="font-mono text-lg font-bold">$2K–4K/mo</span>
+          </div>
+          <p className="text-xs text-[#8585aa]">To manually build funnel reports, spot drop-offs, and figure out why</p>
+        </div>
+
+        <div className="rounded-xl bg-white/5 p-4">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="font-mono text-sm text-[#bcbcd8]">Your time chasing drop-offs</span>
+            <span className="font-mono text-lg font-bold">$1K–2K/mo</span>
+          </div>
+          <p className="text-xs text-[#8585aa]">10+ hrs/mo clicking through Shopify, GA4, and Klaviyo trying to connect the dots</p>
+        </div>
+      </div>
+
+      <div className="border-t border-white/10 pt-6 text-center">
+        <p className="mb-2 font-mono text-sm text-[#8585aa]">Total monthly cost of finding leaks:</p>
+        <p className="mb-4 font-mono text-3xl font-bold text-[#f87171]">
+          $5,250 – $11,500<span className="text-lg">/mo</span>
+        </p>
+        <div className="mx-auto h-8 w-px bg-linear-to-b from-white/20 to-transparent"></div>
+        <p className="mt-4 mb-2 font-mono text-sm text-[#8585aa]">Fold finds them automatically:</p>
+        <p className="font-mono text-4xl font-bold text-[#00d4aa]">
+          $19<span className="text-lg">/mo</span>
+        </p>
+        <p className="mt-2 text-xs text-[#8585aa]">
+          Continuous funnel monitoring — not a one-time audit
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
 
       {/* ── PRICING ───────────────────────────────────────────────────────── */}
       <section id="pricing" className="relative px-6 py-24 border-t border-[#f0f0f8]">
@@ -763,9 +765,9 @@ export default async function Home() {
                   </li>
                 ))}
               </ul>
-              <a href="/signup" className="block w-full rounded-xl py-3 text-center font-mono text-sm font-semibold uppercase tracking-wider transition-all border border-[#a78bfa]/40 text-[#a78bfa] hover:border-[#a78bfa]/80 hover:bg-[#a78bfa]/10">
+              {/* <a href="/signup" className="block w-full rounded-xl py-3 text-center font-mono text-sm font-semibold uppercase tracking-wider transition-all border border-[#a78bfa]/40 text-[#a78bfa] hover:border-[#a78bfa]/80 hover:bg-[#a78bfa]/10">
                 Start free trial
-              </a>
+              </a> */}
             </div>
 
             {/* Premium card */}
@@ -802,7 +804,9 @@ export default async function Home() {
           </div>
           <p className="mt-5 text-center font-mono text-[11px] text-[#6a6a90]">
             Not ready to commit?{" "}
-            <a href="/signup" className="text-[#00d4aa] hover:underline">Create a free account</a>
+            <a href="/signup" className="text-[#00d4aa] hover:underline">
+              Create a free account
+            </a>
             {" "}to explore the app — you can start your trial any time from inside the dashboard.
           </p>
         </div>
@@ -922,10 +926,11 @@ export default async function Home() {
             Connect your live integrations in minutes. Get a unified dashboard, AI-generated proven funnel fixes, and anomaly alerts, all your data, all in one place.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <a href="/signup" className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-8 py-4 font-mono text-sm font-bold uppercase tracking-wider text-[#fafafa] transition-all hover:bg-[#00bfa0] hover:shadow-[0_0_40px_rgba(0,212,170,0.35)]">
+            {/* <a href="/signup" className="inline-flex items-center gap-2 rounded-xl bg-[#00d4aa] px-8 py-4 font-mono text-sm font-bold uppercase tracking-wider text-[#fafafa] transition-all hover:bg-[#00bfa0] hover:shadow-[0_0_40px_rgba(0,212,170,0.35)]">
               Start 7-day free trial
               <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
-            </a>
+            </a> */}
+            <EmailForm />
             <a href="/login" className="font-mono text-sm text-[#6a6a90] uppercase tracking-widest hover:text-[#1a1a2e] transition-colors">
               Already have an account? Sign in →
             </a>
