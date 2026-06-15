@@ -5,10 +5,13 @@ function createTransporter() {
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST,
     port: Number(process.env.SMTP_PORT ?? 587),
-    secure: process.env.SMTP_SECURE === "true", // true for port 465, false for 587
+    secure: process.env.SMTP_SECURE === "true",
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
+    },
+    tls: {
+      rejectUnauthorized: false, // ignoră erori SSL în dev
     },
   });
 }
@@ -100,14 +103,7 @@ export async function sendConfirmationEmail(email: string, token: string) {
 </html>
   `.trim();
 
-  const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: parseInt(process.env.SMTP_PORT || '587'),
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS
-  }
-  });
+  const transporter = createTransporter();
 
   return await transporter.sendMail({
     from: `"${fromName}" <${fromEmail}>`,

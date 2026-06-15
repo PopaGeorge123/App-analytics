@@ -629,7 +629,7 @@ export default async function Home() {
               {
                 icon: <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" /></svg>,
                 title: `${LIVE_INTEGRATIONS.length} Live Integrations`, color: "#60a5fa",
-                description: `${LIVE_INTEGRATIONS.slice(0, 6).map(i => i.name).join(", ")}, and ${LIVE_INTEGRATIONS.length - 6} more — all via OAuth. Your data starts flowing instantly, no API keys needed.`,
+                description: `${LIVE_INTEGRATIONS.slice(0, 6).map(i => i.name).join(", ")}, and ${LIVE_INTEGRATIONS.length - 6} more — all via OAuth.`,
               },
               {
                 icon: <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>,
@@ -755,7 +755,7 @@ export default async function Home() {
                   "Full analytics per platform",
                   "AI Advisor & daily insights",
                   "Growth Pulse & anomaly detection",
-                  "Cancel anytime — no charge",
+                  "Cancel anytime",
                 ].map((f) => (
                   <li key={f} className="flex items-start gap-3 text-sm text-[#3a3a58]">
                     <svg className="mt-0.5 h-4 w-4 shrink-0 text-[#a78bfa]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -780,11 +780,9 @@ export default async function Home() {
                 "Website conversion audit — find leaks worth $2K-10K/mo",
                 "True ROAS tracking — know which ads actually make money",
                 "AI growth playbooks — custom plans for YOUR data",
-                "Instant alerts via email, Slack, SMS",
+                "Instant alerts via email",
                 "AI chat — ask questions about your own data",
-                "Full 30-day history & trend analysis",
                 "Export & shareable reports",
-                "Priority support",
               ]}
               featureIcons={[
                 <svg key="alert" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>,
